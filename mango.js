@@ -15,36 +15,36 @@
 const F = {
   // คีย์ = ชื่อเดียวกับที่แอปใช้ (MG_COLS) · ชื่อแรก = หัวคอลัมน์ไทยใน Export Project Status Overview (A–AZ) ตรงตัว
   projects: {
-    no: ['เลขที่โครงการ', 'ProjectNo', 'project_no', 'projectCode'],
-    name: ['ชื่อโครงการ', 'ProjectName', 'project_name', 'name'],
-    ref: ['รหัสอ้างอิง', 'RefCode', 'ref_code', 'ReferenceCode'],
-    grp: ['กลุ่ม', 'Group', 'group'],
-    pm: ['ผู้จัดการโครงการ', 'ProjectManager', 'pm'],
-    site: ['วิศวกรประจำไซต์งาน', 'วิศวกรประจำไซต์', 'SiteEngineer'],
-    status: ['สถานะโครงการ', 'Status', 'project_status'],
-    start: ['วันที่เริ่ม', 'StartDate', 'start_date'],
-    end: ['วันที่สิ้นสุด', 'EndDate', 'end_date'],
-    client: ['ลูกค้า', 'CustomerName', 'customer'],
-    contract: ['จำนวนเงินสัญญา', 'ContractAmount', 'contract_amount'],
-    vo: ['มูลค่างานเพิ่มลด', 'VOAmount', 'variation'],
-    total: ['ยอดเงินรวม', 'TotalAmount', 'total'],
-    budget: ['งบประมาณเริ่มต้น', 'Budget'],
-    invoiced: ['ออกใบแจ้งหนี้แล้ว', 'InvoicedAmount', 'invoiced'],
-    invPct: ['Invoiced (%)', 'InvoicedPct'],
-    deliv: ['ส่งมอบงาน', 'Delivered'],
-    remaining: ['เงินคงเหลือในสัญญา', 'Remaining', 'remaining'],
-    cost: ['ต้นทุนบัญชี', 'ActualCost', 'cost'],
-    pl: ['กำไร/ขาดทุนตามบัญชี', 'ProfitLoss', 'pl'],
-    plPct: ['P/L (%)', 'ProfitLossPct', 'pl_pct'],
-    cashIn: ['กระแสเงินสดรับ', 'CashIn', 'cash_in'],
-    cashOut: ['กระแสเงินสดจ่าย', 'CashOut', 'cash_out'],
-    cashNet: ['กระแสเงินสดคงเหลือ', 'CashNet'],
-    arAdv: ['ลูกหนี้เงินรับล่วงหน้า', 'ARAdvance'],
-    ar: ['ลูกหนี้คงค้าง', 'AROutstanding'],
-    arRet: ['ลูกหนี้เงินประกัน', 'ARRetention'],
-    ap: ['เจ้าหนี้คงค้าง', 'APOutstanding', 'ap'],
-    poOpen: ['ใบสั่งซื้อคงค้าง', 'POOutstanding', 'po_open'],
-    subOpen: ['สัญญาจ้างคงค้าง', 'SubcontractOutstanding'],
+    no: ['pre_event', 'pre_event2', 'เลขที่โครงการ', 'ProjectNo', 'project_no', 'projectCode'],
+    name: ['pre_des', 'ชื่อโครงการ', 'ProjectName', 'project_name', 'name'],
+    ref: ['refcode', 'รหัสอ้างอิง', 'RefCode', 'ref_code', 'ReferenceCode'],
+    grp: ['group_name', 'กลุ่ม', 'Group', 'group'],
+    pm: ['pm_name', 'project_manager', 'pm_des', 'ผู้จัดการโครงการ', 'ProjectManager', 'pm'],
+    site: ['site_name', 'site_engineer', 'วิศวกรประจำไซต์งาน', 'วิศวกรประจำไซต์', 'SiteEngineer'],
+    status: ['status_des', 'project_status_des', 'status_project', 'สถานะโครงการ', 'Status', 'project_status'],
+    start: ['proj_start', 'วันที่เริ่ม', 'StartDate', 'start_date'],
+    end: ['proj_end', 'วันที่สิ้นสุด', 'EndDate', 'end_date'],
+    client: ['cus_name', 'customer_name', 'cust_des', 'cus_des', 'customer', 'ลูกค้า', 'CustomerName', 'customer'],
+    contract: ['contract_amt', 'จำนวนเงินสัญญา', 'ContractAmount', 'contract_amount'],
+    vo: ['vo_amt', 'มูลค่างานเพิ่มลด', 'VOAmount', 'variation'],
+    total: ['total_amt', 'ยอดเงินรวม', 'TotalAmount', 'total'],
+    budget: ['budget_amt', 'งบประมาณเริ่มต้น', 'Budget'],
+    invoiced: ['invoice_amt', 'inv_amt', 'invoiced_amt', 'ออกใบแจ้งหนี้แล้ว', 'InvoicedAmount', 'invoiced'],
+    invPct: ['invoice_per', 'inv_per', 'Invoiced (%)', 'InvoicedPct'],
+    deliv: ['delivery_amt', 'deliver_amt', 'ส่งมอบงาน', 'Delivered'],
+    remaining: ['remain_amt', 'balance_amt', 'contract_bal', 'เงินคงเหลือในสัญญา', 'Remaining', 'remaining'],
+    cost: ['cost_ac', 'ต้นทุนบัญชี', 'ActualCost', 'cost'],
+    pl: ['profit_loss_ac', 'กำไร/ขาดทุนตามบัญชี', 'ProfitLoss', 'pl'],
+    plPct: ['profit_loss_per', 'pl_per', 'P/L (%)', 'ProfitLossPct', 'pl_pct'],
+    cashIn: ['cash_in', 'กระแสเงินสดรับ', 'CashIn', 'cash_in'],
+    cashOut: ['cash_out', 'กระแสเงินสดจ่าย', 'CashOut', 'cash_out'],
+    cashNet: ['cash_bal', 'กระแสเงินสดคงเหลือ', 'CashNet'],
+    arAdv: ['ar_advance', 'ar_adv', 'ลูกหนี้เงินรับล่วงหน้า', 'ARAdvance'],
+    ar: ['ar_ageing', 'ลูกหนี้คงค้าง', 'AROutstanding'],
+    arRet: ['ar_retention', 'ar_ret', 'ลูกหนี้เงินประกัน', 'ARRetention'],
+    ap: ['ap_ageing', 'เจ้าหนี้คงค้าง', 'APOutstanding', 'ap'],
+    poOpen: ['po_bal', 'po_outstanding', 'ใบสั่งซื้อคงค้าง', 'POOutstanding', 'po_open'],
+    subOpen: ['sub_bal', 'subcon_outstanding', 'สัญญาจ้างคงค้าง', 'SubcontractOutstanding'],
   },
   pr: {
     no: ['PRNo', 'pr_no', 'DocNo', 'เลขที่ใบขอซื้อ'],
@@ -116,13 +116,15 @@ export default async function handler(req, res) {
   if (!path) return res.status(200).json({ ok: false, configured: true, error: 'ยังไม่ได้ตั้ง MANGO_PATH_' + type.toUpperCase() });
 
   const u = new URL(base + path);
-  for (const k of ['from', 'to', 'project']) if (req.query[k]) u.searchParams.set(k, String(req.query[k]));
+  for (const k of ['from', 'to', 'project', 'process_date', 'field', 'text']) if (req.query[k]) u.searchParams.set(k, String(req.query[k]));
+  if (type === 'projects') u.searchParams.set('status_project', String(req.query.status_project || '0'));   // 0 = ทั้งหมด (Active + Closed) ให้ครบเหมือนไฟล์ Export
   try {
     const r = await fetch(u.toString(), { headers: { Authorization: 'Bearer ' + bearer, Accept: 'application/json' } });
     const txt = await r.text(); let j; try { j = JSON.parse(txt); } catch (e) { j = null; }
     if (!r.ok || !j) return res.status(200).json({ ok: false, configured: true, status: r.status, error: 'Mango ตอบกลับผิดรูปแบบ', sample: txt.slice(0, 300) });
     const list = rowsOf(j);
-    const out = { ok: true, type, at: new Date().toISOString(), count: list.length, rows: norm(type, list) };
+    if (j && j.success === false) return res.status(200).json({ ok: false, configured: true, step: 'data', error: 'Mango: ' + (j.error || 'ไม่สำเร็จ') });
+    const out = { ok: true, type, at: (j && j.data && j.data.process_dt) || new Date().toISOString(), count: list.length, rows: norm(type, list) };
     if (req.query.debug === '1') { out.raw = list.slice(0, 3); out.keys = list[0] ? Object.keys(list[0]) : []; out.top = Array.isArray(j) ? 'array' : Object.keys(j || {}); }
     return res.status(200).json(out);
   } catch (e) {
