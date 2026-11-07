@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.0.0';
+const QM_VER = 'v1.1.0';
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -302,25 +302,81 @@ function renderPick() {
         h.push(`<button class="card" data-qs="${esc(d.id)}" data-page="${p}"><div class="row1"><span class="nm">${esc(drawingTitle(d, p))}</span>${d.revision ? `<span class="tag t-submitted">${esc(d.revision)}</span>` : ''}</div>
           <div class="row2">${d.floor_label ? esc(d.floor_label) + ' · ' : ''}${zn} โซน · ${sc.mm ? '<span class="tag t-accepted">สเกลจาก QS</span>' : '<span class="tag t-returned">ยังไม่ตั้งสเกล</span>'}</div></button>`); } });
   }
-  h.push('<div class="sec">รูป / แบบที่อัปโหลดเอง</div>');
+  h.push('<div class="sec">รูป / แบบที่อัปโหลดเอง · แก้ชื่อ / เพิ่มหน้า / ลบ ได้</div>');
   if (!APP.sheets.length) h.push('<p class="empty" style="padding:12px">ยังไม่มี</p>');
-  APP.sheets.forEach(s => h.push(`<button class="card" data-up="${esc(s.id)}"><div class="row1"><span class="nm">${esc(s.name || 'รูปที่อัปโหลด')}</span></div>
-    <div class="row2">${esc(when(s.created_at))} · ${esc(s.created_by || '')} · ${s.mm_per_px ? '<span class="tag t-submitted">ตั้งสเกลแล้ว</span>' : '<span class="tag t-returned">ยังไม่ตั้งสเกล</span>'}</div></button>`));
+  [...APP.sheets].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')) || String(a.storage_path || '').localeCompare(String(b.storage_path || '')) || (a.page || 0) - (b.page || 0)).forEach(s => {
+    const nM = APP.rows.filter(r => r.sheet_id === s.id).length;
+    h.push(`<div class="upw"><button class="card" data-up="${esc(s.id)}"><div class="row1"><span class="nm">${esc(s.name || 'รูปที่อัปโหลด')}</span></div>
+    <div class="row2">${esc(when(s.created_at))} · ${esc(s.created_by || '')} · ${s.mm_per_px ? '<span class="tag t-submitted">ตั้งสเกลแล้ว</span>' : '<span class="tag t-returned">ยังไม่ตั้งสเกล</span>'}${nM ? ' · วัดแล้ว ' + nM + ' รายการ' : ''}</div></button>
+    <div class="upa"><button class="chip" data-ren="${esc(s.id)}">✎ แก้ชื่อ</button>${isPdfSheet(s) ? `<button class="chip" data-addpg="${esc(s.id)}">+ เพิ่มหน้าจากไฟล์นี้</button>` : ''}<button class="chip del" data-del="${esc(s.id)}">🗑 ลบ</button></div></div>`); });
   $('pickBody').innerHTML = h.join('');
 }
 $('pickBody').addEventListener('click', (e) => {
   if (e.target.closest('#btnUp')) { $('upFile').value = ''; $('upFile').click(); return; }
+  const rn = e.target.closest('[data-ren]'); if (rn) { renameSheet(rn.dataset.ren); return; }
+  const dl = e.target.closest('[data-del]'); if (dl) { delSheet(dl.dataset.del); return; }
+  const ap = e.target.closest('[data-addpg]'); if (ap) { addPages(ap.dataset.addpg); return; }
   const q = e.target.closest('[data-qs]');
   if (q) { const d = (APP.feed.drawings || []).find(x => x.id === q.dataset.qs); show('measure', true); MV.open(qsSrc(d, +q.dataset.page)); return; }
   const u = e.target.closest('[data-up]');
   if (u) { show('measure', true); MV.open(upSrc(APP.sheets.find(s => s.id === u.dataset.up))); }
 });
-// อัปโหลด: รูปถูกย่อด้านยาวไม่เกิน 4096 px ก่อนส่ง (ประหยัดเน็ตหน้างาน) · PDF ส่งทั้งไฟล์ ใช้หน้า 1
+// อัปโหลด: รูปถูกย่อด้านยาวไม่เกิน 4096 px ก่อนส่ง (ประหยัดเน็ตหน้างาน)
+// v1.1.0 PDF → เลือกหน้าได้ (หน้าเดียว / หลายหน้า / ช่วงหน้า) · แต่ละหน้าที่เลือก = แบบแยก 1 รายการ (ไฟล์เดียวกัน คนละ page)
+//        แก้ชื่อ / เพิ่มหน้าจากไฟล์เดิม / ลบแบบ ได้ตลอดหลังนำเข้า
+const pdfOf = async (blob) => pdfjsLib.getDocument({ data: await blob.arrayBuffer() }).promise;
+const sheetBase = (s) => String((s && s.name) || '').replace(/\s+·\s+หน้า\s+\d+$/, '');
+const isPdfSheet = (s) => /pdf/i.test((s && s.mime_type) || '') || /\.pdf$/i.test((s && s.storage_path) || '');
+const pgRange = (t, n) => { const o = {}; String(t || '').split(/[,\s]+/).forEach(x => { const m = x.match(/^(\d+)(?:-(\d+))?$/); if (!m) return;
+  let a = +m[1], b = m[2] ? +m[2] : a; if (a > b) [a, b] = [b, a]; for (let p = Math.max(1, a); p <= Math.min(n, b); p++) o[p - 1] = true; }); return o; };
+// หน้าต่างเลือกหน้า PDF → คืน [page index เริ่ม 0] หรือ null ถ้ายกเลิก · have = หน้าที่นำเข้าแล้ว
+function pickPages(title, doc, have) {
+  have = have || {}; const n = doc.numPages;
+  if (n <= 1 && !have[0]) return Promise.resolve([0]);
+  return new Promise(res => {
+    const dlg = $('dlgPages'), grid = $('pgGrid'), sel = {}, tok = { dead: false };
+    for (let p = 0; p < n; p++) if (!have[p]) sel[p] = n <= 12;
+    const nHave = Object.keys(have).length;
+    $('pgTitle').textContent = 'เลือกหน้าที่จะนำเข้า · ' + title; $('pgRange').value = '';
+    grid.innerHTML = Array.from({ length: n }, (_, p) => `<button type="button" class="pg${have[p] ? ' had' : ''}" data-pg="${p}"><span class="th"><img alt="" hidden><i>กำลังโหลด…</i></span><b>หน้า ${p + 1}</b><em>${have[p] ? 'มีแล้ว' : '✓'}</em></button>`).join('');
+    const draw = () => { const k = Object.keys(sel).filter(p => sel[p]).length;
+      $('pgSub').textContent = n + ' หน้า' + (nHave ? ' · นำเข้าแล้ว ' + nHave + ' หน้า' : '') + ' · เลือกแล้ว ' + k + ' หน้า — แตะรูปเพื่อเลือก / ยกเลิก';
+      $('pgOk').textContent = k ? '✓ Confirm นำเข้า ' + k + ' หน้า' : 'เลือกหน้าก่อน'; $('pgOk').disabled = !k;
+      grid.querySelectorAll('[data-pg]').forEach(b => b.classList.toggle('on', !!sel[+b.dataset.pg])); };
+    const done = (v) => { if (tok.dead) return; tok.dead = true; try { dlg.close(); } catch (e) {} res(v); };
+    const setAll = (fn) => { for (let p = 0; p < n; p++) if (!have[p]) sel[p] = fn(p); draw(); };
+    grid.onclick = (e) => { const b = e.target.closest('[data-pg]'); if (!b) return; const p = +b.dataset.pg; if (have[p]) return; sel[p] = !sel[p]; draw(); };
+    $('pgAll').onclick = () => setAll(() => true);
+    $('pgNone').onclick = () => setAll(() => false);
+    const goRange = () => { const r = pgRange($('pgRange').value, n); if (!Object.keys(r).length) { toast('พิมพ์เลขหน้า เช่น 1-3, 5, 8'); return; } setAll(p => !!r[p]); };
+    $('pgGo').onclick = goRange;
+    $('pgRange').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); goRange(); } };
+    $('pgCancel').onclick = () => done(null);
+    dlg.oncancel = (e) => { e.preventDefault(); done(null); };
+    $('pgOk').onclick = () => { const ps = Object.keys(sel).filter(p => sel[p]).map(Number).sort((a, b) => a - b);
+      if (!ps.length) return; if (ps.length > 80) { toast('เลือกได้ครั้งละไม่เกิน 80 หน้า (เลือกไว้ ' + ps.length + ')', 4000); return; } done(ps); };
+    draw(); dlg.showModal();
+    (async () => { for (let p = 0; p < Math.min(n, 150); p++) { if (tok.dead) return;
+      try { const pg = await doc.getPage(p + 1), v1 = pg.getViewport({ scale: 1 }), v = pg.getViewport({ scale: 200 / Math.max(v1.width, v1.height) });
+        const c = document.createElement('canvas'); c.width = Math.round(v.width); c.height = Math.round(v.height); const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+        await pg.render({ canvasContext: g, viewport: v }).promise; const b = grid.querySelector(`[data-pg="${p}"]`); if (!b) continue;
+        const im = b.querySelector('img'); im.src = c.toDataURL('image/jpeg', .72); im.hidden = false; b.querySelector('i').hidden = true; } catch (e) {} } })();
+  });
+}
 $('upFile').addEventListener('change', async () => {
   const f = $('upFile').files[0]; if (!f) return;
   const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
   if (!isPdf && !/^image\//.test(f.type)) { toast('รองรับเฉพาะรูปภาพ หรือ PDF'); return; }
-  const name = prompt('ตั้งชื่อแบบ / รูปนี้', f.name.replace(/\.[^.]+$/, '')); if (name === null) return;
+  let doc = null, pages = [0];
+  if (isPdf) {
+    toast('กำลังเปิด PDF…', 30000);
+    try { doc = await pdfOf(f); } catch (e) { console.error(e); toast('เปิด PDF ไม่ได้: ' + ((e && e.message) || e), 5000); return; }
+    $('toast').hidden = true;
+    pages = await pickPages(f.name, doc, {}); if (!pages || !pages.length) return;
+  }
+  const multi = !!(doc && doc.numPages > 1);
+  const name = prompt(multi ? 'ตั้งชื่อชุดแบบ (แต่ละหน้าจะต่อท้าย “· หน้า N”)' : 'ตั้งชื่อแบบ / รูปนี้', f.name.replace(/\.[^.]+$/, '')); if (name === null) return;
+  const base = (name || '').trim() || f.name.replace(/\.[^.]+$/, '');
   toast('กำลังอัปโหลด…', 30000);
   try {
     let blob = f, ext = isPdf ? 'pdf' : 'jpg', mime = isPdf ? 'application/pdf' : 'image/jpeg';
@@ -328,13 +384,49 @@ $('upFile').addEventListener('change', async () => {
     const key = 'quick-measure/' + APP.pid.replace(/[^\w-]/g, '_') + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
     const up = await sb.storage.from(UP_BUCKET).upload(key, blob, { contentType: mime, upsert: false });
     if (up.error) throw up.error;
-    const ins = await sb.from('takeoff_field_sheets').insert({ pm_project_id: APP.pid, name: (name || '').trim() || f.name, storage_path: key, mime_type: mime, page: 0, created_by: APP.me.name, created_email: APP.me.email }).select('*');
+    const recs = pages.map(p => ({ pm_project_id: APP.pid, name: multi ? base + ' · หน้า ' + (p + 1) : base, storage_path: key, mime_type: mime, page: p, created_by: APP.me.name, created_email: APP.me.email }));
+    const ins = await sb.from('takeoff_field_sheets').insert(recs).select('*');
     if (ins.error) { sb.storage.from(UP_BUCKET).remove([key]); throw ins.error; }
-    APP.sheets.unshift(ins.data[0]); APP.bin['up:' + ins.data[0].id] = blob;
-    toast('อัปโหลดแล้ว — ขั้นแรก ตั้งสเกล', 3000);
-    show('measure', true); MV.open(upSrc(ins.data[0]));
+    const got = (ins.data || []).slice().sort((a, b) => (a.page || 0) - (b.page || 0));
+    got.forEach(s => { APP.bin['up:' + s.id] = blob; }); APP.sheets.unshift(...got);
+    if (got.length === 1) { toast('อัปโหลดแล้ว — ขั้นแรก ตั้งสเกล', 3000); show('measure', true); MV.open(upSrc(got[0])); }
+    else { renderPick(); toast('นำเข้าแล้ว ' + got.length + ' หน้า — แตะหน้าที่จะวัด (ตั้งสเกลแต่ละหน้า)', 4000); }
   } catch (e) { console.error(e); toast('อัปโหลดไม่สำเร็จ: ' + ((e && e.message) || e), 5000); }
 });
+// ---- จัดการแบบที่อัปโหลดเอง: แก้ชื่อ / เพิ่มหน้า / ลบ ----
+async function renameSheet(id) {
+  const s = APP.sheets.find(x => x.id === id); if (!s) return;
+  const v = prompt('ชื่อแบบ', s.name || ''); if (v === null) return; const nm = v.trim(); if (!nm || nm === s.name) return;
+  const r = await sb.from('takeoff_field_sheets').update({ name: nm }).eq('id', id).select('*');
+  if (r.error) { toast('แก้ชื่อไม่สำเร็จ: ' + r.error.message, 4000); return; }
+  Object.assign(s, (r.data && r.data[0]) || { name: nm }); renderPick(); toast('แก้ชื่อแล้ว');
+}
+async function delSheet(id) {
+  const s = APP.sheets.find(x => x.id === id); if (!s) return;
+  const n = APP.rows.filter(r => r.sheet_id === id).length;
+  if (n) { alert('ลบไม่ได้ — มีรายการวัด ' + n + ' รายการบนแบบ “' + (s.name || '') + '”\nลบรายการวัดเหล่านั้นก่อน แล้วค่อยลบแบบ'); return; }
+  if (!confirm('ลบแบบ “' + (s.name || '') + '”?')) return;
+  const r = await sb.from('takeoff_field_sheets').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+  if (r.error) { toast('ลบไม่สำเร็จ: ' + r.error.message, 4000); return; }
+  APP.sheets = APP.sheets.filter(x => x.id !== id); delete APP.bin['up:' + id]; renderPick(); toast('ลบแบบแล้ว');
+}
+async function addPages(id) {
+  const s0 = APP.sheets.find(x => x.id === id); if (!s0) return;
+  const grp = APP.sheets.filter(x => x.storage_path === s0.storage_path); const have = {}; grp.forEach(x => { have[x.page || 0] = true; });
+  toast('กำลังเปิด PDF…', 30000); let blob, doc;
+  try { blob = APP.bin['up:' + id]; if (!blob) { const r = await sb.storage.from(UP_BUCKET).download(s0.storage_path); if (r.error) throw r.error; blob = r.data; } doc = await pdfOf(blob); }
+  catch (e) { console.error(e); toast('เปิดไฟล์ไม่ได้: ' + ((e && e.message) || e), 5000); return; }
+  $('toast').hidden = true;
+  if (Object.keys(have).length >= doc.numPages) { toast('นำเข้าครบทุกหน้าของไฟล์นี้แล้ว'); return; }
+  const base = sheetBase(grp.find(x => /\s+·\s+หน้า\s+\d+$/.test(x.name || '')) || s0);
+  const pages = await pickPages(base, doc, have); if (!pages || !pages.length) return;
+  toast('กำลังเพิ่มหน้า…', 30000);
+  const recs = pages.map(p => ({ pm_project_id: APP.pid, name: base + ' · หน้า ' + (p + 1), storage_path: s0.storage_path, mime_type: s0.mime_type || 'application/pdf', page: p, created_by: APP.me.name, created_email: APP.me.email }));
+  const ins = await sb.from('takeoff_field_sheets').insert(recs).select('*');
+  if (ins.error) { toast('เพิ่มหน้าไม่สำเร็จ: ' + ins.error.message, 5000); return; }
+  (ins.data || []).forEach(s => { APP.bin['up:' + s.id] = blob; }); APP.sheets.unshift(...(ins.data || []));
+  renderPick(); toast('เพิ่มแล้ว ' + recs.length + ' หน้า — ตั้งสเกลแต่ละหน้าก่อนวัด', 3500);
+}
 async function shrinkImage(f) {
   const bmp = await createImageBitmap(f, { imageOrientation: 'from-image' }).catch(() => null);
   if (!bmp) return f;
