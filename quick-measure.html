@@ -81,6 +81,7 @@ label.f textarea{min-height:72px;resize:vertical}
 .kv dt{color:var(--mut)} .kv dd{margin:0}
 .toast{position:fixed;left:50%;bottom:calc(110px + var(--safe-b));transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:12px;padding:10px 16px;font-size:14px;z-index:99;max-width:90vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.2)}
 .ver{font-size:11px;color:var(--mut);text-align:center;margin-top:6px}
+.btn:disabled,.chip:disabled{opacity:.4}
 /* v1.1.0 เลือกหน้า PDF · จัดการแบบที่อัปโหลด */
 .pgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
 .pg{position:relative;display:flex;flex-direction:column;gap:4px;align-items:stretch;border:2px solid var(--line);background:#fff;border-radius:12px;padding:5px;font:inherit;color:var(--ink)}
@@ -142,8 +143,9 @@ label.f textarea{min-height:72px;resize:vertical}
   <div class="cvw" id="cvw"><canvas id="cv"></canvas><div class="hint" id="mHint"></div></div>
   <div class="sheet">
     <div class="big"><b id="mQty">—</b><span id="mUnit"></span><em id="mPer"></em></div>
-    <div class="g3">
-      <button class="btn" id="btnUndo">ย้อนจุด</button>
+    <div class="g3" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <button class="btn" id="btnUndo" data-his="u" title="ย้อน (Ctrl+Z)">↶ ย้อน</button>
+      <button class="btn" id="btnRedo" data-his="r" title="ทำซ้ำ (Ctrl+Y)">↷ ทำซ้ำ</button>
       <button class="btn" id="btnZoom">ซูม</button>
       <button class="btn pri" id="btnSave">บันทึก</button>
     </div>

@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.1.0';
+const QM_VER = 'v1.2.0';
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -58,13 +58,56 @@ function toPm() { if (document.referrer && new URL(document.referrer).origin ===
 // ---------- state ----------
 const APP = { acc: null, me: null, projects: [], pid: null, proj: null, feed: null, set: null, rows: [], sheets: [], noTable: false, filter: 'mine', screen: 'msg', pushed: 0, bin: {} };
 
+// ---------- v1.2.0 ย้อน / ทำซ้ำ ทุกการแก้ไข · Ctrl+Z = ย้อน · Ctrl+Y (หรือ Ctrl+Shift+Z) = ทำซ้ำ · มือถือใช้ปุ่ม ↶ / ↷ ----------
+//   kind 'draw' = จุดบนแบบที่กำลังวาด (ล้างเมื่อออกจากหน้าวัด/เปิดแบบอื่น) · kind 'act' = ข้อมูลที่บันทึกแล้ว (ย้อนแก้ฐานข้อมูลจริง)
+const HIS = { u: [], r: [], busy: false };
+function hisBtns() { document.querySelectorAll('[data-his]').forEach(b => { b.disabled = HIS.busy || !(b.dataset.his === 'r' ? HIS.r.length : HIS.u.length); }); }
+function hisPush(e) { HIS.u.push(e); if (HIS.u.length > 300) HIS.u.shift(); HIS.r = []; hisBtns(); }
+function hisDrop(fn) { HIS.u = HIS.u.filter(e => !fn(e)); HIS.r = HIS.r.filter(e => !fn(e)); hisBtns(); }
+async function hisGo(redo) {
+  if (HIS.busy) return; const A = redo ? HIS.r : HIS.u, B = redo ? HIS.u : HIS.r; const e = A.pop();
+  if (!e) { toast(redo ? 'ไม่มีอะไรให้ทำซ้ำ' : 'ไม่มีอะไรให้ย้อนแล้ว', 1400); hisBtns(); return; }
+  HIS.busy = true; hisBtns();
+  try { const ok = await (redo ? e.redo() : e.undo()); if (ok === false) throw new Error('สถานะเปลี่ยนไปแล้ว'); B.push(e); if (!e.quiet) toast((redo ? '↷ ทำซ้ำ: ' : '↶ ย้อน: ') + e.label, 1800); }
+  catch (x) { console.error(x); toast((redo ? 'ทำซ้ำ' : 'ย้อน') + 'ไม่สำเร็จ — ' + ((x && x.message) || x), 4000); }
+  HIS.busy = false; hisBtns();
+}
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return; const k = String(e.key || '').toLowerCase(); if (k !== 'z' && k !== 'y') return;
+  const t = e.target; if (t && (/^(input|textarea|select)$/i.test(t.tagName) || t.isContentEditable)) return;   // ในช่องพิมพ์ = ย้อนตัวอักษรตามปกติ
+  if (document.querySelector('dialog[open]')) return;
+  e.preventDefault(); hisGo(k === 'y' || e.shiftKey);
+});
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-his]'); if (b && !b.disabled) hisGo(b.dataset.his === 'r'); });
+// แก้แถว takeoff_field_measures แล้วซิงก์ APP.rows (ใช้ทั้งงานปกติและการย้อน/ทำซ้ำ)
+async function rowSet(id, patch) {
+  const q = await sb.from('takeoff_field_measures').update(patch).eq('id', id).select('*');
+  if (q.error) throw q.error; const n = q.data && q.data[0]; if (!n) throw new Error('ไม่พบรายการ');
+  const i = APP.rows.findIndex(x => x.id === id);
+  if (n.deleted_at) { if (i >= 0) APP.rows.splice(i, 1); } else if (i >= 0) APP.rows[i] = n; else APP.rows.unshift(n);
+  if (APP.screen === 'list') renderList(); return n;
+}
+// แก้แถว takeoff_field_sheets แล้วซิงก์ APP.sheets
+async function sheetSet(ids, patch) {
+  const q = await sb.from('takeoff_field_sheets').update(patch).in('id', ids).select('*');
+  if (q.error) throw q.error;
+  (q.data || []).forEach(n => { const i = APP.sheets.findIndex(x => x.id === n.id);
+    if (n.deleted_at) { if (i >= 0) APP.sheets.splice(i, 1); } else if (i >= 0) APP.sheets[i] = n; else APP.sheets.unshift(n); });
+  if (APP.screen === 'pick') renderPick();
+  if (patch.deleted_at && APP.screen === 'measure' && ids.some(id => MV.key() === 'up:' + id)) { renderPick(); show('pick'); }
+  return q.data || [];
+}
+const measuresOn = (ids) => APP.rows.filter(r => ids.includes(r.sheet_id)).length;
+
 // ---------- screens + ปุ่มย้อนกลับของมือถือ ----------
 const SCR = ['msg', 'proj', 'list', 'pick', 'measure'];
 function show(s, push) {
   SCR.forEach(k => { $('scr' + k[0].toUpperCase() + k.slice(1)).hidden = k !== s; });
   if (push) { history.pushState({ qm: s }, ''); APP.pushed++; }
   APP.screen = s;
+  if (s !== 'measure') hisDrop(e => e.kind === 'draw');
   if (s === 'measure') { requestAnimationFrame(() => { MV.resize(); }); }
+  hisBtns();
 }
 window.addEventListener('popstate', (e) => {
   const s = (e.state && e.state.qm) || (APP.pid ? 'list' : (APP.acc ? 'proj' : 'msg'));
@@ -191,7 +234,7 @@ function renderList() {
   if (APP.noTable) h.push('<div class="note">ยังใช้งานไม่ได้: ผู้ดูแลระบบต้องรัน SQL <b>supabase-quick-measure.sql</b> ก่อน</div>');
   if (!S.allow_quick_measure) h.push('<div class="info">Admin ปิด Quick Measure ของโครงการนี้ไว้ — ดูรายการเดิมได้ แต่วัดเพิ่มไม่ได้</div>');
   h.push(`<div class="chips" role="tablist"><button class="chip${APP.filter === 'mine' ? ' on' : ''}" data-f="mine">ของฉัน</button><button class="chip${APP.filter === 'all' ? ' on' : ''}" data-f="all">ทุกคน</button>
-    <button class="chip" data-f="reload" aria-label="โหลดใหม่">↻ โหลดใหม่</button></div>`);
+    <button class="chip" data-f="reload" aria-label="โหลดใหม่">↻ โหลดใหม่</button><button class="chip" data-his="u" title="ย้อน (Ctrl+Z)">↶ ย้อน</button><button class="chip" data-his="r" title="ทำซ้ำ (Ctrl+Y)">↷ ทำซ้ำ</button></div>`);
   if (!rows.length) h.push('<p class="empty">ยังไม่มีรายการ — กด “+ วัดเพิ่ม” เพื่อเริ่มวัด</p>');
   rows.forEach(r => {
     const role = ROLE_TH[r.created_role] || r.created_role || '';
@@ -216,6 +259,7 @@ function renderList() {
   $('btnSubmit').textContent = 'ส่งให้ QS ตรวจ' + (pend ? ' (' + pend + ')' : '');
   $('btnSubmit').disabled = APP.noTable;
   $('btnNew').hidden = !S.allow_quick_measure || APP.noTable;
+  hisBtns();
 }
 $('listBody').addEventListener('click', async (e) => {
   const f = e.target.closest('[data-f]');
@@ -231,7 +275,12 @@ $('btnSubmit').addEventListener('click', async () => {
   const r = await sb.from('takeoff_field_measures').update({ status: 'submitted', submitted_by: APP.me.name, submitted_at: now }).in('id', L.map(x => x.id)).select('*');
   if (r.error) { toast('ส่งไม่สำเร็จ: ' + r.error.message, 4000); return; }
   (r.data || []).forEach(n => { const i = APP.rows.findIndex(x => x.id === n.id); if (i >= 0) APP.rows[i] = n; });
-  renderList(); toast(`ส่ง ${L.length} รายการให้ QS ตรวจแล้ว`);
+  const prev = L.map(x => ({ id: x.id, status: x.status, submitted_by: x.submitted_by || null, submitted_at: x.submitted_at || null }));
+  hisPush({ kind: 'act', label: 'ส่ง QS ' + prev.length + ' รายการ',
+    undo: async () => { for (const p of prev) { const c = APP.rows.find(x => x.id === p.id); if (c && c.status !== 'submitted') throw new Error('QS ตรวจรายการแล้ว ย้อนไม่ได้'); }
+      for (const p of prev) await rowSet(p.id, { status: p.status, submitted_by: p.submitted_by, submitted_at: p.submitted_at }); },
+    redo: async () => { const t = new Date().toISOString(); for (const p of prev) await rowSet(p.id, { status: 'submitted', submitted_by: APP.me.name, submitted_at: t }); } });
+  renderList(); toast(`ส่ง ${L.length} รายการให้ QS ตรวจแล้ว · ส่งผิดกด ↶ ย้อน (Ctrl+Z)`);
 });
 
 // ---------- รายละเอียด 1 รายการ ----------
@@ -259,10 +308,12 @@ function openRow(id) {
     const v = d.returnValue; d.onclose = null;
     if (v === 'accept' || v === 'return') {
       if (v === 'return' && !$('rwQsNote').value.trim()) { toast('ใส่หมายเหตุว่าต้องแก้อะไร ก่อนส่งกลับ'); setTimeout(() => openRow(id), 50); return; }
-      await patchRow(r, { status: v === 'accept' ? 'accepted' : 'returned', reviewed_by: APP.me.name, reviewed_at: new Date().toISOString(), qs_note: $('rwQsNote').value.trim() || null });
+      const patch = { status: v === 'accept' ? 'accepted' : 'returned', reviewed_by: APP.me.name, reviewed_at: new Date().toISOString(), qs_note: $('rwQsNote').value.trim() || null };
+      const before = { status: r.status, reviewed_by: r.reviewed_by || null, reviewed_at: r.reviewed_at || null, qs_note: r.qs_note || null };
+      if (await patchRow(r, patch)) hisPush({ kind: 'act', label: (v === 'accept' ? 'QS รับ ' : 'ส่งกลับ ') + rowLabel(r), undo: () => rowSet(r.id, before), redo: () => rowSet(r.id, patch) });
     } else if (v === 'del') {
       if (!confirm('ลบรายการ “' + rowLabel(r) + '”?')) return;
-      await patchRow(r, { deleted_at: new Date().toISOString() }, true);
+      if (await patchRow(r, { deleted_at: new Date().toISOString() }, true)) hisPush({ kind: 'act', label: 'ลบ ' + rowLabel(r), undo: () => rowSet(r.id, { deleted_at: null }), redo: () => rowSet(r.id, { deleted_at: new Date().toISOString() }) });
     } else if (v === 'view') {
       const src = r.source === 'qs' ? qsSrc((APP.feed.drawings || []).find(x => x.id === r.qs_file_id), r.page) : upSrc(APP.sheets.find(s => s.id === r.sheet_id));
       if (!src) { toast('ไม่พบแบบของรายการนี้แล้ว (อาจถูกแทนด้วย Rev. ใหม่)'); return; }
@@ -272,10 +323,10 @@ function openRow(id) {
 }
 async function patchRow(r, patch, remove) {
   const q = await sb.from('takeoff_field_measures').update(patch).eq('id', r.id).select('*');
-  if (q.error) { toast('บันทึกไม่สำเร็จ: ' + q.error.message, 4000); return; }
+  if (q.error) { toast('บันทึกไม่สำเร็จ: ' + q.error.message, 4000); return false; }
   const i = APP.rows.findIndex(x => x.id === r.id);
-  if (remove) APP.rows.splice(i, 1); else if (q.data && q.data[0]) APP.rows[i] = q.data[0];
-  renderList(); toast(remove ? 'ลบแล้ว' : 'บันทึกแล้ว');
+  if (remove) { if (i >= 0) APP.rows.splice(i, 1); } else if (q.data && q.data[0] && i >= 0) APP.rows[i] = q.data[0];
+  renderList(); toast((remove ? 'ลบแล้ว' : 'บันทึกแล้ว') + ' · กด ↶ ย้อน (Ctrl+Z) ได้'); return true;
 }
 
 // =====================================================================
@@ -302,14 +353,14 @@ function renderPick() {
         h.push(`<button class="card" data-qs="${esc(d.id)}" data-page="${p}"><div class="row1"><span class="nm">${esc(drawingTitle(d, p))}</span>${d.revision ? `<span class="tag t-submitted">${esc(d.revision)}</span>` : ''}</div>
           <div class="row2">${d.floor_label ? esc(d.floor_label) + ' · ' : ''}${zn} โซน · ${sc.mm ? '<span class="tag t-accepted">สเกลจาก QS</span>' : '<span class="tag t-returned">ยังไม่ตั้งสเกล</span>'}</div></button>`); } });
   }
-  h.push('<div class="sec">รูป / แบบที่อัปโหลดเอง · แก้ชื่อ / เพิ่มหน้า / ลบ ได้</div>');
+  h.push('<div class="sec" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="flex:1 1 180px">รูป / แบบที่อัปโหลดเอง · แก้ชื่อ / เพิ่มหน้า / ลบ ได้</span><button class="chip" data-his="u" title="ย้อน (Ctrl+Z)" style="min-height:34px;font-size:13px">↶ ย้อน</button><button class="chip" data-his="r" title="ทำซ้ำ (Ctrl+Y)" style="min-height:34px;font-size:13px">↷ ทำซ้ำ</button></div>');
   if (!APP.sheets.length) h.push('<p class="empty" style="padding:12px">ยังไม่มี</p>');
   [...APP.sheets].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')) || String(a.storage_path || '').localeCompare(String(b.storage_path || '')) || (a.page || 0) - (b.page || 0)).forEach(s => {
     const nM = APP.rows.filter(r => r.sheet_id === s.id).length;
     h.push(`<div class="upw"><button class="card" data-up="${esc(s.id)}"><div class="row1"><span class="nm">${esc(s.name || 'รูปที่อัปโหลด')}</span></div>
     <div class="row2">${esc(when(s.created_at))} · ${esc(s.created_by || '')} · ${s.mm_per_px ? '<span class="tag t-submitted">ตั้งสเกลแล้ว</span>' : '<span class="tag t-returned">ยังไม่ตั้งสเกล</span>'}${nM ? ' · วัดแล้ว ' + nM + ' รายการ' : ''}</div></button>
     <div class="upa"><button class="chip" data-ren="${esc(s.id)}">✎ แก้ชื่อ</button>${isPdfSheet(s) ? `<button class="chip" data-addpg="${esc(s.id)}">+ เพิ่มหน้าจากไฟล์นี้</button>` : ''}<button class="chip del" data-del="${esc(s.id)}">🗑 ลบ</button></div></div>`); });
-  $('pickBody').innerHTML = h.join('');
+  $('pickBody').innerHTML = h.join(''); hisBtns();
 }
 $('pickBody').addEventListener('click', (e) => {
   if (e.target.closest('#btnUp')) { $('upFile').value = ''; $('upFile').click(); return; }
@@ -389,6 +440,9 @@ $('upFile').addEventListener('change', async () => {
     if (ins.error) { sb.storage.from(UP_BUCKET).remove([key]); throw ins.error; }
     const got = (ins.data || []).slice().sort((a, b) => (a.page || 0) - (b.page || 0));
     got.forEach(s => { APP.bin['up:' + s.id] = blob; }); APP.sheets.unshift(...got);
+    { const ids = got.map(x => x.id); hisPush({ kind: 'act', label: 'นำเข้า ' + base + (ids.length > 1 ? ' (' + ids.length + ' หน้า)' : ''),
+      undo: () => { const n = measuresOn(ids); if (n) throw new Error('มีรายการวัดบนแบบนี้ ' + n + ' รายการ'); return sheetSet(ids, { deleted_at: new Date().toISOString() }); },
+      redo: () => sheetSet(ids, { deleted_at: null }) }); }
     if (got.length === 1) { toast('อัปโหลดแล้ว — ขั้นแรก ตั้งสเกล', 3000); show('measure', true); MV.open(upSrc(got[0])); }
     else { renderPick(); toast('นำเข้าแล้ว ' + got.length + ' หน้า — แตะหน้าที่จะวัด (ตั้งสเกลแต่ละหน้า)', 4000); }
   } catch (e) { console.error(e); toast('อัปโหลดไม่สำเร็จ: ' + ((e && e.message) || e), 5000); }
@@ -399,7 +453,8 @@ async function renameSheet(id) {
   const v = prompt('ชื่อแบบ', s.name || ''); if (v === null) return; const nm = v.trim(); if (!nm || nm === s.name) return;
   const r = await sb.from('takeoff_field_sheets').update({ name: nm }).eq('id', id).select('*');
   if (r.error) { toast('แก้ชื่อไม่สำเร็จ: ' + r.error.message, 4000); return; }
-  Object.assign(s, (r.data && r.data[0]) || { name: nm }); renderPick(); toast('แก้ชื่อแล้ว');
+  const old = s.name || ''; Object.assign(s, (r.data && r.data[0]) || { name: nm }); renderPick(); toast('แก้ชื่อแล้ว · กด ↶ ย้อน (Ctrl+Z) ได้');
+  hisPush({ kind: 'act', label: 'แก้ชื่อ ' + nm, undo: () => sheetSet([id], { name: old }), redo: () => sheetSet([id], { name: nm }) });
 }
 async function delSheet(id) {
   const s = APP.sheets.find(x => x.id === id); if (!s) return;
@@ -408,7 +463,9 @@ async function delSheet(id) {
   if (!confirm('ลบแบบ “' + (s.name || '') + '”?')) return;
   const r = await sb.from('takeoff_field_sheets').update({ deleted_at: new Date().toISOString() }).eq('id', id);
   if (r.error) { toast('ลบไม่สำเร็จ: ' + r.error.message, 4000); return; }
-  APP.sheets = APP.sheets.filter(x => x.id !== id); delete APP.bin['up:' + id]; renderPick(); toast('ลบแบบแล้ว');
+  APP.sheets = APP.sheets.filter(x => x.id !== id); renderPick(); toast('ลบแบบแล้ว · ลบผิดกด ↶ ย้อน (Ctrl+Z)');
+  hisPush({ kind: 'act', label: 'ลบแบบ ' + (s.name || ''), undo: () => sheetSet([id], { deleted_at: null }),
+    redo: () => { const n = measuresOn([id]); if (n) throw new Error('มีรายการวัดบนแบบนี้ ' + n + ' รายการ'); return sheetSet([id], { deleted_at: new Date().toISOString() }); } });
 }
 async function addPages(id) {
   const s0 = APP.sheets.find(x => x.id === id); if (!s0) return;
@@ -425,6 +482,9 @@ async function addPages(id) {
   const ins = await sb.from('takeoff_field_sheets').insert(recs).select('*');
   if (ins.error) { toast('เพิ่มหน้าไม่สำเร็จ: ' + ins.error.message, 5000); return; }
   (ins.data || []).forEach(s => { APP.bin['up:' + s.id] = blob; }); APP.sheets.unshift(...(ins.data || []));
+  { const ids = (ins.data || []).map(x => x.id); hisPush({ kind: 'act', label: 'เพิ่ม ' + ids.length + ' หน้า',
+    undo: () => { const n = measuresOn(ids); if (n) throw new Error('มีรายการวัดบนหน้าที่เพิ่ม ' + n + ' รายการ'); return sheetSet(ids, { deleted_at: new Date().toISOString() }); },
+    redo: () => sheetSet(ids, { deleted_at: null }) }); }
   renderPick(); toast('เพิ่มแล้ว ' + recs.length + ' หน้า — ตั้งสเกลแต่ละหน้าก่อนวัด', 3500);
 }
 async function shrinkImage(f) {
@@ -445,6 +505,20 @@ const MV = (() => {
   let SRC = null, BMP = null, W = 0, H = 0, V = { k: 1, ox: 0, oy: 0 }, dpr = 1, fitV = null;
   let tool = 'area', pts = [], drag = -1, focusId = null, loupe = null, loading = false, scalePts = null;
   const KIND = { area: 'พื้นที่', length: 'ความยาว', count: 'นับจุด', scale: 'ตั้งสเกล' };
+  // v1.2.0 ประวัติการวาด (ย้อน/ทำซ้ำ) — เก็บสภาพก่อนแก้ทุกครั้ง
+  const snapD = () => ({ pts: pts.map(p => p.slice()), sp: scalePts ? scalePts.map(p => p.slice()) : null, tool });
+  function restoreD(st) { pts = st.pts.map(p => p.slice()); scalePts = st.sp ? st.sp.map(p => p.slice()) : null; drag = -1; loupe = null;
+    if (st.tool !== tool) { tool = st.tool; tools(); } draw(); upd(); }
+  function rec(label) { if (!SRC) return; const key = SRC.key; const e = { kind: 'draw', key, label, quiet: true, before: snapD(), after: null,
+      undo: () => { if (!SRC || SRC.key !== key || APP.screen !== 'measure') return false; e.after = snapD(); restoreD(e.before); },
+      redo: () => { if (!SRC || SRC.key !== key || APP.screen !== 'measure' || !e.after) return false; restoreD(e.after); } };
+    hisPush(e); }
+  async function setMm(src, mm, mmSrc) {
+    if (src.source === 'upload') { const r = await sb.from('takeoff_field_sheets').update({ mm_per_px: mm }).eq('id', src.sheetId).select('*'); if (r.error) throw r.error;
+      const i = APP.sheets.findIndex(s => s.id === src.sheetId); if (i >= 0 && r.data && r.data[0]) APP.sheets[i] = r.data[0]; }
+    else { try { if (mm) localStorage.setItem('qm_scale_' + src.key, String(mm)); else localStorage.removeItem('qm_scale_' + src.key); } catch (e) {} }
+    src.mm = mm; src.mmSrc = mm ? mmSrc : null;
+    if (SRC === src) { if (!mm) tool = 'scale'; else if (tool === 'scale') tool = 'area'; header(); tools(); draw(); upd(); } }
 
   function resize() { dpr = Math.min(window.devicePixelRatio || 1, 3); const w = box.clientWidth, h = box.clientHeight; if (!w || !h) return;
     cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); if (BMP && !fitV) fit(); paint(); }
@@ -460,6 +534,7 @@ const MV = (() => {
     if (r.error) throw r.error; APP.bin[src.key] = r.data; return r.data;
   }
   async function open(src, focus) {
+    hisDrop(e => e.kind === 'draw');
     SRC = src; BMP = null; W = H = 0; pts = []; drag = -1; scalePts = null; focusId = focus || null; fitV = null; loading = true;
     tool = src.mm ? 'area' : 'scale';
     header(); tools(); paint(); hint('กำลังเปิดแบบ…');
@@ -508,6 +583,7 @@ const MV = (() => {
   }
   $('mTools').addEventListener('click', (e) => { const b = e.target.closest('[data-tool]'); if (!b || b.dataset.tool === tool) return;
     if (pts.length && tool !== 'scale' && b.dataset.tool !== tool && !confirm('ล้างรูปที่วาดอยู่?')) return;
+    if (pts.length || (scalePts && scalePts.length)) rec('เปลี่ยนเครื่องมือ');
     tool = b.dataset.tool; pts = []; scalePts = null; tools(); upd(); paint(); });
 
   function hint(t) { const h = $('mHint'); h.textContent = t || ''; h.hidden = !t; }
@@ -528,7 +604,7 @@ const MV = (() => {
     else if (needScale) hint('ยังไม่ตั้งสเกล — เลือก “ตั้งสเกล” ก่อนวัดพื้นที่/ความยาว');
     else if (!pts.length) hint(tool === 'count' ? 'แตะเพื่อนับทีละจุด · สองนิ้วเพื่อซูม/เลื่อน' : 'แตะมุมห้องทีละจุด · ลากจุดเพื่อปรับ · สองนิ้วเพื่อซูม/เลื่อน');
     else hint('');
-    $('btnUndo').disabled = !(pts.length || (scalePts && scalePts.length));
+    hisBtns();
     $('btnZoom').textContent = fitV && Math.abs(V.k - fitV.k) < 1e-6 ? 'ซูม' : 'พอดีจอ';
   }
 
@@ -603,7 +679,7 @@ const MV = (() => {
     if (g.m === 'pinch' && a.length >= 2) { const d = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y), cx = (a[0].x + a[1].x) / 2, cy = (a[0].y + a[1].y) / 2;
       const k = clamp(g.k * d / g.d, (fitV ? fitV.k : V.k) * 0.5, 40); const px = (g.cx - g.ox) / g.k, py = (g.cy - g.oy) / g.k; V = { k, ox: cx - px * k, oy: cy - py * k }; draw(); upd(); return; }
     if (Math.abs(p.x - g.x) + Math.abs(p.y - g.y) > 6) g.moved = true;
-    if (g.m === 'vertex' && g.moved) { const D = tool === 'scale' ? scalePts : pts; D[g.i] = snap(toDoc(p)); drag = g.i; loupe = D[g.i]; draw(); upd(); }
+    if (g.m === 'vertex' && g.moved) { if (!g.rec) { g.rec = true; rec('ย้ายจุด'); } const D = tool === 'scale' ? scalePts : pts; D[g.i] = snap(toDoc(p)); drag = g.i; loupe = D[g.i]; draw(); upd(); }
     else if (g.m === 'pan' && g.moved) { V = { k: V.k, ox: g.ox + p.x - g.x, oy: g.oy + p.y - g.y }; draw(); } });
   function end(e, cancel) { if (!P.has(e.pointerId)) return; const p = P.get(e.pointerId); P.delete(e.pointerId);
     const tap = !cancel && g && !g.moved && !g.multi && P.size === 0; const wasV = g && g.m === 'vertex';
@@ -617,10 +693,10 @@ const MV = (() => {
   function addPt(p) {
     if (!APP.set.allow_quick_measure || loading) return;
     const d = snap(toDoc(p)); if (d[0] < 0 || d[1] < 0 || d[0] > W || d[1] > H) return;
-    if (tool === 'scale') { scalePts = scalePts && scalePts.length < 2 ? scalePts.concat([d]) : [d]; if (scalePts.length === 2) setTimeout(askScale, 120); return; }
+    if (tool === 'scale') { rec('จุดสเกล'); scalePts = scalePts && scalePts.length < 2 ? scalePts.concat([d]) : [d]; if (scalePts.length === 2) setTimeout(askScale, 120); return; }
     if (tool !== 'count' && !SRC.mm) { toast('ตั้งสเกลก่อน — เลือก “ตั้งสเกล” ด้านบน'); return; }
     if (tool === 'length' && pts.length === 0) focusId = null;
-    pts.push(d);
+    rec('เพิ่มจุด'); pts.push(d);
   }
 
   // ---------- ตั้งสเกล ----------
@@ -636,16 +712,13 @@ const MV = (() => {
       else if (len > 0 && scalePts && scalePts.length === 2) mm = E.scaleFromCalibration(len * 1000, E.polyLength(scalePts, false));
       if (!mm) { toast('ใส่ระยะจริงเป็นเมตร เช่น 0.90'); scalePts = null; draw(); upd(); return; }
       scalePts = null;
-      if (SRC.source === 'upload') { const r = await sb.from('takeoff_field_sheets').update({ mm_per_px: mm }).eq('id', SRC.sheetId).select('*');
-        if (r.error || !r.data || !r.data.length) { toast('บันทึกสเกลไม่สำเร็จ' + (r.error ? ': ' + r.error.message : '') + ' — ลองอีกครั้ง', 5000); draw(); upd(); return; }
-        const i = APP.sheets.findIndex(s => s.id === SRC.sheetId); if (i >= 0) APP.sheets[i] = r.data[0]; }
-      else { try { localStorage.setItem('qm_scale_' + SRC.key, String(mm)); } catch (e) {} }
-      SRC.mm = mm; SRC.mmSrc = 'own';
-      tool = 'area'; header(); tools(); draw(); upd(); toast('ตั้งสเกลแล้ว — เริ่มวัดได้เลย'); };
+      const src = SRC, prevMm = src.mm || null, prevSrc = src.mmSrc || null;
+      try { await setMm(src, mm, 'own'); } catch (x) { toast('บันทึกสเกลไม่สำเร็จ: ' + ((x && x.message) || x) + ' — ลองอีกครั้ง', 5000); draw(); upd(); return; }
+      tool = 'area'; header(); tools(); draw(); upd(); toast('ตั้งสเกลแล้ว — เริ่มวัดได้เลย · ตั้งผิดกด ↶ ย้อน');
+      hisPush({ kind: 'act', label: 'ตั้งสเกล', undo: () => setMm(src, prevMm, prevSrc), redo: () => setMm(src, mm, 'own') }); };
   }
 
   // ---------- ปุ่มล่าง ----------
-  $('btnUndo').addEventListener('click', () => { if (tool === 'scale') scalePts = null; else pts.pop(); draw(); upd(); });
   $('btnZoom').addEventListener('click', () => { if (!fitV) return;
     if (Math.abs(V.k - fitV.k) < 1e-6) { const w = box.clientWidth / 2, h = box.clientHeight / 2, c = pts.length ? toScr(E.centroid(pts)) : [w, h], k = fitV.k * 2.5;
       V = { k, ox: w - (c[0] - V.ox) / V.k * k, oy: h - (c[1] - V.oy) / V.k * k }; }
@@ -687,11 +760,16 @@ const MV = (() => {
       status: 'field', note: $('svNote').value.trim() || null, created_by: APP.me.name, created_email: APP.me.email, created_role: APP.me.role };
     const r = await sb.from('takeoff_field_measures').insert(row).select('*');
     if (r.error) { toast('บันทึกไม่สำเร็จ: ' + r.error.message, 5000); return; }
-    APP.rows.unshift(r.data[0]); focusId = r.data[0].id; pts = []; draw(); upd();
+    const before = snapD(), key = SRC.key, saved = r.data[0];
+    APP.rows.unshift(saved); focusId = saved.id; pts = []; draw(); upd();
+    hisPush({ kind: 'act', label: 'บันทึก ' + (saved.name || ''),
+      undo: async () => { const c = APP.rows.find(x => x.id === saved.id); if (c && c.status !== 'field' && c.status !== 'returned') throw new Error('รายการนี้ส่ง QS แล้ว');
+        await rowSet(saved.id, { deleted_at: new Date().toISOString() }); if (SRC && SRC.key === key && APP.screen === 'measure') { focusId = null; restoreD(before); } },
+      redo: async () => { await rowSet(saved.id, { deleted_at: null }); if (SRC && SRC.key === key && APP.screen === 'measure') { focusId = saved.id; restoreD({ pts: [], sp: null, tool: before.tool }); } } });
     toast('บันทึกแล้ว · ' + fq(m.q, m.u) + ' ' + m.u + ' — วัดห้องถัดไปได้เลย');
   }
 
-  return { open, resize: () => { resize(); upd(); }, dirty: () => pts.length > 0 };
+  return { open, resize: () => { resize(); upd(); }, dirty: () => pts.length > 0, key: () => (SRC ? SRC.key : '') };
 })();
 
 // ทดสอบบนเครื่องผู้พัฒนาเท่านั้น (localhost)
