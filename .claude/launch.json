@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pm-static",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server@14.1.1", "-p", "5188", "-c-1", "--silent"],
+      "port": 5188
+    }
+  ]
+}
