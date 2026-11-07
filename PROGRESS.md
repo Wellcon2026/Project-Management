@@ -5,7 +5,7 @@
 | งาน | branch | สถานะ |
 |---|---|---|
 | Quick Measure บนมือถือ | `feature/quick-measure` | ✅ ใช้จริงแล้ว (merge เข้า main 07/11/2026 · v1.0.0 · รัน SQL แล้ว) |
-| QS Tracking แก้จากแอป Take-off ได้ | `feature/qs-track-rowsync` | 🟡 ทางเลือก ก · ขั้น PM ทำแล้ว · รัน SQL แล้ว · รอทดสอบ Preview → "ใช้จริง" |
+| QS Tracking แก้จากแอป Take-off ได้ | `feature/qs-track-rowsync` | ✅ ขั้น PM ใช้จริงแล้ว (merge เข้า main 07/11/2026) · ⏭ ต่อไป: ตัวกันฐานข้อมูล + ปลดล็อกแก้ใน Take-off |
 
 ## 07/11/2026 — QS Tracking ทีละแถว (ทางเลือก ก) · ขั้น PM
 - คุณบัญชาเลือกทางเลือก ก
