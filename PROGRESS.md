@@ -5,7 +5,7 @@
 | งาน | branch | สถานะ |
 |---|---|---|
 | Quick Measure บนมือถือ | `feature/quick-measure` | ✅ ใช้จริงแล้ว (merge เข้า main 07/11/2026 · v1.0.0 · รัน SQL แล้ว) |
-| QS Tracking แก้จากแอป Take-off ได้ | `feature/qs-track-rowsync` | ✅ ขั้น PM ใช้จริงแล้ว (merge เข้า main 07/11/2026) · ⏭ ต่อไป: ตัวกันฐานข้อมูล + ปลดล็อกแก้ใน Take-off |
+| QS Tracking แก้จากแอป Take-off ได้ | `feature/qs-track-rowsync` → `feature/qs-track-guard` + Take-off `feature/qst-edit` | ✅ PM ใช้จริง · ✅ รัน SQL ตัวกันแล้ว · 🟡 Take-off v1.4.0 รอทดสอบ Preview → "ใช้จริง" |
 
 ## 07/11/2026 — QS Tracking ทีละแถว (ทางเลือก ก) · ขั้น PM
 - คุณบัญชาเลือกทางเลือก ก
@@ -98,3 +98,12 @@
 4. Take-off (branch ใหม่): ปลดล็อกแก้ไขใน QS Tracking (เฉพาะทีม QS / Admin — มีราคา ห้ามเปิดให้ role อื่น) เรียกฟังก์ชันเดียวกัน
 5. Preview ทั้ง 2 แอป → "ใช้จริง" → ขึ้น PM ก่อน แล้วค่อยเปิดแก้ใน Take-off (ลำดับนี้สำคัญ: ถ้า Take-off แก้ได้ก่อน PM เลิกส่งทั้งก้อน ข้อมูลยังหายได้)
 - ย้อนกลับได้: คืน PM เวอร์ชันเดิม + ข้อมูลจากตาราง backup
+
+## 07/11/2026 — ตัวกันฐานข้อมูล + แก้ QS Tracking ใน Take-off
+- `supabase-qs-track-guard.sql` (คุณบัญชาอนุมัติ · Claude รันแล้ว): public + staging = true ทุกช่อง
+  - qs_track_patch ติดป้าย "แก้ทีละแถว" · trigger `qs_track_guard` ปฏิเสธการแก้/ลบ 4 แถว QS Tracking ที่ไม่ผ่านฟังก์ชัน · `qs_track_ready()`
+  - ตรวจ PM แล้ว: ไม่มีจุดอื่นเขียน 4 คีย์นี้ทั้งก้อน (backup/กู้ข้อมูลไม่แตะ)
+- ทดสอบ staging: PM เก่าส่งทั้งก้อน → ถูกปฏิเสธ ข้อมูลไม่เปลี่ยน · ลบทั้งก้อน → ถูกปฏิเสธ · คีย์อื่นของ app_state เขียนได้ปกติ · ฟังก์ชันทีละแถวยังใช้ได้ · คืนข้อมูลเหมือนเดิม
+- Take-off v1.4.0 (repo wellcon-qs-takeoff, branch `feature/qst-edit`): ทดสอบหน้าจอจริงบน staging ด้วยตัวตนทดสอบปลอม — เพิ่มแถว / แก้ช่อง / Esc ยกเลิก / ลบ (งานประมูล + VO) ถูกต้อง · PM แก้อีกช่องของแถวเดียวกันระหว่างนั้น → ไม่ถูกทับ · ข้อมูลกลับเหมือนเดิมทุกตัวอักษร
+- ⚠️ หลังรันตัวกัน: แท็บ PM ที่เปิดค้างก่อนอัปเดต จะบันทึก QS Tracking ไม่ได้จนกว่ารีเฟรช · อัปโหลด index.html จาก canvas → ต้องรัน `node scripts/patch-qs-track-rowsync.js` ไม่งั้น PM บันทึก QS Tracking ไม่ได้ (ข้อมูลไม่หาย)
+- ⚠️ รัน `supabase-staging.sql` (ก๊อปข้อมูลจริงลง staging ใหม่) → ต้องรัน `supabase-qs-track-guard.sql` ซ้ำ
