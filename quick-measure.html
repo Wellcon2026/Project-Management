@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3E3F32">
+<title>วัดพื้นที่ด่วน · Wellcon PM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F6F1E8; --card:#FFFDF8; --line:#E3DACB; --ink:#22231C; --ink2:#4A4840; --mut:#6B6758;
+  --dk:#3E3F32; --dk2:#4E4F40; --hd:#D9CFBD; --acc:#B8582A; --accT:#FBEDE3; --accD:#6E3416;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Thai',system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+input,select,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+.scr{position:fixed;inset:0;display:flex;flex-direction:column;max-width:560px;margin:0 auto;background:var(--bg)}
+.scr.full{max-width:none}
+@media (min-width:600px){ .scr:not(.full){box-shadow:0 0 0 1px var(--line)} }
+.stg{background:#F4D35E;color:#3A2F00;font-size:12px;text-align:center;padding:2px 8px;font-weight:500}
+.hdr{background:var(--dk);color:#F6F1E8;padding:calc(env(safe-area-inset-top,0px) + 14px) 14px 12px;display:flex;align-items:center;gap:10px}
+.hdr .back{width:44px;height:44px;border-radius:12px;border:0;background:var(--dk2);display:flex;align-items:center;justify-content:center;flex:none}
+.hdr .tt{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.hdr .tt b{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .tt span{font-size:12px;color:var(--hd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .badge{margin-left:auto;font-size:11.5px;border-radius:999px;padding:3px 10px;white-space:nowrap;flex:none}
+.b-qs{background:#E6EFE0;color:#3F5A33}.b-own{background:#E3ECF5;color:#2F5E8C}.b-none{background:#F5E3E3;color:#8C2F2F}
+.body{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch}
+.foot{padding:12px 14px calc(14px + var(--safe-b));background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.btn{min-height:52px;border-radius:14px;border:1px solid var(--line);background:#fff;font-weight:500;padding:0 14px}
+.btn.pri{border:0;background:var(--acc);color:#fff;font-weight:600}
+.btn.pri:disabled{opacity:.45}
+.btn.sm{min-height:44px;border-radius:12px;font-size:14px}
+.btn.wide{grid-column:1/-1}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+button.card{text-align:left;width:100%}
+.row1{display:flex;align-items:center;gap:8px}
+.row1 .nm{font-weight:600;flex:1;min-width:0}
+.row1 .q{font-weight:600;white-space:nowrap}
+.row2{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mut);flex-wrap:wrap}
+.tag{border-radius:999px;padding:2px 8px;font-size:11.5px;white-space:nowrap}
+.t-field{background:#FBEDE3;color:#7E3A19}.t-submitted{background:#E3ECF5;color:#2F5E8C}.t-accepted{background:#E6EFE0;color:#3F5A33}.t-returned{background:#F5E3E3;color:#8C2F2F}
+.note{background:var(--accT);border-radius:12px;padding:10px 12px;font-size:12.5px;color:var(--accD)}
+.info{background:#EFE8DB;border-radius:12px;padding:10px 12px;font-size:13px;color:var(--ink2)}
+.sec{font-size:13px;font-weight:600;color:var(--ink2);margin:6px 2px 0}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{min-height:40px;border-radius:999px;border:1px solid var(--line);background:#fff;padding:0 14px;font-size:14px}
+.chip.on{background:var(--dk);border-color:var(--dk);color:#fff}
+.empty{color:var(--mut);text-align:center;padding:28px 10px;font-size:14px}
+.spin{width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--acc);border-radius:50%;animation:sp 1s linear infinite;margin:30px auto 8px}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* measure */
+.tools{display:flex;gap:6px;padding:8px 10px;background:var(--card);border-bottom:1px solid var(--line);overflow-x:auto}
+.tools .chip{flex:none}
+.cvw{flex:1;position:relative;background:#EDE7DC;overflow:hidden;touch-action:none}
+.cvw canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hint{position:absolute;left:10px;right:10px;top:10px;background:rgba(34,35,28,.78);color:#fff;font-size:12.5px;border-radius:10px;padding:6px 10px;pointer-events:none;text-align:center}
+.sheet{background:var(--card);border-top:1px solid var(--line);border-radius:20px 20px 0 0;padding:14px 16px calc(18px + var(--safe-b));display:flex;flex-direction:column;gap:12px;box-shadow:0 -8px 24px rgba(34,35,28,.08);margin-top:-14px;position:relative;z-index:2}
+.big{display:flex;align-items:baseline;gap:8px}
+.big b{font-size:30px;font-weight:600;line-height:1.1}
+.big span{color:var(--mut)}
+.big em{margin-left:auto;font-size:12.5px;color:var(--mut);font-style:normal;text-align:right}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.g3 .btn{min-height:48px;border-radius:12px;font-size:14px}
+/* dialogs as bottom sheets */
+dialog.bs{border:0;padding:0;margin:auto auto 0;width:100%;max-width:560px;max-height:92vh;border-radius:20px 20px 0 0;background:var(--card);color:var(--ink)}
+dialog.bs::backdrop{background:rgba(34,35,28,.45)}
+.bs-in{padding:16px 16px calc(18px + var(--safe-b));display:flex;flex-direction:column;gap:12px;overflow:auto;max-height:92vh}
+.bs-in h3{margin:0;font-size:17px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink2)}
+label.f input,label.f select,label.f textarea{min-height:48px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;font-size:16px}
+label.f textarea{min-height:72px;resize:vertical}
+.chk{display:flex;align-items:center;gap:10px;min-height:44px;font-size:14px}
+.chk input{width:22px;height:22px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
+.kv dt{color:var(--mut)} .kv dd{margin:0}
+.toast{position:fixed;left:50%;bottom:calc(110px + var(--safe-b));transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:12px;padding:10px 16px;font-size:14px;z-index:99;max-width:90vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+.ver{font-size:11px;color:var(--mut);text-align:center;margin-top:6px}
+</style>
+</head>
+<body>
+
+<!-- ===== สถานะเริ่ม / ยังไม่ login / ไม่มีสิทธิ์ ===== -->
+<section id="scrMsg" class="scr">
+  <div class="hdr"><button class="back" data-act="toPm" aria-label="กลับ Wellcon PM"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="tt"><b>วัดพื้นที่ด่วน</b><span>Wellcon PM · หน้างาน</span></span></div>
+  <div class="body" id="msgBody"><div class="spin"></div><p class="empty">กำลังเชื่อมต่อ…</p></div>
+</section>
+
+<!-- ===== เลือกโครงการ (กรณีเปิดตรงไม่มี pid) ===== -->
+<section id="scrProj" class="scr" hidden>
+  <div class="hdr"><button class="back" data-act="toPm" aria-label="กลับ Wellcon PM"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="tt"><b>วัดพื้นที่ด่วน</b><span>เลือกโครงการที่คุณรับผิดชอบ</span></span></div>
+  <div class="body" id="projList"></div>
+</section>
+
+<!-- ===== รายการที่วัด (แบบ หน้าจอ 2) ===== -->
+<section id="scrList" class="scr" hidden>
+  <div class="hdr"><button class="back" data-act="toPm" aria-label="กลับ Wellcon PM"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="tt"><span>Wellcon PM · หน้างาน</span><b id="listTitle">ที่ฉันวัดในโครงการนี้</b><span id="listProj"></span></span></div>
+  <div class="body" id="listBody"></div>
+  <div class="foot">
+    <button class="btn" id="btnSubmit">ส่งให้ QS ตรวจ</button>
+    <button class="btn pri" id="btnNew">+ วัดเพิ่ม</button>
+  </div>
+</section>
+
+<!-- ===== เลือกแบบ ===== -->
+<section id="scrPick" class="scr" hidden>
+  <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="tt"><b>เลือกแบบที่จะวัด</b><span id="pickProj"></span></span></div>
+  <div class="body" id="pickBody"></div>
+  <input type="file" id="upFile" accept="image/*,application/pdf" hidden>
+</section>
+
+<!-- ===== วัด (แบบ หน้าจอ 1) ===== -->
+<section id="scrMeasure" class="scr full" hidden>
+  <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="tt"><b>วัดพื้นที่ด่วน</b><span id="mSub"></span></span>
+    <span class="badge" id="mBadge"></span></div>
+  <div class="tools" id="mTools" role="toolbar" aria-label="ชนิดการวัด"></div>
+  <div class="cvw" id="cvw"><canvas id="cv"></canvas><div class="hint" id="mHint"></div></div>
+  <div class="sheet">
+    <div class="big"><b id="mQty">—</b><span id="mUnit"></span><em id="mPer"></em></div>
+    <div class="g3">
+      <button class="btn" id="btnUndo">ย้อนจุด</button>
+      <button class="btn" id="btnZoom">ซูม</button>
+      <button class="btn pri" id="btnSave">บันทึก</button>
+    </div>
+  </div>
+</section>
+
+<!-- บันทึกรายการวัด -->
+<dialog class="bs" id="dlgSave"><form method="dialog" class="bs-in" id="frmSave">
+  <h3 id="svTitle">บันทึกรายการวัด</h3>
+  <div class="big"><b id="svQty"></b><span id="svUnit"></span><em id="svPer"></em></div>
+  <label class="f">ชื่อห้อง / โซน<input id="svName" required maxlength="80" autocomplete="off" placeholder="เช่น Master Bedroom"></label>
+  <div class="f"><span style="font-size:13px;color:var(--ink2)">งาน</span><div class="chips" id="svWork"></div>
+    <label class="f" style="margin-top:6px"><input id="svWorkTxt" maxlength="60" placeholder="หรือพิมพ์ชื่องานเอง" autocomplete="off"></label></div>
+  <label class="f" id="svHWrap">ความสูงผนัง (ม.) — ใส่ถ้าต้องการพื้นที่ผนัง<input id="svH" inputmode="decimal" placeholder="เช่น 2.70" autocomplete="off"></label>
+  <label class="chk" id="svDedWrap"><input type="checkbox" id="svDed"> หักออก (ช่องเปิด / เสา) — ปริมาณติดลบ</label>
+  <label class="f">หมายเหตุ<textarea id="svNote" maxlength="300" placeholder="ไม่บังคับ"></textarea></label>
+  <div class="g3" style="grid-template-columns:1fr 2fr"><button class="btn" value="cancel" formnovalidate>ยกเลิก</button><button class="btn pri" id="svOk" value="ok">บันทึก</button></div>
+</form></dialog>
+
+<!-- ตั้งสเกล -->
+<dialog class="bs" id="dlgScale"><form method="dialog" class="bs-in" id="frmScale">
+  <h3>ตั้งสเกล</h3>
+  <p class="info" style="margin:0">ใส่ระยะจริงของเส้นที่เพิ่งลาก (เช่น ความกว้างประตู หรือเส้นบอกขนาดในแบบ)</p>
+  <label class="f">ระยะจริง (ม.)<input id="scLen" inputmode="decimal" placeholder="เช่น 0.90" autocomplete="off"></label>
+  <label class="f" id="scRatioWrap">หรือ อัตราส่วนแบบ (PDF)<select id="scRatio"><option value="">— ไม่ใช้ —</option></select></label>
+  <div class="g3" style="grid-template-columns:1fr 2fr"><button class="btn" value="cancel" formnovalidate>ยกเลิก</button><button class="btn pri" value="ok">ตั้งสเกล</button></div>
+</form></dialog>
+
+<!-- รายละเอียดรายการ -->
+<dialog class="bs" id="dlgRow"><form method="dialog" class="bs-in" id="frmRow">
+  <h3 id="rwTitle"></h3>
+  <dl class="kv" id="rwKv"></dl>
+  <label class="f" id="rwQsNoteWrap">หมายเหตุจาก QS<textarea id="rwQsNote" maxlength="300" placeholder="ไม่บังคับ"></textarea></label>
+  <div class="g3" id="rwBtns" style="grid-template-columns:repeat(2,minmax(0,1fr))"></div>
+</form></dialog>
+
+<div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
+
+<script src="vendor/supabase.js"></script>
+<script src="vendor/pdf.min.js"></script>
+<script src="takeoff-engine.js"></script>
+<script src="quick-measure.js"></script>
+</body>
+</html>

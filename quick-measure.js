@@ -1,0 +1,609 @@
+/* =====================================================================
+   Wellcon PM — Quick Measure (วัดพื้นที่ด่วนบนมือถือ)
+   ---------------------------------------------------------------------
+   • หน้าแยกจาก index.html (ไม่แตะโค้ด PM หลัก) เปิดจากเมนู "วัดพื้นที่ด่วน" ในหน้าโครงการ
+     quick-measure.html?pid=<project id>  (+ &env=staging สำหรับข้อมูลทดสอบ)
+   • Login: ใช้ session ที่ Wellcon PM จำไว้ในเครื่อง (wellcon_pm_session_v1) — ไม่มีระบบ login ใหม่
+   • อ่านข้อมูล QS ผ่าน takeoff_pm_feed ช่องทางเดียว (ไม่มีราคา) · เคารพสวิตช์ Admin ทุกครั้งที่เปิด
+   • ตัวเลขที่วัด → ตาราง takeoff_field_measures (แยกจากตาราง takeoff_* ของ QS)
+   • สูตรคำนวณ: takeoff-engine.js (คัดลอกจาก QS — ห้ามแก้ฝั่ง PM)
+   • ห้ามแสดง/ดึงราคาใด ๆ
+   ===================================================================== */
+(() => {
+'use strict';
+const QM_VER = 'v1.0.0';
+const E = window.TakeoffEngine;
+const CFG = {
+  url: 'https://botecmzshubflokkdant.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
+};
+// ข้อมูลจริง = โดเมนจริง · ?env=staging / โดเมนมีคำว่า staging / localhost = ข้อมูลทดสอบ
+const SCHEMA = (() => { const h = location.hostname, q = location.search;
+  if (/[?&]env=prod/.test(q)) return 'public';
+  if (/[?&]env=staging/.test(q) || /staging/i.test(h) || /^(localhost|127\.0\.0\.1)$/.test(h)) return 'staging';
+  return 'public'; })();
+const IS_STG = SCHEMA === 'staging';
+const SESS_KEY = 'wellcon_pm_session_v1', SESS_DAYS = 14;
+// role ที่เห็นทุกโครงการ (ตรงกับ ROLE_DEFS ของ PM) · คนอื่นเห็นเฉพาะโครงการที่ถูก assign
+const ALL_SCOPE = ['superadmin', 'director', 'store', 'pm_mgr', 'design_mgr', 'qs_mgr', 'fin_mgr', 'hr_mgr'];
+const QS_REVIEW = ['qs', 'qs_mgr', 'superadmin', 'director'];
+const ROLE_TH = { pm: 'PM', pm_mgr: 'PM', director: 'Director', sitemgr: 'Site Manager', site: 'หัวหน้าช่าง', qs: 'QS', qs_mgr: 'QS', superadmin: 'Admin', designer: 'Designer', factory: 'โรงงาน', proc: 'จัดซื้อ' };
+const WORKS = ['พื้น', 'ฝ้า', 'ผนัง', 'บัว', 'Built-in', 'อื่น ๆ'];
+const ST = { field: 'วัดหน้างาน', submitted: 'รอ QS ตรวจ', accepted: 'QS รับแล้ว', returned: 'QS ส่งกลับ' };
+const UP_BUCKET = 'general-photo', QS_BUCKET = 'takeoff-drawings';
+const MAX_BMP = 4096;                         // ด้านยาวสุดของภาพที่วาดบนมือถือ (กัน iOS canvas เกินขนาด)
+const RATIOS = [20, 25, 50, 75, 100, 125, 150, 200, 250, 300, 500];
+
+const sb = window.supabase.createClient(CFG.url, CFG.anonKey, { db: { schema: SCHEMA }, auth: { persistSession: true, autoRefreshToken: true } });
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+
+// ---------- helpers ----------
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = (s) => String(s || '').trim().toLowerCase();
+const f2 = (n) => (n == null || isNaN(n)) ? '—' : Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fq = (q, u) => u === E.UNIT.COUNT ? String(Math.round(q)) : f2(q);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const pad = (n) => String(n).padStart(2, '0');
+const dmy = (d) => pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
+const when = (iso) => { if (!iso) return ''; const d = new Date(iso), t = new Date(); const hm = pad(d.getHours()) + ':' + pad(d.getMinutes());
+  const day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(); const dd = (day(t) - day(d)) / 864e5;
+  return dd === 0 ? 'วันนี้ ' + hm : dd === 1 ? 'เมื่อวาน ' + hm : dmy(d); };
+const nickOf = (a) => a ? (String(a.nick || '').trim() || a.name || a.username || a.email || '') : '';
+let toastT = null;
+function toast(msg, ms) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms || 2600); }
+const pmUrl = () => '/' + (IS_STG ? '?env=staging' : '');
+function toPm() { if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1 && !APP.pushed) history.back(); else location.href = pmUrl(); }
+
+// ---------- state ----------
+const APP = { acc: null, me: null, projects: [], pid: null, proj: null, feed: null, set: null, rows: [], sheets: [], noTable: false, filter: 'mine', screen: 'msg', pushed: 0, bin: {} };
+
+// ---------- screens + ปุ่มย้อนกลับของมือถือ ----------
+const SCR = ['msg', 'proj', 'list', 'pick', 'measure'];
+function show(s, push) {
+  SCR.forEach(k => { $('scr' + k[0].toUpperCase() + k.slice(1)).hidden = k !== s; });
+  if (push) { history.pushState({ qm: s }, ''); APP.pushed++; }
+  APP.screen = s;
+  if (s === 'measure') { requestAnimationFrame(() => { MV.resize(); }); }
+}
+window.addEventListener('popstate', (e) => {
+  const s = (e.state && e.state.qm) || (APP.pid ? 'list' : (APP.acc ? 'proj' : 'msg'));
+  if (APP.pushed > 0) APP.pushed--;
+  if (APP.screen === 'measure' && MV.dirty() && !confirm('ยังไม่ได้บันทึกรูปที่วาดอยู่ ออกจากหน้านี้?')) { history.pushState({ qm: 'measure' }, ''); APP.pushed++; return; }
+  show(s, false); if (s === 'list') renderList();
+});
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (!b) return;
+  if (b.dataset.act === 'toPm') toPm(); else if (b.dataset.act === 'back') history.back(); });
+
+function msg(html) { $('msgBody').innerHTML = html; show('msg'); }
+
+// =====================================================================
+// boot
+// =====================================================================
+// ใช้การเชื่อมต่อฐานข้อมูลที่ Wellcon PM เปิดไว้ในเบราว์เซอร์นี้ (โดเมนเดียวกัน = session เดียวกัน)
+// หน้านี้ไม่เก็บรหัสผ่านใด ๆ · ไม่มี session → ให้เปิด Wellcon PM ก่อน
+async function ensureAuth() {
+  let ok = false;
+  try { const r = await sb.auth.getSession(); ok = !!(r && r.data && r.data.session); } catch (e) {}
+  return ok;
+}
+const rowOf = (r) => ({ ...(r.data || {}), id: r.id, ...(r.project ? { project: r.project } : {}) });
+const seesAll = (a) => a.allProj === true || (a.allProj !== false && ALL_SCOPE.includes(a.roleKey));
+const projName = (p) => p ? (p.name || p.project || p.title || p.id) : '';
+const projCode = (p) => p ? (p.code || p.jobNo || p.no || '') : '';
+
+async function boot() {
+  if (IS_STG) document.querySelectorAll('.scr').forEach(s => { const d = document.createElement('div'); d.className = 'stg'; d.textContent = 'ข้อมูลทดสอบ (staging) — ไม่กระทบข้อมูลจริง'; s.prepend(d); });
+  try {
+    if (!(await ensureAuth())) {
+      msg(`<div class="card" style="margin-top:20px"><b>ยังไม่ได้เชื่อมต่อ Wellcon PM ในเครื่องนี้</b>
+        <span style="color:var(--mut);font-size:14px">เปิด Wellcon PM และเข้าสู่ระบบก่อน แล้วกดเมนู “วัดพื้นที่ด่วน” จากหน้าโครงการ</span>
+        <a class="btn pri" style="display:flex;align-items:center;justify-content:center;text-decoration:none;margin-top:8px" href="${pmUrl()}">ไปหน้า Wellcon PM</a></div>`);
+      return;
+    }
+    const [a, p] = await Promise.all([sb.from('accounts').select('id,data'), sb.from('projects').select('id,project,data')]);
+    if (a.error) throw a.error; if (p.error) throw p.error;
+    const accounts = (a.data || []).map(rowOf);
+    const live = (p.data || []).map(rowOf).filter(x => !x.deleted && !x.del);
+    let sess = null; try { sess = JSON.parse(localStorage.getItem(SESS_KEY) || 'null'); } catch (e) {}
+    const acc = sess && sess.email && Date.now() - Number(sess.at || 0) < SESS_DAYS * 864e5
+      && accounts.find(x => norm(x.email) === sess.email && x.active !== false && !x.disabled);
+    if (!acc) {
+      msg(`<div class="card" style="margin-top:20px"><b>ยังไม่ได้เข้าสู่ระบบ Wellcon PM ในเครื่องนี้</b>
+        <span style="color:var(--mut);font-size:14px">เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิดเมนู “วัดพื้นที่ด่วน” จากหน้าโครงการ</span>
+        <a class="btn pri" style="display:flex;align-items:center;justify-content:center;text-decoration:none;margin-top:8px" href="${pmUrl()}">ไปหน้า Wellcon PM</a></div>`);
+      return;
+    }
+    APP.acc = acc;
+    APP.me = { name: nickOf(acc), email: norm(acc.email), role: acc.roleKey || '', review: QS_REVIEW.includes(acc.roleKey) };
+    APP.projects = live.filter(x => seesAll(acc) || (acc.projects || []).includes(x.id));
+    const pid = new URLSearchParams(location.search).get('pid');
+    if (pid) {
+      if (!APP.projects.some(x => x.id === pid)) {
+        msg(`<div class="card" style="margin-top:20px"><b>คุณไม่ได้รับมอบหมายในโครงการนี้</b><span style="color:var(--mut);font-size:14px">วัดพื้นที่ด่วนเปิดได้เฉพาะโครงการที่คุณถูก assign — ติดต่อผู้ดูแลระบบถ้าต้องการสิทธิ์</span></div>`);
+        return;
+      }
+      await openProject(pid);
+    } else renderProjects();
+  } catch (e) {
+    console.error(e);
+    msg(`<div class="card" style="margin-top:20px"><b>เชื่อมต่อเซิร์ฟเวอร์ไม่ได้</b><span style="color:var(--mut);font-size:14px">${esc((e && e.message) || e)}</span>
+      <button class="btn pri" onclick="location.reload()">ลองใหม่</button></div>`);
+  }
+}
+
+function renderProjects() {
+  const L = APP.projects;
+  $('projList').innerHTML = (L.length ? L.map(p => `<button class="card" data-pid="${esc(p.id)}"><div class="row1"><span class="nm">${esc(projName(p))}</span></div><div class="row2">${esc(projCode(p))}</div></button>`).join('')
+    : '<p class="empty">ยังไม่มีโครงการที่คุณถูก assign</p>') + `<p class="ver">Quick Measure ${QM_VER} · engine ${E.ENGINE_VERSION}</p>`;
+  show('proj');
+}
+$('projList').addEventListener('click', (e) => { const b = e.target.closest('[data-pid]'); if (!b) return;
+  const u = new URL(location.href); u.searchParams.set('pid', b.dataset.pid); history.replaceState(null, '', u); openProject(b.dataset.pid); });
+
+// =====================================================================
+// โหลดข้อมูลโครงการ: feed ของ QS + ค่าตั้ง Admin + รายการที่วัด
+// =====================================================================
+async function loadSettings() {
+  // ช่องทางเดียว: takeoff_pm_feed (ไม่มีราคา) · งานที่ยังไม่ส่งต่อ → อ่านค่าตั้งทั้งบริษัท
+  let feed = { handed_off: false };
+  const r = await sb.rpc('takeoff_pm_feed', { p_pm_project_id: APP.pid });
+  if (!r.error && r.data) feed = r.data;
+  let set = feed.settings || null;
+  if (!set) {
+    const c = await sb.from('takeoff_handoff_settings').select('send_drawings,show_qty,allow_quick_measure').is('root_folder_id', null).limit(1);
+    const row = (!c.error && c.data && c.data[0]) || {};
+    set = { send_drawings: row.send_drawings !== false, show_qty: !!row.show_qty, allow_quick_measure: row.allow_quick_measure !== false };
+  }
+  set.show_price = false;   // ล็อกปิดถาวร
+  APP.feed = feed; APP.set = set;
+}
+async function loadRows() {
+  const [m, s] = await Promise.all([
+    sb.from('takeoff_field_measures').select('*').eq('pm_project_id', APP.pid).is('deleted_at', null).order('created_at', { ascending: false }),
+    sb.from('takeoff_field_sheets').select('*').eq('pm_project_id', APP.pid).is('deleted_at', null).order('created_at', { ascending: false })
+  ]);
+  APP.noTable = !!(m.error && /does not exist|schema cache|relation/i.test(m.error.message || ''));
+  if (m.error && !APP.noTable) throw m.error;
+  APP.rows = m.error ? [] : (m.data || []);
+  APP.sheets = s.error ? [] : (s.data || []);
+}
+async function openProject(pid) {
+  APP.pid = pid; APP.proj = APP.projects.find(x => x.id === pid);
+  msg('<div class="spin"></div><p class="empty">กำลังโหลดข้อมูลโครงการ…</p>');
+  try { await Promise.all([loadSettings(), loadRows()]); }
+  catch (e) { console.error(e); msg(`<div class="card" style="margin-top:20px"><b>โหลดข้อมูลไม่สำเร็จ</b><span style="color:var(--mut);font-size:14px">${esc((e && e.message) || e)}</span><button class="btn pri" onclick="location.reload()">ลองใหม่</button></div>`); return; }
+  const sub = [projName(APP.proj), projCode(APP.proj)].filter(Boolean).join(' · ');
+  $('listProj').textContent = sub; $('pickProj').textContent = sub;
+  show('list'); renderList();
+}
+
+// =====================================================================
+// หน้ารายการ
+// =====================================================================
+const isMine = (r) => norm(r.created_email) === APP.me.email;
+function rowLabel(r) { return [r.name, r.work].filter(Boolean).join(' · ') || '(ไม่มีชื่อ)'; }
+function renderList() {
+  const S = APP.set || {}, me = APP.me;
+  const rows = APP.rows.filter(r => APP.filter === 'all' || isMine(r));
+  const h = [];
+  $('listTitle').textContent = APP.filter === 'all' ? 'ที่วัดในโครงการนี้ (ทุกคน)' : 'ที่ฉันวัดในโครงการนี้';
+  if (APP.noTable) h.push('<div class="note">ยังใช้งานไม่ได้: ผู้ดูแลระบบต้องรัน SQL <b>supabase-quick-measure.sql</b> ก่อน</div>');
+  if (!S.allow_quick_measure) h.push('<div class="info">Admin ปิด Quick Measure ของโครงการนี้ไว้ — ดูรายการเดิมได้ แต่วัดเพิ่มไม่ได้</div>');
+  h.push(`<div class="chips" role="tablist"><button class="chip${APP.filter === 'mine' ? ' on' : ''}" data-f="mine">ของฉัน</button><button class="chip${APP.filter === 'all' ? ' on' : ''}" data-f="all">ทุกคน</button>
+    <button class="chip" data-f="reload" aria-label="โหลดใหม่">↻ โหลดใหม่</button></div>`);
+  if (!rows.length) h.push('<p class="empty">ยังไม่มีรายการ — กด “+ วัดเพิ่ม” เพื่อเริ่มวัด</p>');
+  rows.forEach(r => {
+    const role = ROLE_TH[r.created_role] || r.created_role || '';
+    const who = APP.filter === 'all' ? (r.created_by || '') + (role ? ' (' + role + ')' : '') : role || r.created_by || '';
+    h.push(`<button class="card" data-row="${esc(r.id)}"><div class="row1"><span class="nm">${esc(rowLabel(r))}</span><span class="q">${r.qty == null ? '—' : esc(fq(+r.qty, r.unit)) + ' ' + esc(r.unit || '')}</span></div>
+      <div class="row2"><span class="tag t-${esc(r.status)}">${esc(ST[r.status] || r.status)}</span><span>${esc(when(r.created_at))}${who ? ' · ' + esc(who) : ''}</span>${r.status === 'returned' && r.qs_note ? `<span style="color:#8C2F2F">QS: ${esc(r.qs_note)}</span>` : ''}</div></button>`);
+  });
+  h.push('<div class="note">ตัวเลขที่ PM วัด ใช้วางแผนหน้างานและตรวจของเข้า ไม่แทนที่ BOQ ของ QS จนกว่า QS ตรวจรับ</div>');
+  // ปริมาณ baseline จาก QS — แสดงเฉพาะเมื่อ Admin เปิด "แสดงปริมาณ BOQ" (ไม่มีราคา)
+  const Q = (APP.feed && APP.feed.quantities) || [];
+  if (S.show_qty && Q.length) {
+    h.push('<div class="sec">ปริมาณ BOQ จาก QS (baseline)</div>');
+    h.push('<div class="card">' + Q.map(q => `<div class="row1" style="font-size:14px"><span class="nm" style="font-weight:400">${esc([q.catName || q.cat, q.desc].filter(Boolean).join(' · '))}</span><span class="q">${esc(f2(q.net))} ${esc(q.unit || q.u || '')}</span></div>`).join('') + '</div>');
+  }
+  if (me.review) {
+    const n = APP.rows.filter(r => r.status === 'submitted').length;
+    if (n) h.unshift(`<div class="info" style="background:#E3ECF5;color:#2F5E8C">มี ${n} รายการรอ QS ตรวจ — แตะรายการเพื่อ “รับ” หรือ “ส่งกลับ”</div>`);
+  }
+  h.push(`<p class="ver">Quick Measure ${QM_VER} · engine ${E.ENGINE_VERSION}</p>`);
+  $('listBody').innerHTML = h.join('');
+  const pend = APP.rows.filter(r => isMine(r) && (r.status === 'field' || r.status === 'returned')).length;
+  $('btnSubmit').textContent = 'ส่งให้ QS ตรวจ' + (pend ? ' (' + pend + ')' : '');
+  $('btnSubmit').disabled = APP.noTable;
+  $('btnNew').hidden = !S.allow_quick_measure || APP.noTable;
+}
+$('listBody').addEventListener('click', async (e) => {
+  const f = e.target.closest('[data-f]');
+  if (f) { if (f.dataset.f === 'reload') { toast('กำลังโหลดใหม่…', 900); try { await Promise.all([loadSettings(), loadRows()]); } catch (x) { toast('โหลดไม่สำเร็จ'); } } else APP.filter = f.dataset.f; renderList(); return; }
+  const b = e.target.closest('[data-row]'); if (b) openRow(b.dataset.row);
+});
+$('btnNew').addEventListener('click', () => { renderPick(); show('pick', true); });
+$('btnSubmit').addEventListener('click', async () => {
+  const L = APP.rows.filter(r => isMine(r) && (r.status === 'field' || r.status === 'returned'));
+  if (!L.length) { toast('ไม่มีรายการรอส่ง — ทุกรายการของคุณส่ง QS แล้ว'); return; }
+  if (!confirm(`ส่ง ${L.length} รายการให้ QS ตรวจ?\nส่งแล้วแก้/ลบไม่ได้ จนกว่า QS จะส่งกลับ`)) return;
+  const now = new Date().toISOString();
+  const r = await sb.from('takeoff_field_measures').update({ status: 'submitted', submitted_by: APP.me.name, submitted_at: now }).in('id', L.map(x => x.id)).select('*');
+  if (r.error) { toast('ส่งไม่สำเร็จ: ' + r.error.message, 4000); return; }
+  (r.data || []).forEach(n => { const i = APP.rows.findIndex(x => x.id === n.id); if (i >= 0) APP.rows[i] = n; });
+  renderList(); toast(`ส่ง ${L.length} รายการให้ QS ตรวจแล้ว`);
+});
+
+// ---------- รายละเอียด 1 รายการ ----------
+function openRow(id) {
+  const r = APP.rows.find(x => x.id === id); if (!r) return;
+  const sh = r.source === 'qs' ? drawingTitle((APP.feed.drawings || []).find(d => d.id === r.qs_file_id), r.page) : ((APP.sheets.find(s => s.id === r.sheet_id) || {}).name || 'รูปที่อัปโหลด');
+  $('rwTitle').textContent = rowLabel(r);
+  const kv = [['ปริมาณ', r.qty == null ? '—' : fq(+r.qty, r.unit) + ' ' + (r.unit || '')], r.perimeter_m ? ['รอบรูป', f2(+r.perimeter_m) + ' ม.'] : null,
+    r.height_mm ? ['ความสูง', f2(r.height_mm / 1000) + ' ม.'] : null, r.deduct ? ['ชนิด', 'หักออก'] : null,
+    ['สถานะ', ST[r.status] || r.status], ['แบบ', sh || '—'], ['วัดโดย', (r.created_by || '') + ' · ' + when(r.created_at)],
+    r.submitted_at ? ['ส่ง QS', (r.submitted_by || '') + ' · ' + when(r.submitted_at)] : null,
+    r.reviewed_at ? ['QS ตรวจ', (r.reviewed_by || '') + ' · ' + when(r.reviewed_at)] : null,
+    r.note ? ['หมายเหตุ', r.note] : null, r.qs_note ? ['หมายเหตุ QS', r.qs_note] : null].filter(Boolean);
+  $('rwKv').innerHTML = kv.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
+  const canRev = APP.me.review && r.status === 'submitted';
+  const canEdit = isMine(r) && (r.status === 'field' || r.status === 'returned');
+  $('rwQsNoteWrap').hidden = !canRev; $('rwQsNote').value = '';
+  const B = [];
+  if (canRev) { B.push('<button class="btn" value="return">ส่งกลับให้แก้</button>', '<button class="btn pri" value="accept">QS รับแล้ว</button>'); }
+  if (canEdit) B.push('<button class="btn" value="del" style="color:#8C2F2F">ลบรายการ</button>');
+  B.push('<button class="btn" value="view">ดูบนแบบ</button>', '<button class="btn" value="cancel">ปิด</button>');
+  $('rwBtns').innerHTML = B.join('');
+  const d = $('dlgRow'); d.returnValue = ''; d.showModal();
+  d.onclose = async () => {
+    const v = d.returnValue; d.onclose = null;
+    if (v === 'accept' || v === 'return') {
+      if (v === 'return' && !$('rwQsNote').value.trim()) { toast('ใส่หมายเหตุว่าต้องแก้อะไร ก่อนส่งกลับ'); setTimeout(() => openRow(id), 50); return; }
+      await patchRow(r, { status: v === 'accept' ? 'accepted' : 'returned', reviewed_by: APP.me.name, reviewed_at: new Date().toISOString(), qs_note: $('rwQsNote').value.trim() || null });
+    } else if (v === 'del') {
+      if (!confirm('ลบรายการ “' + rowLabel(r) + '”?')) return;
+      await patchRow(r, { deleted_at: new Date().toISOString() }, true);
+    } else if (v === 'view') {
+      const src = r.source === 'qs' ? qsSrc((APP.feed.drawings || []).find(x => x.id === r.qs_file_id), r.page) : upSrc(APP.sheets.find(s => s.id === r.sheet_id));
+      if (!src) { toast('ไม่พบแบบของรายการนี้แล้ว (อาจถูกแทนด้วย Rev. ใหม่)'); return; }
+      show('measure', true); MV.open(src, r.id);
+    }
+  };
+}
+async function patchRow(r, patch, remove) {
+  const q = await sb.from('takeoff_field_measures').update(patch).eq('id', r.id).select('*');
+  if (q.error) { toast('บันทึกไม่สำเร็จ: ' + q.error.message, 4000); return; }
+  const i = APP.rows.findIndex(x => x.id === r.id);
+  if (remove) APP.rows.splice(i, 1); else if (q.data && q.data[0]) APP.rows[i] = q.data[0];
+  renderList(); toast(remove ? 'ลบแล้ว' : 'บันทึกแล้ว');
+}
+
+// =====================================================================
+// เลือกแบบ: แบบจาก QS (ถ้า Admin เปิด "ส่งแบบและโซน") หรือ อัปโหลดรูป/PDF เอง
+// =====================================================================
+function drawingTitle(d, page) { if (!d) return ''; const t = [d.drawing_no, d.sheet_title || d.file_name].filter(Boolean).join(' · ');
+  return t + (d.page_count > 1 ? ' · หน้า ' + (page + 1) : ''); }
+function qsSrc(d, page) { if (!d) return null; const sc = (d.page_scales || [])[page] || {};
+  return { key: 'qs:' + d.id + ':' + page, source: 'qs', fileId: d.id, page, name: drawingTitle(d, page), bucket: QS_BUCKET, path: d.storage_path, mime: d.mime_type || '',
+    mm: sc.mm || null, r: sc.r || null, mmSrc: sc.mm ? 'qs' : null, rev: d.revision }; }
+function upSrc(s) { if (!s) return null; return { key: 'up:' + s.id, source: 'upload', sheetId: s.id, page: s.page || 0, name: s.name || 'รูปที่อัปโหลด', bucket: UP_BUCKET,
+  path: s.storage_path, mime: s.mime_type || '', mm: s.mm_per_px ? +s.mm_per_px : null, r: s.page_r ? +s.page_r : null, mmSrc: s.mm_per_px ? 'own' : null }; }
+function renderPick() {
+  const S = APP.set, F = APP.feed || {}, h = [];
+  h.push('<button class="btn pri wide" id="btnUp" style="width:100%">📷 ถ่ายรูป / อัปโหลดแบบ (รูป หรือ PDF)</button>');
+  if (!F.handed_off) h.push('<div class="info">QS ยังไม่ส่งต่องานของโครงการนี้ — อัปโหลดรูปถ่ายหรือ PDF แล้วตั้งสเกลเอง</div>');
+  else if (!S.send_drawings) h.push('<div class="info">Admin ปิด “ส่งแบบและโซน” — ใช้รูปถ่าย/PDF ที่อัปโหลดเองแทน</div>');
+  else {
+    const D = F.drawings || [];
+    h.push('<div class="sec">แบบจาก QS</div>');
+    if (!D.length) h.push('<p class="empty">QS ยังไม่มีแบบในงานนี้</p>');
+    D.forEach(d => { const n = Math.max(1, d.page_count || 1);
+      for (let p = 0; p < n; p++) { const sc = (d.page_scales || [])[p] || {}; const zn = (F.zones || []).filter(z => z.file_id === d.id && z.page === p).length;
+        h.push(`<button class="card" data-qs="${esc(d.id)}" data-page="${p}"><div class="row1"><span class="nm">${esc(drawingTitle(d, p))}</span>${d.revision ? `<span class="tag t-submitted">${esc(d.revision)}</span>` : ''}</div>
+          <div class="row2">${d.floor_label ? esc(d.floor_label) + ' · ' : ''}${zn} โซน · ${sc.mm ? '<span class="tag t-accepted">สเกลจาก QS</span>' : '<span class="tag t-returned">ยังไม่ตั้งสเกล</span>'}</div></button>`); } });
+  }
+  h.push('<div class="sec">รูป / แบบที่อัปโหลดเอง</div>');
+  if (!APP.sheets.length) h.push('<p class="empty" style="padding:12px">ยังไม่มี</p>');
+  APP.sheets.forEach(s => h.push(`<button class="card" data-up="${esc(s.id)}"><div class="row1"><span class="nm">${esc(s.name || 'รูปที่อัปโหลด')}</span></div>
+    <div class="row2">${esc(when(s.created_at))} · ${esc(s.created_by || '')} · ${s.mm_per_px ? '<span class="tag t-submitted">ตั้งสเกลแล้ว</span>' : '<span class="tag t-returned">ยังไม่ตั้งสเกล</span>'}</div></button>`));
+  $('pickBody').innerHTML = h.join('');
+}
+$('pickBody').addEventListener('click', (e) => {
+  if (e.target.closest('#btnUp')) { $('upFile').value = ''; $('upFile').click(); return; }
+  const q = e.target.closest('[data-qs]');
+  if (q) { const d = (APP.feed.drawings || []).find(x => x.id === q.dataset.qs); show('measure', true); MV.open(qsSrc(d, +q.dataset.page)); return; }
+  const u = e.target.closest('[data-up]');
+  if (u) { show('measure', true); MV.open(upSrc(APP.sheets.find(s => s.id === u.dataset.up))); }
+});
+// อัปโหลด: รูปถูกย่อด้านยาวไม่เกิน 4096 px ก่อนส่ง (ประหยัดเน็ตหน้างาน) · PDF ส่งทั้งไฟล์ ใช้หน้า 1
+$('upFile').addEventListener('change', async () => {
+  const f = $('upFile').files[0]; if (!f) return;
+  const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+  if (!isPdf && !/^image\//.test(f.type)) { toast('รองรับเฉพาะรูปภาพ หรือ PDF'); return; }
+  const name = prompt('ตั้งชื่อแบบ / รูปนี้', f.name.replace(/\.[^.]+$/, '')); if (name === null) return;
+  toast('กำลังอัปโหลด…', 30000);
+  try {
+    let blob = f, ext = isPdf ? 'pdf' : 'jpg', mime = isPdf ? 'application/pdf' : 'image/jpeg';
+    if (!isPdf) blob = await shrinkImage(f);
+    const key = 'quick-measure/' + APP.pid.replace(/[^\w-]/g, '_') + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+    const up = await sb.storage.from(UP_BUCKET).upload(key, blob, { contentType: mime, upsert: false });
+    if (up.error) throw up.error;
+    const ins = await sb.from('takeoff_field_sheets').insert({ pm_project_id: APP.pid, name: (name || '').trim() || f.name, storage_path: key, mime_type: mime, page: 0, created_by: APP.me.name, created_email: APP.me.email }).select('*');
+    if (ins.error) { sb.storage.from(UP_BUCKET).remove([key]); throw ins.error; }
+    APP.sheets.unshift(ins.data[0]); APP.bin['up:' + ins.data[0].id] = blob;
+    toast('อัปโหลดแล้ว — ขั้นแรก ตั้งสเกล', 3000);
+    show('measure', true); MV.open(upSrc(ins.data[0]));
+  } catch (e) { console.error(e); toast('อัปโหลดไม่สำเร็จ: ' + ((e && e.message) || e), 5000); }
+});
+async function shrinkImage(f) {
+  const bmp = await createImageBitmap(f, { imageOrientation: 'from-image' }).catch(() => null);
+  if (!bmp) return f;
+  const k = Math.min(1, MAX_BMP / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return await new Promise(res => c.toBlob(b => res(b || f), 'image/jpeg', 0.9));
+}
+
+// =====================================================================
+// หน้าวัด (canvas): แตะมุมห้องทีละจุด · ลากจุดเพื่อปรับ · สองนิ้ว = ซูม/เลื่อน
+// พิกัดทั้งหมดอยู่ใน "พิกเซลของหน้าแบบ" เดียวกับ QS (PDF render ที่ตัวคูณ r) → สูตร engine ใช้ได้ตรง
+// =====================================================================
+const MV = (() => {
+  const cv = $('cv'), box = $('cvw'), ctx = cv.getContext('2d');
+  let SRC = null, BMP = null, W = 0, H = 0, V = { k: 1, ox: 0, oy: 0 }, dpr = 1, fitV = null;
+  let tool = 'area', pts = [], drag = -1, focusId = null, loupe = null, loading = false, scalePts = null;
+  const KIND = { area: 'พื้นที่', length: 'ความยาว', count: 'นับจุด', scale: 'ตั้งสเกล' };
+
+  function resize() { dpr = Math.min(window.devicePixelRatio || 1, 3); const w = box.clientWidth, h = box.clientHeight; if (!w || !h) return;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); if (BMP && !fitV) fit(); paint(); }
+  new ResizeObserver(() => { if (APP.screen === 'measure') resize(); }).observe(box);
+  function fit() { const w = box.clientWidth, h = box.clientHeight; if (!W || !w) return; const k = Math.min(w / W, h / H) * 0.96;
+    V = { k, ox: (w - W * k) / 2, oy: (h - H * k) / 2 }; fitV = { ...V }; }
+  const toDoc = (p) => [(p.x - V.ox) / V.k, (p.y - V.oy) / V.k];
+  const toScr = (d) => [d[0] * V.k + V.ox, d[1] * V.k + V.oy];
+
+  async function blobOf(src) {
+    if (APP.bin[src.key]) return APP.bin[src.key];
+    const r = await sb.storage.from(src.bucket).download(src.path);
+    if (r.error) throw r.error; APP.bin[src.key] = r.data; return r.data;
+  }
+  async function open(src, focus) {
+    SRC = src; BMP = null; W = H = 0; pts = []; drag = -1; scalePts = null; focusId = focus || null; fitV = null; loading = true;
+    tool = src.mm ? 'area' : 'scale';
+    header(); tools(); paint(); hint('กำลังเปิดแบบ…');
+    try {
+      const blob = await blobOf(src);
+      const isPdf = /pdf/i.test(src.mime) || /\.pdf$/i.test(src.path);
+      if (isPdf) {
+        const doc = await pdfjsLib.getDocument({ data: await blob.arrayBuffer() }).promise;
+        const page = await doc.getPage(Math.min(src.page, doc.numPages - 1) + 1), v1 = page.getViewport({ scale: 1 });
+        // r เดียวกับที่ QS ใช้ (เก็บใน page_scales) — ถ้ายังไม่มี คำนวณสูตรเดียวกับ QS
+        const r = src.r || Math.round(clamp(5000 / Math.max(v1.width, v1.height), 1, 2.5) * 1000) / 1000;
+        src.r = r; W = Math.floor(v1.width * r); H = Math.floor(v1.height * r);
+        const rr = Math.min(r, MAX_BMP / Math.max(v1.width, v1.height)), v = page.getViewport({ scale: rr });
+        const c = document.createElement('canvas'); c.width = Math.floor(v.width); c.height = Math.floor(v.height);
+        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+        await page.render({ canvasContext: g, viewport: v }).promise; BMP = c;
+        if (src.source === 'upload' && !src.isPdfR) { src.isPdfR = true; const s = APP.sheets.find(x => x.id === src.sheetId); if (s && !s.page_r) { s.page_r = r; sb.from('takeoff_field_sheets').update({ page_r: r }).eq('id', s.id).then(() => {}); } }
+      } else {
+        const bmp = await createImageBitmap(blob); W = bmp.width; H = bmp.height;
+        if (Math.max(W, H) > MAX_BMP) { const k = MAX_BMP / Math.max(W, H); const c = document.createElement('canvas'); c.width = Math.round(W * k); c.height = Math.round(H * k); c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); BMP = c; }
+        else BMP = bmp;
+      }
+      // QS ยังไม่ตั้งสเกลหน้านี้ → ใช้สเกลที่ PM ตั้งเองในเครื่อง (ไม่เขียนกลับไปที่ QS)
+      if (src.source === 'qs' && !src.mm) { try { const m = +localStorage.getItem('qm_scale_' + src.key); if (m > 0) { src.mm = m; src.mmSrc = 'own'; tool = 'area'; } } catch (e) {} }
+      loading = false; resize(); fit();
+      if (focusId) focusRow(focusId);
+      header(); tools(); paint(); upd();
+    } catch (e) { console.error(e); loading = false; hint('เปิดแบบไม่สำเร็จ: ' + ((e && e.message) || e)); }
+  }
+  function focusRow(id) { const r = APP.rows.find(x => x.id === id); if (!r || !r.pts || !r.pts.length) return;
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; r.pts.forEach(p => { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); });
+    const w = box.clientWidth, h = box.clientHeight, bw = Math.max(x1 - x0, 40), bh = Math.max(y1 - y0, 40); const k = Math.min(w / bw, h / bh) * 0.6;
+    V = { k, ox: w / 2 - (x0 + x1) / 2 * k, oy: h / 2 - (y0 + y1) / 2 * k }; }
+  function header() {
+    if (!SRC) return;
+    $('mSub').textContent = [SRC.name, projCode(APP.proj) || projName(APP.proj)].filter(Boolean).join(' · ');
+    const b = $('mBadge');
+    if (SRC.mmSrc === 'qs') { b.textContent = 'สเกลจาก QS'; b.className = 'badge b-qs'; }
+    else if (SRC.mm) { b.textContent = 'สเกลที่ตั้งเอง'; b.className = 'badge b-own'; }
+    else { b.textContent = 'ยังไม่ตั้งสเกล'; b.className = 'badge b-none'; }
+  }
+  function tools() {
+    const T = ['area', 'length', 'count']; if (!SRC || SRC.mmSrc !== 'qs') T.push('scale');
+    $('mTools').innerHTML = T.map(k => `<button class="chip${tool === k ? ' on' : ''}" data-tool="${k}" aria-pressed="${tool === k}">${KIND[k]}</button>`).join('');
+    $('btnSave').disabled = !APP.set.allow_quick_measure || APP.noTable;
+  }
+  $('mTools').addEventListener('click', (e) => { const b = e.target.closest('[data-tool]'); if (!b || b.dataset.tool === tool) return;
+    if (pts.length && tool !== 'scale' && b.dataset.tool !== tool && !confirm('ล้างรูปที่วาดอยู่?')) return;
+    tool = b.dataset.tool; pts = []; scalePts = null; tools(); upd(); paint(); });
+
+  function hint(t) { const h = $('mHint'); h.textContent = t || ''; h.hidden = !t; }
+  function curMeasure() {
+    if (tool === 'scale' || !pts.length) return null;
+    if (tool === 'area' && pts.length < 3) return null;
+    if (tool === 'length' && pts.length < 2) return null;
+    return E.measure({ type: tool, pts }, SRC && SRC.mm);
+  }
+  function upd() {
+    if (!SRC || loading) return;
+    const m = curMeasure();
+    if (m) { $('mQty').textContent = fq(m.q, m.u); $('mUnit').textContent = m.u; $('mPer').textContent = m.perimeter ? 'รอบรูป ' + f2(m.perimeter) + ' ม.' : (tool === 'count' ? '' : ''); }
+    else { $('mQty').textContent = '—'; $('mUnit').textContent = ''; $('mPer').textContent = ''; }
+    const needScale = tool !== 'count' && tool !== 'scale' && !SRC.mm;
+    if (!APP.set.allow_quick_measure) hint('Admin ปิด Quick Measure — ดูแบบได้อย่างเดียว');
+    else if (tool === 'scale') hint(scalePts && scalePts.length === 1 ? 'แตะปลายอีกด้านของระยะที่รู้ค่า' : 'ตั้งสเกล: แตะต้นและปลายของระยะที่รู้ค่า (เช่น ประตู 0.90 ม.)');
+    else if (needScale) hint('ยังไม่ตั้งสเกล — เลือก “ตั้งสเกล” ก่อนวัดพื้นที่/ความยาว');
+    else if (!pts.length) hint(tool === 'count' ? 'แตะเพื่อนับทีละจุด · สองนิ้วเพื่อซูม/เลื่อน' : 'แตะมุมห้องทีละจุด · ลากจุดเพื่อปรับ · สองนิ้วเพื่อซูม/เลื่อน');
+    else hint('');
+    $('btnUndo').disabled = !(pts.length || (scalePts && scalePts.length));
+    $('btnZoom').textContent = fitV && Math.abs(V.k - fitV.k) < 1e-6 ? 'ซูม' : 'พอดีจอ';
+  }
+
+  // ---------- วาด ----------
+  const zonesHere = () => SRC && SRC.source === 'qs' && APP.set.send_drawings ? (APP.feed.zones || []).filter(z => z.file_id === SRC.fileId && z.page === SRC.page) : [];
+  const rowsHere = () => SRC ? APP.rows.filter(r => SRC.source === 'qs' ? (r.source === 'qs' && r.qs_file_id === SRC.fileId && r.page === SRC.page) : (r.sheet_id === SRC.sheetId)) : [];
+  function label(t, x, y, size, col, bold) { ctx.font = (bold ? '600 ' : '') + size + "px 'IBM Plex Sans Thai',sans-serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y); }
+  function hexA(h, a) { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return 'rgba(42,125,163,' + a + ')'; const n = parseInt(m[1], 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
+  function path(P, close) { ctx.beginPath(); P.forEach((p, i) => { const s = toScr(p); i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1]); }); if (close) ctx.closePath(); }
+  function paint() {
+    const w = cv.width / dpr, h = cv.height / dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = '#EDE7DC'; ctx.fillRect(0, 0, w, h);
+    if (!BMP) return;
+    ctx.save(); ctx.setTransform(dpr * V.k, 0, 0, dpr * V.k, dpr * V.ox, dpr * V.oy); ctx.imageSmoothingQuality = 'high'; ctx.drawImage(BMP, 0, 0, W, H); ctx.restore();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // โซนของ QS: แสดงชื่อโซน · รหัสงาน/ตัวเลข แสดงเฉพาะเมื่อ Admin เปิด "แสดงปริมาณ BOQ"
+    zonesHere().forEach(z => { const P = z.pts || []; if (!P.length) return; const col = z.color || '#2A7DA3';
+      if (z.type === 'count') { P.forEach(p => { const s = toScr(p); ctx.beginPath(); ctx.arc(s[0], s[1], 5, 0, 7); ctx.fillStyle = hexA(col, .7); ctx.fill(); }); return; }
+      path(P, z.type === 'area'); if (z.type === 'area') { ctx.fillStyle = hexA(col, z.deduct ? .06 : .12); ctx.fill(); }
+      ctx.setLineDash(z.deduct ? [6, 4] : []); ctx.lineWidth = 1.5; ctx.strokeStyle = hexA(col, .9); ctx.stroke(); ctx.setLineDash([]);
+      if (z.type === 'area' && z.name) { const c = toScr(E.centroid(P)); label(z.name, c[0], c[1] - (APP.set.show_qty ? 8 : 0), 12, '#3E3F32');
+        if (APP.set.show_qty) { const m = E.measure({ type: 'area', pts: P, deduct: z.deduct }, SRC.mm); const codes = (z.codes || []).join(' ');
+          label([m ? f2(m.q) + ' ตร.ม.' : '', codes].filter(Boolean).join(' · '), c[0], c[1] + 9, 11, '#4A4840'); } } });
+    // รายการที่วัดไว้แล้วบนแบบนี้
+    rowsHere().forEach(r => { const P = r.pts || []; if (!P.length) return; const on = r.id === focusId; const col = on ? '#B8582A' : '#8A6D3B';
+      if (r.type === 'count') { P.forEach(p => { const s = toScr(p); ctx.beginPath(); ctx.arc(s[0], s[1], 6, 0, 7); ctx.fillStyle = hexA(col, .8); ctx.fill(); }); }
+      else { path(P, r.type === 'area'); if (r.type === 'area') { ctx.fillStyle = hexA(col, on ? .22 : .1); ctx.fill(); } ctx.lineWidth = on ? 3 : 2; ctx.strokeStyle = col; ctx.stroke(); }
+      const c = toScr(r.type === 'length' ? P[Math.floor(P.length / 2)] : E.centroid(P));
+      label(rowLabel(r) + (r.qty != null ? ' · ' + fq(+r.qty, r.unit) + ' ' + (r.unit || '') : ''), c[0], c[1] - (r.type === 'length' ? 12 : 0), 12, on ? '#7E3A19' : '#4A4840', on); });
+    // รูปที่กำลังวาด
+    const D = tool === 'scale' ? (scalePts || []) : pts;
+    if (D.length) {
+      const col = tool === 'scale' ? '#2F5E8C' : '#B8582A';
+      if (tool === 'count') D.forEach((p, i) => { const s = toScr(p); ctx.beginPath(); ctx.arc(s[0], s[1], 11, 0, 7); ctx.fillStyle = col; ctx.fill(); label(String(i + 1), s[0], s[1], 11, '#fff', true); });
+      else {
+        path(D, tool === 'area' && D.length > 2); if (tool === 'area' && D.length > 2) { ctx.fillStyle = hexA(col, .22); ctx.fill(); }
+        ctx.lineWidth = 3; ctx.strokeStyle = col; ctx.stroke();
+        // ความยาวแต่ละด้าน
+        if (SRC.mm && tool !== 'scale') { const E2 = tool === 'area' && D.length > 2 ? D.concat([D[0]]) : D;
+          for (let i = 1; i < E2.length; i++) { const a = toScr(E2[i - 1]), b = toScr(E2[i]); if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 46) continue;
+            const L = Math.hypot(E2[i][0] - E2[i - 1][0], E2[i][1] - E2[i - 1][1]) * SRC.mm / 1000; label(f2(L) + ' ม.', (a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - 10, 12, '#4A4840'); } }
+        D.forEach((p, i) => { const s = toScr(p); if (i === drag) { ctx.beginPath(); ctx.arc(s[0], s[1], 22, 0, 7); ctx.fillStyle = hexA(col, .18); ctx.fill(); }
+          ctx.beginPath(); ctx.arc(s[0], s[1], 9, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = col; ctx.stroke(); });
+        const m = curMeasure(); if (m && tool === 'area') { const c = toScr(E.centroid(D)); label(f2(m.q) + ' ' + m.u, c[0], c[1], 16, '#22231C', true); }
+      }
+    }
+    // แว่นขยายตอนลากจุด (นิ้วบังจุด)
+    if (loupe && BMP) { const R = 56, cx = R + 12, cy = R + 12, z = 2.5, s = loupe;
+      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.clip(); ctx.fillStyle = '#fff'; ctx.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+      const K = V.k * z; ctx.setTransform(dpr * K, 0, 0, dpr * K, dpr * (cx - s[0] * K), dpr * (cy - s[1] * K)); ctx.drawImage(BMP, 0, 0, W, H);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.strokeStyle = '#B8582A'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(cx - 10, cy); ctx.lineTo(cx + 10, cy); ctx.moveTo(cx, cy - 10); ctx.lineTo(cx, cy + 10); ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.lineWidth = 3; ctx.strokeStyle = '#3E3F32'; ctx.stroke(); }
+  }
+  let raf = 0; const draw = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(paint); };
+
+  // ---------- ดูดจุดเข้ามุมโซนของ QS (แตะใกล้ ≤ 14 px) ----------
+  function snap(d) { let best = null, bd = 14 / V.k;
+    zonesHere().forEach(z => (z.pts || []).forEach(p => { const dd = Math.hypot(p[0] - d[0], p[1] - d[1]); if (dd < bd) { bd = dd; best = [p[0], p[1]]; } }));
+    return best || d; }
+
+  // ---------- นิ้ว / เมาส์ ----------
+  const P = new Map(); let g = null;
+  const loc = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  function start() { const a = [...P.values()];
+    if (a.length >= 2) { drag = -1; loupe = null; g = { m: 'pinch', d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1, cx: (a[0].x + a[1].x) / 2, cy: (a[0].y + a[1].y) / 2, k: V.k, ox: V.ox, oy: V.oy, multi: true }; }
+    else if (a.length === 1) { const p = a[0];
+      const D = tool === 'scale' ? (scalePts || []) : pts; const hit = D.findIndex(q => { const s = toScr(q); return Math.hypot(s[0] - p.x, s[1] - p.y) < 24; });
+      g = { m: hit >= 0 && tool !== 'count' ? 'vertex' : 'pan', i: hit, x: p.x, y: p.y, ox: V.ox, oy: V.oy, moved: false, multi: g && g.multi }; } }
+  cv.addEventListener('pointerdown', (e) => { if (!BMP) return; try { cv.setPointerCapture(e.pointerId); } catch (x) {} P.set(e.pointerId, loc(e)); start(); });
+  cv.addEventListener('pointermove', (e) => { if (!P.has(e.pointerId) || !g) return; const p = loc(e); P.set(e.pointerId, p); const a = [...P.values()];
+    if (g.m === 'pinch' && a.length >= 2) { const d = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y), cx = (a[0].x + a[1].x) / 2, cy = (a[0].y + a[1].y) / 2;
+      const k = clamp(g.k * d / g.d, (fitV ? fitV.k : V.k) * 0.5, 40); const px = (g.cx - g.ox) / g.k, py = (g.cy - g.oy) / g.k; V = { k, ox: cx - px * k, oy: cy - py * k }; draw(); upd(); return; }
+    if (Math.abs(p.x - g.x) + Math.abs(p.y - g.y) > 6) g.moved = true;
+    if (g.m === 'vertex' && g.moved) { const D = tool === 'scale' ? scalePts : pts; D[g.i] = snap(toDoc(p)); drag = g.i; loupe = D[g.i]; draw(); upd(); }
+    else if (g.m === 'pan' && g.moved) { V = { k: V.k, ox: g.ox + p.x - g.x, oy: g.oy + p.y - g.y }; draw(); } });
+  function end(e, cancel) { if (!P.has(e.pointerId)) return; const p = P.get(e.pointerId); P.delete(e.pointerId);
+    const tap = !cancel && g && !g.moved && !g.multi && P.size === 0; const wasV = g && g.m === 'vertex';
+    if (P.size) start(); else { g = null; drag = -1; loupe = null; }
+    if (tap && !(wasV && tool !== 'count')) addPt(p); draw(); upd(); }
+  cv.addEventListener('pointerup', (e) => end(e, false)); cv.addEventListener('pointercancel', (e) => end(e, true));
+  cv.addEventListener('wheel', (e) => { e.preventDefault(); const p = loc(e), f = Math.exp(-e.deltaY * 0.0018), k = clamp(V.k * f, (fitV ? fitV.k : V.k) * 0.5, 40);
+    V = { k, ox: p.x - (p.x - V.ox) * k / V.k, oy: p.y - (p.y - V.oy) * k / V.k }; draw(); upd(); }, { passive: false });
+  cv.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  function addPt(p) {
+    if (!APP.set.allow_quick_measure || loading) return;
+    const d = snap(toDoc(p)); if (d[0] < 0 || d[1] < 0 || d[0] > W || d[1] > H) return;
+    if (tool === 'scale') { scalePts = scalePts && scalePts.length < 2 ? scalePts.concat([d]) : [d]; if (scalePts.length === 2) setTimeout(askScale, 120); return; }
+    if (tool !== 'count' && !SRC.mm) { toast('ตั้งสเกลก่อน — เลือก “ตั้งสเกล” ด้านบน'); return; }
+    if (tool === 'length' && pts.length === 0) focusId = null;
+    pts.push(d);
+  }
+
+  // ---------- ตั้งสเกล ----------
+  function askScale() {
+    const sel = $('scRatio'); const isPdf = !!SRC.r;
+    sel.innerHTML = '<option value="">— ไม่ใช้ —</option>' + RATIOS.map(n => `<option value="${n}">1:${n}</option>`).join('');
+    $('scRatioWrap').hidden = !isPdf; $('scLen').value = '';
+    const d = $('dlgScale'); d.returnValue = ''; d.showModal(); setTimeout(() => $('scLen').focus(), 80);
+    d.onclose = async () => { d.onclose = null; if (d.returnValue !== 'ok') { scalePts = null; draw(); upd(); return; }
+      const ratio = +sel.value, len = parseFloat(String($('scLen').value).replace(',', '.'));
+      let mm = null;
+      if (ratio && isPdf) mm = E.scaleFromRatio(ratio, SRC.r);
+      else if (len > 0 && scalePts && scalePts.length === 2) mm = E.scaleFromCalibration(len * 1000, E.polyLength(scalePts, false));
+      if (!mm) { toast('ใส่ระยะจริงเป็นเมตร เช่น 0.90'); scalePts = null; draw(); upd(); return; }
+      scalePts = null;
+      if (SRC.source === 'upload') { const r = await sb.from('takeoff_field_sheets').update({ mm_per_px: mm }).eq('id', SRC.sheetId).select('*');
+        if (r.error || !r.data || !r.data.length) { toast('บันทึกสเกลไม่สำเร็จ' + (r.error ? ': ' + r.error.message : '') + ' — ลองอีกครั้ง', 5000); draw(); upd(); return; }
+        const i = APP.sheets.findIndex(s => s.id === SRC.sheetId); if (i >= 0) APP.sheets[i] = r.data[0]; }
+      else { try { localStorage.setItem('qm_scale_' + SRC.key, String(mm)); } catch (e) {} }
+      SRC.mm = mm; SRC.mmSrc = 'own';
+      tool = 'area'; header(); tools(); draw(); upd(); toast('ตั้งสเกลแล้ว — เริ่มวัดได้เลย'); };
+  }
+
+  // ---------- ปุ่มล่าง ----------
+  $('btnUndo').addEventListener('click', () => { if (tool === 'scale') scalePts = null; else pts.pop(); draw(); upd(); });
+  $('btnZoom').addEventListener('click', () => { if (!fitV) return;
+    if (Math.abs(V.k - fitV.k) < 1e-6) { const w = box.clientWidth / 2, h = box.clientHeight / 2, c = pts.length ? toScr(E.centroid(pts)) : [w, h], k = fitV.k * 2.5;
+      V = { k, ox: w - (c[0] - V.ox) / V.k * k, oy: h - (c[1] - V.oy) / V.k * k }; }
+    else V = { ...fitV };
+    draw(); upd(); });
+  $('btnSave').addEventListener('click', () => {
+    const m = curMeasure();
+    if (!m) { toast(tool === 'scale' ? 'เลือกชนิดการวัดก่อน' : tool === 'area' ? 'แตะมุมห้องอย่างน้อย 3 จุด' : tool === 'length' ? 'แตะอย่างน้อย 2 จุด' : 'แตะเพื่อนับอย่างน้อย 1 จุด'); return; }
+    openSave(m);
+  });
+
+  // ---------- บันทึก ----------
+  let work = '';
+  function openSave(m) {
+    // ชื่อห้อง: เดาจากโซนของ QS ที่ครอบจุดกึ่งกลาง
+    const c = E.centroid(pts); const inP = (p, Q) => { let k = false; for (let i = 0, j = Q.length - 1; i < Q.length; j = i++) if ((Q[i][1] > p[1]) !== (Q[j][1] > p[1]) && p[0] < (Q[j][0] - Q[i][0]) * (p[1] - Q[i][1]) / (Q[j][1] - Q[i][1]) + Q[i][0]) k = !k; return k; };
+    const z = zonesHere().find(z => z.type === 'area' && !z.deduct && z.name && inP(c, z.pts || []));
+    $('svName').value = z ? z.name : ''; $('svNote').value = ''; $('svH').value = ''; $('svDed').checked = false; $('svWorkTxt').value = '';
+    work = tool === 'area' ? 'พื้น' : tool === 'length' ? 'บัว' : '';
+    $('svWork').innerHTML = WORKS.map(w => `<button type="button" class="chip${w === work ? ' on' : ''}" data-w="${esc(w)}">${esc(w)}</button>`).join('');
+    $('svHWrap').hidden = tool !== 'length'; $('svDedWrap').hidden = tool !== 'area';
+    $('svTitle').textContent = 'บันทึก' + KIND[tool];
+    const sv = () => { const mm = curSave(); $('svQty').textContent = fq(mm.q, mm.u); $('svUnit').textContent = mm.u; $('svPer').textContent = mm.perimeter ? 'รอบรูป ' + f2(mm.perimeter) + ' ม.' : (mm.length && mm.height ? 'ยาว ' + f2(mm.length) + ' ม. × สูง ' + f2(mm.height / 1000) + ' ม.' : ''); };
+    $('svH').oninput = sv; $('svDed').onchange = sv; sv();
+    const d = $('dlgSave'); d.returnValue = ''; d.showModal();
+    d.onclose = () => { d.onclose = null; if (d.returnValue === 'ok') doSave(); };
+  }
+  $('svWork').addEventListener('click', (e) => { const b = e.target.closest('[data-w]'); if (!b) return; work = b.dataset.w; $('svWorkTxt').value = '';
+    $('svWork').querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === b)); });
+  $('svWorkTxt').addEventListener('input', () => { if ($('svWorkTxt').value.trim()) { work = ''; $('svWork').querySelectorAll('.chip').forEach(x => x.classList.remove('on')); } });
+  function shape() { const h = parseFloat(String($('svH').value).replace(',', '.')); return { type: tool, pts, deduct: tool === 'area' && $('svDed').checked, height: tool === 'length' && h > 0 ? Math.round(h * 1000) : 0 }; }
+  const curSave = () => E.measure(shape(), SRC.mm);
+  async function doSave() {
+    const s = shape(), m = E.measure(s, SRC.mm); if (!m) { toast('ยังไม่ตั้งสเกล'); return; }
+    const row = { pm_project_id: APP.pid, source: SRC.source, qs_file_id: SRC.source === 'qs' ? SRC.fileId : null, sheet_id: SRC.source === 'upload' ? SRC.sheetId : null,
+      page: SRC.page || 0, mm_per_px: SRC.mm || null, type: tool, pts: pts.map(p => [Math.round(p[0] * 100) / 100, Math.round(p[1] * 100) / 100]),
+      name: $('svName').value.trim(), work: $('svWorkTxt').value.trim() || work, height_mm: s.height || null, deduct: !!s.deduct,
+      qty: Math.round(m.q * 10000) / 10000, unit: m.u, perimeter_m: m.perimeter != null ? Math.round(m.perimeter * 10000) / 10000 : null, engine_version: E.ENGINE_VERSION,
+      status: 'field', note: $('svNote').value.trim() || null, created_by: APP.me.name, created_email: APP.me.email, created_role: APP.me.role };
+    const r = await sb.from('takeoff_field_measures').insert(row).select('*');
+    if (r.error) { toast('บันทึกไม่สำเร็จ: ' + r.error.message, 5000); return; }
+    APP.rows.unshift(r.data[0]); focusId = r.data[0].id; pts = []; draw(); upd();
+    toast('บันทึกแล้ว · ' + fq(m.q, m.u) + ' ' + m.u + ' — วัดห้องถัดไปได้เลย');
+  }
+
+  return { open, resize: () => { resize(); upd(); }, dirty: () => pts.length > 0 };
+})();
+
+// ทดสอบบนเครื่องผู้พัฒนาเท่านั้น (localhost)
+if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__qm = { APP, MV, show, renderList, renderPick };
+
+boot();
+})();
