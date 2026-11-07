@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>Wellcon PM — Admin ตั้งค่าการเชื่อม QS Take-off</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&amp;family=IBM+Plex+Sans+Thai:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#A84F24}a:hover{color:#7E3A19}
+</style>
+</helmet>
+<div style="min-height: 900px; background: #F6F1E8; color: #22231C; font-family: 'IBM Plex Sans Thai', system-ui, sans-serif; font-size: 14px; line-height: 1.5; display: flex; flex-direction: column">
+
+  <header style="background: #3E3F32; color: #F6F1E8; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 10px 20px; min-height: 60px; box-sizing: border-box">
+    <span style="font-family: Fraunces, Georgia, serif; font-size: 18px; font-weight: 600">Wellcon PM</span>
+    <span style="color: #D9CFBD" aria-hidden="true">/</span>
+    <span style="color: #D9CFBD">ตั้งค่า Admin</span>
+    <span style="color: #D9CFBD" aria-hidden="true">/</span>
+    <span style="font-weight: 500">การเชื่อมต่อ QS Take-off</span>
+  </header>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 32px; padding: 32px; box-sizing: border-box; justify-content: center; align-items: flex-start">
+
+    <section style="flex: 1 1 520px; max-width: 640px; display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-family: Fraunces, Georgia, serif; font-size: 30px; font-weight: 600">เมื่อชนะ bid ส่งงานถอดแบบเข้าโครงการ</h1>
+        <p style="margin: 0; color: #6B6758">Admin เลือกได้ว่า PM และ Site Manager จะเห็นอะไรจากทีม QS ลองกดสวิตช์ แล้วดูผลบนมือถือด้านขวา</p>
+      </div>
+
+      <div style="background: #FFFDF8; border: 1px solid #E3DACB; border-radius: 14px; padding: 6px 18px; display: flex; flex-direction: column">
+        <sc-for list="{{toggles}}" as="t" hint-placeholder-count="3">
+          <div style="display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid #EFE8DB">
+            <span style="display: flex; flex-direction: column; flex-grow: 1; min-width: 0">
+              <span style="font-weight: 600">{{t.title}}</span>
+              <span style="font-size: 12.5px; color: #6B6758">{{t.desc}}</span>
+            </span>
+            <button role="switch" aria-checked="{{t.aria}}" aria-label="{{t.title}}" onClick="{{t.flip}}" style="{{t.track}}">
+              <span style="{{t.knob}}"></span>
+            </button>
+          </div>
+        </sc-for>
+        <div style="display: flex; align-items: center; gap: 16px; padding: 14px 0">
+          <span style="display: flex; flex-direction: column; flex-grow: 1">
+            <span style="font-weight: 600; color: #6B6758">แสดงราคาต่อหน่วยและราคาทุน</span>
+            <span style="font-size: 12.5px; color: #6B6758">ปิดถาวรตามนโยบายบริษัท ราคาเห็นได้เฉพาะในแอป QS Take-off</span>
+          </span>
+          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #6B6758; background: #EFE8DB; border-radius: 999px; padding: 4px 10px">
+            <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="1.5" fill="none" stroke="#6B6758" stroke-width="1.6"></rect><path d="M7 9V6.5a3 3 0 016 0V9" fill="none" stroke="#6B6758" stroke-width="1.6"></path></svg>ล็อก
+          </span>
+        </div>
+      </div>
+
+      <div style="background: #FFFDF8; border: 1px solid #E3DACB; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+          <span style="display: flex; flex-direction: column; flex-grow: 1">
+            <span style="font-weight: 600">ใช้การแสดงปริมาณ BOQ กับ</span>
+            <span style="font-size: 12.5px; color: #6B6758">ตั้งครั้งเดียวทั้งบริษัท หรือกำหนดแยกรายโครงการ</span>
+          </span>
+          <div role="group" aria-label="ขอบเขตการตั้งค่า" style="display: inline-flex; background: #EFE8DB; border-radius: 10px; padding: 4px">
+            <sc-for list="{{scopes}}" as="sc" hint-placeholder-count="2">
+              <button onClick="{{sc.pick}}" aria-pressed="{{sc.aria}}" style="{{sc.style}}">{{sc.name}}</button>
+            </sc-for>
+          </div>
+        </div>
+        <sc-if value="{{perProject}}" hint-placeholder-val="{{ false }}">
+          <sc-for list="{{projects}}" as="p" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid #EFE8DB; border-radius: 10px">
+              <span style="display: flex; flex-direction: column; flex-grow: 1; min-width: 0">
+                <span style="font-weight: 500">{{p.name}}</span>
+                <span style="font-size: 12px; color: #6B6758">{{p.type}}</span>
+              </span>
+              <span style="font-size: 12px; color: #6B6758; text-align: right">{{p.label}}</span>
+              <button role="switch" aria-checked="{{p.aria}}" aria-label="{{p.aLabel}}" onClick="{{p.flip}}" style="{{p.track}}"><span style="{{p.knob}}"></span></button>
+            </div>
+          </sc-for>
+        </sc-if>
+      </div>
+
+      <div style="background: #FBEDE3; border-radius: 12px; padding: 12px 14px; font-size: 13px; color: #6E3416">
+        งาน bid ที่ยังไม่ได้งาน จะไม่แสดงใน Wellcon PM ไม่ว่าตั้งค่าแบบใด ข้อมูลส่งเข้าโครงการเมื่อ QS Lead กด "ชนะ bid · ส่งต่อเข้าโครงการ" เท่านั้น
+      </div>
+    </section>
+
+    <section style="flex: 0 1 420px; display: flex; flex-direction: column; align-items: center; gap: 14px">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+        <span style="font-size: 12.5px; color: #6B6758">ดูตัวอย่างในมุมมองของ</span>
+        <div role="group" aria-label="เลือกมุมมองผู้ใช้" style="display: inline-flex; background: #EFE8DB; border-radius: 10px; padding: 4px">
+          <sc-for list="{{roles}}" as="r" hint-placeholder-count="3">
+            <button onClick="{{r.pick}}" aria-pressed="{{r.aria}}" style="{{r.style}}">{{r.name}}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="width: 390px; max-width: 100%; height: 760px; background: #22231C; border-radius: 44px; padding: 12px; box-sizing: border-box; box-shadow: 0 20px 50px rgba(34,35,28,0.25)">
+        <div style="width: 100%; height: 100%; background: #F6F1E8; border-radius: 34px; overflow: hidden; display: flex; flex-direction: column">
+          <div style="background: #3E3F32; color: #F6F1E8; padding: 22px 18px 14px; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 12px; color: #D9CFBD">{{appName}}</span>
+            <span style="font-size: 19px; font-weight: 600">Villa Type A</span>
+            <span style="font-size: 12px; color: #D9CFBD">ID-201 ผังพื้นชั้น 1 · Rev.C</span>
+          </div>
+
+          <div style="flex-grow: 1; overflow: hidden; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+            <sc-if value="{{noDrawings}}" hint-placeholder-val="{{ false }}">
+              <div style="margin: auto 0; text-align: center; display: flex; flex-direction: column; gap: 6px; align-items: center; color: #6B6758">
+                <svg width="40" height="40" viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="14" height="14" rx="2" fill="none" stroke="#9A9483" stroke-width="1.4"></rect><path d="M3 3l14 14" stroke="#9A9483" stroke-width="1.4"></path></svg>
+                <span style="font-weight: 600; color: #22231C">ยังไม่มีแบบจากทีม QS</span>
+                <span style="font-size: 13px">Admin ยังไม่เปิดให้ส่งแบบและโซนเข้าโครงการนี้</span>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{showDrawings}}" hint-placeholder-val="{{ true }}">
+              <div style="height: 150px; background: #FFFFFF; border: 1px solid #E3DACB; border-radius: 14px; overflow: hidden">
+                <svg viewBox="0 0 360 150" style="width: 100%; height: 100%; display: block" role="img" aria-label="แบบย่อพร้อมโซนที่ QS วัดไว้">
+                  <rect x="12" y="12" width="336" height="126" fill="none" stroke="#2B2B2B" stroke-width="4"></rect>
+                  <rect x="14" y="14" width="140" height="70" fill="#A86F2C" fill-opacity="0.25" stroke="#A86F2C" stroke-width="1.5"></rect>
+                  <rect x="14" y="86" width="140" height="50" fill="#3D6E9E" fill-opacity="0.2" stroke="#3D6E9E" stroke-width="1.5"></rect>
+                  <rect x="158" y="14" width="188" height="62" fill="#5C7F4E" fill-opacity="0.2" stroke="#5C7F4E" stroke-width="1.5"></rect>
+                  <rect x="262" y="80" width="84" height="56" fill="#7E4A86" fill-opacity="0.2" stroke="#7E4A86" stroke-width="1.5"></rect>
+                </svg>
+              </div>
+              <sc-if value="{{isQs}}" hint-placeholder-val="{{ false }}">
+                <div style="background: #E6EFE0; color: #3F5A33; border-radius: 10px; padding: 8px 12px; font-size: 12.5px">มุมมอง QS: เห็นปริมาณครบ และราคาในแอป QS Take-off</div>
+              </sc-if>
+              <sc-if value="{{qtyHidden}}" hint-placeholder-val="{{ false }}">
+                <div style="background: #EFE8DB; color: #4A4840; border-radius: 10px; padding: 8px 12px; font-size: 12.5px">Admin ซ่อนปริมาณจาก QS ไว้ เห็นเฉพาะชื่อโซน</div>
+              </sc-if>
+              <sc-for list="{{zones}}" as="z" hint-placeholder-count="4">
+                <div style="display: flex; align-items: center; gap: 10px; background: #FFFDF8; border: 1px solid #E3DACB; border-radius: 12px; padding: 10px 12px; min-height: 52px; box-sizing: border-box">
+                  <span style="{{z.dot}}"></span>
+                  <span style="display: flex; flex-direction: column; flex-grow: 1; min-width: 0">
+                    <span style="font-weight: 600; font-size: 14px">{{z.name}}</span>
+                    <span style="font-size: 12px; color: #6B6758">{{z.sub}}</span>
+                  </span>
+                  <span style="{{z.qtyStyle}}">{{z.qty}}</span>
+                </div>
+              </sc-for>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{showMeasure}}" hint-placeholder-val="{{ true }}">
+            <div style="padding: 12px 14px 22px; background: #FFFDF8; border-top: 1px solid #E3DACB">
+              <button style="width: 100%; height: 54px; border-radius: 14px; border: 0; background: #B8582A; color: #FFFFFF; font: inherit; font-size: 16px; font-weight: 600">วัดพื้นที่ด่วน</button>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { drawings: true, qty: false, measure: true, role: 'pm', scope: 'all', proj: { villa: false, resort: true, office: false } };
+  }
+  renderVals() {
+    const s = this.state;
+    const sw = (on) => ({
+      track: 'width: 52px; height: 30px; border-radius: 999px; border: 0; padding: 3px; flex: none; display: flex; cursor: pointer; transition: background .15s; ' + (on ? 'background: #B8582A; justify-content: flex-end;' : 'background: #C9C1B1; justify-content: flex-start;'),
+      knob: 'width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.25)',
+      aria: on ? 'true' : 'false'
+    });
+    const flip = (k) => () => this.setState({ [k]: !this.state[k] });
+    const toggles = [
+      { title: 'ส่งแบบและโซนที่ QS วัดไว้เข้าโครงการ', desc: 'PM และ Site Manager เห็นแบบพร้อมโซนสี ไม่ต้องวัดใหม่', flip: flip('drawings'), ...sw(s.drawings) },
+      { title: 'แสดงปริมาณ BOQ ของ QS', desc: s.scope === 'proj' ? 'ตอนนี้ใช้การตั้งค่ารายโครงการด้านล่างแทน' : 'เห็นตัวเลข ตร.ม. / ม. / จุด ที่ QS ถอดไว้ ใช้ตรวจของเข้าและวางแผนงาน', flip: flip('qty'), ...sw(s.qty) },
+      { title: 'อนุญาตให้วัดพื้นที่ด่วน (Quick Measure)', desc: 'PM และ Site Manager วัดเพิ่มเองได้ เก็บแยกจากตัวเลขของ QS', flip: flip('measure'), ...sw(s.measure) }
+    ];
+    const isQs = s.role === 'qs';
+    const roleStyle = (on) => 'height: 40px; padding: 0 14px; border: 0; border-radius: 8px; font: inherit; font-size: 13px; ' + (on ? 'background: #FFFDF8; font-weight: 600; color: #22231C;' : 'background: transparent; color: #4A4840;');
+    const roles = [ ['pm', 'PM'], ['site', 'Site Manager'], ['qs', 'QS'] ].map(([id, name]) => ({ name, aria: s.role === id ? 'true' : 'false', style: roleStyle(s.role === id), pick: () => this.setState({ role: id }) }));
+    const showDrawings = isQs || s.drawings;
+    const perProject = s.scope === 'proj';
+    const showQty = isQs || (perProject ? s.proj.villa : s.qty);
+    const scopes = [ ['all', 'ทั้งบริษัท'], ['proj', 'รายโครงการ'] ].map(([id, name]) => ({ name, aria: s.scope === id ? 'true' : 'false', style: roleStyle(s.scope === id), pick: () => this.setState({ scope: id }) }));
+    const projects = [ ['villa', 'Villa Type A', 'Residence', 'ตัวอย่างบนมือถือ'], ['resort', 'Resort Phase 2', 'Hotel · Guest Room', ''], ['office', 'Corporate HQ ชั้น 18', 'Office', ''] ].map(([id, name, type, label]) => ({ name, type, label: label || (s.proj[id] ? 'แสดงปริมาณ' : 'ซ่อนปริมาณ'), aLabel: 'แสดงปริมาณ BOQ ใน ' + name, flip: () => this.setState({ proj: { ...this.state.proj, [id]: !this.state.proj[id] } }), ...sw(s.proj[id]) }));
+    const dot = (c) => 'width: 12px; height: 12px; border-radius: 4px; flex: none; background: ' + c;
+    const qStyle = showQty ? 'font-weight: 600; white-space: nowrap' : 'font-size: 12px; color: #9A9483; white-space: nowrap';
+    const zone = (name, codes, area, c) => ({ name, sub: showQty ? codes : 'รายการงานซ่อนอยู่', qty: showQty ? area : 'ซ่อน', qtyStyle: qStyle, dot: dot(c) });
+    const zones = [
+      zone('Living / Dining', 'FL-01 · CL-01 · SK-01 · WL-02', '42.60 ตร.ม.', '#A86F2C'),
+      zone('Kitchen', 'FL-03 · CL-01 · WL-04', '18.20 ตร.ม.', '#3D6E9E'),
+      zone('Master Bedroom', 'FL-02 · CL-01 · SK-01', '24.80 ตร.ม.', '#5C7F4E'),
+      zone('Bath 1', 'FL-05 · WL-05 · CL-02', '8.40 ตร.ม.', '#7E4A86')
+    ];
+    return {
+      toggles, roles, zones, isQs, scopes, perProject, projects,
+      appName: isQs ? 'QS Take-off' : 'Wellcon PM · หน้างาน',
+      showDrawings, noDrawings: !showDrawings,
+      qtyHidden: showDrawings && !showQty,
+      showMeasure: !isQs && s.measure
+    };
+  }
+}
+</script>
+</body>
+</html>
