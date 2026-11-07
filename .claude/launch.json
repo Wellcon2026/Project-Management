@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["--yes", "http-server@14.1.1", "-p", "5188", "-c-1", "--silent"],
       "port": 5188
+    },
+    {
+      "name": "qs-static",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server@14.1.1", "../wellcon-qs-takeoff", "-p", "5189", "-c-1", "--silent"],
+      "port": 5189
     }
   ]
 }
