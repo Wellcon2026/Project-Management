@@ -97,6 +97,42 @@ label.f textarea{min-height:72px;resize:vertical}
 .upa{display:flex;gap:6px;flex-wrap:wrap;padding:0 2px 4px}
 .upa .chip{min-height:38px;font-size:13px;padding:0 12px}
 .upa .chip.del{color:#B4442E;border-color:#EBC3B8}
+/* v1.3.0 โหมด PM (ต่างจากแอป QS ที่เป็นโทนเขียวอมฟ้า) · จอคอม 3 ส่วนแบบ QS */
+.mode{background:var(--accT);color:var(--accD);font-size:12px;padding:4px 12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #F0D9C8}
+.mode b{font-weight:600}
+.mode i{font-style:normal;background:#fff;border:1px solid #EBC9B2;border-radius:999px;padding:0 8px}
+.hdr .brand{font-size:11px;letter-spacing:.04em;color:#E9B48F;text-transform:uppercase}
+.mwrap{flex:1;display:flex;min-height:0}
+.mmain{flex:1;display:flex;flex-direction:column;min-width:0}
+.mside{display:none}
+.side-h{position:sticky;top:0;background:var(--card);z-index:1;padding:10px 12px 8px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink2)}
+.side-h span{flex:1}
+.side-b{padding:8px;display:flex;flex-direction:column;gap:6px}
+.sh-i{display:flex;flex-direction:column;gap:2px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;font-size:13px}
+.sh-i small{color:var(--mut);font-size:11.5px}
+.sh-i.on{border-color:var(--acc);background:var(--accT);box-shadow:inset 3px 0 0 var(--acc)}
+.sh-g{font-size:11.5px;color:var(--mut);margin:6px 2px 0;font-weight:600}
+.ms-i{display:grid;grid-template-columns:12px 1fr auto;gap:2px 8px;align-items:center;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 9px;font-size:13px}
+.ms-i .sw{width:12px;height:12px;border-radius:3px;background:#8A6D3B}
+.ms-i .q{font-weight:600;white-space:nowrap}
+.ms-i small{grid-column:2/4;color:var(--mut);font-size:11.5px}
+.ms-i.on{border-color:var(--acc);box-shadow:inset 3px 0 0 var(--acc)}
+.sum{width:100%;border-collapse:collapse;font-size:12.5px}
+.sum th{text-align:left;font-weight:500;color:var(--mut);padding:4px 4px;border-bottom:1px solid var(--line)}
+.sum td{padding:5px 4px;border-bottom:1px solid #EFE8DB;vertical-align:top}
+.sum td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sum input{width:58px;min-height:28px;border:1px solid var(--line);border-radius:6px;padding:2px 4px;font-size:12px;text-align:right}
+.kbd{font-size:11px;color:var(--mut);line-height:1.6}
+.kbd b{display:inline-block;min-width:16px;text-align:center;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 3px;background:#fff;color:var(--ink2);font-weight:600}
+@media (min-width:1000px){
+  #scrMeasure .mside{display:flex;flex-direction:column;width:250px;flex:none;background:var(--card);border-right:1px solid var(--line);overflow:auto}
+  #scrMeasure #mRight{width:330px;border-right:0;border-left:1px solid var(--line)}
+  #scrMeasure .sheet{border-radius:0;margin-top:0;box-shadow:none;flex-direction:row;align-items:center;padding:10px 14px;gap:16px}
+  #scrMeasure .sheet .big{flex:1}
+  #scrMeasure .sheet .g3{width:460px;flex:none}
+  #scrMeasure .tools{padding:8px 12px}
+  #scrMeasure .tools .chip{min-height:36px;font-size:13.5px}
+}
 </style>
 </head>
 <body>
@@ -118,7 +154,8 @@ label.f textarea{min-height:72px;resize:vertical}
 <!-- ===== รายการที่วัด (แบบ หน้าจอ 2) ===== -->
 <section id="scrList" class="scr" hidden>
   <div class="hdr"><button class="back" data-act="toPm" aria-label="กลับ Wellcon PM"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <span class="tt"><span>Wellcon PM · หน้างาน</span><b id="listTitle">ที่ฉันวัดในโครงการนี้</b><span id="listProj"></span></span></div>
+    <span class="tt"><span class="brand">Wellcon PM · วัดหน้างาน</span><b id="listTitle">ที่ฉันวัดในโครงการนี้</b><span id="listProj"></span></span></div>
+  <div class="mode" role="note"><b>โหมด PM</b> ตัวเลขหน้างาน — ยังไม่ใช่ BOQ จนกว่า QS รับ <i>ไม่แสดงราคา</i></div>
   <div class="body" id="listBody"></div>
   <div class="foot">
     <button class="btn" id="btnSubmit">ส่งให้ QS ตรวจ</button>
@@ -137,18 +174,25 @@ label.f textarea{min-height:72px;resize:vertical}
 <!-- ===== วัด (แบบ หน้าจอ 1) ===== -->
 <section id="scrMeasure" class="scr full" hidden>
   <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <span class="tt"><b>วัดพื้นที่ด่วน</b><span id="mSub"></span></span>
+    <span class="tt"><span class="brand">Wellcon PM · วัดหน้างาน</span><b>วัดพื้นที่ด่วน</b><span id="mSub"></span></span>
     <span class="badge" id="mBadge"></span></div>
-  <div class="tools" id="mTools" role="toolbar" aria-label="ชนิดการวัด"></div>
-  <div class="cvw" id="cvw"><canvas id="cv"></canvas><div class="hint" id="mHint"></div></div>
-  <div class="sheet">
-    <div class="big"><b id="mQty">—</b><span id="mUnit"></span><em id="mPer"></em></div>
-    <div class="g3" style="grid-template-columns:repeat(4,minmax(0,1fr))">
-      <button class="btn" id="btnUndo" data-his="u" title="ย้อน (Ctrl+Z)">↶ ย้อน</button>
-      <button class="btn" id="btnRedo" data-his="r" title="ทำซ้ำ (Ctrl+Y)">↷ ทำซ้ำ</button>
-      <button class="btn" id="btnZoom">ซูม</button>
-      <button class="btn pri" id="btnSave">บันทึก</button>
+  <div class="mode" role="note"><b>โหมด PM</b> ตัวเลขหน้างาน — ยังไม่ใช่ BOQ จนกว่า QS รับ <i>ไม่แสดงราคา</i></div>
+  <div class="mwrap">
+    <aside class="mside" id="mLeft" aria-label="แผ่นแบบในโครงการ"></aside>
+    <div class="mmain">
+      <div class="tools" id="mTools" role="toolbar" aria-label="ชนิดการวัด"></div>
+      <div class="cvw" id="cvw"><canvas id="cv"></canvas><div class="hint" id="mHint"></div></div>
+      <div class="sheet">
+        <div class="big"><b id="mQty">—</b><span id="mUnit"></span><em id="mPer"></em></div>
+        <div class="g3" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+          <button class="btn" id="btnUndo" data-his="u" title="ย้อน (Ctrl+Z)">↶ ย้อน</button>
+          <button class="btn" id="btnRedo" data-his="r" title="ทำซ้ำ (Ctrl+Y)">↷ ทำซ้ำ</button>
+          <button class="btn" id="btnZoom" title="ซูม / พอดีจอ (F)">ซูม</button>
+          <button class="btn pri" id="btnSave" title="บันทึก (Enter)">บันทึก</button>
+        </div>
+      </div>
     </div>
+    <aside class="mside" id="mRight" aria-label="รายการวัดและสรุป"></aside>
   </div>
 </section>
 
@@ -171,6 +215,8 @@ label.f textarea{min-height:72px;resize:vertical}
     <label class="f" style="margin-top:6px"><input id="svWorkTxt" maxlength="60" placeholder="หรือพิมพ์ชื่องานเอง" autocomplete="off"></label></div>
   <label class="f" id="svHWrap">ความสูงผนัง (ม.) — ใส่ถ้าต้องการพื้นที่ผนัง<input id="svH" inputmode="decimal" placeholder="เช่น 2.70" autocomplete="off"></label>
   <label class="chk" id="svDedWrap"><input type="checkbox" id="svDed"> หักออก (ช่องเปิด / เสา) — ปริมาณติดลบ</label>
+  <label class="f" id="svCntWrap">ตัวคูณต่อจุด — เช่น 1 จุด = เก้าอี้ 4 ตัว ใส่ 4<input id="svCnt" inputmode="decimal" placeholder="1" autocomplete="off"></label>
+  <label class="f" id="svWasteWrap">% เผื่อเศษ (ไม่บังคับ)<input id="svWaste" inputmode="decimal" placeholder="เช่น 5" autocomplete="off"></label>
   <label class="f">หมายเหตุ<textarea id="svNote" maxlength="300" placeholder="ไม่บังคับ"></textarea></label>
   <div class="g3" style="grid-template-columns:1fr 2fr"><button class="btn" value="cancel" formnovalidate>ยกเลิก</button><button class="btn pri" id="svOk" value="ok">บันทึก</button></div>
 </form></dialog>

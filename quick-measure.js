@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.2.1';
+const QM_VER = 'v1.3.0';   // 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -85,7 +85,7 @@ async function rowSet(id, patch) {
   if (q.error) throw q.error; const n = q.data && q.data[0]; if (!n) throw new Error('ไม่พบรายการ');
   const i = APP.rows.findIndex(x => x.id === id);
   if (n.deleted_at) { if (i >= 0) APP.rows.splice(i, 1); } else if (i >= 0) APP.rows[i] = n; else APP.rows.unshift(n);
-  if (APP.screen === 'list') renderList(); return n;
+  if (APP.screen === 'list') renderList(); if (APP.screen === 'measure') MV.side(); return n;
 }
 // แก้แถว takeoff_field_sheets แล้วซิงก์ APP.sheets
 async function sheetSet(ids, patch) {
@@ -326,7 +326,7 @@ async function patchRow(r, patch, remove) {
   if (q.error) { toast('บันทึกไม่สำเร็จ: ' + q.error.message, 4000); return false; }
   const i = APP.rows.findIndex(x => x.id === r.id);
   if (remove) { if (i >= 0) APP.rows.splice(i, 1); } else if (q.data && q.data[0] && i >= 0) APP.rows[i] = q.data[0];
-  renderList(); toast((remove ? 'ลบแล้ว' : 'บันทึกแล้ว') + ' · กด ↶ ย้อน (Ctrl+Z) ได้'); return true;
+  renderList(); if (APP.screen === 'measure') MV.side(); toast((remove ? 'ลบแล้ว' : 'บันทึกแล้ว') + ' · กด ↶ ย้อน (Ctrl+Z) ได้'); return true;
 }
 
 // =====================================================================
@@ -504,7 +504,8 @@ const MV = (() => {
   const cv = $('cv'), box = $('cvw'), ctx = cv.getContext('2d');
   let SRC = null, BMP = null, W = 0, H = 0, V = { k: 1, ox: 0, oy: 0 }, dpr = 1, fitV = null;
   let tool = 'area', pts = [], drag = -1, focusId = null, loupe = null, loading = false, scalePts = null;
-  const KIND = { area: 'พื้นที่', length: 'ความยาว', count: 'นับจุด', scale: 'ตั้งสเกล' };
+  const KIND = { area: 'พื้นที่', length: 'ความยาว', count: 'นับจุด', note: 'โน้ต', ruler: 'ไม้บรรทัด', scale: 'ตั้งสเกล' };
+  const KEY = { area: 'A', length: 'L', count: 'C', note: 'N', ruler: 'R', scale: 'S' };
   // v1.2.0 ประวัติการวาด (ย้อน/ทำซ้ำ) — เก็บสภาพก่อนแก้ทุกครั้ง
   const snapD = () => ({ pts: pts.map(p => p.slice()), sp: scalePts ? scalePts.map(p => p.slice()) : null, tool });
   function restoreD(st) { pts = st.pts.map(p => p.slice()); scalePts = st.sp ? st.sp.map(p => p.slice()) : null; drag = -1; loupe = null;
@@ -537,7 +538,7 @@ const MV = (() => {
     hisDrop(e => e.kind === 'draw');
     SRC = src; BMP = null; W = H = 0; pts = []; drag = -1; scalePts = null; focusId = focus || null; fitV = null; loading = true;
     tool = src.mm ? 'area' : 'scale';
-    header(); tools(); paint(); hint('กำลังเปิดแบบ…');
+    header(); tools(); paint(); hint('กำลังเปิดแบบ…'); side(); left();
     try {
       const blob = await blobOf(src);
       const isPdf = /pdf/i.test(src.mime) || /\.pdf$/i.test(src.path);
@@ -563,7 +564,7 @@ const MV = (() => {
       if (src.source === 'qs' && !src.mm) { try { const m = +localStorage.getItem('qm_scale_' + src.key); if (m > 0) { src.mm = m; src.mmSrc = 'own'; tool = 'area'; } } catch (e) {} }
       loading = false; resize(); fit();
       if (focusId) focusRow(focusId);
-      header(); tools(); paint(); upd();
+      header(); tools(); paint(); upd(); side(); left();
     } catch (e) { console.error(e); loading = false; hint('เปิดแบบไม่สำเร็จ: ' + ((e && e.message) || e)); }
   }
   function focusRow(id) { const r = APP.rows.find(x => x.id === id); if (!r || !r.pts || !r.pts.length) return;
@@ -579,29 +580,32 @@ const MV = (() => {
     else { b.textContent = 'ยังไม่ตั้งสเกล'; b.className = 'badge b-none'; }
   }
   function tools() {
-    const T = ['area', 'length', 'count']; if (!SRC || SRC.mmSrc !== 'qs') T.push('scale');
-    $('mTools').innerHTML = T.map(k => `<button class="chip${tool === k ? ' on' : ''}" data-tool="${k}" aria-pressed="${tool === k}">${KIND[k]}</button>`).join('');
+    const T = ['area', 'length', 'count', 'note', 'ruler']; if (!SRC || SRC.mmSrc !== 'qs') T.push('scale');
+    $('mTools').innerHTML = T.map(k => `<button class="chip${tool === k ? ' on' : ''}" data-tool="${k}" aria-pressed="${tool === k}" title="${KIND[k]} (${KEY[k]})">${KIND[k]}</button>`).join('');
     $('btnSave').disabled = !APP.set.allow_quick_measure || APP.noTable;
   }
-  $('mTools').addEventListener('click', (e) => { const b = e.target.closest('[data-tool]'); if (!b || b.dataset.tool === tool) return;
-    if (pts.length && tool !== 'scale' && b.dataset.tool !== tool && !confirm('ล้างรูปที่วาดอยู่?')) return;
+  function setTool(t) { if (!t || t === tool) return;
+    if (pts.length && tool !== 'scale' && tool !== 'ruler' && !confirm('ล้างรูปที่วาดอยู่?')) return;
     if (pts.length || (scalePts && scalePts.length)) rec('เปลี่ยนเครื่องมือ');
-    tool = b.dataset.tool; pts = []; scalePts = null; tools(); upd(); paint(); });
+    tool = t; pts = []; scalePts = null; tools(); upd(); paint(); }
+  $('mTools').addEventListener('click', (e) => { const b = e.target.closest('[data-tool]'); if (b) setTool(b.dataset.tool); });
 
   function hint(t) { const h = $('mHint'); h.textContent = t || ''; h.hidden = !t; }
   function curMeasure() {
-    if (tool === 'scale' || !pts.length) return null;
+    if (tool === 'scale' || tool === 'note' || !pts.length) return null;
     if (tool === 'area' && pts.length < 3) return null;
-    if (tool === 'length' && pts.length < 2) return null;
-    return E.measure({ type: tool, pts }, SRC && SRC.mm);
+    if ((tool === 'length' || tool === 'ruler') && pts.length < 2) return null;
+    return E.measure({ type: tool === 'ruler' ? 'length' : tool, pts }, SRC && SRC.mm);
   }
   function upd() {
     if (!SRC || loading) return;
     const m = curMeasure();
     if (m) { $('mQty').textContent = fq(m.q, m.u); $('mUnit').textContent = m.u; $('mPer').textContent = m.perimeter ? 'รอบรูป ' + f2(m.perimeter) + ' ม.' : (tool === 'count' ? '' : ''); }
     else { $('mQty').textContent = '—'; $('mUnit').textContent = ''; $('mPer').textContent = ''; }
-    const needScale = tool !== 'count' && tool !== 'scale' && !SRC.mm;
+    const needScale = tool !== 'count' && tool !== 'scale' && tool !== 'note' && !SRC.mm;
     if (!APP.set.allow_quick_measure) hint('Admin ปิด Quick Measure — ดูแบบได้อย่างเดียว');
+    else if (tool === 'note') hint('แตะตำแหน่งบนแบบเพื่อปักโน้ต');
+    else if (tool === 'ruler' && !needScale) hint(pts.length === 2 ? 'ไม้บรรทัด: วัดชั่วคราว ไม่บันทึก · แตะใหม่เพื่อวัดอีกเส้น' : 'ไม้บรรทัด: แตะ 2 จุดเพื่อวัดระยะ (ไม่บันทึก)');
     else if (tool === 'scale') hint(scalePts && scalePts.length === 1 ? 'แตะปลายอีกด้านของระยะที่รู้ค่า' : 'ตั้งสเกล: แตะต้นและปลายของระยะที่รู้ค่า (เช่น ประตู 0.90 ม.)');
     else if (needScale) hint('ยังไม่ตั้งสเกล — เลือก “ตั้งสเกล” ก่อนวัดพื้นที่/ความยาว');
     else if (!pts.length) hint(tool === 'count' ? 'แตะเพื่อนับทีละจุด · สองนิ้วเพื่อซูม/เลื่อน' : 'แตะมุมห้องทีละจุด · ลากจุดเพื่อปรับ · สองนิ้วเพื่อซูม/เลื่อน');
@@ -624,22 +628,29 @@ const MV = (() => {
     ctx.save(); ctx.setTransform(dpr * V.k, 0, 0, dpr * V.k, dpr * V.ox, dpr * V.oy); ctx.imageSmoothingQuality = 'high'; ctx.drawImage(BMP, 0, 0, W, H); ctx.restore();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     // โซนของ QS: แสดงชื่อโซน · รหัสงาน/ตัวเลข แสดงเฉพาะเมื่อ Admin เปิด "แสดงปริมาณ BOQ"
+    // v1.3.0 โซนของ QS = เส้นประจาง + ป้าย "QS ·" (อ่านอย่างเดียว แยกจากรูปที่ PM วัดเอง)
     zonesHere().forEach(z => { const P = z.pts || []; if (!P.length) return; const col = z.color || '#2A7DA3';
-      if (z.type === 'count') { P.forEach(p => { const s = toScr(p); ctx.beginPath(); ctx.arc(s[0], s[1], 5, 0, 7); ctx.fillStyle = hexA(col, .7); ctx.fill(); }); return; }
-      path(P, z.type === 'area'); if (z.type === 'area') { ctx.fillStyle = hexA(col, z.deduct ? .06 : .12); ctx.fill(); }
-      ctx.setLineDash(z.deduct ? [6, 4] : []); ctx.lineWidth = 1.5; ctx.strokeStyle = hexA(col, .9); ctx.stroke(); ctx.setLineDash([]);
-      if (z.type === 'area' && z.name) { const c = toScr(E.centroid(P)); label(z.name, c[0], c[1] - (APP.set.show_qty ? 8 : 0), 12, '#3E3F32');
+      if (z.type === 'count') { P.forEach(p => { const s = toScr(p); ctx.beginPath(); ctx.arc(s[0], s[1], 5, 0, 7); ctx.fillStyle = hexA(col, .5); ctx.fill(); }); return; }
+      path(P, z.type === 'area'); if (z.type === 'area') { ctx.fillStyle = hexA(col, z.deduct ? .04 : .08); ctx.fill(); }
+      ctx.setLineDash(z.deduct ? [3, 4] : [7, 5]); ctx.lineWidth = 1.5; ctx.strokeStyle = hexA(col, .75); ctx.stroke(); ctx.setLineDash([]);
+      if (z.type === 'area' && z.name) { const c = toScr(E.centroid(P)); label('QS · ' + z.name, c[0], c[1] - (APP.set.show_qty ? 8 : 0), 12, '#2F4F5A');
         if (APP.set.show_qty) { const m = E.measure({ type: 'area', pts: P, deduct: z.deduct }, SRC.mm); const codes = (z.codes || []).join(' ');
           label([m ? f2(m.q) + ' ตร.ม.' : '', codes].filter(Boolean).join(' · '), c[0], c[1] + 9, 11, '#4A4840'); } } });
     // รายการที่วัดไว้แล้วบนแบบนี้
-    rowsHere().forEach(r => { const P = r.pts || []; if (!P.length) return; const on = r.id === focusId; const col = on ? '#B8582A' : '#8A6D3B';
+    rowsHere().forEach(r => { const P = r.pts || []; if (!P.length) return; const on = r.id === focusId; const col = on ? '#B8582A' : (r.color || '#8A6D3B');
+      if (r.type === 'note') { const s = toScr(P[0]); ctx.beginPath(); ctx.moveTo(s[0], s[1]); ctx.lineTo(s[0] - 7, s[1] - 14); ctx.lineTo(s[0] + 7, s[1] - 14); ctx.closePath(); ctx.fillStyle = on ? '#B8582A' : '#C58A1C'; ctx.fill();
+        ctx.beginPath(); ctx.arc(s[0], s[1] - 18, 8, 0, 7); ctx.fill(); label(String(r.note || 'โน้ต').split(' · ')[0].slice(0, 40), s[0], s[1] - 36, 12, '#5A3C08', on); return; }
       if (r.type === 'count') { P.forEach(p => { const s = toScr(p); ctx.beginPath(); ctx.arc(s[0], s[1], 6, 0, 7); ctx.fillStyle = hexA(col, .8); ctx.fill(); }); }
       else { path(P, r.type === 'area'); if (r.type === 'area') { ctx.fillStyle = hexA(col, on ? .22 : .1); ctx.fill(); } ctx.lineWidth = on ? 3 : 2; ctx.strokeStyle = col; ctx.stroke(); }
       const c = toScr(r.type === 'length' ? P[Math.floor(P.length / 2)] : E.centroid(P));
       label(rowLabel(r) + (r.qty != null ? ' · ' + fq(+r.qty, r.unit) + ' ' + (r.unit || '') : ''), c[0], c[1] - (r.type === 'length' ? 12 : 0), 12, on ? '#7E3A19' : '#4A4840', on); });
     // รูปที่กำลังวาด
     const D = tool === 'scale' ? (scalePts || []) : pts;
-    if (D.length) {
+    if (D.length && tool === 'ruler') {   // ไม้บรรทัด: เส้นประสีน้ำเงิน + ระยะ (ไม่บันทึก)
+      path(D, false); ctx.setLineDash([8, 5]); ctx.lineWidth = 2.5; ctx.strokeStyle = '#2F5E8C'; ctx.stroke(); ctx.setLineDash([]);
+      D.forEach(p => { const s = toScr(p); ctx.beginPath(); ctx.arc(s[0], s[1], 6, 0, 7); ctx.fillStyle = '#2F5E8C'; ctx.fill(); });
+      const m = curMeasure(); if (m) { const a = toScr(D[0]), b = toScr(D[1]); label(f2(m.q) + ' ม.', (a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - 12, 14, '#1E3F60', true); }
+    } else if (D.length) {
       const col = tool === 'scale' ? '#2F5E8C' : '#B8582A';
       if (tool === 'count') D.forEach((p, i) => { const s = toScr(p); ctx.beginPath(); ctx.arc(s[0], s[1], 11, 0, 7); ctx.fillStyle = col; ctx.fill(); label(String(i + 1), s[0], s[1], 11, '#fff', true); });
       else {
@@ -686,15 +697,21 @@ const MV = (() => {
   function end(e, cancel) { if (!P.has(e.pointerId)) return; const p = P.get(e.pointerId); P.delete(e.pointerId);
     const tap = !cancel && g && !g.moved && !g.multi && P.size === 0; const wasV = g && g.m === 'vertex';
     if (P.size) start(); else { g = null; drag = -1; loupe = null; }
-    if (tap && !(wasV && tool !== 'count')) addPt(p); draw(); upd(); }
+    if (tap && !(wasV && tool !== 'count')) addPt(p, e.shiftKey); draw(); upd(); }
   cv.addEventListener('pointerup', (e) => end(e, false)); cv.addEventListener('pointercancel', (e) => end(e, true));
   cv.addEventListener('wheel', (e) => { e.preventDefault(); const p = loc(e), f = Math.exp(-e.deltaY * 0.0018), k = clamp(V.k * f, (fitV ? fitV.k : V.k) * 0.5, 40);
     V = { k, ox: p.x - (p.x - V.ox) * k / V.k, oy: p.y - (p.y - V.oy) * k / V.k }; draw(); upd(); }, { passive: false });
   cv.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  function addPt(p) {
-    if (!APP.set.allow_quick_measure || loading) return;
-    const d = snap(toDoc(p)); if (d[0] < 0 || d[1] < 0 || d[0] > W || d[1] > H) return;
+  function addPt(p, ortho) {
+    if (loading) return;
+    let d = snap(toDoc(p)); if (d[0] < 0 || d[1] < 0 || d[0] > W || d[1] > H) return;
+    // Shift = ล็อกแนวนอน/แนวตั้งจากจุดก่อนหน้า (เหมือน Takeoff เดิม)
+    const prev = tool === 'scale' ? (scalePts || [])[0] : pts[pts.length - 1];
+    if (ortho && prev && !(tool === 'ruler' && pts.length >= 2)) d = Math.abs(d[0] - prev[0]) >= Math.abs(d[1] - prev[1]) ? [d[0], prev[1]] : [prev[0], d[1]];
+    if (tool === 'ruler') { if (!SRC.mm) { toast('ตั้งสเกลก่อน — เลือก “ตั้งสเกล” ด้านบน'); return; } pts = pts.length >= 2 ? [d] : pts.concat([d]); return; }   // ไม่ลงประวัติ (ไม่บันทึก)
+    if (!APP.set.allow_quick_measure) return;
+    if (tool === 'note') { saveNote(d); return; }
     if (tool === 'scale') { rec('จุดสเกล'); scalePts = scalePts && scalePts.length < 2 ? scalePts.concat([d]) : [d]; if (scalePts.length === 2) setTimeout(askScale, 120); return; }
     if (tool !== 'count' && !SRC.mm) { toast('ตั้งสเกลก่อน — เลือก “ตั้งสเกล” ด้านบน'); return; }
     if (tool === 'length' && pts.length === 0) focusId = null;
@@ -727,6 +744,8 @@ const MV = (() => {
     else V = { ...fitV };
     draw(); upd(); });
   $('btnSave').addEventListener('click', () => {
+    if (tool === 'ruler') { toast('ไม้บรรทัดใช้วัดชั่วคราว ไม่บันทึก — เลือก “ความยาว” ถ้าต้องการบันทึก'); return; }
+    if (tool === 'note') { toast('แตะบนแบบเพื่อปักโน้ต'); return; }
     const m = curMeasure();
     if (!m) { toast(tool === 'scale' ? 'เลือกชนิดการวัดก่อน' : tool === 'area' ? 'แตะมุมห้องอย่างน้อย 3 จุด' : tool === 'length' ? 'แตะอย่างน้อย 2 จุด' : 'แตะเพื่อนับอย่างน้อย 1 จุด'); return; }
     openSave(m);
@@ -742,9 +761,13 @@ const MV = (() => {
     work = tool === 'area' ? 'พื้น' : tool === 'length' ? 'บัว' : '';
     $('svWork').innerHTML = WORKS.map(w => `<button type="button" class="chip${w === work ? ' on' : ''}" data-w="${esc(w)}">${esc(w)}</button>`).join('');
     $('svHWrap').hidden = tool !== 'length'; $('svDedWrap').hidden = tool !== 'area';
+    $('svCntWrap').hidden = tool !== 'count'; $('svWasteWrap').hidden = tool === 'count'; $('svCnt').value = ''; $('svWaste').value = '';
     $('svTitle').textContent = 'บันทึก' + KIND[tool];
-    const sv = () => { const mm = curSave(); $('svQty').textContent = fq(mm.q, mm.u); $('svUnit').textContent = mm.u; $('svPer').textContent = mm.perimeter ? 'รอบรูป ' + f2(mm.perimeter) + ' ม.' : (mm.length && mm.height ? 'ยาว ' + f2(mm.length) + ' ม. × สูง ' + f2(mm.height / 1000) + ' ม.' : ''); };
-    $('svH').oninput = sv; $('svDed').onchange = sv; sv();
+    const sv = () => { const mm = curSave(); const w = wasteOf(); $('svQty').textContent = fq(mm.q, mm.u); $('svUnit').textContent = mm.u; const ex = [];
+      if (mm.perimeter) ex.push('รอบรูป ' + f2(mm.perimeter) + ' ม.'); if (mm.length && mm.height) ex.push('ยาว ' + f2(mm.length) + ' ม. × สูง ' + f2(mm.height / 1000) + ' ม.');
+      if (tool === 'count' && perOf() !== 1) ex.push(pts.length + ' จุด × ' + perOf()); if (w) ex.push('รวมเผื่อ ' + w + '% = ' + f2(E.withWaste(mm.q, w)));
+      $('svPer').textContent = ex.join(' · '); };
+    $('svH').oninput = sv; $('svDed').onchange = sv; $('svCnt').oninput = sv; $('svWaste').oninput = sv; sv();
     const d = $('dlgSave'); d.returnValue = ''; d.showModal();
     d.onclose = () => { d.onclose = null; if (d.returnValue === 'ok') doSave(); };
   }
@@ -752,14 +775,19 @@ const MV = (() => {
     $('svWork').querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === b)); });
   $('svWorkTxt').addEventListener('input', () => { if ($('svWorkTxt').value.trim()) { work = ''; $('svWork').querySelectorAll('.chip').forEach(x => x.classList.remove('on')); } });
   function shape() { const h = parseFloat(String($('svH').value).replace(',', '.')); return { type: tool, pts, deduct: tool === 'area' && $('svDed').checked, height: tool === 'length' && h > 0 ? Math.round(h * 1000) : 0 }; }
-  const curSave = () => E.measure(shape(), SRC.mm);
+  const num0 = (id) => { const v = parseFloat(String($(id).value).replace(',', '.')); return v > 0 ? v : 0; };
+  const perOf = () => (tool === 'count' && num0('svCnt')) || 1;          // ตัวคูณนับจุด (ฝั่ง PM — engine นับจุดตามจริง แล้วคูณภายนอก)
+  const wasteOf = () => (tool === 'count' ? 0 : num0('svWaste'));
+  // ปริมาณที่บันทึก = engine (สูตร QS) × ตัวคูณนับจุด
+  const curSave = () => { const m = E.measure(shape(), SRC.mm); return m && tool === 'count' ? { ...m, q: m.q * perOf() } : m; };
   async function doSave() {
-    const s = shape(), m = E.measure(s, SRC.mm); if (!m) { toast('ยังไม่ตั้งสเกล'); return; }
+    const s = shape(), m = curSave(); if (!m) { toast('ยังไม่ตั้งสเกล'); return; }
     const row = { pm_project_id: APP.pid, source: SRC.source, qs_file_id: SRC.source === 'qs' ? SRC.fileId : null, sheet_id: SRC.source === 'upload' ? SRC.sheetId : null,
       page: SRC.page || 0, mm_per_px: SRC.mm || null, type: tool, pts: pts.map(p => [Math.round(p[0] * 100) / 100, Math.round(p[1] * 100) / 100]),
       name: $('svName').value.trim(), work: $('svWorkTxt').value.trim() || work, height_mm: s.height || null, deduct: !!s.deduct,
       qty: Math.round(m.q * 10000) / 10000, unit: m.u, perimeter_m: m.perimeter != null ? Math.round(m.perimeter * 10000) / 10000 : null, engine_version: E.ENGINE_VERSION,
-      status: 'field', note: $('svNote').value.trim() || null, created_by: APP.me.name, created_email: APP.me.email, created_role: APP.me.role };
+      status: 'field', note: $('svNote').value.trim() || null, created_by: APP.me.name, created_email: APP.me.email, created_role: APP.me.role,
+      count_per: perOf(), waste_pct: wasteOf() || null };
     const r = await sb.from('takeoff_field_measures').insert(row).select('*');
     if (r.error) { toast('บันทึกไม่สำเร็จ: ' + r.error.message, 5000); return; }
     const before = snapD(), key = SRC.key, saved = r.data[0];
@@ -768,10 +796,105 @@ const MV = (() => {
       undo: async () => { const c = APP.rows.find(x => x.id === saved.id); if (c && c.status !== 'field' && c.status !== 'returned') throw new Error('รายการนี้ส่ง QS แล้ว');
         await rowSet(saved.id, { deleted_at: new Date().toISOString() }); if (SRC && SRC.key === key && APP.screen === 'measure') { focusId = null; restoreD(before); } },
       redo: async () => { await rowSet(saved.id, { deleted_at: null }); if (SRC && SRC.key === key && APP.screen === 'measure') { focusId = saved.id; restoreD({ pts: [], sp: null, tool: before.tool }); } } });
-    toast('บันทึกแล้ว · ' + fq(m.q, m.u) + ' ' + m.u + ' — วัดห้องถัดไปได้เลย');
+    side(); toast('บันทึกแล้ว · ' + fq(m.q, m.u) + ' ' + m.u + ' — วัดห้องถัดไปได้เลย');
   }
 
-  return { open, resize: () => { resize(); upd(); }, dirty: () => pts.length > 0, key: () => (SRC ? SRC.key : '') };
+  // ---------- โน้ตบนแบบ (ยกมาจาก Takeoff เดิม) ----------
+  async function saveNote(d) {
+    const t = prompt('ข้อความโน้ต', ''); if (t === null) return; const tx = t.trim(); if (!tx) return;
+    const row = { pm_project_id: APP.pid, source: SRC.source, qs_file_id: SRC.source === 'qs' ? SRC.fileId : null, sheet_id: SRC.source === 'upload' ? SRC.sheetId : null,
+      page: SRC.page || 0, mm_per_px: SRC.mm || null, type: 'note', pts: [[Math.round(d[0] * 100) / 100, Math.round(d[1] * 100) / 100]], name: '', work: 'โน้ต',
+      qty: null, unit: null, engine_version: E.ENGINE_VERSION, status: 'field', note: tx, created_by: APP.me.name, created_email: APP.me.email, created_role: APP.me.role };
+    const r = await sb.from('takeoff_field_measures').insert(row).select('*');
+    if (r.error) { toast('บันทึกโน้ตไม่สำเร็จ: ' + r.error.message, 5000); return; }
+    const saved = r.data[0]; APP.rows.unshift(saved); focusId = saved.id; draw(); side();
+    hisPush({ kind: 'act', label: 'โน้ต ' + tx.slice(0, 20), undo: () => rowSet(saved.id, { deleted_at: new Date().toISOString() }), redo: () => rowSet(saved.id, { deleted_at: null }) });
+    toast('ปักโน้ตแล้ว');
+  }
+
+  // ---------- จอคอม: แผงซ้าย (แผ่นแบบ) · แผงขวา (รายการวัด + สรุป + ส่งออก) ----------
+  const wide = () => window.matchMedia('(min-width:1000px)').matches;
+  function left() {
+    if (!wide()) return;
+    const F = APP.feed || {}, h = ['<div class="side-h"><span>แผ่นแบบในโครงการ</span><button class="chip" data-lup style="min-height:30px;font-size:12px">+ อัปโหลด</button></div><div class="side-b">'];
+    if (F.handed_off && APP.set.send_drawings && (F.drawings || []).length) {
+      h.push('<div class="sh-g">แบบจาก QS</div>');
+      (F.drawings || []).forEach(d => { for (let p = 0; p < Math.max(1, d.page_count || 1); p++) { const k = 'qs:' + d.id + ':' + p;
+        h.push(`<button class="sh-i${SRC && SRC.key === k ? ' on' : ''}" data-lqs="${esc(d.id)}" data-page="${p}"><b>${esc(drawingTitle(d, p))}</b><small>${d.revision ? esc(d.revision) + ' · ' : ''}${((d.page_scales || [])[p] || {}).mm ? 'สเกลจาก QS' : 'ยังไม่ตั้งสเกล'}</small></button>`); } });
+    }
+    h.push('<div class="sh-g">อัปโหลดเอง / ย้ายจาก Takeoff เดิม</div>');
+    if (!APP.sheets.length) h.push('<p class="empty" style="padding:8px">ยังไม่มี</p>');
+    [...APP.sheets].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true })).forEach(s => { const n = APP.rows.filter(r => r.sheet_id === s.id).length;
+      h.push(`<button class="sh-i${SRC && SRC.key === 'up:' + s.id ? ' on' : ''}" data-lup-s="${esc(s.id)}"><b>${esc(s.name || 'รูปที่อัปโหลด')}</b><small>${s.mm_per_px ? 'ตั้งสเกลแล้ว' : 'ยังไม่ตั้งสเกล'}${n ? ' · วัดแล้ว ' + n : ''}${s.legacy_id ? ' · จาก Takeoff เดิม' : ''}</small></button>`); });
+    h.push('</div>'); $('mLeft').innerHTML = h.join('');
+  }
+  $('mLeft').addEventListener('click', (e) => {
+    if (e.target.closest('[data-lup]')) { $('upFile').value = ''; $('upFile').click(); return; }
+    const q = e.target.closest('[data-lqs]'), u = e.target.closest('[data-lup-s]');
+    if ((q || u) && pts.length && !confirm('ยังไม่ได้บันทึกรูปที่วาดอยู่ เปลี่ยนแบบ?')) return;
+    if (q) open(qsSrc((APP.feed.drawings || []).find(x => x.id === q.dataset.lqs), +q.dataset.page));
+    else if (u) open(upSrc(APP.sheets.find(s => s.id === u.dataset.lupS)));
+  });
+  const packKey = () => 'qm_pack_' + SCHEMA + '_' + APP.pid;
+  const packs = () => { try { return JSON.parse(localStorage.getItem(packKey()) || '{}') || {}; } catch (e) { return {}; } };
+  const gross = (r) => r.qty == null ? null : E.withWaste(+r.qty, +r.waste_pct || 0);
+  function summary() {   // รวมทั้งโครงการ ตาม งาน + หน่วย (ไม่รวมโน้ต)
+    const m = new Map();
+    APP.rows.filter(r => r.type !== 'note' && r.qty != null).forEach(r => { const k = (r.work || '(ไม่ระบุงาน)') + '|' + (r.unit || '');
+      const o = m.get(k) || { work: r.work || '(ไม่ระบุงาน)', unit: r.unit || '', net: 0, gross: 0, n: 0 }; o.net += +r.qty; o.gross += gross(r); o.n++; m.set(k, o); });
+    return [...m.values()].sort((a, b) => a.work.localeCompare(b.work, 'th'));
+  }
+  function side() {
+    if (!wide()) return;
+    const L = rowsHere(), h = [], pk = packs();
+    h.push(`<div class="side-h"><span>รายการบนแบบนี้ (${L.length})</span></div><div class="side-b">`);
+    if (!L.length) h.push('<p class="empty" style="padding:8px">ยังไม่มี — เลือกเครื่องมือด้านบนแล้ววัดได้เลย</p>');
+    L.forEach(r => h.push(`<button class="ms-i${r.id === focusId ? ' on' : ''}" data-mrow="${esc(r.id)}"><span class="sw" style="background:${r.type === 'note' ? '#C58A1C' : esc(r.color || '#8A6D3B')}"></span>
+      <span>${esc(r.type === 'note' ? 'โน้ต · ' + String(r.note || '').split(' · ')[0] : rowLabel(r))}</span><span class="q">${r.qty == null ? '' : esc(fq(+r.qty, r.unit)) + ' ' + esc(r.unit || '')}</span>
+      <small><span class="tag t-${esc(r.status)}">${esc(ST[r.status] || r.status)}</span> ${r.waste_pct ? '+' + esc(r.waste_pct) + '% ' : ''}${+r.count_per > 1 ? '×' + esc(r.count_per) + ' ' : ''}${esc(r.created_by || '')}</small></button>`));
+    h.push('</div><div class="side-h"><span>สรุปทั้งโครงการ</span><button class="chip" data-csv style="min-height:30px;font-size:12px">⬇ CSV</button></div><div class="side-b">');
+    const S = summary();
+    if (!S.length) h.push('<p class="empty" style="padding:8px">ยังไม่มีตัวเลข</p>');
+    else h.push('<table class="sum"><thead><tr><th>งาน</th><th class="n">สุทธิ</th><th class="n">รวมเผื่อ</th><th class="n" title="ขนาด 1 แพ็ก/แผ่น (จำในเครื่องนี้)">แพ็ก</th></tr></thead><tbody>' + S.map(o => { const k = o.work + '|' + o.unit, p = +pk[k] || 0;
+      return `<tr><td>${esc(o.work)}<br><small style="color:var(--mut)">${o.n} รายการ · ${esc(o.unit)}</small></td><td class="n">${esc(fq(o.net, o.unit))}</td><td class="n">${esc(fq(o.gross, o.unit))}</td>
+        <td class="n"><input data-pack="${esc(k)}" value="${p || ''}" placeholder="—" inputmode="decimal" title="ใส่ขนาด 1 แพ็ก เช่น 2.88">${p ? '<br><b>' + Math.ceil(o.gross / p - 1e-9) + '</b> แพ็ก' : ''}</td></tr>`; }).join('') + '</tbody></table>');
+    h.push('<p class="kbd">ไม่มีราคา · ตัวเลขหน้างาน ยังไม่ใช่ BOQ<br>คีย์ลัด: <b>A</b> พื้นที่ <b>L</b> ความยาว <b>C</b> นับจุด <b>N</b> โน้ต <b>R</b> ไม้บรรทัด <b>S</b> สเกล <b>F</b> ซูม/พอดีจอ <b>Enter</b> บันทึก <b>Esc</b> ล้างจุด · กด <b>Shift</b> ค้าง = แนวตรง</p></div>');
+    $('mRight').innerHTML = h.join('');
+  }
+  $('mRight').addEventListener('click', (e) => {
+    if (e.target.closest('[data-csv]')) { exportCsv(); return; }
+    const b = e.target.closest('[data-mrow]'); if (b) { focusId = b.dataset.mrow; focusRow(focusId); draw(); upd(); side(); }
+  });
+  $('mRight').addEventListener('change', (e) => { const i = e.target.closest('[data-pack]'); if (!i) return; const pk = packs(), v = parseFloat(String(i.value).replace(',', '.'));
+    if (v > 0) pk[i.dataset.pack] = v; else delete pk[i.dataset.pack]; try { localStorage.setItem(packKey(), JSON.stringify(pk)); } catch (x) {} side(); });
+  // ---------- ส่งออก CSV (เปิดใน Excel ได้ · ไม่มีราคา) ----------
+  function exportCsv() {
+    const sheetName = (r) => r.source === 'qs' ? drawingTitle((APP.feed.drawings || []).find(d => d.id === r.qs_file_id), r.page) : ((APP.sheets.find(s => s.id === r.sheet_id) || {}).name || '');
+    const q = (v) => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const head = ['ห้อง/โซน', 'งาน', 'ชนิด', 'ปริมาณสุทธิ', 'หน่วย', 'ตัวคูณ', '% เผื่อ', 'รวมเผื่อ', 'รอบรูป (ม.)', 'ความสูง (ม.)', 'หักออก', 'สถานะ', 'แบบ', 'วัดโดย', 'วันที่', 'หมายเหตุ'];
+    const TY = { area: 'พื้นที่', length: 'ความยาว', count: 'นับจุด', note: 'โน้ต' };
+    const lines = [head.map(q).join(',')].concat(APP.rows.map(r => [r.name, r.work, TY[r.type] || r.type, r.qty == null ? '' : (+r.qty).toFixed(2), r.unit, r.count_per, r.waste_pct,
+      r.qty == null ? '' : gross(r).toFixed(2), r.perimeter_m == null ? '' : (+r.perimeter_m).toFixed(2), r.height_mm ? (r.height_mm / 1000).toFixed(2) : '', r.deduct ? 'ใช่' : '',
+      ST[r.status] || r.status, sheetName(r), r.created_by, r.created_at ? dmy(new Date(r.created_at)) : '', r.note].map(q).join(',')));
+    lines.push('', 'สรุปตามงาน', ['งาน', 'หน่วย', 'สุทธิ', 'รวมเผื่อ', 'จำนวนรายการ'].map(q).join(','));
+    summary().forEach(o => lines.push([o.work, o.unit, o.net.toFixed(2), o.gross.toFixed(2), o.n].map(q).join(',')));
+    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'วัดหน้างาน-' + (projCode(APP.proj) || APP.pid) + '-' + dmy(new Date()).replace(/\//g, '') + '.csv';
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); toast('ดาวน์โหลด CSV แล้ว (ไม่มีราคา)');
+  }
+  // ---------- คีย์ลัด (จอคอม) ----------
+  document.addEventListener('keydown', (e) => {
+    if (APP.screen !== 'measure' || e.ctrlKey || e.metaKey || e.altKey || document.querySelector('dialog[open]')) return;
+    const t = e.target; if (t && /^(input|textarea|select)$/i.test(t.tagName)) return;
+    const k = String(e.key || '').toLowerCase(), map = { a: 'area', l: 'length', c: 'count', n: 'note', r: 'ruler', s: 'scale' };
+    if (map[k]) { if (map[k] === 'scale' && SRC && SRC.mmSrc === 'qs') return; e.preventDefault(); setTool(map[k]); }
+    else if (k === 'f') { e.preventDefault(); $('btnZoom').click(); }
+    else if (k === 'enter') { e.preventDefault(); $('btnSave').click(); }
+    else if (k === 'escape') { if (pts.length || (scalePts && scalePts.length)) { rec('ล้างจุด'); pts = []; scalePts = null; draw(); upd(); } }
+  });
+  window.matchMedia('(min-width:1000px)').addEventListener('change', () => { if (APP.screen === 'measure') { side(); left(); } });
+
+  return { open, resize: () => { resize(); upd(); }, dirty: () => pts.length > 0 && tool !== 'ruler', key: () => (SRC ? SRC.key : ''), side };
 })();
 
 // ทดสอบบนเครื่องผู้พัฒนาเท่านั้น (localhost)
