@@ -51,4 +51,7 @@ node scripts/patch-pwa.js
 ```bash
 node scripts/patch-work-home.js
 ```
-(เมนู Takeoff · วัดหน้างาน · QS Tracking บันทึกทีละแถว · ซ่อนแท็บ Takeoff เดิม — เปิดกลับด้วย `?legacyTakeoff=1` · ติดตั้งเป็นแอป + ไอคอน Wellcon PM · หน้าแรกของฉันตามตำแหน่ง)
+```bash
+node scripts/patch-realtime-bigrow.js
+```
+(เมนู Takeoff · วัดหน้างาน · QS Tracking บันทึกทีละแถว · ซ่อนแท็บ Takeoff เดิม — เปิดกลับด้วย `?legacyTakeoff=1` · ติดตั้งเป็นแอป + ไอคอน Wellcon PM · หน้าแรกของฉันตามตำแหน่ง · กันรูป/ข้อมูลหายจาก realtime)
