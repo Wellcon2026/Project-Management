@@ -164,3 +164,5 @@
 - รวมบันทึก/ไฟล์ SQL ตัวกันจาก `feature/qs-track-guard` (SQL รันใช้งานแล้วตั้งแต่ 07/11/2026)
 - ทดสอบ: โค้ด PM ไม่มี syntax error · เปิด PM staging ได้ไม่มี error · **เมนูในหน้าโครงการต้องเช็กบน Preview** (ต้อง login จริง)
 - หลังอัปโหลด index.html ใหม่จาก canvas: รัน `patch-quick-measure-menu.js` → `patch-qs-track-rowsync.js` → `patch-takeoff-unify.js` (Claude ทำให้ได้)
+- ✅ **ใช้จริง 08/11/2026**: merge `feature/takeoff-legacy-hide` เข้า main (fast-forward) · ตรวจเว็บจริง: Quick Measure v1.3.1 · เมนู "Takeoff · วัดหน้างาน" · ซ่อนแท็บเดิม · QS Tracking ทีละแถว ครบ
+- **แผน ก ครบทุกขั้น** · ต่อไป (ถ้าต้องการ): ขนาดแพ็กเก็บบนเซิร์ฟเวอร์ (ตอนนี้จำในเครื่อง) · แจ้งเตือน "รอ QS ตรวจ" ในแอป QS Take-off
