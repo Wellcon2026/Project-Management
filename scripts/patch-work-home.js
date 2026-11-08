@@ -7,6 +7,7 @@
      2) ปุ่มทองด้านบน (เดิม "My Workspace") → พากลับหน้า work · ป้ายเปลี่ยนเป็นชื่อหน้า เช่น "หน้างานของฉัน"
      3) แตะโลโก้ Wellcon มุมซ้ายบน → กลับหน้า work (เดิมไป Home)
      ล็อกอินแล้วลงหน้า work อยู่แล้ว (ปิด/เปิดได้ที่ "เปิดหน้านี้ทุกครั้งที่ล็อกอิน")
+   ตำแหน่งที่ไม่มีหน้า work: ล็อกอินแล้วลงหน้า Home (เลือกโครงการ) · อยากลง พื้นที่ทำงานของฉัน → กด "เปิดหน้านี้ทุกครั้งที่ล็อกอิน" ที่หน้านั้น
    ตำแหน่งที่ไม่มีหน้า work: เหมือนเดิมทุกอย่าง (ปุ่มด้านบน = My Workspace · โลโก้ = Home)
    - รันซ้ำได้ ไม่ซ้อน · รันหลังอัปโหลด index.html ใหม่จาก canvas ทุกครั้ง
    ===================================================================== */
@@ -45,6 +46,9 @@ const R = [
   ['โลโก้: คำอธิบาย',
    '<button sc-camel-on-click="{{ onGoHome }}" title="กลับหน้า Home"',
    '<button sc-camel-on-click="{{ onGoHome }}" title="กลับหน้าแรกของฉัน"'],
+  ['ล็อกอิน: ตำแหน่งที่ไม่มีหน้างาน → ลงหน้า Home (เลือกโครงการ)',
+   "  _workLandOn(me){ try{ return window.localStorage.getItem(this._workLandKey(me))!=='off'; }catch(e){ return true; } }",
+   "  _workLandOn(me){ try{ const v=window.localStorage.getItem(this._workLandKey(me)); return this.WORK_KIND(me)?v!=='off':v==='on'; }catch(e){ return !!this.WORK_KIND(me); } }   // v1.364.2 work-home: มีหน้างาน → ลงหน้างาน (ปิดได้) · ไม่มี → ลง Home เลือกโครงการ (เปิด พื้นที่ทำงานของฉัน ได้เอง)"],
 ];
 let done = 0, had = 0;
 for (const [name, a, b] of R) {
