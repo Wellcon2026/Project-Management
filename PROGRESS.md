@@ -157,3 +157,10 @@
 - Take-off v1.4.0 (repo wellcon-qs-takeoff, branch `feature/qst-edit`): ทดสอบหน้าจอจริงบน staging ด้วยตัวตนทดสอบปลอม — เพิ่มแถว / แก้ช่อง / Esc ยกเลิก / ลบ (งานประมูล + VO) ถูกต้อง · PM แก้อีกช่องของแถวเดียวกันระหว่างนั้น → ไม่ถูกทับ · ข้อมูลกลับเหมือนเดิมทุกตัวอักษร
 - ⚠️ หลังรันตัวกัน: แท็บ PM ที่เปิดค้างก่อนอัปเดต จะบันทึก QS Tracking ไม่ได้จนกว่ารีเฟรช · อัปโหลด index.html จาก canvas → ต้องรัน `node scripts/patch-qs-track-rowsync.js` ไม่งั้น PM บันทึก QS Tracking ไม่ได้ (ข้อมูลไม่หาย)
 - ⚠️ รัน `supabase-staging.sql` (ก๊อปข้อมูลจริงลง staging ใหม่) → ต้องรัน `supabase-qs-track-guard.sql` ซ้ำ
+
+### ขั้น 5 (08/11/2026) · branch `feature/takeoff-legacy-hide`
+- `scripts/patch-takeoff-unify.js` (รันซ้ำได้): ซ่อนแท็บ "Takeoff · ถอดปริมาณ & PR" เดิมจากเมนู — **ไม่ลบโค้ด/ข้อมูล** · เปิดกลับ: ต่อท้ายลิงก์ PM ด้วย `?legacyTakeoff=1` (หรือ localStorage `wc_tko_legacy` = 1) จะเห็นเป็น "Takeoff เดิม (เก็บถาวร)"
+- เมนู "วัดพื้นที่ด่วน (มือถือ)" → **"Takeoff · วัดหน้างาน"** (ต่อจากรายงานประจำวัน) · หน้า Quick Measure v1.3.1 ใช้ชื่อเดียวกัน
+- รวมบันทึก/ไฟล์ SQL ตัวกันจาก `feature/qs-track-guard` (SQL รันใช้งานแล้วตั้งแต่ 07/11/2026)
+- ทดสอบ: โค้ด PM ไม่มี syntax error · เปิด PM staging ได้ไม่มี error · **เมนูในหน้าโครงการต้องเช็กบน Preview** (ต้อง login จริง)
+- หลังอัปโหลด index.html ใหม่จาก canvas: รัน `patch-quick-measure-menu.js` → `patch-qs-track-rowsync.js` → `patch-takeoff-unify.js` (Claude ทำให้ได้)
