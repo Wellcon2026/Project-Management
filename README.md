@@ -34,3 +34,15 @@ node scripts/sync-engine.js
 ```bash
 node scripts/patch-quick-measure-menu.js
 ```
+
+### หลังอัปโหลด index.html ใหม่จาก canvas (รันตามลำดับ · รันซ้ำได้ ไม่ซ้อน)
+```bash
+node scripts/patch-quick-measure-menu.js
+```
+```bash
+node scripts/patch-qs-track-rowsync.js
+```
+```bash
+node scripts/patch-takeoff-unify.js
+```
+(เมนู Takeoff · วัดหน้างาน · QS Tracking บันทึกทีละแถว · ซ่อนแท็บ Takeoff เดิม — เปิดกลับด้วย `?legacyTakeoff=1`)
