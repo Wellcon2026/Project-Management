@@ -146,3 +146,14 @@
 ### ✅ ใช้จริง 08/11/2026
 - merge `feature/pm-takeoff-unify` เข้า main (fast-forward, main ไม่มี commit ใหม่คั่น) · เว็บจริงเป็น Quick Measure v1.3.0 แล้ว (ตรวจจากไฟล์บนเว็บ) · เมนู + QS Tracking ทีละแถวยังอยู่ · engine ตรงกับ QS
 - เหลือ: ขั้น 5 ซ่อนแท็บ Takeoff เดิม + เปลี่ยนชื่อเมนู (รอคุณบัญชายืนยัน) · branch `feature/qs-track-guard` (มีแค่ไฟล์ SQL ตัวกัน + บันทึก ซึ่งรันใช้งานแล้ว) ยังไม่ merge
+
+---
+
+## 07/11/2026 — ตัวกันฐานข้อมูล + แก้ QS Tracking ใน Take-off
+- `supabase-qs-track-guard.sql` (คุณบัญชาอนุมัติ · Claude รันแล้ว): public + staging = true ทุกช่อง
+  - qs_track_patch ติดป้าย "แก้ทีละแถว" · trigger `qs_track_guard` ปฏิเสธการแก้/ลบ 4 แถว QS Tracking ที่ไม่ผ่านฟังก์ชัน · `qs_track_ready()`
+  - ตรวจ PM แล้ว: ไม่มีจุดอื่นเขียน 4 คีย์นี้ทั้งก้อน (backup/กู้ข้อมูลไม่แตะ)
+- ทดสอบ staging: PM เก่าส่งทั้งก้อน → ถูกปฏิเสธ ข้อมูลไม่เปลี่ยน · ลบทั้งก้อน → ถูกปฏิเสธ · คีย์อื่นของ app_state เขียนได้ปกติ · ฟังก์ชันทีละแถวยังใช้ได้ · คืนข้อมูลเหมือนเดิม
+- Take-off v1.4.0 (repo wellcon-qs-takeoff, branch `feature/qst-edit`): ทดสอบหน้าจอจริงบน staging ด้วยตัวตนทดสอบปลอม — เพิ่มแถว / แก้ช่อง / Esc ยกเลิก / ลบ (งานประมูล + VO) ถูกต้อง · PM แก้อีกช่องของแถวเดียวกันระหว่างนั้น → ไม่ถูกทับ · ข้อมูลกลับเหมือนเดิมทุกตัวอักษร
+- ⚠️ หลังรันตัวกัน: แท็บ PM ที่เปิดค้างก่อนอัปเดต จะบันทึก QS Tracking ไม่ได้จนกว่ารีเฟรช · อัปโหลด index.html จาก canvas → ต้องรัน `node scripts/patch-qs-track-rowsync.js` ไม่งั้น PM บันทึก QS Tracking ไม่ได้ (ข้อมูลไม่หาย)
+- ⚠️ รัน `supabase-staging.sql` (ก๊อปข้อมูลจริงลง staging ใหม่) → ต้องรัน `supabase-qs-track-guard.sql` ซ้ำ
