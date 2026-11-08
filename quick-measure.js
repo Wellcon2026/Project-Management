@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.2.0';
+const QM_VER = 'v1.2.1';
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -547,7 +547,9 @@ const MV = (() => {
         // r เดียวกับที่ QS ใช้ (เก็บใน page_scales) — ถ้ายังไม่มี คำนวณสูตรเดียวกับ QS
         const r = src.r || Math.round(clamp(5000 / Math.max(v1.width, v1.height), 1, 2.5) * 1000) / 1000;
         src.r = r; W = Math.floor(v1.width * r); H = Math.floor(v1.height * r);
-        const rr = Math.min(r, MAX_BMP / Math.max(v1.width, v1.height)), v = page.getViewport({ scale: rr });
+        // ความคมของภาพแยกจากหน่วยพิกัด: เรนเดอร์อย่างน้อย 2.5 เท่า (ไม่เกิน 4096 px) แล้วย่อ/ขยายวาดลงพิกัด W×H
+        // (แผ่นแบบที่ย้ายจาก Takeoff เดิมใช้พิกัด "จุด PDF" r = 1 — ถ้าเรนเดอร์ที่ 1 เท่าภาพจะเบลอ)
+        const rr = Math.min(Math.max(r, 2.5), MAX_BMP / Math.max(v1.width, v1.height)), v = page.getViewport({ scale: rr });
         const c = document.createElement('canvas'); c.width = Math.floor(v.width); c.height = Math.floor(v.height);
         const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
         await page.render({ canvasContext: g, viewport: v }).promise; BMP = c;
