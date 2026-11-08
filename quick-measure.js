@@ -1,7 +1,7 @@
 /* =====================================================================
    Wellcon PM — Quick Measure (วัดพื้นที่ด่วนบนมือถือ)
    ---------------------------------------------------------------------
-   • หน้าแยกจาก index.html (ไม่แตะโค้ด PM หลัก) เปิดจากเมนู "วัดพื้นที่ด่วน" ในหน้าโครงการ
+   • หน้าแยกจาก index.html (ไม่แตะโค้ด PM หลัก) เปิดจากเมนู "Takeoff · วัดหน้างาน" ในหน้าโครงการ
      quick-measure.html?pid=<project id>  (+ &env=staging สำหรับข้อมูลทดสอบ)
    • Login: ใช้ session ที่ Wellcon PM จำไว้ในเครื่อง (wellcon_pm_session_v1) — ไม่มีระบบ login ใหม่
    • อ่านข้อมูล QS ผ่าน takeoff_pm_feed ช่องทางเดียว (ไม่มีราคา) · เคารพสวิตช์ Admin ทุกครั้งที่เปิด
@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.3.0';   // 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
+const QM_VER = 'v1.3.1';   // 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -140,7 +140,7 @@ async function boot() {
   try {
     if (!(await ensureAuth())) {
       msg(`<div class="card" style="margin-top:20px"><b>ยังไม่ได้เชื่อมต่อ Wellcon PM ในเครื่องนี้</b>
-        <span style="color:var(--mut);font-size:14px">เปิด Wellcon PM และเข้าสู่ระบบก่อน แล้วกดเมนู “วัดพื้นที่ด่วน” จากหน้าโครงการ</span>
+        <span style="color:var(--mut);font-size:14px">เปิด Wellcon PM และเข้าสู่ระบบก่อน แล้วกดเมนู “Takeoff · วัดหน้างาน” จากหน้าโครงการ</span>
         <a class="btn pri" style="display:flex;align-items:center;justify-content:center;text-decoration:none;margin-top:8px" href="${pmUrl()}">ไปหน้า Wellcon PM</a></div>`);
       return;
     }
@@ -153,7 +153,7 @@ async function boot() {
       && accounts.find(x => norm(x.email) === sess.email && x.active !== false && !x.disabled);
     if (!acc) {
       msg(`<div class="card" style="margin-top:20px"><b>ยังไม่ได้เข้าสู่ระบบ Wellcon PM ในเครื่องนี้</b>
-        <span style="color:var(--mut);font-size:14px">เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิดเมนู “วัดพื้นที่ด่วน” จากหน้าโครงการ</span>
+        <span style="color:var(--mut);font-size:14px">เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิดเมนู “Takeoff · วัดหน้างาน” จากหน้าโครงการ</span>
         <a class="btn pri" style="display:flex;align-items:center;justify-content:center;text-decoration:none;margin-top:8px" href="${pmUrl()}">ไปหน้า Wellcon PM</a></div>`);
       return;
     }
@@ -163,7 +163,7 @@ async function boot() {
     const pid = new URLSearchParams(location.search).get('pid');
     if (pid) {
       if (!APP.projects.some(x => x.id === pid)) {
-        msg(`<div class="card" style="margin-top:20px"><b>คุณไม่ได้รับมอบหมายในโครงการนี้</b><span style="color:var(--mut);font-size:14px">วัดพื้นที่ด่วนเปิดได้เฉพาะโครงการที่คุณถูก assign — ติดต่อผู้ดูแลระบบถ้าต้องการสิทธิ์</span></div>`);
+        msg(`<div class="card" style="margin-top:20px"><b>คุณไม่ได้รับมอบหมายในโครงการนี้</b><span style="color:var(--mut);font-size:14px">Takeoff · วัดหน้างาน เปิดได้เฉพาะโครงการที่คุณถูก assign — ติดต่อผู้ดูแลระบบถ้าต้องการสิทธิ์</span></div>`);
         return;
       }
       await openProject(pid);
