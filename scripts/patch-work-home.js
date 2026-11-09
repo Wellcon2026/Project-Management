@@ -6,7 +6,8 @@
      1) เมนูข้าง กลุ่ม "เมนูหลัก": หน้า work ขึ้นเป็นอันดับแรก (ก่อน พื้นที่ทำงานของฉัน) — แท็บมือถือเรียงตามนี้ด้วย
      2) ปุ่มทองด้านบน (เดิม "My Workspace") → พากลับหน้า work · ป้ายเปลี่ยนเป็นชื่อหน้า เช่น "หน้างานของฉัน"
      3) แตะโลโก้ Wellcon มุมซ้ายบน → กลับหน้า work (เดิมไป Home)
-   ล็อกอิน (v1.364.3): ทุกคนลงหน้า Home (เลือกโครงการ) · อยากลง หน้างาน / พื้นที่ทำงานของฉัน → กด "เปิดหน้านี้ทุกครั้งที่ล็อกอิน" ที่หน้านั้น (จำรายคน)
+   ล็อกอินตามบทบาท (v1.364.5): ตำแหน่งที่มีหน้า work → ลงหน้า work (ปิดได้รายคน) · ตำแหน่งอื่น → ลงหน้า Home เลือกโครงการ
+     (อยากลง พื้นที่ทำงานของฉัน → กด "เปิดหน้านี้ทุกครั้งที่ล็อกอิน" ที่หน้านั้น · จำรายคน)
    ตำแหน่งที่ไม่มีหน้า work: เหมือนเดิมทุกอย่าง (ปุ่มด้านบน = My Workspace · โลโก้ = Home)
    - รันซ้ำได้ ไม่ซ้อน · รันหลังอัปโหลด index.html ใหม่จาก canvas ทุกครั้ง
    ===================================================================== */
@@ -46,11 +47,13 @@ const R = [
    '<button sc-camel-on-click="{{ onGoHome }}" title="กลับหน้า Home"',
    '<button sc-camel-on-click="{{ onGoHome }}" title="กลับหน้าแรกของฉัน"'],
   ['อัปเกรด v1.364.2 → ทุกคนลง Home', "  _workLandOn(me){ try{ const v=window.localStorage.getItem(this._workLandKey(me)); return this.WORK_KIND(me)?v!=='off':v==='on'; }catch(e){ return !!this.WORK_KIND(me); } }   // v1.364.2 work-home: มีหน้างาน → ลงหน้างาน (ปิดได้) · ไม่มี → ลง Home เลือกโครงการ (เปิด พื้นที่ทำงานของฉัน ได้เอง)",
-   "  _workLandOn(me){ try{ return window.localStorage.getItem(this._workLandKey(me))==='on'; }catch(e){ return false; } }   // v1.364.3 work-home: ทุกคนล็อกอินแล้วลงหน้า Home เลือกโครงการ · อยากลงหน้างาน/พื้นที่ทำงาน กดเปิดเองได้รายคน", 'optional'],
+   "  _workLandOn(me){ try{ const v=window.localStorage.getItem(this._workLandKey(me)); return this.WORK_KIND(me)?v!=='off':v==='on'; }catch(e){ return !!this.WORK_KIND(me); } }   // v1.364.5 work-home: ล็อกอินตามบทบาท — มีหน้างาน → ลงหน้างาน (ปิดได้) · ไม่มี → ลง Home เลือกโครงการ (เปิด พื้นที่ทำงานของฉัน ได้เอง)", 'optional'],
+  ['อัปเกรด v1.364.3 → ล็อกอินตามบทบาท', "  _workLandOn(me){ try{ return window.localStorage.getItem(this._workLandKey(me))==='on'; }catch(e){ return false; } }   // v1.364.3 work-home: ทุกคนล็อกอินแล้วลงหน้า Home เลือกโครงการ · อยากลงหน้างาน/พื้นที่ทำงาน กดเปิดเองได้รายคน",
+   "  _workLandOn(me){ try{ const v=window.localStorage.getItem(this._workLandKey(me)); return this.WORK_KIND(me)?v!=='off':v==='on'; }catch(e){ return !!this.WORK_KIND(me); } }   // v1.364.5 work-home: ล็อกอินตามบทบาท — มีหน้างาน → ลงหน้างาน (ปิดได้) · ไม่มี → ลง Home เลือกโครงการ (เปิด พื้นที่ทำงานของฉัน ได้เอง)", 'optional'],
   ['ล้างค่าหน้าแรกเดิมที่เคยตั้ง (คีย์ใหม่)', "return 'wellcon_pm_land_'+String(", "return 'wellcon_pm_land2_'+String("],
-  ['ล็อกอิน: ทุกคนลงหน้า Home (เลือกโครงการ)',
+  ['ล็อกอินตามบทบาท: มีหน้างาน → หน้างาน · ไม่มี → Home',
    "  _workLandOn(me){ try{ return window.localStorage.getItem(this._workLandKey(me))!=='off'; }catch(e){ return true; } }",
-   "  _workLandOn(me){ try{ return window.localStorage.getItem(this._workLandKey(me))==='on'; }catch(e){ return false; } }   // v1.364.3 work-home: ทุกคนล็อกอินแล้วลงหน้า Home เลือกโครงการ · อยากลงหน้างาน/พื้นที่ทำงาน กดเปิดเองได้รายคน"],
+   "  _workLandOn(me){ try{ const v=window.localStorage.getItem(this._workLandKey(me)); return this.WORK_KIND(me)?v!=='off':v==='on'; }catch(e){ return !!this.WORK_KIND(me); } }   // v1.364.5 work-home: ล็อกอินตามบทบาท — มีหน้างาน → ลงหน้างาน (ปิดได้) · ไม่มี → ลง Home เลือกโครงการ (เปิด พื้นที่ทำงานของฉัน ได้เอง)"],
 ];
 let done = 0, had = 0;
 for (const [name, a, b, opt] of R) {
