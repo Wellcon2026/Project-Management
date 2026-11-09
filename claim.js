@@ -432,7 +432,22 @@ function pickPrintLang() {
   w.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b && !e.target.classList.contains('ll-scrim')) return; const l = b ? b.dataset.l : ''; w.remove(); if (l) { try { localStorage.setItem('wellcon_print_lang', l); } catch (x) {} printClaim(l); } });
   try { const last = localStorage.getItem('wellcon_print_lang'); const lb = last && w.querySelector('button[data-l="' + last + '"]'); if (lb) lb.style.borderColor = '#C9A961'; } catch (x) {}
 }
-function printClaim(lang) {
+// แปลข้อความไทยที่ผู้ใช้พิมพ์ → อังกฤษ (ตอนพิมพ์ English / สองภาษา): ① ผู้ช่วย AI ของบริษัท (Supabase function ai-assistant) ② สำรอง Google Translate
+async function trThai(list, staffId) {
+  const TH = /[\u0E01-\u0E3A\u0E40-\u0E5B]/; /* ตัวอักษรไทย ไม่นับ ฿ */ const uniq = [...new Set((list || []).map(x => String(x == null ? '' : x).trim()).filter(x => TH.test(x)))]; const out = {};
+  if (!uniq.length) return out;
+  try {
+    const r = await fetch(CFG.url + '/functions/v1/ai-assistant', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: CFG.anonKey, Authorization: 'Bearer ' + CFG.anonKey },
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 4000, staffId: staffId || null,
+        system: 'You translate Thai text from an interior fit-out contractor (Wellcon Interior) into concise, professional English for client documents. Keep numbers, codes, room numbers, brand and product names unchanged. Transliterate Thai person names (e.g. นนท์ → Non) and company names (บจก. / บริษัท ... จำกัด → ... Co., Ltd.). Reply with a JSON array of strings only — same order and length as the input. No explanations.',
+        messages: [{ role: 'user', content: JSON.stringify(uniq) }] }) });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.text) { const a = JSON.parse(String(d.text).replace(/```[a-z]*\n?/gi, '').trim()); if (Array.isArray(a) && a.length === uniq.length) { uniq.forEach((x, i) => { if (a[i]) out[x] = String(a[i]); }); return out; } }
+  } catch (e) {}
+  await Promise.all(uniq.map(async x => { try { const r = await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=th&tl=en&dt=t&q=' + encodeURIComponent(x)); const j = await r.json(); const t = (j[0] || []).map(y => y[0]).join(''); if (t) out[x] = t; } catch (e) {} }));
+  return out;
+}
+async function printClaim(lang) {
   lang = lang || 'th'; const EN = lang === 'en', BOTH = lang === 'both';
   const L = (th, en) => EN ? en : BOTH ? th + ' / ' + en : th;           // ป้ายสั้น
   const P = (th, en) => EN ? en : BOTH ? th + '<br><span class="en">' + en + '</span>' : th;   // ย่อหน้า
@@ -440,19 +455,24 @@ function printClaim(lang) {
   const amt = num(s.amt) || k.total, days = num(s.days) || num(c.eot);
   const causeTx = EN ? (EN_CAUSE[c.cause] || EN_CAUSE.other) : BOTH ? cz[2] + ' / ' + (EN_CAUSE[c.cause] || EN_CAUSE.other) : cz[2];
   const worksTx = (c.works || []).map(x => EN ? (EN_WORK[x] || x) : BOTH ? x + (EN_WORK[x] && EN_WORK[x] !== x ? ' (' + EN_WORK[x] + ')' : '') : x).join(', ') || '—';
-  const rows = (c.lines || []).map((l, i) => { const t = LT[l.t] || LT.oth; const tl = EN ? (EN_LT[l.t] || EN_LT.oth) : BOTH ? t[1] + ' / ' + (EN_LT[l.t] || EN_LT.oth) : t[1];
+  const rowsF = () => (c.lines || []).map((l, i) => { const t = LT[l.t] || LT.oth; const tl = EN ? (EN_LT[l.t] || EN_LT.oth) : BOTH ? t[1] + ' / ' + (EN_LT[l.t] || EN_LT.oth) : t[1];
     const q = l.t === 'lab' ? `${num(l.men)} ${L('คน', 'men')} × ${num(l.days)} ${L('วัน', 'days')}` : l.t === 'mat' ? `${num(l.qty)} ${esc(l.unit || '')}` : L('เหมา', 'Lump sum');
     const u = l.t === 'lab' ? baht(l.rate) : l.t === 'mat' ? baht(l.price) : baht(l.amt);
-    return `<tr><td>${i + 1}</td><td>${tl} · ${esc(l.n || '')}</td><td>${q}</td><td class="r">${u}</td><td class="r">${baht(lineAmt(l))}</td></tr>`; }).join('');
+    return `<tr><td>${i + 1}</td><td>${tl} · ${Ui(l.n || '')}</td><td>${q}</td><td class="r">${u}</td><td class="r">${baht(lineAmt(l))}</td></tr>`; }).join('');
   const ph = (Lst, cap) => (Lst || []).length ? `<h3>${cap}</h3><div class="ph">${Lst.slice(0, 8).map(u => `<img src="${esc(u)}">`).join('')}</div>` : '';
   const nf = F(c, 'notified');
-  const nfTx = nf.date ? (EN ? `${dmy(nf.date)} by ${esc(EN_CH[nf.ch] || nf.ch || '')}${nf.to ? ' to ' + esc(nf.to) : ''}`
-    : `${dmy(nf.date)} ทาง${esc(nf.ch || '')}${nf.to ? ' ถึง ' + esc(nf.to) : ''}${BOTH ? ' / by ' + esc(EN_CH[nf.ch] || nf.ch || '') : ''}`) : '';
+  let TRM = {};
+  if (EN || BOTH) { toast('กำลังแปลข้อความเป็นภาษาอังกฤษ…', 6000);
+    TRM = await trThai([p.client, p.owner, projName(p), c.title, c.area, c.party, c.desc, c.eotWhy, nf.to, c.by, ...(c.lines || []).map(l => l.n)], APP.acc && APP.acc.id); }
+  const U = (v) => { const x = String(v == null ? '' : v); const t = TRM[x.trim()]; if (EN) return esc(t || x); if (BOTH && t) return esc(x) + '<br><span class="en">' + esc(t) + '</span>'; return esc(x); };
+  const Ui = (v) => { const x = String(v == null ? '' : v); const t = TRM[x.trim()]; if (EN) return esc(t || x); if (BOTH && t) return esc(x) + ' (' + esc(t) + ')'; return esc(x); };
+  const nfTxF = () => nf.date ? (EN ? `${dmy(nf.date)} by ${esc(EN_CH[nf.ch] || nf.ch || '')}${nf.to ? ' to ' + Ui(nf.to) : ''}`
+    : `${dmy(nf.date)} ทาง${esc(nf.ch || '')}${nf.to ? ' ถึง ' + Ui(nf.to) : ''}${BOTH ? ' / by ' + esc(EN_CH[nf.ch] || nf.ch || '') : ''}`) : '';
   const doc = `<!doctype html><html lang="${EN ? 'en' : 'th'}"><head><meta charset="utf-8"><title>${esc(c.no)} · ${L('หนังสือเคลมความเสียหาย', 'Damage Claim Letter')}</title><style>
     @page{size:A4 portrait;margin:14mm}body{font-family:"IBM Plex Sans Thai",Sarabun,sans-serif;font-size:11.5px;color:#1C1B18;line-height:1.55}
     .wm{position:fixed;top:40%;left:0;right:0;text-align:center;font-size:110px;font-weight:700;color:rgba(196,68,46,.10);transform:rotate(-24deg);z-index:0}
     .hd{display:flex;justify-content:space-between;border-bottom:2px solid #1C1B18;padding-bottom:6px}.hd b{font-size:15px}
-    h1{font-size:16px;margin:12px 0 2px}h2{font-size:12px;font-weight:400;color:#555;margin:0 0 10px}h3{font-size:12.5px;margin:12px 0 4px}.en{color:#555}
+    h1{font-size:16px;margin:12px 0 2px}h2{font-size:12px;font-weight:400;color:#555;margin:0 0 10px}h3{font-size:12.5px;margin:12px 0 4px}.en{color:#555;font-style:italic}
     table{width:100%;border-collapse:collapse;margin-top:4px}th,td{border:1px solid #bbb;padding:4px 6px;vertical-align:top}th{background:#F3EDDF;text-align:left}.r{text-align:right;white-space:nowrap}
     .kv td:first-child{width:28%;background:#FAF6EE;font-weight:600}.ph{display:flex;flex-wrap:wrap;gap:4px}.ph img{width:23.5%;height:110px;object-fit:cover;border:1px solid #ccc}
     .sg{display:flex;gap:24px;margin-top:28px}.sg div{flex:1;text-align:center}.sg .ln{border-bottom:1px solid #333;height:34px;margin-bottom:4px}
@@ -460,20 +480,20 @@ function printClaim(lang) {
     <div class="wm">DRAFT</div>
     <div class="hd"><div><b>${EN ? 'Wellcon Interior Co., Ltd.' : 'บริษัท เวลล์คอน อินทีเรีย จำกัด · Wellcon Interior Co., Ltd.'}</b><br>${EN ? 'Centroport 36/38 Moo 13, Bueng Kham Phroi, Lam Luk Ka, Pathum Thani 12150, Thailand' : 'เซ็นโทรพอร์ต 36/38 ม.13 ต.บึงคำพร้อย อ.ลำลูกกา จ.ปทุมธานี 12150'}<br>${L('เลขประจำตัวผู้เสียภาษี', 'Tax ID')} 0105560007187 · www.wellcon.co.th</div><div style="text-align:right">${L('เลขที่', 'No.')} <b>${esc(s.ref || c.no)}</b><br>${L('วันที่', 'Date')} ${dmy(s.date || isoToday())}</div></div>
     ${EN ? `<h1>Notice of Damage &amp; Claim for Repair Cost${days ? ' and Working Time' : ''}</h1>` : `<h1>หนังสือแจ้งความเสียหายและขอเรียกร้องค่าเสียหาย</h1><h2>Notice of Damage &amp; Claim for Repair Cost${days ? ' and Working Time' : ''}</h2>`}
-    <table class="kv"><tr><td>${L('เรียน', 'To')}</td><td>${esc(p.client || p.owner || (EN ? 'The Employer' : 'ผู้ว่าจ้าง'))}</td></tr><tr><td>${L('โครงการ', 'Project')}</td><td>${esc(projName(p))}${projCode(p) ? ' (' + esc(projCode(p)) + ')' : ''}</td></tr>
-      <tr><td>${L('เรื่อง', 'Subject')}</td><td>${esc(c.title || '')}</td></tr><tr><td>${L('วันที่พบ', 'Date found')}</td><td>${dmy(c.found)}</td></tr><tr><td>${L('ตำแหน่ง', 'Location')}</td><td>${esc(c.area || '—')}</td></tr>
-      <tr><td>${L('งานที่เสียหาย', 'Affected works')}</td><td>${esc(worksTx)}</td></tr><tr><td>${L('สาเหตุ', 'Cause')}</td><td>${esc(causeTx)}${c.party ? ' — ' + L('ผู้เกี่ยวข้อง', 'party') + ': ' + esc(c.party) : ''}</td></tr>
-      ${nf.date ? `<tr><td>${L('แจ้งเหตุแล้ว', 'Notified')}</td><td>${nfTx}</td></tr>` : ''}</table>
-    <h3>${L('รายละเอียดความเสียหาย', 'Description of damage')}</h3><div>${esc(c.desc || '—').replace(/\n/g, '<br>')}</div>
+    <table class="kv"><tr><td>${L('เรียน', 'To')}</td><td>${U(p.client || p.owner || (EN ? 'The Employer' : 'ผู้ว่าจ้าง'))}</td></tr><tr><td>${L('โครงการ', 'Project')}</td><td>${U(projName(p))}${projCode(p) ? ' (' + esc(projCode(p)) + ')' : ''}</td></tr>
+      <tr><td>${L('เรื่อง', 'Subject')}</td><td>${U(c.title || '')}</td></tr><tr><td>${L('วันที่พบ', 'Date found')}</td><td>${dmy(c.found)}</td></tr><tr><td>${L('ตำแหน่ง', 'Location')}</td><td>${U(c.area || '—')}</td></tr>
+      <tr><td>${L('งานที่เสียหาย', 'Affected works')}</td><td>${esc(worksTx)}</td></tr><tr><td>${L('สาเหตุ', 'Cause')}</td><td>${esc(causeTx)}${c.party ? ' — ' + L('ผู้เกี่ยวข้อง', 'party') + ': ' + Ui(c.party) : ''}</td></tr>
+      ${nf.date ? `<tr><td>${L('แจ้งเหตุแล้ว', 'Notified')}</td><td>${nfTxF()}</td></tr>` : ''}</table>
+    <h3>${L('รายละเอียดความเสียหาย', 'Description of damage')}</h3><div>${U(c.desc || '—').replace(/\n/g, '<br>')}</div>
     ${ph((c.photos || {}).before, L('รูปความเสียหาย (ก่อนซ่อม)', 'Photos of damage (before repair)'))}${ph((c.photos || {}).after, L('รูปหลังซ่อม', 'Photos after repair'))}
-    <h3>${L('ค่าใช้จ่ายในการซ่อมแซม', 'Repair cost')}</h3><table><thead><tr><th>#</th><th>${L('รายการ', 'Item')}</th><th>${L('จำนวน', 'Qty')}</th><th class="r">${L('ราคาต่อหน่วย', 'Unit price')}</th><th class="r">${L('จำนวนเงิน', 'Amount')}</th></tr></thead><tbody>${rows || '<tr><td colspan="5">—</td></tr>'}
+    <h3>${L('ค่าใช้จ่ายในการซ่อมแซม', 'Repair cost')}</h3><table><thead><tr><th>#</th><th>${L('รายการ', 'Item')}</th><th>${L('จำนวน', 'Qty')}</th><th class="r">${L('ราคาต่อหน่วย', 'Unit price')}</th><th class="r">${L('จำนวนเงิน', 'Amount')}</th></tr></thead><tbody>${rowsF() || '<tr><td colspan="5">—</td></tr>'}
       <tr><td colspan="4" class="r">${L('รวมค่าซ่อม', 'Repair subtotal')}</td><td class="r">${baht(k.sub)}</td></tr><tr><td colspan="4" class="r">${L('ค่าดำเนินการ + กำไร', 'Overhead & profit')} ${num(c.ohp)}%</td><td class="r">${baht(k.ohp)}</td></tr>
       <tr><td colspan="4" class="r">${L('รวมก่อน VAT', 'Total before VAT')}</td><td class="r">${baht(k.pre)}</td></tr><tr><td colspan="4" class="r">VAT 7%</td><td class="r">${baht(k.vat)}</td></tr>
       <tr><td colspan="4" class="r"><b>${c.vatOn === false ? L('ยอดเรียกร้อง (ไม่รวม VAT)', 'Claim amount (excl. VAT)') : L('ยอดเรียกร้อง (รวม VAT)', 'Claim amount (incl. VAT)')}</b></td><td class="r"><b>${baht(amt)}</b></td></tr></tbody></table>
-    ${days ? `<h3>${L('ระยะเวลาทำงาน', 'Working time')}</h3><div>${days} ${L('วัน', 'days')}${c.eotWhy ? ' — ' + esc(c.eotWhy) : ''}</div>` : ''}
+    ${days ? `<h3>${L('ระยะเวลาทำงาน', 'Working time')}</h3><div>${days} ${L('วัน', 'days')}${c.eotWhy ? ' — ' + Ui(c.eotWhy) : ''}</div>` : ''}
     <div style="margin-top:10px">${P('บริษัทฯ ขอเรียนแจ้งความเสียหายต่องานของบริษัทฯ ซึ่งเกิดจากสาเหตุที่อยู่นอกขอบเขตความรับผิดชอบของบริษัทฯ ตามรายละเอียดข้างต้น และขอเรียกร้องค่าใช้จ่ายในการซ่อมแซม' + (days ? ' และการขยายระยะเวลา' : '') + ' จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ',
       'We hereby notify you of the damage to our works, caused by matters outside our scope of responsibility as detailed above, and claim the cost of repair' + (days ? ' together with the additional working time' : '') + '. We would be grateful for your kind consideration and approval.')}</div>
-    <div class="sg"><div><div class="ln"></div>${L('ผู้จัดทำ', 'Prepared by')}<br>${esc(c.by || '')}</div><div><div class="ln"></div>${L('ผู้อนุมัติ', 'Approved by')} · Wellcon Interior</div><div><div class="ln"></div>${L('ผู้รับทราบ · ผู้ว่าจ้าง', 'Acknowledged by · Employer')}</div></div>
+    <div class="sg"><div><div class="ln"></div>${L('ผู้จัดทำ', 'Prepared by')}<br>${Ui(c.by || '')}</div><div><div class="ln"></div>${L('ผู้อนุมัติ', 'Approved by')} · Wellcon Interior</div><div><div class="ln"></div>${L('ผู้รับทราบ · ผู้ว่าจ้าง', 'Acknowledged by · Employer')}</div></div>
     <div class="note">${P('DRAFT — ต้องผ่านการตรวจของผู้บริหารก่อนส่ง · ตรวจตัวเลขกับฝ่ายประมาณราคา (QS) · อ้างอิงเงื่อนไขสัญญาของโครงการ', 'DRAFT — to be reviewed by management before issue · figures to be verified by QS · subject to the project contract conditions')}</div></body></html>`;
   const old = document.getElementById('cl-print'); if (old) old.remove();
   const f = document.createElement('iframe'); f.id = 'cl-print'; f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden'; document.body.appendChild(f);
