@@ -42,7 +42,18 @@
     const go = () => { const a = document.createElement('a'); a.href = backUrl; a.id = 'lbpm-chip'; a.title = 'กลับหน้าแรกของฉันใน Wellcon PM';
       a.textContent = '← หน้าแรก PM · ' + name;
       a.setAttribute('style', 'position:fixed;left:50%;transform:translateX(-50%);bottom:10px;z-index:2147482000;max-width:min(60vw,320px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#1C1B18;color:#F4EFE6;border-radius:999px;padding:8px 14px;font:600 12.5px/1.2 system-ui,sans-serif;text-decoration:none;box-shadow:0 6px 18px rgba(0,0,0,.18);opacity:.92');
-      document.body.appendChild(a); };
+      document.body.appendChild(a);
+      // ปุ่ม 🏠 หน้าแรก (มุมบน) — คอม: ข้างโลโก้ในแถบซ้าย · มือถือ: แถวเดียวกับ Sort · ซ่อนตอนเปิดบอร์ด (หน้าแก้ไข) ไม่ให้ทับเครื่องมือ
+      const hb = document.createElement('a'); hb.href = backUrl; hb.id = 'lbpm-home'; hb.title = 'กลับหน้าแรกของฉันใน Wellcon PM'; hb.setAttribute('aria-label', 'หน้าแรก Wellcon PM');
+      hb.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/></svg><span>หน้าแรก</span>';
+      const st = document.createElement('style');
+      st.textContent = '#lbpm-home{position:fixed;z-index:2147482000;display:inline-flex;align-items:center;gap:6px;background:#1C1B18;color:#F4EFE6;text-decoration:none;border-radius:999px;font:700 13px/1 system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.18);top:18px;right:300px;height:38px;padding:0 14px}'
+        + '@media (min-width:760px) and (max-width:1099px){#lbpm-home{right:auto;left:198px;width:38px;padding:0;justify-content:center}#lbpm-home span{display:none}}'
+        + '#lbpm-home:hover{background:#C9A961;color:#1C1B18}'
+        + '@media (max-width:759px){#lbpm-home{top:58px;left:auto;right:14px;height:36px}}'
+        + 'body.lbpm-edit #lbpm-home{display:none}';
+      document.head.appendChild(st); document.body.appendChild(hb);
+      setInterval(() => { document.body.classList.toggle('lbpm-edit', !!document.querySelector('main[data-canvas]')); }, 800); };
     if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
   }
   window.LB_PM_READY = (async () => {
