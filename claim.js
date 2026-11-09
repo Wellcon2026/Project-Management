@@ -494,7 +494,7 @@ async function printClaim(lang) {
     <div style="margin-top:10px">${P('บริษัทฯ ขอเรียนแจ้งความเสียหายต่องานของบริษัทฯ ซึ่งเกิดจากสาเหตุที่อยู่นอกขอบเขตความรับผิดชอบของบริษัทฯ ตามรายละเอียดข้างต้น และขอเรียกร้องค่าใช้จ่ายในการซ่อมแซม' + (days ? ' และการขยายระยะเวลา' : '') + ' จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ',
       'We hereby notify you of the damage to our works, caused by matters outside our scope of responsibility as detailed above, and claim the cost of repair' + (days ? ' together with the additional working time' : '') + '. We would be grateful for your kind consideration and approval.')}</div>
     <div class="sg"><div><div class="ln"></div>${L('ผู้จัดทำ', 'Prepared by')}<br>${Ui(c.by || '')}</div><div><div class="ln"></div>${L('ผู้อนุมัติ', 'Approved by')} · Wellcon Interior</div><div><div class="ln"></div>${L('ผู้รับทราบ · ผู้ว่าจ้าง', 'Acknowledged by · Employer')}</div></div>
-    <div class="note">${P('DRAFT — ต้องผ่านการตรวจของผู้บริหารก่อนส่ง · ตรวจตัวเลขกับฝ่ายประมาณราคา (QS) · อ้างอิงเงื่อนไขสัญญาของโครงการ', 'DRAFT — to be reviewed by management before issue · figures to be verified by QS · subject to the project contract conditions')}</div></body></html>`;
+    </body></html>`;
   const old = document.getElementById('cl-print'); if (old) old.remove();
   const f = document.createElement('iframe'); f.id = 'cl-print'; f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden'; document.body.appendChild(f);
   const d = f.contentWindow.document; d.open(); d.write(doc); d.close();
