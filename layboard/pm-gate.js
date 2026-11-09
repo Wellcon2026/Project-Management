@@ -36,7 +36,7 @@
   }
   // บทบาท PM → บทบาทใน Layboard (admin = เห็น/จัดการทุกอย่าง · manager = สร้างงาน · member = แก้ไขงานที่เข้าถึงได้)
   const ROLE = { superadmin: 'Super Admin', director: 'Project Director', design_mgr: 'Design Manager', pm: 'Project Manager', pm_mgr: 'Project Manager',
-    sitemgr: 'Project Manager', site: 'Project Manager', qs_mgr: 'QS Manager', qs: 'QS / ประมาณราคา', designer: 'Designer' };
+    sitemgr: 'Project Manager', site: 'Project Manager', qs_mgr: 'QS Manager', designer: 'Design Manager' };   // ทุกคนที่เปิดสิทธิ์ = สร้างบอร์ด / โปรเจกต์ย่อย / แก้ไขได้
   const COLORS = ['#c67139', '#56633f', '#8c491a', '#3d6b8c', '#8a4f7d', '#b8892a', '#2f7a6b', '#a8434a'];
   function chip(name) {
     const go = () => { const a = document.createElement('a'); a.href = backUrl; a.id = 'lbpm-chip'; a.title = 'กลับหน้าแรกของฉันใน Wellcon PM';
@@ -63,6 +63,10 @@
     if (!proj) { block('ไม่พบโครงการนี้', 'โครงการอาจถูกลบหรือย้าย — กลับไปเลือกโครงการใน Wellcon PM'); return false; }
     const seesAll = acc.allProj === true || (acc.allProj !== false && ALL_SCOPE.includes(acc.roleKey));
     if (!seesAll && !(acc.projects || []).includes(pid)) { block('คุณไม่ได้รับมอบหมายในโครงการนี้', 'Layboard ของโครงการเปิดได้เฉพาะทีมที่ได้รับมอบหมาย — ติดต่อผู้ดูแลระบบ'); return false; }
+    // สิทธิ์ใช้ Layboard (สวิตช์ "Layboard · Presentation" ในหน้าจัดการผู้ใช้ของ PM · ค่าเริ่มต้นตามตำแหน่ง)
+    const LAY_DEF = ['superadmin', 'director', 'pm', 'pm_mgr', 'sitemgr', 'site', 'designer', 'design_mgr'];
+    const fo = acc.featOff || {}; const layOn = fo.lay === undefined ? LAY_DEF.includes(acc.roleKey) : fo.lay !== true;
+    if (!layOn) { block('ยังไม่ได้เปิดสิทธิ์ใช้ Layboard ให้บัญชีนี้', 'แจ้ง Super Admin เปิดสวิตช์ "Layboard · Presentation" ให้บัญชีของคุณที่หน้าจัดการผู้ใช้ใน Wellcon PM'); return false; }
     const t = await sb.from('layboard_kv').select('key').eq('project', pid).limit(1);
     if (t.error) { block('ยังไม่ได้สร้างตาราง layboard_kv ในฐานข้อมูล', 'แจ้ง Admin รันไฟล์ supabase-layboard.sql ใน Supabase ก่อนใช้งาน (' + (t.error.message || t.error.code || '') + ')'); return false; }
     const email = norm(acc.email || acc.username || acc.id), pname = String(proj.name || proj.project || pid);
@@ -70,7 +74,7 @@
     G.personId = 'u_' + (email.split('@')[0] || String(acc.id || 'me')).replace(/[^a-z0-9]/g, '') ;
     // ใส่ผู้ใช้ PM เข้า workspace ของโครงการนี้ · ตั้งชื่อโปรเจกต์ใน Layboard = ชื่อโครงการ PM · ทุกคนในโครงการแก้ไขได้ (access team)
     G.adopt = (ws) => { ws = { ...ws, authV: 1, people: Array.isArray(ws.people) ? ws.people.slice() : [], projects: Array.isArray(ws.projects) ? ws.projects.slice() : [] };
-      const nm = String(acc.nick || '').trim() || acc.name || email, role = ROLE[acc.roleKey] || 'Designer', pos = acc.title || role;
+      const nm = String(acc.nick || '').trim() || acc.name || email, role = ROLE[acc.roleKey] || 'Project Manager', pos = acc.title || role;
       const i = ws.people.findIndex(x => x.id === G.personId || norm(x.email) === email);
       if (i < 0) ws.people.push({ id: G.personId, email, name: nm, position: pos, role, pinHash: '', mustChange: false, active: true, color: COLORS[ws.people.length % COLORS.length], pm: true });
       else { G.personId = ws.people[i].id; ws.people[i] = { ...ws.people[i], name: nm, position: pos, role, active: true, mustChange: false, pm: true }; }
