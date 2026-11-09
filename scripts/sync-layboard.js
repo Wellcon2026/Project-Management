@@ -49,6 +49,9 @@ let html = patch('Layboard.dc.html', rd('Layboard.dc.html'), [
     "let sid = window.LB_PM ? window.LB_PM.personId : null; if (!sid) try { sid = sessionStorage.getItem('layboard-session') || localStorage.getItem('layboard-session'); } catch (e) {}"],
   ['ออกจากระบบ = กลับ PM', "async logout() {", "async logout() { if (window.LB_PM) { await this.flushDoc(); location.href = window.LB_PM.backUrl; return; }"],
 ]);
+// แอป Layboard ต้นฉบับติดตั้งเป็นแอปของตัวเอง (manifest / ไอคอน ที่ root ของ layboard.vercel.app) — สำเนาใน PM ไม่ใช้ (กันชนกับแอป Wellcon PM)
+html = html.replace(/^<title>[^<]*<\/title>\n/m, '').replace(/^<link rel="(manifest|icon|apple-touch-icon)"[^>]*>\n/gm, '')
+  .replace(/^<meta name="(theme-color|apple-mobile-web-app-capable|mobile-web-app-capable|apple-mobile-web-app-title|application-name)"[^>]*>\n/gm, '');
 fs.mkdirSync(out, { recursive: true });
 fs.writeFileSync(path.join(out, 'layboard-core.js'), core);
 fs.writeFileSync(path.join(out, 'index.html'), html);
