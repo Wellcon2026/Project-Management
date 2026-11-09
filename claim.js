@@ -442,7 +442,7 @@ function printClaim() {
       <tr><td colspan="4" class="r">รวมค่าซ่อม</td><td class="r">${baht(k.sub)}</td></tr><tr><td colspan="4" class="r">ค่าดำเนินการ + กำไร ${num(c.ohp)}%</td><td class="r">${baht(k.ohp)}</td></tr>
       <tr><td colspan="4" class="r">รวมก่อน VAT</td><td class="r">${baht(k.pre)}</td></tr><tr><td colspan="4" class="r">VAT 7%</td><td class="r">${baht(k.vat)}</td></tr>
       <tr><td colspan="4" class="r"><b>ยอดเรียกร้อง ${c.vatOn === false ? '(ไม่รวม VAT)' : '(รวม VAT)'}</b></td><td class="r"><b>${baht(amt)}</b></td></tr></tbody></table>
-    ${days ? `<h3>ขอขยายระยะเวลาทำงาน</h3><div>${days} วัน${c.eotWhy ? ' — ' + esc(c.eotWhy) : ''}</div>` : ''}
+    ${days ? `<h3>ระยะเวลาทำงาน</h3><div>${days} วัน${c.eotWhy ? ' — ' + esc(c.eotWhy) : ''}</div>` : ''}
     <div style="margin-top:10px">บริษัทฯ ขอเรียนแจ้งความเสียหายต่องานของบริษัทฯ ซึ่งเกิดจากสาเหตุที่อยู่นอกขอบเขตความรับผิดชอบของบริษัทฯ ตามรายละเอียดข้างต้น และขอเรียกร้องค่าใช้จ่ายในการซ่อมแซม${days ? ' และการขยายระยะเวลา' : ''} จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ</div>
     <div class="sg"><div><div class="ln"></div>ผู้จัดทำ<br>${esc(c.by || '')}</div><div><div class="ln"></div>ผู้อนุมัติ · Wellcon Interior</div><div><div class="ln"></div>ผู้รับทราบ · ผู้ว่าจ้าง</div></div>
     <div class="note">DRAFT — ต้องผ่านการตรวจของผู้บริหารก่อนส่ง · ตรวจตัวเลขกับฝ่ายประมาณราคา (QS) · อ้างอิงเงื่อนไขสัญญาของโครงการ</div></body></html>`;
