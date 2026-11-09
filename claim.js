@@ -33,8 +33,13 @@ const PIC_MAX = 12;
 const CAUSES = [['other_con', '🏗', 'ผู้รับเหมาอื่นทำเสียหาย'], ['flood', '🌊', 'น้ำท่วม / น้ำเข้า'], ['pipe', '🚰', 'ท่อรั่ว / ท่อแตก'],
   ['ac', '❄️', 'น้ำแอร์หยด / Condensation'], ['cut_elec', '⚡', 'เจาะ / รื้อ เพื่องานไฟฟ้า'], ['cut_mep', '🔧', 'เจาะ / รื้อ เพื่องานประปา / แอร์'],
   ['owner', '🏨', 'เจ้าของ / ผู้ใช้อาคาร'], ['other', '📌', 'อื่น ๆ']];
-const CM = Object.fromEntries(CAUSES.map(c => [c[0], c]));
-const WORKS = ['ฝ้า', 'ผนัง', 'พื้น', 'Built-in / เฟอร์นิเจอร์', 'ประตู / หน้าต่าง', 'งานสี / ผิวสำเร็จ', 'อื่น ๆ'];
+// v1.369.0 ประเภทเรื่อง: ความเสียหาย (เรียกค่าซ่อม) · ติดงานผู้อื่น (ผู้อื่นไม่ทำงานที่จำเป็น → เราเสนอราคาดำเนินการแทน)
+const KINDS = [['dmg', '💥', 'ความเสียหาย', 'งานของเราเสียหายจากผู้อื่น → เรียกค่าซ่อม'], ['obs', '🚧', 'ติดงานผู้อื่น · เสนอราคาทำแทน', 'ผู้อื่นไม่ทำงานที่จำเป็น เราทำงานต่อไม่ได้ → เสนอราคาดำเนินการแทน']];
+const CAUSES_OBS = [['no_reloc', '🔌', 'ไม่ย้าย / ไม่รื้อสายไฟ-งานระบบ'], ['no_fix', '🧱', 'ไม่ซ่อม / ไม่ปิดฝ้า-ผนังคืนสภาพ'], ['not_ready', '⏳', 'พื้นที่ยังไม่พร้อมให้เข้าทำงาน'],
+  ['no_act', '📵', 'แจ้งแล้วไม่ดำเนินการตามกำหนด'], ['other', '📌', 'อื่น ๆ']];
+const isObs = (c) => !!c && c.kind === 'obs';
+const CM = Object.fromEntries([...CAUSES, ...CAUSES_OBS].map(c => [c[0], c]));
+const WORKS = ['ฝ้า', 'ผนัง', 'พื้น', 'วอลเปเปอร์', 'Built-in / เฟอร์นิเจอร์', 'ประตู / หน้าต่าง', 'งานสี / ผิวสำเร็จ', 'อื่น ๆ'];
 const ST = [['draft', 'บันทึกความเสียหาย', '#6E695E', '#F2EDE3'], ['notified', 'แจ้งลูกค้าแล้ว', '#2A7DA3', '#E1EEF4'],
   ['submitted', 'ส่งเคลมแล้ว · รอผล', '#C2681E', '#FBEEDF'], ['approved', 'ลูกค้าอนุมัติ', '#2E7D46', '#E7F3EA'],
   ['invoiced', 'วางบิลแล้ว', '#8A6D3B', '#F6EEDC'], ['paid', 'รับเงินแล้ว', '#1F6B3A', '#D6EEDC'], ['rejected', 'ไม่อนุมัติ', '#C4442E', '#FDECEC']];
@@ -187,7 +192,7 @@ function card(c) {
   const s = SM[c.st] || SM.draft, cz = CM[c.cause] || CM.other, al = alertOf(c), ph = ((c.photos || {}).before || []).slice(0, 3);
   const k = calc(c), st = FLOW.indexOf(c.st);
   return `<button class="cc" data-act="open" data-id="${esc(c.id)}" style="border-left-color:${s[2]}">
-    <div class="r1"><span class="no">${esc(c.no || '—')}</span><span class="tt">${esc(c.title || '(ยังไม่ใส่หัวข้อ)')}</span><span class="pill" style="background:${s[3]};color:${s[2]}">${esc(s[1])}</span></div>
+    <div class="r1"><span class="no">${esc(c.no || '—')}</span><span class="tt">${isObs(c) ? '🚧 ' : ''}${esc(c.title || '(ยังไม่ใส่หัวข้อ)')}</span><span class="pill" style="background:${s[3]};color:${s[2]}">${esc(s[1])}</span></div>
     <div class="r2"><span>${cz[1]} ${esc(cz[2])}</span>${c.area ? `<span>· 📍 ${esc(c.area)}</span>` : ''}<span>· พบ ${dmy(c.found)}</span>${c.party ? `<span>· ${esc(c.party)}</span>` : ''}</div>
     <div class="money">${st < 2 && c.st !== 'rejected' ? `<span>ประเมิน <b>${baht(k.total)}</b></span>` : `<span>เคลม <b>${baht(claimAmt(c))}</b></span>`}
       ${apprAmt(c) ? `<span style="color:var(--green)">อนุมัติ <b>${baht(apprAmt(c))}</b></span>` : ''}${paidAmt(c) ? `<span style="color:#1F6B3A">รับแล้ว <b>${baht(paidAmt(c))}</b></span>` : ''}
@@ -215,7 +220,7 @@ function render() {
     <div class="list">${view.length ? view.map(card).join('') : `<p class="empty" style="grid-column:1/-1">${L.length ? 'ไม่มีรายการในตัวกรองนี้' : 'ยังไม่มีเคลม · กดปุ่ม <b>+ แจ้งความเสียหาย</b> เมื่อพบงานของเราเสียหายจากผู้อื่น น้ำรั่ว น้ำแอร์ หรือการเจาะรื้อ'}</p>`}</div>
     <div class="info" style="margin-top:16px">ขั้นตอน: <b>1</b> ถ่ายรูป + บันทึก → <b>2</b> แจ้งลูกค้าภายใน 48 ชม. → <b>3</b> ประเมินค่าซ่อม + วันที่ขอขยาย → <b>4</b> ส่งหนังสือเคลม (DRAFT ให้ผู้บริหารตรวจก่อนส่ง) → <b>5</b> บันทึกผลอนุมัติ → <b>6</b> วางบิล → <b>7</b> รับเงิน</div>
     <p class="ver">Claim ${CL_VER}${IS_STG ? ' · STAGING' : ''}</p></main>
-    <button class="fab" data-act="new">+ แจ้งความเสียหาย</button>${APP.ratesOpen ? ratesSheet() : ''}`;
+    <button class="fab" data-act="new">+ แจ้งเคลม / เสนอราคา</button>${APP.ratesOpen ? ratesSheet() : ''}`;
 }
 
 // =====================================================================
@@ -252,11 +257,12 @@ function costLine(l, i) {
 function totals() {
   const c = APP.cur, k = calc(c);
   return `<div class="tot" id="tot"><div><span>ค่าแรง</span><span>${baht(k.lab)}</span></div><div><span>วัสดุ</span><span>${baht(k.mat)}</span></div><div><span>เครื่องมือ / อื่น ๆ</span><span>${baht(k.oth)}</span></div>
-    <div><b>รวมค่าซ่อม</b><b>${baht(k.sub)}</b></div>
+    <div><b>${isObs(c) ? 'รวมค่าดำเนินการ' : 'รวมค่าซ่อม'}</b><b>${baht(k.sub)}</b></div>
     <div><span class="pct">ค่าดำเนินการ + กำไร (OH&amp;P)${inp('ohp', c.ohp, { num: 1, style: 'width:74px' })}%</span><span>${baht(k.ohp)}</span></div>
     <div><b>รวมก่อน VAT</b><b>${baht(k.pre)}</b></div>
     <div><label class="pct" style="cursor:pointer"><input type="checkbox" data-f="vatOn" ${c.vatOn === false ? '' : 'checked'}> VAT 7%</label><span>${baht(k.vat)}</span></div>
-    <div class="big"><span>ยอดเคลม ${c.vatOn === false ? '(ไม่รวม VAT)' : '(รวม VAT)'}</span><span>${baht(k.total)}</span></div>
+    <div class="big"><span>${isObs(c) ? 'ยอดเสนอราคา' : 'ยอดเคลม'} ${c.vatOn === false ? '(ไม่รวม VAT)' : '(รวม VAT)'}</span><span>${baht(k.total)}</span></div>
+    <div><label class="pct" style="cursor:pointer"><input type="checkbox" data-f="ohpShow" ${c.ohpShow ? 'checked' : ''}> แสดง OH&amp;P แยกบรรทัดในหนังสือ</label><span class="mut" style="text-align:right">${c.ohpShow ? 'ลูกค้าเห็น % ค่าดำเนินการ + กำไร' : 'ค่าเริ่มต้น: รวมไว้ในราคาต่อหน่วย'}</span></div>
     <div class="mut">ราคาเรียกเก็บลูกค้า · ห้ามใส่ต้นทุนจริงของบริษัท · ตรวจตัวเลขกับ QS ก่อนส่ง</div></div>`;
 }
 function stepper(c) {
@@ -306,19 +312,21 @@ function renderSheet() {
   const keep = document.querySelector('.sheet'); const sc = keep ? keep.scrollTop : 0;
   const al = alertOf(c);
   const html = `<div class="scrim"></div><div class="sheet" id="sheet">
-    <div class="sh-h"><button class="x" data-act="close" title="ปิด">‹</button><div class="tt"><b>${esc(c.no)} · ${esc(c.title || 'แจ้งความเสียหาย')}</b><span>${esc((SM[c.st] || SM.draft)[1])} · บันทึกโดย ${esc(c.by || '—')}</span></div><span class="sv" id="sv">${sv}</span></div>
+    <div class="sh-h"><button class="x" data-act="close" title="ปิด">‹</button><div class="tt"><b>${esc(c.no)} · ${esc(c.title || (isObs(c) ? 'เสนอราคาดำเนินการแทน' : 'แจ้งความเสียหาย'))}</b><span>${esc(isObs(c) && (c.st || 'draft') === 'draft' ? 'บันทึกเรื่อง' : (SM[c.st] || SM.draft)[1])} · บันทึกโดย ${esc(c.by || '—')}</span></div><span class="sv" id="sv">${sv}</span></div>
     <div class="sh-b">
       ${/^⚠/.test(al) ? `<div class="warnbox">${esc(al)}</div>` : al ? `<div class="info">⏱ ${esc(al)}</div>` : ''}
-      <div class="blk"><h3><span class="n">1</span>ความเสียหาย</h3>
-        <div class="lbl">หัวข้อ *</div>${inp('title', c.title, { ph: 'เช่น ฝ้าห้อง 1203 เป็นรอยน้ำจากท่อแอร์รั่ว' })}
-        <div class="g2"><div><div class="lbl">วันที่พบ</div>${inp('found', c.found, { type: 'date' })}</div><div><div class="lbl">พื้นที่ / ตำแหน่ง</div>${inp('area', c.area, { ph: 'อาคาร · ชั้น · ห้อง' })}</div></div>
-        <div class="lbl">งานของเราที่เสียหาย</div><div class="chips">${WORKS.map(w => `<button class="chip ${(c.works || []).includes(w) ? 'on' : ''}" data-act="work" data-w="${esc(w)}">${esc(w)}</button>`).join('')}</div>
-        <div class="lbl">สาเหตุ</div><div class="chips">${CAUSES.map(x => `<button class="chip ${c.cause === x[0] ? 'on' : ''}" data-act="cause" data-c="${x[0]}">${x[1]} ${esc(x[2])}</button>`).join('')}</div>
-        <div class="lbl">ผู้ทำให้เสียหาย / ฝ่ายที่ต้องรับผิดชอบ <span class="hint">ถ้าทราบ</span></div>${inp('party', c.party, { ph: 'เช่น ผู้รับเหมางานระบบไฟฟ้า · ผู้รับเหมาแอร์' })}
-        <div class="lbl">รายละเอียด</div>${inp('desc', c.desc, { area: 1, ph: 'เกิดอะไร เมื่อไร ขนาดความเสียหาย (กว้าง × ยาว) สิ่งที่ต้องซ่อม' })}
-        ${pics('before', '📷 รูปความเสียหาย (ก่อนซ่อม)')}${pics('after', '📷 รูปหลังซ่อม')}
+      <div class="blk"><h3><span class="n">1</span>${isObs(c) ? 'งานที่ติดขัด' : 'ความเสียหาย'}</h3>
+        <div class="lbl">ประเภทเรื่อง</div><div class="kinds">${KINDS.map(x => `<button class="kind ${(c.kind || 'dmg') === x[0] ? 'on' : ''}" data-act="kind" data-k="${x[0]}"><i>${x[1]}</i><span><b>${esc(x[2])}</b><small>${esc(x[3])}</small></span></button>`).join('')}</div>
+        <div class="lbl">หัวข้อ *</div>${inp('title', c.title, { ph: isObs(c) ? 'เช่น ย้ายสายไฟและซ่อมฝ้าคืนสภาพ เพื่อติดตั้งวอลเปเปอร์ (ผู้รับเหมาหลักไม่ดำเนินการ)' : 'เช่น ฝ้าห้อง 1203 เป็นรอยน้ำจากท่อแอร์รั่ว' })}
+        <div class="g2"><div><div class="lbl">${isObs(c) ? 'วันที่พบปัญหา' : 'วันที่พบ'}</div>${inp('found', c.found, { type: 'date' })}</div><div><div class="lbl">พื้นที่ / ตำแหน่ง</div>${inp('area', c.area, { ph: 'อาคาร · ชั้น · ห้อง' })}</div></div>
+        <div class="lbl">${isObs(c) ? 'งานของเราที่ทำต่อไม่ได้' : 'งานของเราที่เสียหาย'}</div><div class="chips">${WORKS.map(w => `<button class="chip ${(c.works || []).includes(w) ? 'on' : ''}" data-act="work" data-w="${esc(w)}">${esc(w)}</button>`).join('')}</div>
+        <div class="lbl">${isObs(c) ? 'งานที่ผู้อื่นไม่ดำเนินการ' : 'สาเหตุ'}</div><div class="chips">${(isObs(c) ? CAUSES_OBS : CAUSES).map(x => `<button class="chip ${c.cause === x[0] ? 'on' : ''}" data-act="cause" data-c="${x[0]}">${x[1]} ${esc(x[2])}</button>`).join('')}</div>
+        <div class="lbl">${isObs(c) ? 'ผู้ที่ต้องดำเนินการ (ตามขอบเขตงาน)' : 'ผู้ทำให้เสียหาย / ฝ่ายที่ต้องรับผิดชอบ'} <span class="hint">ถ้าทราบ</span></div>${inp('party', c.party, { ph: isObs(c) ? 'เช่น ผู้รับเหมาหลัก (Main Contractor) · ผู้รับเหมางานระบบไฟฟ้า' : 'เช่น ผู้รับเหมางานระบบไฟฟ้า · ผู้รับเหมาแอร์' })}
+        <div class="lbl">รายละเอียด</div>${inp('desc', c.desc, { area: 1, ph: isObs(c) ? 'แจ้งใครไปแล้ว เมื่อไร ได้คำตอบอย่างไร · งานที่ต้องทำแทน (ย้ายสายไฟ · ซ่อมฝ้า) · ผลกระทบต่องานของเรา' : 'เกิดอะไร เมื่อไร ขนาดความเสียหาย (กว้าง × ยาว) สิ่งที่ต้องซ่อม' })}
+        ${pics('before', isObs(c) ? '📷 รูปสภาพหน้างาน (ปัจจุบัน)' : '📷 รูปความเสียหาย (ก่อนซ่อม)')}${pics('after', isObs(c) ? '📷 รูปหลังดำเนินการ' : '📷 รูปหลังซ่อม')}
+        ${isObs(c) ? '<div class="info">หนังสือจะระบุว่า บริษัทฯ เริ่มดำเนินการเมื่อได้รับอนุมัติเป็นลายลักษณ์อักษร (VO) เท่านั้น · No Signed VO = No Additional Work</div>' : ''}
       </div>
-      <div class="blk"><h3><span class="n">2</span>ค่าซ่อม + วันทำงาน <small>ตัวคำนวณ</small></h3>
+      <div class="blk"><h3><span class="n">2</span>${isObs(c) ? 'ราคาเสนอดำเนินการแทน + วันทำงาน' : 'ค่าซ่อม + วันทำงาน'} <small>ตัวคำนวณ</small></h3>
         <div class="ln-tabs"><button class="btn" data-act="ladd" data-t="lab">+ 👷 ค่าแรง</button><button class="btn" data-act="ladd" data-t="mat">+ 🧱 วัสดุ</button><button class="btn" data-act="ladd" data-t="oth">+ 🛠 อื่น ๆ</button></div>
         ${(c.lines || []).length ? (c.lines || []).map(costLine).join('') : '<div class="info">เพิ่มรายการ: ค่าแรง (คน × วัน × อัตรา) · วัสดุ (จำนวน × ราคา) · อื่น ๆ (เหมา)</div>'}
         ${totals()}
@@ -327,7 +335,7 @@ function renderSheet() {
       <div class="blk"><h3><span class="n">3</span>ติดตามเคลม <small>แจ้ง → ส่งเคลม → อนุมัติ → วางบิล → รับเงิน</small></h3>${stepper(c)}${c._new ? '<div class="info">ใส่หัวข้อหรือรูปก่อน แล้วระบบจะบันทึกให้อัตโนมัติ</div>' : stageBox(c)}</div>
       ${(c.log || []).length ? `<div class="blk"><h3>ประวัติ</h3><div class="log">${c.log.slice().reverse().map(l => `<div>${esc(l.text)}<br><span>${esc(l.by || '')} · ${when(l.t)}</span></div>`).join('')}</div></div>` : ''}
     </div>
-    <div class="bot">${c._new ? '' : `<button class="btn del" data-act="del">🗑</button>`}<button class="btn gold" data-act="print" ${c._new ? 'disabled' : ''}>🖨 หนังสือเคลม (DRAFT)</button><button class="btn pri grow" data-act="close">✓ เสร็จ</button></div>
+    <div class="bot">${c._new ? '' : `<button class="btn del" data-act="del">🗑</button>`}<button class="btn gold" data-act="print" ${c._new ? 'disabled' : ''}>🖨 ${isObs(c) ? 'หนังสือเสนอราคา' : 'หนังสือเคลม'} (DRAFT)</button><button class="btn pri grow" data-act="close">✓ เสร็จ</button></div>
   </div>`;
   let host = $('sheetHost'); if (!host) { host = document.createElement('div'); host.id = 'sheetHost'; document.body.appendChild(host); }
   host.innerHTML = html; const sh = $('sheet'); if (sh) sh.scrollTop = sc;
@@ -416,8 +424,9 @@ async function saveRates() {
 
 // ---------- หนังสือเคลม (พิมพ์ / PDF) ----------
 // ---------- พิมพ์หนังสือเคลม: เลือกภาษา ไทย / English / สองภาษา (ข้อความที่ผู้ใช้พิมพ์เอง พิมพ์ตามที่กรอก) ----------
-const EN_CAUSE = { other_con: 'Damage by other contractor', flood: 'Flooding / water ingress', pipe: 'Pipe leak / burst', ac: 'A/C condensate leak', cut_elec: 'Cut-out / removal for electrical works', cut_mep: 'Cut-out / removal for plumbing / A/C works', owner: 'Owner / building user', other: 'Other' };
-const EN_WORK = { 'ฝ้า': 'Ceiling', 'ผนัง': 'Wall', 'พื้น': 'Floor', 'Built-in / เฟอร์นิเจอร์': 'Built-in / furniture', 'ประตู / หน้าต่าง': 'Door / window', 'งานสี / ผิวสำเร็จ': 'Paint / finishes', 'อื่น ๆ': 'Other' };
+const EN_CAUSE = { no_reloc: 'Electrical / MEP services not relocated or removed', no_fix: 'Ceiling / wall not repaired or reinstated', not_ready: 'Area not ready for our works', no_act: 'No action taken after notification',
+  other_con: 'Damage by other contractor', flood: 'Flooding / water ingress', pipe: 'Pipe leak / burst', ac: 'A/C condensate leak', cut_elec: 'Cut-out / removal for electrical works', cut_mep: 'Cut-out / removal for plumbing / A/C works', owner: 'Owner / building user', other: 'Other' };
+const EN_WORK = { 'ฝ้า': 'Ceiling', 'ผนัง': 'Wall', 'พื้น': 'Floor', 'วอลเปเปอร์': 'Wallpaper', 'Built-in / เฟอร์นิเจอร์': 'Built-in / furniture', 'ประตู / หน้าต่าง': 'Door / window', 'งานสี / ผิวสำเร็จ': 'Paint / finishes', 'อื่น ๆ': 'Other' };
 const EN_CH = { 'หนังสือ': 'letter', 'อีเมล': 'email', 'LINE': 'LINE', 'ประชุมหน้างาน': 'site meeting', 'โทรศัพท์': 'phone' };
 const EN_LT = { lab: 'Labour', mat: 'Material', oth: 'Tools / others' };
 function pickPrintLang() {
@@ -455,10 +464,13 @@ async function printClaim(lang) {
   const amt = num(s.amt) || k.total, days = num(s.days) || num(c.eot);
   const causeTx = EN ? (EN_CAUSE[c.cause] || EN_CAUSE.other) : BOTH ? cz[2] + ' / ' + (EN_CAUSE[c.cause] || EN_CAUSE.other) : cz[2];
   const worksTx = (c.works || []).map(x => EN ? (EN_WORK[x] || x) : BOTH ? x + (EN_WORK[x] && EN_WORK[x] !== x ? ' (' + EN_WORK[x] + ')' : '') : x).join(', ') || '—';
-  const rowsF = () => (c.lines || []).map((l, i) => { const t = LT[l.t] || LT.oth; const tl = EN ? (EN_LT[l.t] || EN_LT.oth) : BOTH ? t[1] + ' / ' + (EN_LT[l.t] || EN_LT.oth) : t[1];
+  // v1.369.0 ค่าดำเนินการ + กำไร: ค่าเริ่มต้นรวมไว้ในราคาต่อหน่วย (ไม่เปิดเผยอัตรากำไรในเอกสารลูกค้า) · เปิด "แสดง OH&P แยกบรรทัด" ได้รายเรื่อง
+  const OBS = isObs(c), showOH = !!c.ohpShow, fx = (!showOH && k.sub > 0) ? k.pre / k.sub : 1;
+  const LN = (c.lines || []).map(l => { const u0 = l.t === 'lab' ? num(l.rate) : l.t === 'mat' ? num(l.price) : num(l.amt); return { l, u: r2(u0 * fx), a: r2(lineAmt(l) * fx) }; });
+  if (!showOH && LN.length) { const d = r2(k.pre - LN.reduce((t, x) => t + x.a, 0)); LN[LN.length - 1].a = r2(LN[LN.length - 1].a + d); }
+  const rowsF = () => LN.map(({ l, u, a }, i) => { const t = LT[l.t] || LT.oth; const tl = EN ? (EN_LT[l.t] || EN_LT.oth) : BOTH ? t[1] + ' / ' + (EN_LT[l.t] || EN_LT.oth) : t[1];
     const q = l.t === 'lab' ? `${num(l.men)} ${L('คน', 'men')} × ${num(l.days)} ${L('วัน', 'days')}` : l.t === 'mat' ? `${num(l.qty)} ${esc(l.unit || '')}` : L('เหมา', 'Lump sum');
-    const u = l.t === 'lab' ? baht(l.rate) : l.t === 'mat' ? baht(l.price) : baht(l.amt);
-    return `<tr><td>${i + 1}</td><td>${tl} · ${Ui(l.n || '')}</td><td>${q}</td><td class="r">${u}</td><td class="r">${baht(lineAmt(l))}</td></tr>`; }).join('');
+    return `<tr><td>${i + 1}</td><td>${tl} · ${Ui(l.n || '')}</td><td>${q}</td><td class="r">${baht(u)}</td><td class="r">${baht(a)}</td></tr>`; }).join('');
   const ph = (Lst, cap) => (Lst || []).length ? `<h3>${cap}</h3><div class="ph">${Lst.slice(0, 8).map(u => `<img src="${esc(u)}">`).join('')}</div>` : '';
   const nf = F(c, 'notified');
   let TRM = {};
@@ -468,7 +480,7 @@ async function printClaim(lang) {
   const Ui = (v) => { const x = String(v == null ? '' : v); const t = TRM[x.trim()]; if (EN) return esc(t || x); if (BOTH && t) return esc(x) + ' (' + esc(t) + ')'; return esc(x); };
   const nfTxF = () => nf.date ? (EN ? `${dmy(nf.date)} by ${esc(EN_CH[nf.ch] || nf.ch || '')}${nf.to ? ' to ' + Ui(nf.to) : ''}`
     : `${dmy(nf.date)} ทาง${esc(nf.ch || '')}${nf.to ? ' ถึง ' + Ui(nf.to) : ''}${BOTH ? ' / by ' + esc(EN_CH[nf.ch] || nf.ch || '') : ''}`) : '';
-  const doc = `<!doctype html><html lang="${EN ? 'en' : 'th'}"><head><meta charset="utf-8"><title>${esc(c.no)} · ${L('หนังสือเคลมความเสียหาย', 'Damage Claim Letter')}</title><style>
+  const doc = `<!doctype html><html lang="${EN ? 'en' : 'th'}"><head><meta charset="utf-8"><title>${esc(c.no)} · ${OBS ? L('หนังสือเสนอราคาดำเนินการแทน', 'Proposed Cost Letter') : L('หนังสือเคลมความเสียหาย', 'Damage Claim Letter')}</title><style>
     @page{size:A4 portrait;margin:14mm}body{font-family:"IBM Plex Sans Thai",Sarabun,sans-serif;font-size:11.5px;color:#1C1B18;line-height:1.55}
     .wm{position:fixed;top:40%;left:0;right:0;text-align:center;font-size:110px;font-weight:700;color:rgba(196,68,46,.10);transform:rotate(-24deg);z-index:0}
     .hd{display:flex;justify-content:space-between;border-bottom:2px solid #1C1B18;padding-bottom:6px}.hd b{font-size:15px}
@@ -479,21 +491,24 @@ async function printClaim(lang) {
     .note{font-size:10.5px;color:#8E2F1F;border:1px solid #E8A898;background:#FDECEC;padding:5px 8px;margin-top:10px}</style></head><body>
     <div class="wm">DRAFT</div>
     <div class="hd"><div><b>${EN ? 'Wellcon Interior Co., Ltd.' : 'บริษัท เวลล์คอน อินทีเรีย จำกัด · Wellcon Interior Co., Ltd.'}</b><br>${EN ? 'Centroport 36/38 Moo 13, Bueng Kham Phroi, Lam Luk Ka, Pathum Thani 12150, Thailand' : 'เซ็นโทรพอร์ต 36/38 ม.13 ต.บึงคำพร้อย อ.ลำลูกกา จ.ปทุมธานี 12150'}<br>${L('เลขประจำตัวผู้เสียภาษี', 'Tax ID')} 0105560007187 · www.wellcon.co.th</div><div style="text-align:right">${L('เลขที่', 'No.')} <b>${esc(s.ref || c.no)}</b><br>${L('วันที่', 'Date')} ${dmy(s.date || isoToday())}</div></div>
-    ${EN ? `<h1>Notice of Damage &amp; Claim for Repair Cost${days ? ' and Working Time' : ''}</h1>` : `<h1>หนังสือแจ้งความเสียหายและขอเรียกร้องค่าเสียหาย</h1><h2>Notice of Damage &amp; Claim for Repair Cost${days ? ' and Working Time' : ''}</h2>`}
+    ${OBS ? (EN ? `<h1>Notice of Work Obstruction &amp; Proposed Cost to Carry Out Works by Others${days ? ' and Extension of Time' : ''}</h1>` : `<h1>หนังสือแจ้งอุปสรรคการทำงานและเสนอราคาดำเนินการแทน</h1><h2>Notice of Work Obstruction &amp; Proposed Cost to Carry Out Works by Others${days ? ' and Extension of Time' : ''}</h2>`)
+      : EN ? `<h1>Notice of Damage &amp; Claim for Repair Cost${days ? ' and Working Time' : ''}</h1>` : `<h1>หนังสือแจ้งความเสียหายและขอเรียกร้องค่าเสียหาย</h1><h2>Notice of Damage &amp; Claim for Repair Cost${days ? ' and Working Time' : ''}</h2>`}
     <table class="kv"><tr><td>${L('เรียน', 'To')}</td><td>${U(p.client || p.owner || (EN ? 'The Employer' : 'ผู้ว่าจ้าง'))}</td></tr><tr><td>${L('โครงการ', 'Project')}</td><td>${U(projName(p))}${projCode(p) ? ' (' + esc(projCode(p)) + ')' : ''}</td></tr>
-      <tr><td>${L('เรื่อง', 'Subject')}</td><td>${U(c.title || '')}</td></tr><tr><td>${L('วันที่พบ', 'Date found')}</td><td>${dmy(c.found)}</td></tr><tr><td>${L('ตำแหน่ง', 'Location')}</td><td>${U(c.area || '—')}</td></tr>
-      <tr><td>${L('งานที่เสียหาย', 'Affected works')}</td><td>${esc(worksTx)}</td></tr><tr><td>${L('สาเหตุ', 'Cause')}</td><td>${esc(causeTx)}${c.party ? ' — ' + L('ผู้เกี่ยวข้อง', 'party') + ': ' + Ui(c.party) : ''}</td></tr>
+      <tr><td>${L('เรื่อง', 'Subject')}</td><td>${U(c.title || '')}</td></tr><tr><td>${OBS ? L('วันที่พบปัญหา', 'Date identified') : L('วันที่พบ', 'Date found')}</td><td>${dmy(c.found)}</td></tr><tr><td>${L('ตำแหน่ง', 'Location')}</td><td>${U(c.area || '—')}</td></tr>
+      <tr><td>${OBS ? L('งานของเราที่ได้รับผลกระทบ', 'Our works affected') : L('งานที่เสียหาย', 'Affected works')}</td><td>${esc(worksTx)}</td></tr><tr><td>${OBS ? L('งานที่ยังไม่ได้ดำเนินการ', 'Outstanding works by others') : L('สาเหตุ', 'Cause')}</td><td>${esc(causeTx)}${c.party && !OBS ? ' — ' + L('ผู้เกี่ยวข้อง', 'party') + ': ' + Ui(c.party) : ''}</td></tr>
+      ${OBS && c.party ? `<tr><td>${L('ผู้ที่ต้องดำเนินการ', 'Responsible party')}</td><td>${Ui(c.party)}</td></tr>` : ''}
       ${nf.date ? `<tr><td>${L('แจ้งเหตุแล้ว', 'Notified')}</td><td>${nfTxF()}</td></tr>` : ''}</table>
-    <h3>${L('รายละเอียดความเสียหาย', 'Description of damage')}</h3><div>${U(c.desc || '—').replace(/\n/g, '<br>')}</div>
-    ${ph((c.photos || {}).before, L('รูปความเสียหาย (ก่อนซ่อม)', 'Photos of damage (before repair)'))}${ph((c.photos || {}).after, L('รูปหลังซ่อม', 'Photos after repair'))}
-    <h3>${L('ค่าใช้จ่ายในการซ่อมแซม', 'Repair cost')}</h3><table><thead><tr><th>#</th><th>${L('รายการ', 'Item')}</th><th>${L('จำนวน', 'Qty')}</th><th class="r">${L('ราคาต่อหน่วย', 'Unit price')}</th><th class="r">${L('จำนวนเงิน', 'Amount')}</th></tr></thead><tbody>${rowsF() || '<tr><td colspan="5">—</td></tr>'}
-      <tr><td colspan="4" class="r">${L('รวมค่าซ่อม', 'Repair subtotal')}</td><td class="r">${baht(k.sub)}</td></tr><tr><td colspan="4" class="r">${L('ค่าดำเนินการ + กำไร', 'Overhead & profit')} ${num(c.ohp)}%</td><td class="r">${baht(k.ohp)}</td></tr>
+    <h3>${OBS ? L('รายละเอียด', 'Details') : L('รายละเอียดความเสียหาย', 'Description of damage')}</h3><div>${U(c.desc || '—').replace(/\n/g, '<br>')}</div>
+    ${ph((c.photos || {}).before, OBS ? L('รูปสภาพหน้างาน', 'Site condition photos') : L('รูปความเสียหาย (ก่อนซ่อม)', 'Photos of damage (before repair)'))}${ph((c.photos || {}).after, OBS ? L('รูปหลังดำเนินการ', 'Photos after works') : L('รูปหลังซ่อม', 'Photos after repair'))}
+    <h3>${OBS ? L('ราคาเสนอดำเนินการแทน', 'Proposed cost') : L('ค่าใช้จ่ายในการซ่อมแซม', 'Repair cost')}</h3><table><thead><tr><th>#</th><th>${L('รายการ', 'Item')}</th><th>${L('จำนวน', 'Qty')}</th><th class="r">${L('ราคาต่อหน่วย', 'Unit price')}</th><th class="r">${L('จำนวนเงิน', 'Amount')}</th></tr></thead><tbody>${rowsF() || '<tr><td colspan="5">—</td></tr>'}
+      ${showOH ? `<tr><td colspan="4" class="r">${OBS ? L('รวมค่าดำเนินการ', 'Works subtotal') : L('รวมค่าซ่อม', 'Repair subtotal')}</td><td class="r">${baht(k.sub)}</td></tr><tr><td colspan="4" class="r">${L('ค่าดำเนินการ + กำไร', 'Overhead & profit')} ${num(c.ohp)}%</td><td class="r">${baht(k.ohp)}</td></tr>` : ''}
       <tr><td colspan="4" class="r">${L('รวมก่อน VAT', 'Total before VAT')}</td><td class="r">${baht(k.pre)}</td></tr><tr><td colspan="4" class="r">VAT 7%</td><td class="r">${baht(k.vat)}</td></tr>
-      <tr><td colspan="4" class="r"><b>${c.vatOn === false ? L('ยอดเรียกร้อง (ไม่รวม VAT)', 'Claim amount (excl. VAT)') : L('ยอดเรียกร้อง (รวม VAT)', 'Claim amount (incl. VAT)')}</b></td><td class="r"><b>${baht(amt)}</b></td></tr></tbody></table>
-    ${days ? `<h3>${L('ระยะเวลาทำงาน', 'Working time')}</h3><div>${days} ${L('วัน', 'days')}${c.eotWhy ? ' — ' + Ui(c.eotWhy) : ''}</div>` : ''}
-    <div style="margin-top:10px">${P('บริษัทฯ ขอเรียนแจ้งความเสียหายต่องานของบริษัทฯ ซึ่งเกิดจากสาเหตุที่อยู่นอกขอบเขตความรับผิดชอบของบริษัทฯ ตามรายละเอียดข้างต้น และขอเรียกร้องค่าใช้จ่ายในการซ่อมแซม' + (days ? ' และการขยายระยะเวลา' : '') + ' จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ',
+      <tr><td colspan="4" class="r"><b>${OBS ? (c.vatOn === false ? L('ยอดเสนอราคา (ไม่รวม VAT)', 'Proposed amount (excl. VAT)') : L('ยอดเสนอราคา (รวม VAT)', 'Proposed amount (incl. VAT)')) : (c.vatOn === false ? L('ยอดเรียกร้อง (ไม่รวม VAT)', 'Claim amount (excl. VAT)') : L('ยอดเรียกร้อง (รวม VAT)', 'Claim amount (incl. VAT)'))}</b></td><td class="r"><b>${baht(amt)}</b></td></tr></tbody></table>
+    ${days ? `<h3>${OBS ? L('ระยะเวลาทำงาน / ขอขยายเวลา', 'Working time / extension of time') : L('ระยะเวลาทำงาน', 'Working time')}</h3><div>${days} ${L('วัน', 'days')}${c.eotWhy ? ' — ' + Ui(c.eotWhy) : ''}</div>` : ''}
+    <div style="margin-top:10px">${OBS ? P('บริษัทฯ ขอเรียนแจ้งว่า งานตามรายละเอียดข้างต้นซึ่งอยู่ในความรับผิดชอบของ' + (c.party ? ' ' + esc(c.party) : 'ผู้เกี่ยวข้อง') + ' ยังไม่ได้รับการดำเนินการ แม้บริษัทฯ ได้แจ้งแล้ว ทำให้บริษัทฯ ไม่สามารถดำเนินงาน' + esc((c.works || []).join(', ') || 'ของบริษัทฯ') + 'ได้ตามแผนงาน เพื่อไม่ให้งานล่าช้าเพิ่มเติม บริษัทฯ ขอเสนอดำเนินการแทนตามราคาข้างต้น' + (days ? ' และขอขยายระยะเวลา ' + days + ' วัน' : '') + ' ทั้งนี้ บริษัทฯ จะเริ่มดำเนินการเมื่อได้รับการอนุมัติเป็นลายลักษณ์อักษร (Variation Order) และขอสงวนสิทธิ์ในการขอขยายระยะเวลาสำหรับความล่าช้าที่เกิดจากเหตุนี้ จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ',
+      'We wish to inform you that the works described above, which are the responsibility of ' + (c.party ? Ui(c.party) : 'others') + ', have not been carried out despite our notification. This has prevented us from proceeding with our ' + esc(worksTx === '—' ? 'works' : worksTx.toLowerCase() + ' works') + ' as programmed. To avoid further delay, we propose to carry out these works on their behalf at the cost stated above' + (days ? ', with an extension of time of ' + days + ' days' : '') + '. The works will commence only upon receipt of your written approval (Variation Order). We reserve our right to an extension of time for any delay arising from this matter. We would be grateful for your kind consideration and approval.') : P('บริษัทฯ ขอเรียนแจ้งความเสียหายต่องานของบริษัทฯ ซึ่งเกิดจากสาเหตุที่อยู่นอกขอบเขตความรับผิดชอบของบริษัทฯ ตามรายละเอียดข้างต้น และขอเรียกร้องค่าใช้จ่ายในการซ่อมแซม' + (days ? ' และการขยายระยะเวลา' : '') + ' จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ',
       'We hereby notify you of the damage to our works, caused by matters outside our scope of responsibility as detailed above, and claim the cost of repair' + (days ? ' together with the additional working time' : '') + '. We would be grateful for your kind consideration and approval.')}</div>
-    <div class="sg"><div><div class="ln"></div>${L('ผู้จัดทำ', 'Prepared by')}<br>${Ui(c.by || '')}</div><div><div class="ln"></div>${L('ผู้อนุมัติ', 'Approved by')} · Wellcon Interior</div><div><div class="ln"></div>${L('ผู้รับทราบ · ผู้ว่าจ้าง', 'Acknowledged by · Employer')}</div></div>
+    <div class="sg"><div><div class="ln"></div>${L('ผู้จัดทำ', 'Prepared by')}<br>${Ui(c.by || '')}</div><div><div class="ln"></div>${L('ผู้อนุมัติ', 'Approved by')} · Wellcon Interior</div><div><div class="ln"></div>${OBS ? L('ผู้อนุมัติ · ผู้ว่าจ้าง', 'Approved by · Employer') : L('ผู้รับทราบ · ผู้ว่าจ้าง', 'Acknowledged by · Employer')}</div></div>
     </body></html>`;
   const old = document.getElementById('cl-print'); if (old) old.remove();
   const f = document.createElement('iframe'); f.id = 'cl-print'; f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden'; document.body.appendChild(f);
@@ -515,6 +530,7 @@ document.addEventListener('click', async (e) => {
   else if (a === 'close') closeSheet();
   else if (a === 'work' && c) { const w = b.dataset.w; c.works = (c.works || []).includes(w) ? c.works.filter(x => x !== w) : [...(c.works || []), w]; renderSheet(); schedule(); }
   else if (a === 'cause' && c) { c.cause = c.cause === b.dataset.c ? '' : b.dataset.c; renderSheet(); schedule(); }
+  else if (a === 'kind' && c) { const k = b.dataset.k; if ((c.kind || 'dmg') !== k) { c.kind = k; if (!CM[c.cause] || !(k === 'obs' ? CAUSES_OBS : CAUSES).some(x => x[0] === c.cause)) c.cause = ''; logPush(c, 'ประเภท → ' + (KINDS.find(x => x[0] === k) || [0, 0, k])[2]); } renderSheet(); schedule(); }
   else if (a === 'ladd' && c) { const t = b.dataset.t; c.lines = [...(c.lines || []), t === 'lab' ? { t, n: '', men: '', days: '', rate: '' } : t === 'mat' ? { t, n: '', qty: '', unit: '', price: '' } : { t, n: '', amt: '' }]; renderSheet(); schedule(); }
   else if (a === 'lrm' && c) { c.lines.splice(+b.dataset.i, 1); renderSheet(); schedule(); }
   else if (a === 'picdel' && c) { if (!confirm('ลบรูปนี้?')) return; c.photos[b.dataset.k].splice(+b.dataset.i, 1); logPush(c, 'ลบรูป 1 รูป'); renderSheet(); schedule(); }
