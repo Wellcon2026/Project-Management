@@ -66,11 +66,15 @@ node scripts/patch-project-overview.js
 ```bash
 node scripts/patch-role-home.js
 ```
-(เมนู Takeoff · วัดหน้างาน · QS Tracking บันทึกทีละแถว · ซ่อนแท็บ Takeoff เดิม — เปิดกลับด้วย `?legacyTakeoff=1` · ติดตั้งเป็นแอป + ไอคอน Wellcon PM · หน้าแรกของฉันตามตำแหน่ง · กันรูป/ข้อมูลหายจาก realtime · เมนู Claim · หน้า Home เลือกโครงการ · หน้าภาพรวมโครงการแบบสั้น · หน้าแรกตามบทบาททุกตำแหน่ง)
+```bash
+node scripts/patch-home-logout.js
+```
+(เมนู Takeoff · วัดหน้างาน · QS Tracking บันทึกทีละแถว · ซ่อนแท็บ Takeoff เดิม — เปิดกลับด้วย `?legacyTakeoff=1` · ติดตั้งเป็นแอป + ไอคอน Wellcon PM · หน้าแรกของฉันตามตำแหน่ง · กันรูป/ข้อมูลหายจาก realtime · เมนู Claim · หน้า Home เลือกโครงการ · หน้าภาพรวมโครงการแบบสั้น · หน้าแรกตามบทบาททุกตำแหน่ง · ปุ่มหน้าแรก + ออกจากระบบทุกหน้า)
 
 ## Claim · เคลมความเสียหาย (ตั้งแต่ 08/11/2026)
 หน้าแยก ไม่อยู่ใน `index.html`: `claim.html` + `claim.js` (ใช้ `vendor/supabase.js` ร่วม)
 - เปิดจากเมนู **Claim · เคลมความเสียหาย** ในหน้าโครงการ / ปุ่มบนหน้างานของฉัน → `/claim.html?pid=<id>` (`&env=staging` = ข้อมูลทดสอบ)
 - ข้อมูล: `app_state.damageClaims` = `{ <pid>: [claim] }` · `app_state.claimRates` = อัตราค่าแรงเรียกเก็บลูกค้า · PM หลักไม่อ่าน/เขียน 2 คีย์นี้ · ไม่ต้องรัน SQL
 - รูป: Storage `general-photo/claims/<pid>/<claimId>/` (เก็บแค่ลิงก์ในข้อมูล)
+- ปุ่ม 🏠 หน้าแรก + ออกจากระบบ ในหน้าแยก (claim / quick-measure): `pm-nav.js`
 - ราคาในหน้านี้ = ราคาเรียกเก็บลูกค้าเท่านั้น ห้ามใส่ต้นทุน/กำไรจริง · หนังสือเคลมเป็น DRAFT ต้องให้ผู้บริหารตรวจก่อนส่ง
