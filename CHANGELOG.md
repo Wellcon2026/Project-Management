@@ -2,6 +2,14 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## v1.368.0 — 09/11/2026
+**ใหม่: As-Built & Survey · สำรวจหน้างาน**
+- เมนูหน้าโครงการ (ต่อจาก Site Issues) + การ์ดบนหน้าทำงานของ PM / Site / Designer → เปิดแอป https://wellcon-survey.vercel.app (Defect Check v1.25.0 โหมด /survey)
+- การ์ดแสดงจำนวนรายการ · รอเขียนแบบ · ถึงฉัน (จากตาราง `survey_log`)
+- Survey สำรวจก่อนทำ / As-Built จุดต่างจากแบบ · วาดผังห้องพร้อมระยะ · ส่งออก DXF (AutoCAD / SketchUp) · ตาราง `survey_log` (`supabase-survey-log.sql` — รันแล้วทั้ง public / staging)
+- `node scripts/patch-survey-menu.js`
+- App Pack `/install/`: เพิ่มแอปที่ 5 As-Built & Survey (การ์ด · QR · แผ่น A4 แบบ 3 คอลัมน์)
+
 ## App Pack · 09/11/2026
 - หน้าใหม่ `/install/` — ชุดติดตั้งแอป Wellcon สำหรับแจกพนักงาน: Wellcon PM · Defect Check · Site Issues · Layboard
 - วิธีติดตั้งแยก คอมพิวเตอร์ / Android / iPhone (เลือกอัตโนมัติตามเครื่อง) · เตือนเมื่อเปิดจาก LINE / Facebook ให้เปิดในเบราว์เซอร์ก่อน
