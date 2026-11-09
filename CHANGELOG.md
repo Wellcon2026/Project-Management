@@ -2,6 +2,12 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## App Pack · 09/11/2026
+- หน้าใหม่ `/install/` — ชุดติดตั้งแอป Wellcon สำหรับแจกพนักงาน: Wellcon PM · Defect Check · Site Issues · Layboard
+- วิธีติดตั้งแยก คอมพิวเตอร์ / Android / iPhone (เลือกอัตโนมัติตามเครื่อง) · เตือนเมื่อเปิดจาก LINE / Facebook ให้เปิดในเบราว์เซอร์ก่อน
+- QR ทุกแอป · ปุ่มคัดลอกข้อความส่ง LINE · พิมพ์แผ่น A4 (`install/wellcon-app-pack-A4.pdf`)
+- สร้างใหม่ได้ด้วย `scripts/install-pack/build.js`
+
 ## Claim · 09/11/2026 (2)
 - หนังสือเคลม: เอากล่องคำเตือน DRAFT ด้านล่างออก (ทุกภาษา) · ยังมีลายน้ำ DRAFT กลางหน้า (claim.js)
 
