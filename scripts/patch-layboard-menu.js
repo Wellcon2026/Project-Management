@@ -19,14 +19,15 @@ if (idx < 0) { console.error('✗ ไม่พบส่วน template ใน in
 const enc = (t) => JSON.stringify(t).split('</').join('<' + BS + 'u002F');
 let t = JSON.parse(lines[idx]);
 if (enc(t) !== lines[idx]) { console.error('✗ ถอด/ประกอบ template แล้วไม่ตรงเดิม — ไม่แก้'); process.exit(2); }
-if (t.includes('_layOpen(')) { console.log('✓ มีเมนู Layboard อยู่แล้ว ไม่ต้องแก้'); process.exit(0); }
+if (t.includes('_pmHandoff(')) { console.log('✓ มีเมนู Layboard อยู่แล้ว ไม่ต้องแก้'); process.exit(0); }
 const ICON = 'M3 4h18v12H3zM12 16v4M8 20h8M7 8h5M7 12h9';
 const E = [
   ['เมนูหน้าโครงการ', "['skp','SketchUp Design (3D)'],", (a) => a + "['lay','Layboard · Presentation'],"],
   ['ลำดับเมนู (ต่อจาก SketchUp)', "skp:'dwg',", (a) => a + " lay:'skp',"],
   ['กดเมนู → เปิด Layboard', "if(k==='issues'){ this._issOpen(_pdPid); return; }", (a) => a + " if(k==='lay'){ this._layOpen(_pdPid); return; }"],
   ['ปุ่มหน้าแรก → เปิด Layboard', " if(k==='issues'){ this._issOpen(pid); return; }", (a) => a + " if(k==='lay'){ this._layOpen(pid); return; }"],
-  ['เมธอดเปิด Layboard', "  _issOpen(pid){", (a) => "// v1.366.0 Layboard · Presentation — /layboard/ (ฐานข้อมูล PM ตาราง layboard_kv · แยกพื้นที่ตามโครงการ)\n  _layOpen(pid){ if(!pid) return; try{ window.location.href='/layboard/index.html?pid='+encodeURIComponent(pid)+(this.IS_STAGING()?'&env=staging':''); }catch(e){} }\n" + a],
+  ['เมธอดเปิด Layboard', "  _issOpen(pid){", (a) => "// v1.366.0 Layboard · Presentation — /layboard/ (ฐานข้อมูล PM ตาราง layboard_kv · แยกพื้นที่ตามโครงการ)\n  // v1.366.1 ส่งตัวตนผู้ใช้ให้หน้าแยก (Layboard / Claim) — ใช้ได้ทั้งบัญชีอีเมลและชื่อผู้ใช้\n  _pmHandoff(){ try{ const me=this.state.me||{}; window.localStorage.setItem('wellcon_pm_handoff', JSON.stringify({ id:String(me.id||''), email:String(me.email||'').toLowerCase(), username:String(me.username||''), at:Date.now() })); }catch(e){} }\n  _layOpen(pid){ if(!pid) return; this._pmHandoff(); try{ window.location.href='/layboard/index.html?pid='+encodeURIComponent(pid)+(this.IS_STAGING()?'&env=staging':''); }catch(e){} }\n" + a],
+  ['Claim ส่งตัวตนผู้ใช้', "_claimOpen(pid){ if(!pid) return; try{", () => "_claimOpen(pid){ if(!pid) return; this._pmHandoff(); try{"],
   ['หมวดสีเมนู', "skp:'people',", (a) => a + " lay:'people',"],
   ['ไอคอน', "issues:'M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7zM12 6v4M12 13h.01',", (a) => a + " lay:'" + ICON + "',"],
   ['คำอธิบายปุ่ม', "issues:'ปักหมุดปัญหาบนแบบ · แท็กคนเกี่ยวข้อง · ติดตามคำตอบ',", (a) => a + " lay:'บอร์ดนำเสนองาน · Mood / Material board · เล่ม A4',"],
