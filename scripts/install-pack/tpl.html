@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Wellcon App Pack</title>
+<meta name="description" content="ชุดติดตั้งแอป Wellcon สำหรับพนักงาน — Wellcon PM · Defect Check · Site Issues · Layboard">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1C1B18">
+<link rel="icon" href="pm.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F6F2EA; --card:#FFFFFF; --ink:#1C1B18; --ink2:#5E5A50; --line:#E4DCCB; --gold:#9C7944; --gold2:#CDAE76;
+  --hero:#1C1B18; --heroInk:#F7F1E6; --chip:#EFE7D7; --warn:#FFF3D6; --warnInk:#6B4A00; --shadow:0 1px 2px rgba(28,27,24,.06),0 6px 20px rgba(28,27,24,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15140F; --card:#1F1E19; --ink:#F2EDE3; --ink2:#B4AC9C; --line:#34322A; --chip:#2A2820; --hero:#0E0D0A;
+    --warn:#3A2F12; --warnInk:#F3D58C; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15140F; --card:#1F1E19; --ink:#F2EDE3; --ink2:#B4AC9C; --line:#34322A; --chip:#2A2820; --hero:#0E0D0A;
+  --warn:#3A2F12; --warnInk:#F3D58C; --shadow:none;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "IBM Plex Sans Thai",-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+
+/* hero */
+.hero{background:var(--hero);color:var(--heroInk);padding:36px 0 30px}
+.brand{display:flex;align-items:center;gap:10px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold2);font-weight:600}
+.brand i{width:26px;height:2px;background:var(--gold2);display:block}
+.hero h1{margin:12px 0 6px;font-size:clamp(28px,5vw,42px);line-height:1.2;font-weight:700}
+.hero p{margin:0;max-width:640px;color:#CFC6B4}
+.icons{display:flex;gap:10px;margin-top:20px}
+.icons img{width:44px;height:44px;border-radius:11px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.hero-acts{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.hero .btn{background:transparent;color:var(--heroInk);border-color:#4A463B}
+.hero .btn.pri{background:var(--gold2);border-color:var(--gold2);color:#1C1B18}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:8px 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 15px/1.2 inherit;font-family:inherit;text-decoration:none;cursor:pointer}
+.btn:hover{filter:brightness(.97)}
+.btn.pri{background:var(--acc,var(--gold));border-color:var(--acc,var(--gold));color:#fff}
+.btn:focus-visible{outline:3px solid var(--gold2);outline-offset:2px}
+
+/* warn banner (in-app browser) */
+.inapp{display:none;margin:18px 0 0;padding:14px 16px;border-radius:12px;background:var(--warn);color:var(--warnInk);font-size:15px}
+.inapp b{display:block;margin-bottom:2px}
+body.is-inapp .inapp{display:block}
+
+section{padding:30px 0 6px}
+h2{font-size:22px;margin:0 0 4px}
+.lead{margin:0 0 18px;color:var(--ink2)}
+
+/* steps */
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--chip);border-radius:12px;padding:4px;gap:4px;margin-bottom:16px}
+.seg button{border:0;background:transparent;color:var(--ink2);font:600 15px/1.2 inherit;font-family:inherit;padding:9px 14px;border-radius:9px;cursor:pointer}
+.seg button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.steps{display:none;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow)}
+.steps.on{display:block}
+.steps ol{margin:0;padding:0;list-style:none;counter-reset:s;display:grid;gap:14px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start}
+.steps li::before{content:counter(s);width:34px;height:34px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-weight:700}
+.steps li b{display:block}
+.steps li span{color:var(--ink2);font-size:15px}
+.k{display:inline-block;padding:0 7px;border:1px solid var(--line);border-radius:6px;background:var(--chip);font-weight:600;font-size:14px;white-space:nowrap}
+.note{margin:14px 0 0;padding-top:12px;border-top:1px dashed var(--line);font-size:14px;color:var(--ink2)}
+
+/* apps */
+.apps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.app{background:var(--card);border:1px solid var(--line);border-top:5px solid var(--acc);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow)}
+.app-head{display:flex;gap:14px;align-items:center}
+.ico{border-radius:15px;flex:none}
+.app h3{margin:0;font-size:20px;line-height:1.25}
+.sub{color:var(--ink2);font-size:14px}
+.what{margin:0}
+.meta{margin:0;display:grid;gap:4px;font-size:14px}
+.meta div{display:grid;grid-template-columns:86px 1fr;gap:8px}
+.meta dt{color:var(--ink2)}
+.meta dd{margin:0}
+.app-foot{display:flex;gap:16px;align-items:center;margin-top:auto;padding-top:12px;border-top:1px solid var(--line)}
+.qr{width:116px;height:116px;flex:none;background:#fff;border-radius:10px;padding:4px;border:1px solid var(--line)}
+.qr svg{width:100%;height:100%;display:block}
+.acts{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.url{font-size:12.5px;color:var(--ink2);overflow-wrap:anywhere;font-family:ui-monospace,Menlo,Consolas,monospace}
+
+/* faq */
+.faq{display:grid;gap:10px}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0 16px}
+summary{cursor:pointer;padding:14px 0;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-weight:400;color:var(--ink2)}
+details[open] summary::after{content:"–"}
+details p,details ul{margin:0 0 14px;color:var(--ink2);font-size:15px}
+details ul{padding-left:20px}
+
+.rules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.rule{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:15px}
+.rule b{display:block;margin-bottom:2px}
+
+footer{margin:34px 0 0;padding:22px 0 40px;border-top:1px solid var(--line);color:var(--ink2);font-size:13px}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;transition:.2s;pointer-events:none;z-index:9}
+.toast.on{opacity:1;transform:translateX(-50%)}
+
+@media (max-width:760px){
+  .apps,.rules{grid-template-columns:minmax(0,1fr)}
+  .hero{padding:28px 0 24px}
+  body.is-mobile .qr{display:none}
+  .steps{padding:18px 16px}
+}
+
+/* ---------- print: A4 poster ---------- */
+.poster{display:none}
+@page{size:A4;margin:12mm}
+@media print{
+  :root{--bg:#fff;--card:#fff;--ink:#1C1B18;--ink2:#555;--line:#ddd}
+  body{background:#fff}
+  .screen,.toast{display:none!important}
+  .poster{display:block;color:#1C1B18;font-size:12.5px;line-height:1.5}
+  .p-hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1C1B18;padding-bottom:8px}
+  .p-hd h1{margin:0;font-size:26px}
+  .p-hd .brand{color:#9C7944}
+  .p-hd small{color:#555;font-size:11.5px;text-align:right}
+  .p-grid{display:grid;grid-template-columns:1fr 1fr;gap:10mm 12mm;margin:8mm 0}
+  .p-app{border:1px solid #ccc;border-top:4px solid var(--acc);border-radius:8px;padding:5mm;display:flex;flex-direction:column;align-items:center;gap:3mm;break-inside:avoid}
+  .p-qr{width:46mm;height:46mm}
+  .p-qr svg{width:100%;height:100%}
+  .p-t{display:flex;gap:8px;align-items:center}
+  .p-t img{border-radius:8px}
+  .p-t b{display:block;font-size:15px}
+  .p-t span{font-size:11.5px;color:#555}
+  .p-app code{font-size:10.5px;color:#333}
+  .p-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:5mm}
+  .p-steps div{border:1px solid #ddd;border-radius:6px;padding:3mm 4mm}
+  .p-steps b{display:block;margin-bottom:1mm}
+  .p-steps ol{margin:0;padding-left:16px}
+  .p-ft{margin-top:5mm;padding-top:3mm;border-top:1px solid #ccc;font-size:10.5px;color:#555;display:flex;justify-content:space-between;gap:10px}
+}
+</style>
+</head>
+<body>
+<div class="screen">
+  <header class="hero">
+    <div class="wrap">
+      <div class="brand"><i></i>Wellcon Interior · App Pack</div>
+      <h1>ชุดติดตั้งแอป Wellcon</h1>
+      <p>ติดตั้งครั้งเดียว ใช้งานเหมือนแอปทั่วไป — เปิดจากไอคอนบนหน้าจอได้เลย อัปเดตเองอัตโนมัติ ไม่ต้องโหลดจาก App Store / Play Store</p>
+      <div class="icons" aria-hidden="true"><img src="pm.svg" alt=""><img src="dc.svg" alt=""><img src="si.svg" alt=""><img src="lb.svg" alt=""></div>
+      <div class="hero-acts">
+        <a class="btn pri" href="#apps">ไปที่รายการแอป ↓</a>
+        <button class="btn" id="copyLine">คัดลอกข้อความส่ง LINE</button>
+        <button class="btn" onclick="window.print()">พิมพ์แผ่น QR (A4)</button>
+      </div>
+      <div class="inapp" role="note">
+        <b>⚠️ ตอนนี้เปิดอยู่ในแอป LINE / Facebook — ติดตั้งจากตรงนี้ไม่ได้</b>
+        กดปุ่ม <span class="k">⋮</span> หรือ <span class="k">แชร์</span> มุมขวา → เลือก <b style="display:inline">“เปิดในเบราว์เซอร์” / “Open in Safari / Chrome”</b> แล้วทำตามขั้นตอนด้านล่าง
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="how">
+      <h2>วิธีติดตั้ง</h2>
+      <p class="lead">เลือกอุปกรณ์ของคุณ (ระบบเลือกให้อัตโนมัติแล้ว) — ทำซ้ำกับทุกแอปที่ต้องใช้</p>
+      <div class="seg" role="tablist" aria-label="อุปกรณ์">
+        <button role="tab" data-dev="pc" aria-selected="false">💻 คอมพิวเตอร์</button>
+        <button role="tab" data-dev="and" aria-selected="false">🤖 Android</button>
+        <button role="tab" data-dev="ios" aria-selected="false">📱 iPhone / iPad</button>
+      </div>
+
+      <div class="steps" data-dev="pc" role="tabpanel">
+        <ol>
+          <li><div><b>เปิดลิงก์แอปด้วย Google Chrome หรือ Microsoft Edge</b><span>กดปุ่ม “เปิดและติดตั้ง” ของแอปที่ต้องการด้านล่าง</span></div></li>
+          <li><div><b>กดไอคอนติดตั้ง <span class="k">⊕ / 🖥↓</span> ท้ายช่องที่อยู่เว็บ</b><span>ถ้าไม่เห็นไอคอน — Chrome: <span class="k">⋮</span> → <span class="k">แคสต์ บันทึก และแชร์</span> → <span class="k">ติดตั้ง…</span> · Edge: <span class="k">⋯</span> → <span class="k">แอป</span> → <span class="k">ติดตั้งไซต์นี้เป็นแอป</span></span></div></li>
+          <li><div><b>กด “ติดตั้ง”</b><span>แอปจะเปิดเป็นหน้าต่างของตัวเอง และมีไอคอนใน Start Menu / Desktop — คลิกขวาที่ไอคอนบน Taskbar → <span class="k">ปักหมุด</span> เพื่อเปิดได้เร็ว</span></div></li>
+        </ol>
+        <p class="note">Mac ใช้ Chrome / Edge ได้เหมือนกัน · Safari บน Mac: เมนู <span class="k">ไฟล์</span> → <span class="k">เพิ่มไปยัง Dock</span></p>
+      </div>
+
+      <div class="steps" data-dev="and" role="tabpanel">
+        <ol>
+          <li><div><b>เปิดลิงก์ด้วย Chrome</b><span>สแกน QR ด้วยกล้อง หรือกดลิงก์ — ถ้าเปิดจาก LINE ให้กด <span class="k">⋮</span> → <span class="k">เปิดในเบราว์เซอร์</span> ก่อน</span></div></li>
+          <li><div><b>กด <span class="k">⋮</span> มุมขวาบน → <span class="k">ติดตั้งแอป</span></b><span>บางรุ่นจะเขียนว่า <span class="k">เพิ่มลงในหน้าจอหลัก</span> หรือมีแถบ “ติดตั้ง” เด้งขึ้นมาด้านล่างเอง</span></div></li>
+          <li><div><b>กด “ติดตั้ง”</b><span>ไอคอนแอปจะอยู่บนหน้าจอหลัก / ลิ้นชักแอป เหมือนแอปทั่วไป</span></div></li>
+        </ol>
+      </div>
+
+      <div class="steps" data-dev="ios" role="tabpanel">
+        <ol>
+          <li><div><b>เปิดลิงก์ด้วย Safari</b><span>สแกน QR ด้วยกล้อง iPhone แล้วแตะลิงก์ที่ขึ้นมา — ถ้าเปิดจาก LINE ให้กด <span class="k">แชร์</span> → <span class="k">เปิดใน Safari</span> ก่อน</span></div></li>
+          <li><div><b>แตะปุ่มแชร์ <span class="k">⬆︎</span> (สี่เหลี่ยมมีลูกศรชี้ขึ้น)</b><span>อยู่แถบล่าง (iPhone) หรือแถบบน (iPad) — ถ้าไม่เห็น ให้แตะ <span class="k">⋯</span> ก่อน</span></div></li>
+          <li><div><b>เลื่อนลง แตะ <span class="k">เพิ่มไปยังหน้าจอโฮม</span> → <span class="k">เพิ่ม</span></b><span>ถ้ามีตัวเลือก “เปิดเป็นเว็บแอป” ให้เปิดไว้ — ไอคอนจะอยู่บนหน้าจอโฮม</span></div></li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="apps">
+      <h2>แอปทั้งหมด (4 แอป)</h2>
+      <p class="lead">ติดตั้งเฉพาะแอปที่ตำแหน่งงานของคุณใช้ — บนคอมพิวเตอร์ ใช้มือถือสแกน QR ได้ทันที</p>
+      <div class="apps"><!--CARDS--></div>
+    </section>
+
+    <section id="faq">
+      <h2>ปัญหาที่พบบ่อย</h2>
+      <div class="faq">
+        <details><summary>ไม่เห็นปุ่ม “ติดตั้ง”</summary>
+          <ul>
+            <li>ต้องใช้ Chrome / Edge (คอมพิวเตอร์, Android) หรือ Safari (iPhone) — เปิดจากใน LINE / Facebook ติดตั้งไม่ได้</li>
+            <li>โหมดไม่ระบุตัวตน (Incognito) ติดตั้งไม่ได้</li>
+            <li>ถ้าเมนูขึ้นว่า “เปิดใน …” แปลว่าติดตั้งไว้แล้ว — กดเพื่อเปิดแอปได้เลย</li>
+          </ul>
+        </details>
+        <details><summary>แอปอัปเดตยังไง</summary>
+          <p>อัปเดตเองอัตโนมัติทุกครั้งที่เปิด ไม่ต้องติดตั้งใหม่ — ถ้ายังเห็นหน้าจอเก่า ให้ปิดแอปแล้วเปิดใหม่ (คอมพิวเตอร์กด <span class="k">Ctrl</span> + <span class="k">Shift</span> + <span class="k">R</span>)</p>
+        </details>
+        <details><summary>ลืมชื่อผู้ใช้ / PIN หรือเข้าไม่ได้</summary>
+          <p>ติดต่อ Admin / HR ของบริษัทเพื่อรีเซ็ต — Defect Check และ Site Issues ใช้บัญชีเดียวกับ Wellcon PM · ถ้าเห็นแอปแต่ไม่เห็นโครงการ แปลว่ายังไม่ได้ถูกเพิ่มเข้าโครงการ ให้แจ้ง PM ของโครงการ</p>
+        </details>
+        <details><summary>ลบแอปออกจากเครื่อง</summary>
+          <p>มือถือ: กดค้างที่ไอคอน → ลบ · คอมพิวเตอร์: เปิดแอป → <span class="k">⋮</span> มุมขวาบน → <span class="k">ถอนการติดตั้ง</span></p>
+        </details>
+      </div>
+    </section>
+
+    <section id="rules">
+      <h2>ข้อควรปฏิบัติ</h2>
+      <div class="rules">
+        <div class="rule"><b>🔒 ไม่แชร์ PIN</b>บัญชีของใครของคนนั้น ทุกการแก้ไขบันทึกชื่อผู้ทำ</div>
+        <div class="rule"><b>🖥 เครื่องส่วนกลาง</b>ออกจากระบบทุกครั้งหลังใช้งาน</div>
+        <div class="rule"><b>🤝 ข้อมูลภายใน</b>ห้ามส่งภาพหน้าจอ ราคาทุน หรือรายชื่อผู้รับเหมาช่วงให้บุคคลภายนอก</div>
+      </div>
+    </section>
+
+    <footer>
+      บริษัท เวลล์คอน อินทีเรีย จำกัด · Wellcon Interior Co., Ltd. · เลขผู้เสียภาษี 0105560007187 · www.wellcon.co.th<br>
+      เอกสารภายในสำหรับพนักงาน · ปรับปรุงล่าสุด 09/11/2026
+    </footer>
+  </main>
+</div>
+
+<!-- A4 poster (print only) -->
+<div class="poster" aria-hidden="true">
+  <div class="p-hd">
+    <div><div class="brand">Wellcon Interior · App Pack</div><h1>ชุดแอป Wellcon — สแกนเพื่อติดตั้ง</h1></div>
+    <small>ใช้ได้ทั้งมือถือและคอมพิวเตอร์<br>อัปเดตอัตโนมัติ ไม่ต้องโหลดจาก Store</small>
+  </div>
+  <div class="p-grid"><!--PCARDS--></div>
+  <div class="p-steps">
+    <div><b>📱 iPhone / iPad</b><ol><li>สแกน QR ด้วยกล้อง → เปิดใน Safari</li><li>แตะ แชร์ ⬆︎</li><li>เพิ่มไปยังหน้าจอโฮม → เพิ่ม</li></ol></div>
+    <div><b>🤖 Android</b><ol><li>สแกน QR → เปิดด้วย Chrome</li><li>แตะ ⋮ มุมขวาบน</li><li>ติดตั้งแอป → ติดตั้ง</li></ol></div>
+    <div><b>💻 คอมพิวเตอร์</b><ol><li>เปิดลิงก์ใน Chrome / Edge</li><li>กดไอคอน ⊕ ท้ายช่องที่อยู่</li><li>ติดตั้ง → ปักหมุดที่ Taskbar</li></ol></div>
+  </div>
+  <div class="p-ft"><span>วิธีติดตั้งแบบละเอียด: project-management-1-weld.vercel.app/install/</span><span>บริษัท เวลล์คอน อินทีเรีย จำกัด · 0105560007187 · เอกสารภายใน</span></div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  var ua = navigator.userAgent || '';
+  var ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  var and = /Android/.test(ua);
+  if (ios || and) document.body.classList.add('is-mobile');
+  if (/\bLine\/|FBAN|FBAV|Instagram|MicroMessenger/i.test(ua)) document.body.classList.add('is-inapp');
+
+  var tabs = document.querySelectorAll('.seg button'), panes = document.querySelectorAll('.steps');
+  function pick(d){
+    tabs.forEach(function(t){ t.setAttribute('aria-selected', t.dataset.dev === d ? 'true' : 'false'); });
+    panes.forEach(function(p){ p.classList.toggle('on', p.dataset.dev === d); });
+  }
+  tabs.forEach(function(t){ t.addEventListener('click', function(){ pick(t.dataset.dev); }); });
+  pick(ios ? 'ios' : and ? 'and' : 'pc');
+
+  var toast = document.getElementById('toast'), tt;
+  function say(m){ toast.textContent = m; toast.classList.add('on'); clearTimeout(tt); tt = setTimeout(function(){ toast.classList.remove('on'); }, 1800); }
+  function copy(text, msg){
+    function fallback(){
+      var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); say(msg); } catch(e) { prompt('คัดลอกข้อความนี้', text); }
+      ta.remove();
+    }
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(function(){ say(msg); }, fallback);
+    else fallback();
+  }
+  document.querySelectorAll('[data-copy]').forEach(function(b){
+    b.addEventListener('click', function(){ copy(b.dataset.copy, 'คัดลอกลิงก์แล้ว'); });
+  });
+  var LINE_MSG = /*LINEMSG*/;
+  document.getElementById('copyLine').addEventListener('click', function(){ copy(LINE_MSG, 'คัดลอกแล้ว — วางใน LINE ได้เลย'); });
+})();
+</script>
+</body>
+</html>
