@@ -122,7 +122,10 @@ async function boot() {
     if (a.error) throw a.error; if (p.error) throw p.error;
     const accounts = (a.data || []).map(rowOf); const live = (p.data || []).map(rowOf).filter(x => !x.deleted && !x.del);
     let sess = null; try { sess = JSON.parse(localStorage.getItem(SESS_KEY) || 'null'); } catch (e) {}
-    const acc = sess && sess.email && Date.now() - Number(sess.at || 0) < SESS_DAYS * 864e5 && accounts.find(x => norm(x.email) === sess.email && x.active !== false && !x.disabled);
+    let ho = null; try { ho = JSON.parse(localStorage.getItem('wellcon_pm_handoff') || 'null'); } catch (e) {}   // ตัวตนที่ PM ส่งมาตอนกดเมนู (ภายใน 12 ชม.)
+    const okAcc = accounts.filter(x => x.active !== false && !x.disabled);
+    const match = (x, o) => !!o && ((o.email && norm(x.email) === norm(o.email)) || (o.id && String(x.id) === String(o.id)) || (o.username && norm(x.username) === norm(o.username)));
+    const acc = (ho && Date.now() - Number(ho.at || 0) < 12 * 36e5 && okAcc.find(x => match(x, ho))) || (sess && sess.email && Date.now() - Number(sess.at || 0) < SESS_DAYS * 864e5 && okAcc.find(x => match(x, { email: sess.email }))) || null;
     if (!acc) { msg(`<b>ยังไม่ได้เข้าสู่ระบบ Wellcon PM ในเครื่องนี้</b><span style="color:var(--mut);font-size:14px">เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิดเมนู “Claim · เคลมความเสียหาย” จากหน้าโครงการ</span>${goPm}`); return; }
     APP.acc = acc; APP.me = { name: nickOf(acc), email: norm(acc.email), role: acc.roleKey || '' };
     APP.projects = live.filter(x => seesAll(acc) || (acc.projects || []).includes(x.id));

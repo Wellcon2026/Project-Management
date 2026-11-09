@@ -18,7 +18,7 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const rowOf = r => ({ ...(r.data || {}), id: r.id, ...(r.project ? { project: r.project } : {}) });
   const sb = window.supabase.createClient(CFG.url, CFG.key, { db: { schema }, auth: { persistSession: true, autoRefreshToken: true } });
-  const backUrl = '/' + (schema === 'staging' ? '?env=staging' : '') + (pid ? '#/p/' + encodeURIComponent(pid) : '');
+  const backUrl = '/' + (schema === 'staging' ? '?env=staging' : '') + '#/work';   // กลับ = หน้าแรกของฉัน (หน้าทำงานตามบทบาท)
   const G = { pid, schema, url: CFG.url, key: CFG.key, sb, backUrl, email: '', table: 'layboard_kv', bucket: 'general-photo', prefix: 'layboard/' + pid + '/',
     token: async () => { try { const r = await sb.auth.getSession(); return (r && r.data && r.data.session && r.data.session.access_token) || CFG.key; } catch (e) { return CFG.key; } } };
   window.LB_PM_CFG = G;
@@ -39,8 +39,8 @@
     sitemgr: 'Project Manager', site: 'Project Manager', qs_mgr: 'QS Manager', qs: 'QS / ประมาณราคา', designer: 'Designer' };
   const COLORS = ['#c67139', '#56633f', '#8c491a', '#3d6b8c', '#8a4f7d', '#b8892a', '#2f7a6b', '#a8434a'];
   function chip(name) {
-    const go = () => { const a = document.createElement('a'); a.href = backUrl; a.id = 'lbpm-chip'; a.title = 'กลับไปหน้าโครงการใน Wellcon PM';
-      a.textContent = '← PM · ' + name;
+    const go = () => { const a = document.createElement('a'); a.href = backUrl; a.id = 'lbpm-chip'; a.title = 'กลับหน้าแรกของฉันใน Wellcon PM';
+      a.textContent = '← หน้าแรก PM · ' + name;
       a.setAttribute('style', 'position:fixed;left:50%;transform:translateX(-50%);bottom:10px;z-index:2147482000;max-width:min(60vw,320px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#1C1B18;color:#F4EFE6;border-radius:999px;padding:8px 14px;font:600 12.5px/1.2 system-ui,sans-serif;text-decoration:none;box-shadow:0 6px 18px rgba(0,0,0,.18);opacity:.92');
       document.body.appendChild(a); };
     if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
@@ -52,15 +52,20 @@
     const [a, p] = await Promise.all([sb.from('accounts').select('id,data'), sb.from('projects').select('id,project,data').eq('id', pid)]);
     if (a.error) throw a.error; if (p.error) throw p.error;
     let sess = null; try { sess = JSON.parse(localStorage.getItem(SESS_KEY) || 'null'); } catch (e) {}
-    const acc = sess && sess.email && Date.now() - Number(sess.at || 0) < SESS_DAYS * 864e5 && (a.data || []).map(rowOf).find(x => norm(x.email) === norm(sess.email) && x.active !== false && !x.disabled);
-    if (!acc) { block('ยังไม่ได้เข้าสู่ระบบ Wellcon PM ในเครื่องนี้', 'เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิด Layboard จากเมนูในโครงการ'); return false; }
+    // ตัวตนผู้ใช้: ① ที่ PM ส่งมาตอนกดเมนู (wellcon_pm_handoff · ภายใน 12 ชม.) ② session ที่ PM จำไว้ — จับคู่ด้วย อีเมล / รหัสบัญชี / ชื่อผู้ใช้
+    let ho = null; try { ho = JSON.parse(localStorage.getItem('wellcon_pm_handoff') || 'null'); } catch (e) {}
+    const accs = (a.data || []).map(rowOf).filter(x => x.active !== false && !x.disabled);
+    const match = (x, o) => !!o && ((o.email && norm(x.email) === norm(o.email)) || (o.id && String(x.id) === String(o.id)) || (o.username && norm(x.username) === norm(o.username)));
+    const hoOk = ho && Date.now() - Number(ho.at || 0) < 12 * 36e5, ssOk = sess && sess.email && Date.now() - Number(sess.at || 0) < SESS_DAYS * 864e5;
+    const acc = (hoOk && accs.find(x => match(x, ho))) || (ssOk && accs.find(x => match(x, { email: sess.email }))) || null;
+    if (!acc) { block('ยังไม่ได้เข้าสู่ระบบ Wellcon PM ในเครื่องนี้', 'เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิด Layboard จากเมนูในโครงการ · ข้อมูลตรวจสอบ: บัญชี ' + accs.length + ' · PM ส่งตัวตน ' + (hoOk ? '✓' : '✗') + ' · session ' + (ssOk ? '✓' : '✗')); return false; }
     const proj = (p.data || []).map(rowOf).find(x => !x.deleted && !x.del);
     if (!proj) { block('ไม่พบโครงการนี้', 'โครงการอาจถูกลบหรือย้าย — กลับไปเลือกโครงการใน Wellcon PM'); return false; }
     const seesAll = acc.allProj === true || (acc.allProj !== false && ALL_SCOPE.includes(acc.roleKey));
     if (!seesAll && !(acc.projects || []).includes(pid)) { block('คุณไม่ได้รับมอบหมายในโครงการนี้', 'Layboard ของโครงการเปิดได้เฉพาะทีมที่ได้รับมอบหมาย — ติดต่อผู้ดูแลระบบ'); return false; }
     const t = await sb.from('layboard_kv').select('key').eq('project', pid).limit(1);
     if (t.error) { block('ยังไม่ได้สร้างตาราง layboard_kv ในฐานข้อมูล', 'แจ้ง Admin รันไฟล์ supabase-layboard.sql ใน Supabase ก่อนใช้งาน (' + (t.error.message || t.error.code || '') + ')'); return false; }
-    const email = norm(acc.email), pname = String(proj.name || proj.project || pid);
+    const email = norm(acc.email || acc.username || acc.id), pname = String(proj.name || proj.project || pid);
     G.acc = acc; G.proj = proj; G.email = email; G.projName = pname;
     G.personId = 'u_' + (email.split('@')[0] || String(acc.id || 'me')).replace(/[^a-z0-9]/g, '') ;
     // ใส่ผู้ใช้ PM เข้า workspace ของโครงการนี้ · ตั้งชื่อโปรเจกต์ใน Layboard = ชื่อโครงการ PM · ทุกคนในโครงการแก้ไขได้ (access team)
