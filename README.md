@@ -84,7 +84,16 @@ node scripts/patch-work-arrange.js
 ```bash
 node scripts/patch-work-all.js
 ```
-(เมนู Takeoff · วัดหน้างาน · QS Tracking บันทึกทีละแถว · ซ่อนแท็บ Takeoff เดิม — เปิดกลับด้วย `?legacyTakeoff=1` · ติดตั้งเป็นแอป + ไอคอน Wellcon PM · หน้าแรกของฉันตามตำแหน่ง · กันรูป/ข้อมูลหายจาก realtime · เมนู Claim · หน้า Home เลือกโครงการ · หน้าภาพรวมโครงการแบบสั้น · หน้าแรกตามบทบาททุกตำแหน่ง · ปุ่มหน้าแรก + ออกจากระบบทุกหน้า · รายงานประจำวัน คนเข้างานแยกตาม trade · คะแนน Level Gate เห็นเฉพาะ Admin / Director / HR · Site Issues ติดตามงาน · จัดเรียงการ์ดหน้าทำงาน · Super Admin เห็นทุกเมนู)
+```bash
+node scripts/patch-layboard-menu.js
+```
+(เมนู Takeoff · วัดหน้างาน · QS Tracking บันทึกทีละแถว · ซ่อนแท็บ Takeoff เดิม — เปิดกลับด้วย `?legacyTakeoff=1` · ติดตั้งเป็นแอป + ไอคอน Wellcon PM · หน้าแรกของฉันตามตำแหน่ง · กันรูป/ข้อมูลหายจาก realtime · เมนู Claim · หน้า Home เลือกโครงการ · หน้าภาพรวมโครงการแบบสั้น · หน้าแรกตามบทบาททุกตำแหน่ง · ปุ่มหน้าแรก + ออกจากระบบทุกหน้า · รายงานประจำวัน คนเข้างานแยกตาม trade · คะแนน Level Gate เห็นเฉพาะ Admin / Director / HR · Site Issues ติดตามงาน · จัดเรียงการ์ดหน้าทำงาน · Super Admin เห็นทุกเมนู · เมนู Layboard)
+
+## Layboard · Presentation (ตั้งแต่ 09/11/2026)
+- หน้าแยก `/layboard/index.html?pid=<project id>` — สำเนาแอป Layboard (repo Wellcon2026/layboard) สำหรับทำงานนำเสนอในโครงการ
+- ข้อมูลอยู่ในฐานข้อมูล Wellcon PM ตาราง `layboard_kv` (รัน `supabase-layboard.sql` ครั้งเดียว) — แยกจากฐานข้อมูลแอป Layboard เดิม · แยกพื้นที่ตามโครงการ (key `p:<pid>:…`) · รูปอยู่ที่ `general-photo/layboard/<pid>/`
+- เข้าได้เฉพาะผู้ที่ล็อกอิน PM และได้รับมอบหมายในโครงการนั้น (`layboard/pm-gate.js`)
+- อัปเดตจาก Layboard ต้นฉบับ: `node scripts/sync-layboard.js /path/to/layboard` (pm-gate.js ไม่ถูกเขียนทับ)
 
 ## Claim · เคลมความเสียหาย (ตั้งแต่ 08/11/2026)
 หน้าแยก ไม่อยู่ใน `index.html`: `claim.html` + `claim.js` (ใช้ `vendor/supabase.js` ร่วม)
