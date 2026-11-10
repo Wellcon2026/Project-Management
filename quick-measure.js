@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.3.1';   // 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
+const QM_VER = 'v1.4.0';   // 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -341,7 +341,7 @@ function upSrc(s) { if (!s) return null; return { key: 'up:' + s.id, source: 'up
   path: s.storage_path, mime: s.mime_type || '', mm: s.mm_per_px ? +s.mm_per_px : null, r: s.page_r ? +s.page_r : null, mmSrc: s.mm_per_px ? 'own' : null }; }
 function renderPick() {
   const S = APP.set, F = APP.feed || {}, h = [];
-  h.push('<button class="btn pri wide" id="btnUp" style="width:100%">📷 ถ่ายรูป / อัปโหลดแบบ (รูป หรือ PDF)</button>');
+  h.push('<button class="btn pri wide" id="btnUp" style="width:100%">📷 ถ่ายรูป / อัปโหลดแบบ (รูป · PDF · DXF)</button>');
   if (!F.handed_off) h.push('<div class="info">QS ยังไม่ส่งต่องานของโครงการนี้ — อัปโหลดรูปถ่ายหรือ PDF แล้วตั้งสเกลเอง</div>');
   else if (!S.send_drawings) h.push('<div class="info">Admin ปิด “ส่งแบบและโซน” — ใช้รูปถ่าย/PDF ที่อัปโหลดเองแทน</div>');
   else {
@@ -417,7 +417,14 @@ function pickPages(title, doc, have) {
 $('upFile').addEventListener('change', async () => {
   const f = $('upFile').files[0]; if (!f) return;
   const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
-  if (!isPdf && !/^image\//.test(f.type)) { toast('รองรับเฉพาะรูปภาพ หรือ PDF'); return; }
+  // v1.4.0 DXF (AutoCAD): แปลงในเครื่องเป็นภาพคมชัด + สเกลอัตโนมัติ (มม. ต่อ px จากหน่วยใน DXF) — ไม่ต้องตั้งสเกลเอง
+  let dx = null;
+  if (/\.dxf$/i.test(f.name)) { if (!window.WDraw) { toast('ตัวอ่าน DXF ยังโหลดไม่เสร็จ — ลองใหม่'); return; } toast('กำลังแปลง DXF…', 30000);
+    try { const R = await WDraw.importDxf(f); const k = MAX_BMP / Math.max(R.w, R.h), pw = Math.round(R.w * k), ph = Math.round(R.h * k); const u = URL.createObjectURL(R.blob);
+      let c; try { c = await WDraw.renderSvgRegion(u, { x: 0, y: 0, w: 1, h: 1 }, pw, ph, 1.6); } finally { URL.revokeObjectURL(u); }
+      dx = { blob: await new Promise(res => c.toBlob(res, 'image/png')), mm: R.wmm / c.width }; $('toast').hidden = true; }
+    catch (e) { console.error(e); toast('อ่าน DXF ไม่ได้: ' + ((e && e.message) || e) + ' — ใน AutoCAD ใช้ Save As → DXF แล้วลองใหม่', 6000); return; } }
+  if (!dx && !isPdf && !/^image\//.test(f.type)) { toast('รองรับรูปภาพ · PDF · DXF'); return; }
   let doc = null, pages = [0];
   if (isPdf) {
     toast('กำลังเปิด PDF…', 30000);
@@ -431,11 +438,11 @@ $('upFile').addEventListener('change', async () => {
   toast('กำลังอัปโหลด…', 30000);
   try {
     let blob = f, ext = isPdf ? 'pdf' : 'jpg', mime = isPdf ? 'application/pdf' : 'image/jpeg';
-    if (!isPdf) blob = await shrinkImage(f);
+    if (dx) { blob = dx.blob; ext = 'png'; mime = 'image/png'; } else if (!isPdf) blob = await shrinkImage(f);
     const key = 'quick-measure/' + APP.pid.replace(/[^\w-]/g, '_') + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
     const up = await sb.storage.from(UP_BUCKET).upload(key, blob, { contentType: mime, upsert: false });
     if (up.error) throw up.error;
-    const recs = pages.map(p => ({ pm_project_id: APP.pid, name: multi ? base + ' · หน้า ' + (p + 1) : base, storage_path: key, mime_type: mime, page: p, created_by: APP.me.name, created_email: APP.me.email }));
+    const recs = pages.map(p => ({ pm_project_id: APP.pid, name: multi ? base + ' · หน้า ' + (p + 1) : base, storage_path: key, mime_type: mime, page: p, created_by: APP.me.name, created_email: APP.me.email, ...(dx ? { mm_per_px: dx.mm } : {}) }));
     const ins = await sb.from('takeoff_field_sheets').insert(recs).select('*');
     if (ins.error) { sb.storage.from(UP_BUCKET).remove([key]); throw ins.error; }
     const got = (ins.data || []).slice().sort((a, b) => (a.page || 0) - (b.page || 0));
@@ -443,7 +450,7 @@ $('upFile').addEventListener('change', async () => {
     { const ids = got.map(x => x.id); hisPush({ kind: 'act', label: 'นำเข้า ' + base + (ids.length > 1 ? ' (' + ids.length + ' หน้า)' : ''),
       undo: () => { const n = measuresOn(ids); if (n) throw new Error('มีรายการวัดบนแบบนี้ ' + n + ' รายการ'); return sheetSet(ids, { deleted_at: new Date().toISOString() }); },
       redo: () => sheetSet(ids, { deleted_at: null }) }); }
-    if (got.length === 1) { toast('อัปโหลดแล้ว — ขั้นแรก ตั้งสเกล', 3000); show('measure', true); MV.open(upSrc(got[0])); }
+    if (got.length === 1) { toast(dx ? '✓ นำเข้า DXF แล้ว — สเกลจริงจากไฟล์ (ไม่ต้องตั้งสเกล) วัดได้ทันที' : 'อัปโหลดแล้ว — ขั้นแรก ตั้งสเกล', 3500); show('measure', true); MV.open(upSrc(got[0])); }
     else { renderPick(); toast('นำเข้าแล้ว ' + got.length + ' หน้า — แตะหน้าที่จะวัด (ตั้งสเกลแต่ละหน้า)', 4000); }
   } catch (e) { console.error(e); toast('อัปโหลดไม่สำเร็จ: ' + ((e && e.message) || e), 5000); }
 });
@@ -502,6 +509,7 @@ async function shrinkImage(f) {
 // =====================================================================
 const MV = (() => {
   const cv = $('cv'), box = $('cvw'), ctx = cv.getContext('2d');
+  let PGO = null, PR = 1, HI = null, hiT = 0, hiG = 0;   // v1.4 แบบคมชัด: render ใหม่จาก PDF เฉพาะส่วนที่มองเห็นเมื่อซูมเกินความละเอียดภาพ
   let SRC = null, BMP = null, W = 0, H = 0, V = { k: 1, ox: 0, oy: 0 }, dpr = 1, fitV = null;
   let tool = 'area', pts = [], drag = -1, focusId = null, loupe = null, loading = false, scalePts = null;
   const KIND = { area: 'พื้นที่', length: 'ความยาว', count: 'นับจุด', note: 'โน้ต', ruler: 'ไม้บรรทัด', scale: 'ตั้งสเกล' };
@@ -536,7 +544,7 @@ const MV = (() => {
   }
   async function open(src, focus) {
     hisDrop(e => e.kind === 'draw');
-    SRC = src; BMP = null; W = H = 0; pts = []; drag = -1; scalePts = null; focusId = focus || null; fitV = null; loading = true;
+    SRC = src; BMP = null; W = H = 0; PGO = null; HI = null; hiG++; pts = []; drag = -1; scalePts = null; focusId = focus || null; fitV = null; loading = true;
     tool = src.mm ? 'area' : 'scale';
     header(); tools(); paint(); hint('กำลังเปิดแบบ…'); side(); left();
     try {
@@ -553,7 +561,7 @@ const MV = (() => {
         const rr = Math.min(Math.max(r, 2.5), MAX_BMP / Math.max(v1.width, v1.height)), v = page.getViewport({ scale: rr });
         const c = document.createElement('canvas'); c.width = Math.floor(v.width); c.height = Math.floor(v.height);
         const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
-        await page.render({ canvasContext: g, viewport: v }).promise; BMP = c;
+        await page.render({ canvasContext: g, viewport: v }).promise; BMP = c; PGO = page; PR = r;
         if (src.source === 'upload' && !src.isPdfR) { src.isPdfR = true; const s = APP.sheets.find(x => x.id === src.sheetId); if (s && !s.page_r) { s.page_r = r; sb.from('takeoff_field_sheets').update({ page_r: r }).eq('id', s.id).then(() => {}); } }
       } else {
         const bmp = await createImageBitmap(blob); W = bmp.width; H = bmp.height;
@@ -621,11 +629,21 @@ const MV = (() => {
     ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y); }
   function hexA(h, a) { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return 'rgba(42,125,163,' + a + ')'; const n = parseInt(m[1], 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
   function path(P, close) { ctx.beginPath(); P.forEach((p, i) => { const s = toScr(p); i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1]); }); if (close) ctx.closePath(); }
+  function hiQ() { clearTimeout(hiT); if (!PGO || !BMP) return; hiT = setTimeout(hiRun, 260); }
+  async function hiRun() { const page = PGO, src = SRC; if (!page || !BMP) return; const w = cv.width / dpr, h = cv.height / dpr; const need = V.k * dpr;
+    if (need <= (BMP.width / W) * 1.05) { if (HI) { HI = null; paint(); } return; }
+    let x0 = Math.max(0, -V.ox / V.k), y0 = Math.max(0, -V.oy / V.k), x1 = Math.min(W, (w - V.ox) / V.k), y1 = Math.min(H, (h - V.oy) / V.k); if (x1 - x0 < 2 || y1 - y0 < 2) return;
+    const mx = (x1 - x0) * 0.12, my = (y1 - y0) * 0.12; x0 = Math.max(0, x0 - mx); y0 = Math.max(0, y0 - my); x1 = Math.min(W, x1 + mx); y1 = Math.min(H, y1 + my);
+    if (HI && HI.src === src && HI.k === V.k && HI.x <= x0 && HI.y <= y0 && HI.x + HI.w >= x1 && HI.y + HI.h >= y1) return;
+    let S = need * PR, cw = (x1 - x0) * need, ch = (y1 - y0) * need; const A = 14e6; if (cw * ch > A) { const f = Math.sqrt(A / (cw * ch)); S *= f; cw *= f; ch *= f; }
+    const my_ = ++hiG; const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(cw)); c.height = Math.max(1, Math.round(ch)); const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    try { await page.render({ canvasContext: g, viewport: page.getViewport({ scale: S, offsetX: -x0 / PR * S, offsetY: -y0 / PR * S }) }).promise; } catch (e) { return; }
+    if (my_ !== hiG || src !== SRC) return; HI = { c, x: x0, y: y0, w: x1 - x0, h: y1 - y0, k: V.k, src }; paint(); }
   function paint() {
     const w = cv.width / dpr, h = cv.height / dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = '#EDE7DC'; ctx.fillRect(0, 0, w, h);
     if (!BMP) return;
-    ctx.save(); ctx.setTransform(dpr * V.k, 0, 0, dpr * V.k, dpr * V.ox, dpr * V.oy); ctx.imageSmoothingQuality = 'high'; ctx.drawImage(BMP, 0, 0, W, H); ctx.restore();
+    ctx.save(); ctx.setTransform(dpr * V.k, 0, 0, dpr * V.k, dpr * V.ox, dpr * V.oy); ctx.imageSmoothingQuality = 'high'; ctx.drawImage(BMP, 0, 0, W, H); if (HI && HI.src === SRC) ctx.drawImage(HI.c, HI.x, HI.y, HI.w, HI.h); ctx.restore(); hiQ();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     // โซนของ QS: แสดงชื่อโซน · รหัสงาน/ตัวเลข แสดงเฉพาะเมื่อ Admin เปิด "แสดงปริมาณ BOQ"
     // v1.3.0 โซนของ QS = เส้นประจาง + ป้าย "QS ·" (อ่านอย่างเดียว แยกจากรูปที่ PM วัดเอง)

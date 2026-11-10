@@ -117,3 +117,10 @@ node scripts/patch-survey-menu.js
 - รูป: Storage `general-photo/claims/<pid>/<claimId>/` (เก็บแค่ลิงก์ในข้อมูล)
 - ปุ่ม 🏠 หน้าแรก + ออกจากระบบ ในหน้าแยก (claim / quick-measure): `pm-nav.js`
 - ราคาในหน้านี้ = ราคาเรียกเก็บลูกค้าเท่านั้น ห้ามใส่ต้นทุน/กำไรจริง · หนังสือเคลมเป็น DRAFT ต้องให้ผู้บริหารตรวจก่อนส่ง
+
+## แบบคมชัด + DXF (`wdraw.js` · ตั้งแต่ 10/11/2026)
+- `wdraw.js` = Wellcon Drawing Engine — ต้นฉบับอยู่ใน repo `wellcon-defect-check` แก้ที่นั่นแล้ว copy มาที่นี่ (และ `layboard`)
+- Claim: `c.plan.pdf = { pdf: url, page }` (PDF ต้นฉบับ) · `c.plan.kind = 'dxf'` + `c.plan.mm` (SVG เวกเตอร์ หน่วย มม.)
+- Claim อนุมัติขั้นเดียว: `c.appr = { h, ok:{ by, role, at, amt }, back }` — QS (`qs`, `qs_mgr`) หรือ PM (`pm`, `pm_mgr`) · superadmin ได้ทุกกรณี
+- Quick Measure: DXF → PNG (ด้านยาว 4096 px) + `mm_per_px` จากไฟล์ (สเกลอัตโนมัติ)
+- DWG ยังไม่รองรับโดยตรง — ให้ AutoCAD "Save As → DXF" (แปลงผ่านบริการภายนอกต้องได้รับอนุมัติผู้บริหารก่อน)
