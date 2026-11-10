@@ -148,15 +148,24 @@ function pickPdfPage(pdf, name) { return new Promise(res => { const w = document
   w.addEventListener('click', (e) => { const b = e.target.closest('[data-p]'); if (b) { fin(+b.dataset.p); return; } if (e.target.closest('[data-x]') || e.target === w) fin(null); });
   for (let i = 1; i <= pdf.numPages; i++) { const b = document.createElement('button'); b.className = 'pdfpk-i'; b.dataset.p = String(i); b.innerHTML = '<div class="pdfpk-t">…</div><span>หน้า ' + i + '</span>'; g.appendChild(b); }
   (async () => { for (let i = 1; i <= pdf.numPages && !done; i++) { try { const cv = await pdfPage(pdf, i, 360); const t = g.querySelector('[data-p="' + i + '"] .pdfpk-t'); if (t) { t.innerHTML = ''; const im = new Image(); im.src = cv.toDataURL('image/jpeg', .72); t.appendChild(im); } } catch (e) {} } })(); }); }
+// v1.31 เปลี่ยนไฟล์แบบ (JPG → PDF → DXF): ถ้ามีหมุด / กรอบอยู่แล้ว → จัดตำแหน่ง 2 จุด แล้วย้ายหมุด / กรอบตามแบบใหม่ · เก็บไฟล์เดิมไว้ใน plan.prev
+async function applyPlan(c, pl, lg) { if (!(APP.cur && APP.cur.id === c.id)) return false; const old = c.plan; let pins = [], boxes = [], note = '';
+  if (old && old.url && ((old.pins || []).length || (old.boxes || []).length) && WD) { APP.busyPlan = false; renderSheet();
+    const mk = [...(old.pins || []).map(q => [q.x / 100, q.y / 100]), ...(old.boxes || []).flatMap(b => [[b.x1 / 100, b.y1 / 100], [b.x2 / 100, b.y2 / 100]])];
+    const A = await WD.alignDialog({ old: { url: old.url, w: old.w, h: old.h, name: old.name, src: old.pdf || null, kind: old.kind }, neu: { url: pl.url, w: pl.w, h: pl.h, name: pl.name, src: pl.pdf || null, kind: pl.kind }, marks: mk, what: 'หมุด / มุมกรอบ', skipLabel: 'ข้าม — ปักหมุดใหม่เอง' });
+    if (!A) { toast('ยกเลิก — ยังใช้แบบเดิม'); return true; }
+    if (A.map) { const mp = (x, y) => WD.mapPct(A.map, x, y); pins = (old.pins || []).map(q => { const r = mp(q.x, q.y); return { ...q, x: r[0], y: r[1] }; });
+      boxes = (old.boxes || []).map(b => { const a = mp(b.x1, b.y1), d = mp(b.x2, b.y2); return { ...b, x1: a[0], y1: a[1], x2: d[0], y2: d[1] }; }); note = ' · ย้ายหมุด ' + pins.length + ' / กรอบ ' + boxes.length + ' ตามแบบใหม่'; } }
+  const cc = APP.cur; cc.plan = { ...pl, pins, boxes, ...(old && old.url ? { prev: [...(old.prev || []), { url: old.url, name: old.name || '', at: new Date().toISOString() }].slice(-5) } : {}) };
+  logPush(cc, (old && old.url ? 'เปลี่ยนไฟล์แบบประกอบ: ' : 'แนบแบบประกอบ: ') + lg + note); APP.busyPlan = false; renderSheet(); schedule(); openPlanEditor();
+  if (note) toast('✓ เปลี่ยนไฟล์แบบแล้ว' + note + ' — ตรวจตำแหน่งแล้วกด ✓ บันทึก', 4000); return true; }
 async function planFromCanvas(c, cv, nm, extra) { const blob = await new Promise(r2 => cv.toBlob(r2, 'image/jpeg', .86)); const key = 'claims/' + APP.pid + '/' + c.id + '/plan-' + Date.now() + '.jpg';
   const up = await sb.storage.from(BUCKET).upload(key, blob, { contentType: 'image/jpeg', upsert: false }); if (up.error) throw up.error; const { data } = sb.storage.from(BUCKET).getPublicUrl(key);
-  if (!(APP.cur && APP.cur.id === c.id)) return false; APP.cur.plan = { url: data.publicUrl, w: cv.width, h: cv.height, name: nm, pins: [], boxes: [], ...(extra || {}) };
-  logPush(APP.cur, 'แนบแบบประกอบ: ' + nm); APP.busyPlan = false; renderSheet(); schedule(); openPlanEditor(); return true; }
-async function uploadPlan(file) { const c = APP.cur; if (!c) return; APP.busyPlan = true; renderSheet();
+  return applyPlan(c, { url: data.publicUrl, w: cv.width, h: cv.height, name: nm, ...(extra || {}) }, nm); }
+async function uploadPlan(file) { const c = APP.cur; if (!c) return; if (WD && WD.guardDwg(file)) return; APP.busyPlan = true; renderSheet();
   try { let cv, pg = null, ex = {}; const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name || '');
     if (WD && WD.isDxf(file)) { const R = await WD.importDxf(file); const url = await planUp(c, R.blob, 'svg', 'image/svg+xml');
-      if (!(APP.cur && APP.cur.id === c.id)) return; APP.cur.plan = { url, w: R.w, h: R.h, name: R.name + ' (DXF)', pins: [], boxes: [], src: 'upload', kind: 'dxf', mm: [R.wmm, R.hmm] };
-      logPush(APP.cur, 'แนบแบบประกอบ (DXF): ' + R.name); APP.busyPlan = false; renderSheet(); schedule(); openPlanEditor(); return; }
+      await applyPlan(c, { url, w: R.w, h: R.h, name: R.name + ' (DXF)', src: 'upload', kind: 'dxf', mm: [R.wmm, R.hmm] }, R.name + ' (DXF)'); return; }
     if (isPdf) { const lib = await pdfLib(); const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; pg = 1; if (pdf.numPages > 1) { pg = await pickPdfPage(pdf, file.name); if (!pg) { APP.busyPlan = false; renderSheet(); return; } } cv = await pdfPage(pdf, pg, 2400); try { ex.pdf = { pdf: await planUp(c, file.slice(0, file.size, 'application/pdf'), 'pdf', 'application/pdf'), page: pg }; } catch (e) { console.warn('pdf src', e); } }
     else { const u = URL.createObjectURL(file); const im = await new Promise((r2, j2) => { const x = new Image(); x.onload = () => r2(x); x.onerror = j2; x.src = u; }); const k = Math.min(1, 2400 / Math.max(im.width, im.height));
       cv = document.createElement('canvas'); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k); const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(im, 0, 0, cv.width, cv.height); URL.revokeObjectURL(u); }
@@ -177,7 +186,7 @@ function pickProjPlan() { const c = APP.cur; const D = (APP.dwgs || []).slice(),
   D.sort((x, y) => (hit(y) - hit(x)) || String(x.no || '').localeCompare(String(y.no || '')));
   const w = document.createElement('div'); w.className = 'pdfpk'; document.body.appendChild(w); let gen = 0, pdfView = null;
   const close = () => { gen++; w.remove(); };
-  const setP = (pl, lg) => { const cc = APP.cur; if (!cc) return; cc.plan = { pins: [], boxes: [], ...pl }; logPush(cc, 'แนบแบบประกอบ: ' + lg); renderSheet(); schedule(); openPlanEditor(); };
+  const setP = (pl, lg) => { const cc = APP.cur; if (!cc) return; applyPlan(cc, pl, lg); };
   const useImg = (url, name, extra) => { const im = new Image(); im.onload = () => { close(); setP({ url, w: im.naturalWidth, h: im.naturalHeight, name, ...(extra || {}) }, name); }; im.onerror = () => toast('เปิดรูปไม่ได้'); im.src = url; };
   const listHtml = () => '<div class="pdfpk-box"><div class="pdfpk-h"><div><b>เลือกแบบในโครงการ</b><span>' + esc(projName(APP.proj)) + ' · แตะ PDF เพื่อเลือกหน้า · แตะ JPG เพื่อใช้รูป</span></div><button data-x="1">×</button></div><div class="pdfpk-sc">' +
     (D.length ? '<div class="pk-sec">📚 Drawing Log · ' + D.length + ' ชุด' + (D.some(hit) ? ' · <span class="pk-hit">⭐ = โซนตรงกับพื้นที่ของเรื่องนี้</span>' : '') + '</div><div class="pk-dw">' +
@@ -238,10 +247,10 @@ function openPlanEditor() { const c = APP.cur; if (!c || !c.plan) return; const 
 function planBox(c) { const P = c.plan;
   if (APP.busyPlan) return '<div class="pl-req busy"><div class="spin"></div>กำลังแนบแบบ…</div>';
   if (!P) return `<div class="pl-req"><b>📐 ยังไม่ได้แนบแบบ</b><small>ต้องแนบแบบแสดงตำแหน่งงานก่อนอนุมัติ / ส่งลูกค้า</small><div class="row2">
-    <button class="btn pri" data-act="planproj">🗂 เลือกแบบในโครงการ${((APP.dwgs || []).length + (APP.plans || []).length + (APP.svPlans || []).length) ? ' (' + ((APP.dwgs || []).length + (APP.plans || []).length + (APP.svPlans || []).length) + ')' : ''}</button><label class="btn">📂 อัปโหลด PDF / JPG / DXF<input type="file" accept="application/pdf,.pdf,image/*,.dxf" data-planup="1" hidden></label></div></div>`;
+    <button class="btn pri" data-act="planproj">🗂 เลือกแบบในโครงการ${((APP.dwgs || []).length + (APP.plans || []).length + (APP.svPlans || []).length) ? ' (' + ((APP.dwgs || []).length + (APP.plans || []).length + (APP.svPlans || []).length) + ')' : ''}</button><label class="btn">📂 อัปโหลด PDF / JPG / DXF<input type="file" accept="application/pdf,.pdf,image/*,.dxf,.dwg" data-planup="1" hidden></label></div></div>`;
   return `<div class="pl-has"><button class="plt" data-act="planed" title="แตะเพื่อปักหมุด / แก้ตำแหน่ง"><img src="${esc(P.url)}" alt="" loading="lazy"><div class="pe-ov">${planOv(P, false)}</div></button>
     <div class="pl-inf"><b>${esc(P.name || 'แบบ')}</b><small>${(P.pins || []).length} หมุด · ${(P.boxes || []).length} กรอบ${!(P.pins || []).length && !(P.boxes || []).length ? ' · <span style="color:var(--red)">ยังไม่ได้ระบุตำแหน่ง</span>' : ''}</small>
-    <div class="row2"><button class="btn" data-act="planed">📍 ปักหมุด / แก้ตำแหน่ง</button><button class="btn" data-act="planproj">🗂 เปลี่ยนแบบ</button><label class="btn">📂 อัปโหลดใหม่<input type="file" accept="application/pdf,.pdf,image/*,.dxf" data-planup="1" hidden></label><button class="btn del" data-act="plandel">ลบ</button></div></div></div>`; }
+    <div class="row2"><button class="btn" data-act="planed">📍 ปักหมุด / แก้ตำแหน่ง</button><button class="btn" data-act="planproj">⇄ เปลี่ยนเป็นแบบในโครงการ</button><label class="btn">⇄ เปลี่ยนเป็นไฟล์ใหม่ (PDF / DXF)<input type="file" accept="application/pdf,.pdf,image/*,.dxf,.dwg" data-planup="1" hidden></label><button class="btn del" data-act="plandel">ลบ</button></div></div></div>`; }
 // v1.30 อนุมัติขั้นเดียว: QS หรือ PM คนใดคนหนึ่งอนุมัติ = เอกสารพร้อมส่ง (ลายน้ำ DRAFT หายไป)
 const AP_STEPS = [['ok', '✍️', 'อนุมัติเอกสาร · QS หรือ PM', 'ตรวจตัวเลข · เนื้อหา · รูป · แบบประกอบ — คนใดคนหนึ่งอนุมัติได้', ['qs', 'qs_mgr', 'pm', 'pm_mgr']]];
 const AP_ROLE = { qs: 'QS', qs_mgr: 'QS', pm: 'PM', pm_mgr: 'PM', superadmin: 'MD' };

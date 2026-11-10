@@ -8,7 +8,7 @@
   'use strict';
   let BASE = 'vendor/';
   const W = {};
-  W.version = '1.0.0';
+  W.version = '1.1.0';
   W.setBase = (b)=>{ BASE = b; };
   const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
   W.MAX_AREA = IOS ? 16e6 : 40e6;          // จำกัดขนาด canvas (iOS ~16.7 ล้านพิกเซล)
@@ -239,6 +239,77 @@
     return { near(p, r){ let best=null, bd=r; const c0=Math.floor((p[0]-r)/cell), c1=Math.floor((p[0]+r)/cell), d0=Math.floor((p[1]-r)/cell), d1=Math.floor((p[1]+r)/cell);
       if((c1-c0+1)*(d1-d0+1)>400) return null;
       for(let i=c0;i<=c1;i++) for(let j=d0;j<=d1;j++){ const a=H.get(i+','+j); if(!a) continue; for(const q of a){ const d=Math.hypot(q[0]-p[0],q[1]-p[1]); if(d<bd){ bd=d; best=q; } } } return best?best.slice():null; } }; };
+
+  // ---------- เปลี่ยนไฟล์แบบ (JPG → PDF → DXF): จัดตำแหน่งแบบใหม่ให้ตรงแบบเดิม 2 จุด → ย้ายหมุด / มาร์กอัปตาม ----------
+  W.isDwg = (f)=> !!f && /\.dwg$/i.test(f.name||'');
+  // ไฟล์ DWG อ่านในเบราว์เซอร์ไม่ได้ (รูปแบบปิดของ Autodesk) → แนะนำ Save As DXF · คืน true = เป็น DWG (ผู้เรียกหยุดทำงาน)
+  W.guardDwg = (f)=>{ if(!W.isDwg(f)) return false;
+    alert('ไฟล์ DWG ยังเปิดในแอปโดยตรงไม่ได้\n\nวิธีแปลง (1 นาที):\n• AutoCAD: เปิดไฟล์ → Save As → เลือกชนิด "AutoCAD 2013 DXF (*.dxf)" → บันทึก\n• SketchUp: File → Export → 2D Graphic → DXF\n\nแล้วเลือกไฟล์ .dxf ที่ได้ — แอปจะแปลงเป็นแบบเวกเตอร์ หน่วย มม. จริง ให้อัตโนมัติ');
+    return true; };
+  // จับคู่ 2 จุด → similarity transform (เลื่อน + หมุน + ย่อขยาย) ในพิกัด px ของแต่ละภาพ · คืน map(u,v) สัดส่วน 0–1
+  W.simMap = (pa, pb, A, B)=>{ const P1=[pa[0][0]*A.w, pa[0][1]*A.h], P2=[pa[1][0]*A.w, pa[1][1]*A.h], Q1=[pb[0][0]*B.w, pb[0][1]*B.h], Q2=[pb[1][0]*B.w, pb[1][1]*B.h];
+    const px=P2[0]-P1[0], py=P2[1]-P1[1], qx=Q2[0]-Q1[0], qy=Q2[1]-Q1[1], d2=px*px+py*py; if(d2<1e-9) return null;
+    const sr=(qx*px+qy*py)/d2, si=(qy*px-qx*py)/d2; const tx=Q1[0]-(sr*P1[0]-si*P1[1]), ty=Q1[1]-(si*P1[0]+sr*P1[1]);
+    const f=(u,v)=>{ const x=u*A.w, y=v*A.h; return [(sr*x-si*y+tx)/B.w, (si*x+sr*y+ty)/B.h]; }; f.scale=Math.hypot(sr,si); f.rot=Math.atan2(si,sr)*180/Math.PI; return f; };
+  let alCss=false;
+  const alStyle = ()=>{ if(alCss) return; alCss=true; const s=document.createElement('style'); s.textContent=
+    '.wd-al{position:fixed;inset:0;z-index:2147483000;background:rgba(20,19,16,.72);display:flex;align-items:center;justify-content:center;padding:10px;font-family:inherit}'+
+    '.wd-al-box{background:#FBFAF6;color:#1C1B18;border-radius:16px;width:min(1400px,100%);height:min(920px,100%);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35)}'+
+    '.wd-al-h{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-bottom:1px solid #E4DFD3}.wd-al-h div{flex:1;min-width:0}.wd-al-h div>b{display:block;font-size:16px}.wd-al-h span b{display:inline;font-size:inherit}.wd-al-h span{display:block;font-size:12.5px;color:#6B675E;margin-top:2px;line-height:1.45}'+
+    '.wd-al-h button{border:0;background:#EEE9DD;width:36px;height:36px;border-radius:10px;font-size:20px;cursor:pointer;flex:none}'+
+    '.wd-al-ps{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px}@media(max-width:760px){.wd-al-ps{grid-template-columns:1fr;grid-template-rows:1fr 1fr}}'+
+    '.wd-al-p{display:flex;flex-direction:column;min-height:0;border:2px solid #E4DFD3;border-radius:12px;overflow:hidden;background:#fff}.wd-al-p.on{border-color:#C2681E}'+
+    '.wd-al-t{display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:12.5px;background:#F3F0E8}.wd-al-t b{flex:none}.wd-al-t span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6B675E}'+
+    '.wd-al-t button{border:1px solid #D9D3C5;background:#fff;border-radius:8px;min-width:32px;height:30px;font-size:15px;cursor:pointer}'+
+    '.wd-al-v{flex:1;min-height:0;overflow:auto;background:#E9E6DE;touch-action:pan-x pan-y}.wd-al-st{position:relative;width:100%;cursor:crosshair}.wd-al-st>img{display:block;width:100%;height:auto;pointer-events:none;user-select:none}'+
+    '.wd-al-m{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;color:#fff;font:700 13px/26px sans-serif;text-align:center;box-shadow:0 0 0 2px #fff,0 2px 6px rgba(0,0,0,.4);pointer-events:none;z-index:3}'+
+    '.wd-al-m.k1{background:#E03131}.wd-al-m.k2{background:#1971C2}.wd-al-m::after{content:"";position:absolute;left:12px;top:12px;width:2px;height:2px;background:#000}'+
+    '.wd-al-d{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:rgba(194,104,30,.85);box-shadow:0 0 0 1.5px #fff;pointer-events:none;z-index:2}.wd-al-d.pv{background:rgba(47,125,74,.9)}'+
+    '@media(max-width:760px){.wd-al{padding:0}.wd-al-box{border-radius:0;height:100%}.wd-al-h span{font-size:11.5px}.wd-al-f{gap:6px;padding:8px}.wd-al-msg{flex-basis:100%;font-size:12px}.wd-al-f button{min-height:38px;padding:0 10px;font-size:12.5px}}'+
+    '.wd-al-f{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border-top:1px solid #E4DFD3}.wd-al-msg{flex:1 1 260px;font-size:13px;color:#4A473F;line-height:1.45}'+
+    '.wd-al-f button{min-height:42px;padding:0 14px;border-radius:11px;border:1px solid #D9D3C5;background:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer}.wd-al-f button.pri{background:#2F7D4A;border-color:#2F7D4A;color:#fff}.wd-al-f button.rec{border-color:#2F7D4A;color:#2F7D4A}.wd-al-f button:disabled{opacity:.45;cursor:not-allowed}';
+    document.head.appendChild(s); };
+  // o = { old:{ url, w, h, name, src?, kind? }, neu:{ ... }, marks:[[u,v]] (หมุดเดิม 0–1), what:'หมุด' }
+  // คืน Promise → { mode:'same'|'align'|'skip', map(u,v), pa, pb } หรือ null (ยกเลิก)
+  W.alignDialog = (o)=> new Promise(res=>{ alStyle(); const A=o.old, B=o.neu; const pts={ a:[], b:[] }; let side='a', done=false; const zoom={ a:1, b:1 }; const sh={};
+    const same = A.w&&A.h&&B.w&&B.h && Math.abs((A.w/A.h)/(B.w/B.h)-1)<0.015;
+    const e=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const w=document.createElement('div'); w.className='wd-al';
+    const pane=(k,t,nm)=>'<div class="wd-al-p" data-s="'+k+'"><div class="wd-al-t"><b>'+t+'</b><span>'+e(nm)+'</span><button data-z="-1" data-k="'+k+'">－</button><button data-z="1" data-k="'+k+'">＋</button></div><div class="wd-al-v"><div class="wd-al-st"><img alt="" draggable="false"></div></div></div>';
+    w.innerHTML='<div class="wd-al-box" role="dialog" aria-label="จัดตำแหน่งแบบใหม่"><div class="wd-al-h"><div><b>⇄ เปลี่ยนไฟล์แบบ · จัดตำแหน่งให้ตรงแบบเดิม</b><span>แตะ <b style="color:#E03131">จุดที่ 1</b> และ <b style="color:#1971C2">จุดที่ 2</b> บน<b>แบบเดิม</b> แล้วแตะจุดเดียวกันบน<b>แบบใหม่</b> (เช่น มุมห้อง / มุมเสา / จุดตัดเส้นกริด) — 2 จุดห่างกันมากยิ่งแม่น · ซูม ＋ เพื่อแตะให้ตรง'+((o.marks||[]).length?' · จุดส้ม = '+e(o.what||'หมุด')+'เดิม '+o.marks.length+' จุด · จุดเขียว = ตำแหน่งใหม่ (ตรวจก่อนยืนยัน)':'')+'</span></div><button data-x="1" title="ยกเลิก">×</button></div>'+
+      '<div class="wd-al-ps">'+pane('a','แบบเดิม',A.name)+pane('b','แบบใหม่',B.name)+'</div>'+
+      '<div class="wd-al-f"><span class="wd-al-msg"></span><button data-r="1">ล้างจุด</button><button data-same="1" class="'+(same?'rec':'')+'">'+(same?'⭐ ':'')+'ใช้ตำแหน่งเดิม (แบบแผ่นเดียวกัน)</button><button data-skip="1">'+e(o.skipLabel||'ข้าม — ปักใหม่เอง')+'</button><button data-ok="1" class="pri" disabled>✓ ยืนยันจัดตำแหน่ง</button></div></div>';
+    document.body.appendChild(w);
+    const P={ a:w.querySelector('[data-s="a"]'), b:w.querySelector('[data-s="b"]') }; const st=(k)=>P[k].querySelector('.wd-al-st'), vv=(k)=>P[k].querySelector('.wd-al-v');
+    st('a').querySelector('img').src=A.url||A.file; st('b').querySelector('img').src=B.url||B.file;
+    ['a','b'].forEach(k=>{ const O=k==='a'?A:B; if(W.kindOf({ file:O.url||O.file, w:O.w, h:O.h, kind:O.kind, src:O.src })){ sh[k]=W.sharpener(st(k), { file:O.url||O.file, w:O.w, h:O.h, kind:O.kind, src:O.src }, { clip:vv(k), after:()=>st(k).querySelector('img') }); vv(k).addEventListener('scroll', ()=>sh[k].update(), { passive:true }); sh[k].update(400); } });
+    const mapNow = ()=> pts.a.length===2&&pts.b.length===2 ? W.simMap(pts.a, pts.b, A, B) : null;
+    const draw = ()=>{ ['a','b'].forEach(k=>{ const s=st(k); s.querySelectorAll('.wd-al-m,.wd-al-d').forEach(x=>x.remove()); P[k].classList.toggle('on', side===k);
+        pts[k].forEach((p,i)=>{ const m=document.createElement('div'); m.className='wd-al-m k'+(i+1); m.textContent=String(i+1); m.style.left=(p[0]*100)+'%'; m.style.top=(p[1]*100)+'%'; s.appendChild(m); }); });
+      (o.marks||[]).slice(0,400).forEach(q=>{ const d=document.createElement('div'); d.className='wd-al-d'; d.style.left=(q[0]*100)+'%'; d.style.top=(q[1]*100)+'%'; st('a').appendChild(d); });
+      const f=mapNow(); if(f) (o.marks||[]).slice(0,400).forEach(q=>{ const r=f(q[0],q[1]); const d=document.createElement('div'); d.className='wd-al-d pv'; d.style.left=(r[0]*100)+'%'; d.style.top=(r[1]*100)+'%'; st('b').appendChild(d); });
+      const okB=w.querySelector('[data-ok]'); okB.disabled=!f; const msg=w.querySelector('.wd-al-msg');
+      msg.innerHTML = f ? '✓ จับคู่ครบ — ย่อ/ขยาย ×'+f.scale.toFixed(3)+(Math.abs(f.rot)>0.3?' · หมุน '+f.rot.toFixed(1)+'°':'')+' · ตรวจจุดเขียวบนแบบใหม่แล้วกด ✓ ยืนยัน'
+        : (side==='a' ? 'แบบเดิม: แตะจุดที่ <b>'+(pts.a.length+1)+'</b>' : 'แบบใหม่: แตะจุดที่ <b>'+(pts.b.length+1)+'</b> (ตำแหน่งเดียวกับจุดที่ '+(pts.b.length+1)+' บนแบบเดิม)')+(same?' · หรือกด ⭐ ใช้ตำแหน่งเดิม ถ้าเป็นแบบแผ่นเดียวกัน (สัดส่วนกระดาษเท่ากัน)':''); };
+    const fin=(v)=>{ if(done) return; done=true; Object.values(sh).forEach(x=>x.destroy()); w.remove(); res(v); };
+    ['a','b'].forEach(k=>{ let g=null; const s=st(k);
+      s.addEventListener('pointerdown', (ev)=>{ g={ x:ev.clientX, y:ev.clientY, id:ev.pointerId }; });
+      s.addEventListener('pointerup', (ev)=>{ if(!g||g.id!==ev.pointerId) return; const mv=Math.hypot(ev.clientX-g.x, ev.clientY-g.y); g=null; if(mv>8) return;
+        const r=s.getBoundingClientRect(); const p=[Math.max(0,Math.min(1,(ev.clientX-r.left)/r.width)), Math.max(0,Math.min(1,(ev.clientY-r.top)/r.height))];
+        const L=pts[k]; if(L.length<2) L.push(p); else { const i=Math.hypot(L[0][0]-p[0],L[0][1]-p[1])<Math.hypot(L[1][0]-p[0],L[1][1]-p[1])?0:1; L[i]=p; }
+        side = pts.a.length<2 ? 'a' : (pts.b.length<2 ? 'b' : k); if(k==='a' && pts.a.length===2 && pts.b.length<2) side='b'; draw(); });
+      s.addEventListener('pointercancel', ()=>{ g=null; }); });
+    w.addEventListener('click', (ev)=>{ const t=ev.target.closest('button'); if(!t) return;
+      if(t.dataset.x) fin(null);
+      else if(t.dataset.z){ const k=t.dataset.k; const v=vv(k); const cx=v.scrollLeft+v.clientWidth/2, cy=v.scrollTop+v.clientHeight/2, z0=zoom[k]; zoom[k]=Math.max(1,Math.min(10, z0*(t.dataset.z==='1'?1.6:1/1.6)));
+        st(k).style.width=(zoom[k]*100)+'%'; const f=zoom[k]/z0; v.scrollLeft=cx*f-v.clientWidth/2; v.scrollTop=cy*f-v.clientHeight/2; if(sh[k]) sh[k].update(); }
+      else if(t.dataset.r){ pts.a=[]; pts.b=[]; side='a'; draw(); }
+      else if(t.dataset.same) fin({ mode:'same', map:(u,v)=>[u,v] });
+      else if(t.dataset.skip) fin({ mode:'skip', map:null });
+      else if(t.dataset.ok){ const f=mapNow(); if(f) fin({ mode:'align', map:f, pa:pts.a.map(p=>p.slice()), pb:pts.b.map(p=>p.slice()) }); } });
+    draw(); });
+  // ย้ายรูปทรงมาร์กอัป (หน่วย %) ตาม map(u,v) (สัดส่วน 0–1)
+  W.mapPct = (map, x, y)=>{ const r=map(x/100, y/100); return [Math.round(r[0]*1000)/10, Math.round(r[1]*1000)/10]; };
 
   window.WDraw = W;
 })();
