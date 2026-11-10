@@ -122,13 +122,110 @@ function alertOf(c) {
 }
 // ---------- v1.369 อนุมัติเอกสารก่อนส่ง: QS (ตัวเลข) → PM (เนื้อหา) → ผู้บริหาร (อนุมัติส่ง) · ครบ = ฉบับจริงไม่มีลายน้ำ DRAFT ----------
 // c.appr = { h:<ลายนิ้วมือเนื้อหาตอนอนุมัติ>, qs:{ by, role, at, amt }, pm:{…}, dir:{…}, back:{ by, at, why } } · แก้เนื้อหา / ตัวเลข หลังอนุมัติ = ยกเลิกการอนุมัติทั้งหมดอัตโนมัติ
+// ---------- v1.370 แบบประกอบ (บังคับ): แนบแบบจากโครงการ / อัปโหลด PDF · JPG + ปักหมุด / ตีกรอบตำแหน่งงาน → พิมพ์เป็นเอกสารแนบ ก ----------
+// c.plan = { url, w, h, name, src:'proj'|'upload', key, pins:[{ x, y }], boxes:[{ x1, y1, x2, y2 }] }  (พิกัด % ของภาพแบบ)
+function planList(PL) { const AR = Array.isArray(PL.__areas) ? PL.__areas : []; const byId = Object.fromEntries(AR.map(a => [a.id, a]));
+  const path = (id) => { const o = []; let a = byId[id], g = 0; while (a && g++ < 10) { o.unshift(a.name); a = a.parent ? byId[a.parent] : null; } return o.join(' › '); };
+  return Object.keys(PL).filter(k => k.indexOf('__') !== 0 && PL[k] && PL[k].file).map(k => { const P = PL[k], base = k.split('#')[0];
+    const nm = base.indexOf('a:') === 0 ? path(base.slice(2)) : base === 'all' ? (String(PL.__allName || '').trim() || 'ทั้งโครงการ') : base;
+    return { key: k, file: P.file, w: P.w, h: P.h, name: (nm || P.name || 'แบบ') + (P.label ? ' · ' + P.label : (P.page ? ' · หน้า ' + P.page : '')) }; }).sort((a, b) => a.name.localeCompare(b.name, 'th')); }
+const planOv = (P, big) => ((P.boxes || []).map(b => `<div class="pe-box" style="left:${Math.min(b.x1, b.x2)}%;top:${Math.min(b.y1, b.y2)}%;width:${Math.abs(b.x2 - b.x1)}%;height:${Math.abs(b.y2 - b.y1)}%"></div>`).join('') +
+  (P.pins || []).map((q, i) => `<div class="pe-pin${big ? '' : ' sm'}" style="left:${q.x}%;top:${q.y}%">${i + 1}</div>`).join(''));
+let pdfP = null;
+function pdfLib() { if (!pdfP) pdfP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'vendor/pdf.min.js'; sc.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js'; res(window.pdfjsLib); }; sc.onerror = rej; document.head.appendChild(sc); }); return pdfP; }
+async function pdfPage(pdf, n, maxSide) { const pg = await pdf.getPage(n); const v0 = pg.getViewport({ scale: 1 }); const vp = pg.getViewport({ scale: Math.min(4, maxSide / Math.max(v0.width, v0.height)) });
+  const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height); const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); await pg.render({ canvasContext: cx, viewport: vp }).promise; return cv; }
+// เลือกหน้า PDF: ภาพย่อทุกหน้า แตะเลือก
+function pickPdfPage(pdf, name) { return new Promise(res => { const w = document.createElement('div'); w.className = 'pdfpk';
+  w.innerHTML = '<div class="pdfpk-box"><div class="pdfpk-h"><div><b>เลือกหน้าแบบ</b><span>' + esc(name || 'PDF') + ' · ' + pdf.numPages + ' หน้า · แตะหน้าที่ต้องการ</span></div><button data-x="1">×</button></div><div class="pdfpk-g"></div></div>';
+  document.body.appendChild(w); const g = w.querySelector('.pdfpk-g'); let done = false; const fin = (v) => { if (done) return; done = true; w.remove(); res(v); };
+  w.addEventListener('click', (e) => { const b = e.target.closest('[data-p]'); if (b) { fin(+b.dataset.p); return; } if (e.target.closest('[data-x]') || e.target === w) fin(null); });
+  for (let i = 1; i <= pdf.numPages; i++) { const b = document.createElement('button'); b.className = 'pdfpk-i'; b.dataset.p = String(i); b.innerHTML = '<div class="pdfpk-t">…</div><span>หน้า ' + i + '</span>'; g.appendChild(b); }
+  (async () => { for (let i = 1; i <= pdf.numPages && !done; i++) { try { const cv = await pdfPage(pdf, i, 360); const t = g.querySelector('[data-p="' + i + '"] .pdfpk-t'); if (t) { t.innerHTML = ''; const im = new Image(); im.src = cv.toDataURL('image/jpeg', .72); t.appendChild(im); } } catch (e) {} } })(); }); }
+async function planFromCanvas(c, cv, nm, extra) { const blob = await new Promise(r2 => cv.toBlob(r2, 'image/jpeg', .86)); const key = 'claims/' + APP.pid + '/' + c.id + '/plan-' + Date.now() + '.jpg';
+  const up = await sb.storage.from(BUCKET).upload(key, blob, { contentType: 'image/jpeg', upsert: false }); if (up.error) throw up.error; const { data } = sb.storage.from(BUCKET).getPublicUrl(key);
+  if (!(APP.cur && APP.cur.id === c.id)) return false; APP.cur.plan = { url: data.publicUrl, w: cv.width, h: cv.height, name: nm, pins: [], boxes: [], ...(extra || {}) };
+  logPush(APP.cur, 'แนบแบบประกอบ: ' + nm); APP.busyPlan = false; renderSheet(); schedule(); openPlanEditor(); return true; }
+// แบบจาก Drawing Log (PDF ในโครงการ) → เลือกหน้า → แนบ
+async function useDwg(d) { const c = APP.cur; if (!c) return; APP.busyPlan = true; renderSheet();
+  try { const isImg = /\.(jpe?g|png|webp)$/i.test(d.fileName || '') || /\.(jpe?g|png|webp)(\?|$)/i.test(d.file);
+    const nm0 = [d.no, d.name || d.fileName].filter(Boolean).join(' · ') + (d.rev ? ' (' + d.rev + ')' : ''); let cv, pg = null;
+    if (isImg) { const im = await new Promise((r2, j2) => { const x = new Image(); x.crossOrigin = 'anonymous'; x.onload = () => r2(x); x.onerror = j2; x.src = d.file; }); const k = Math.min(1, 2400 / Math.max(im.width, im.height));
+      cv = document.createElement('canvas'); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k); const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(im, 0, 0, cv.width, cv.height); }
+    else { toast('กำลังเปิดแบบจาก Drawing Log…', 4000); const lib = await pdfLib(); const pdf = await lib.getDocument({ url: d.file }).promise; pg = 1;
+      if (pdf.numPages > 1) { pg = await pickPdfPage(pdf, nm0); if (!pg) { APP.busyPlan = false; renderSheet(); return; } } cv = await pdfPage(pdf, pg, 2400); }
+    if (await planFromCanvas(c, cv, nm0 + (pg && pg > 1 ? ' · หน้า ' + pg : ''), { src: 'dwg', dwg: { id: d.id, no: d.no || '', rev: d.rev || '' }, page: pg })) return;
+  } catch (e) { toast('เปิดแบบจาก Drawing Log ไม่สำเร็จ — ลองอัปโหลดไฟล์แทน'); }
+  APP.busyPlan = false; renderSheet(); }
+async function uploadPlan(file) { const c = APP.cur; if (!c) return; APP.busyPlan = true; renderSheet();
+  try { let cv, pg = null; const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name || '');
+    if (isPdf) { const lib = await pdfLib(); const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; pg = 1; if (pdf.numPages > 1) { pg = await pickPdfPage(pdf, file.name); if (!pg) { APP.busyPlan = false; renderSheet(); return; } } cv = await pdfPage(pdf, pg, 2400); }
+    else { const u = URL.createObjectURL(file); const im = await new Promise((r2, j2) => { const x = new Image(); x.onload = () => r2(x); x.onerror = j2; x.src = u; }); const k = Math.min(1, 2400 / Math.max(im.width, im.height));
+      cv = document.createElement('canvas'); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k); const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(im, 0, 0, cv.width, cv.height); URL.revokeObjectURL(u); }
+    const nm = String(file.name || 'แบบ').replace(/\.[a-z0-9]+$/i, '') + (pg && pg > 1 ? ' · หน้า ' + pg : '');
+    if (await planFromCanvas(c, cv, nm, { src: 'upload', page: pg })) return;
+  } catch (e) { toast('แนบแบบไม่สำเร็จ — ตรวจไฟล์ / สัญญาณเน็ต'); }
+  APP.busyPlan = false; renderSheet(); }
+const normZ = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9ก-๙]+/g, '');
+function pickProjPlan() { const c = APP.cur; const D = (APP.dwgs || []).slice(), PL = APP.plans || [], SV = APP.svPlans || [];
+  if (!D.length && !PL.length && !SV.length) { toast('โครงการนี้ยังไม่มีแบบใน Drawing Log — อัปโหลด PDF / JPG แทน'); return; }
+  const za = normZ(c && c.area), zt = normZ(c && c.title); const hit = (d) => { const z = normZ(d.zone); return !!z && ((za && (za.includes(z) || z.includes(za))) || (zt && zt.includes(z))); };
+  D.sort((x, y) => (hit(y) - hit(x)) || String(x.no || '').localeCompare(String(y.no || '')));
+  const w = document.createElement('div'); w.className = 'pdfpk';
+  w.innerHTML = '<div class="pdfpk-box"><div class="pdfpk-h"><div><b>เลือกแบบในโครงการ</b><span>' + esc(projName(APP.proj)) + ' · แบบที่มีอยู่แล้วในระบบ</span></div><button data-x="1">×</button></div><div class="pdfpk-sc">' +
+    (D.length ? '<div class="pk-sec">📚 Drawing Log · ' + D.length + ' ชุด' + (D.some(hit) ? ' · <span class="pk-hit">แนะนำ = โซนตรงกับพื้นที่ของเรื่องนี้</span>' : '') + '</div><div class="pk-dw">' +
+      D.map((d, i) => '<button class="pk-d' + (hit(d) ? ' hit' : '') + '" data-d="' + i + '"><i>' + (/\.(jpe?g|png|webp)$/i.test(d.fileName || '') ? '🖼' : 'PDF') + '</i><span><b>' + esc(d.no || '') + ' · ' + esc(d.name || d.fileName || 'แบบ') + '</b><small>' + [d.rev, d.zone, d.disc && d.disc !== '—' ? d.disc : ''].filter(Boolean).map(esc).join(' · ') + (hit(d) ? ' · ⭐ แนะนำ' : '') + '</small></span></button>').join('') + '</div>' : '') +
+    (SV.length ? '<div class="pk-sec">📐 แบบที่โหลดในแอป Survey · ' + SV.length + '</div><div class="pdfpk-g">' + SV.map((p, i) => '<button class="pdfpk-i" data-s="' + i + '"><div class="pdfpk-t"><img src="' + esc(p.url) + '" loading="lazy" alt=""></div><span>' + esc(p.name || 'แบบ') + '</span></button>').join('') + '</div>' : '') +
+    (PL.length ? '<div class="pk-sec">🗺 แบบใน Defect Check / Site Issues · ' + PL.length + '</div><div class="pdfpk-g">' + PL.map((p, i) => '<button class="pdfpk-i" data-i="' + i + '"><div class="pdfpk-t"><img src="' + esc(p.file) + '" loading="lazy" alt=""></div><span>' + esc(p.name) + '</span></button>').join('') + '</div>' : '') +
+    '</div></div>';
+  document.body.appendChild(w);
+  const setP = (pl, lg) => { const cc = APP.cur; if (!cc) return; cc.plan = { pins: [], boxes: [], ...pl }; logPush(cc, 'แนบแบบประกอบ: ' + lg); renderSheet(); schedule(); openPlanEditor(); };
+  w.addEventListener('click', (e) => { const bd = e.target.closest('[data-d]'), bs = e.target.closest('[data-s]'), bi = e.target.closest('[data-i]');
+    if (bd) { w.remove(); useDwg(D[+bd.dataset.d]); return; }
+    if (bs) { const p = SV[+bs.dataset.s]; w.remove(); setP({ url: p.url, w: p.w, h: p.h, name: p.name || 'แบบ (Survey)', src: 'survey' }, p.name || 'แบบ (Survey)'); return; }
+    if (bi) { const p = PL[+bi.dataset.i]; w.remove(); setP({ url: p.file, w: p.w, h: p.h, name: p.name, src: 'proj', key: p.key }, p.name); return; }
+    if (e.target.closest('[data-x]') || e.target === w) w.remove(); }); }
+// หน้าปักหมุด / ตีกรอบตำแหน่งงานบนแบบ
+function openPlanEditor() { const c = APP.cur; if (!c || !c.plan) return; const P = c.plan;
+  let pins = (P.pins || []).map(x => ({ ...x })), boxes = (P.boxes || []).map(x => ({ ...x })), mode = pins.length || boxes.length ? 'pin' : 'pin', zoom = 1; const hist = [];
+  const w = document.createElement('div'); w.id = 'plan-ed';
+  w.innerHTML = `<div class="pe-top"><button class="btn" data-pe="x">ยกเลิก</button><b>📐 ${esc(P.name || 'แบบ')}</b><span class="grow"></span><button class="btn pri" data-pe="ok">✓ บันทึก</button></div>
+    <div class="pe-bar"><button data-pe="m" data-m="pin" class="on">📍 ปักหมุดตำแหน่ง</button><button data-pe="m" data-m="box">▢ ตีกรอบพื้นที่</button><i class="sep"></i><button data-pe="undo">↶ ย้อน</button><button data-pe="clr">ล้าง</button><i class="sep"></i><button data-pe="z" data-z="-1">－</button><button data-pe="z" data-z="1">＋</button></div>
+    <div class="pe-wrap"><div class="pe-st"><img src="${esc(P.url)}" draggable="false" alt=""><div class="pe-ov"></div></div></div>
+    <div class="pe-hint">แตะบนแบบเพื่อปักหมุดตำแหน่งงาน (เลขเรียงให้อัตโนมัติ) · โหมดกรอบ: ลากนิ้วเพื่อตีกรอบพื้นที่ · ＋ / － ซูม แล้วเลื่อนดูแบบ</div>`;
+  document.body.appendChild(w); const st = w.querySelector('.pe-st'), ov = w.querySelector('.pe-ov'), wrap = w.querySelector('.pe-wrap');
+  const draw = (tmp) => { ov.innerHTML = planOv({ pins, boxes: tmp ? [...boxes, tmp] : boxes }, true); };
+  const setMode = (m) => { mode = m; w.querySelectorAll('[data-pe="m"]').forEach(b => b.classList.toggle('on', b.dataset.m === m)); st.style.touchAction = m === 'box' ? 'none' : 'pan-x pan-y'; };
+  const pc = (e) => { const r = st.getBoundingClientRect(); return [Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100)), Math.max(0, Math.min(100, (e.clientY - r.top) / r.height * 100))]; };
+  let g = null;
+  st.addEventListener('pointerdown', (e) => { const p = pc(e); g = { id: e.pointerId, sx: e.clientX, sy: e.clientY, p, moved: false }; if (mode === 'box') { try { st.setPointerCapture(e.pointerId); } catch (x) {} } });
+  st.addEventListener('pointermove', (e) => { if (!g || g.id !== e.pointerId) return; if (Math.hypot(e.clientX - g.sx, e.clientY - g.sy) > 6) g.moved = true; if (mode === 'box' && g.moved) { const q = pc(e); draw({ x1: g.p[0], y1: g.p[1], x2: q[0], y2: q[1] }); } });
+  st.addEventListener('pointerup', (e) => { if (!g || g.id !== e.pointerId) return; const q = pc(e), G = g; g = null;
+    if (mode === 'pin' && !G.moved) { hist.push(JSON.stringify([pins, boxes])); pins.push({ x: +q[0].toFixed(2), y: +q[1].toFixed(2) }); draw(); }
+    else if (mode === 'box' && G.moved && Math.abs(q[0] - G.p[0]) > 0.5 && Math.abs(q[1] - G.p[1]) > 0.5) { hist.push(JSON.stringify([pins, boxes])); boxes.push({ x1: +G.p[0].toFixed(2), y1: +G.p[1].toFixed(2), x2: +q[0].toFixed(2), y2: +q[1].toFixed(2) }); draw(); } else draw(); });
+  st.addEventListener('pointercancel', () => { g = null; draw(); });
+  w.addEventListener('click', (e) => { const b = e.target.closest('[data-pe]'); if (!b) return; const a = b.dataset.pe;
+    if (a === 'x') { w.remove(); return; }
+    if (a === 'ok') { const cc = APP.cur; if (cc && cc.plan) { cc.plan = { ...cc.plan, pins, boxes }; logPush(cc, 'ปักหมุดบนแบบ ' + pins.length + ' จุด · กรอบ ' + boxes.length); renderSheet(); schedule(); } w.remove(); if (!pins.length && !boxes.length) toast('ยังไม่ได้ระบุตำแหน่งบนแบบ — แนะนำปักหมุดอย่างน้อย 1 จุด', 3500); return; }
+    if (a === 'm') setMode(b.dataset.m);
+    if (a === 'undo' && hist.length) { [pins, boxes] = JSON.parse(hist.pop()); draw(); }
+    if (a === 'clr' && (pins.length || boxes.length) && confirm('ล้างหมุดและกรอบทั้งหมด?')) { hist.push(JSON.stringify([pins, boxes])); pins = []; boxes = []; draw(); }
+    if (a === 'z') { zoom = Math.max(1, Math.min(4, zoom * (b.dataset.z === '1' ? 1.5 : 1 / 1.5))); st.style.width = (zoom * 100) + '%'; } });
+  setMode(mode); draw(); }
+function planBox(c) { const P = c.plan;
+  if (APP.busyPlan) return '<div class="pl-req busy"><div class="spin"></div>กำลังแนบแบบ…</div>';
+  if (!P) return `<div class="pl-req"><b>📐 ยังไม่ได้แนบแบบ</b><small>ต้องแนบแบบแสดงตำแหน่งงานก่อนอนุมัติ / ส่งลูกค้า</small><div class="row2">
+    <button class="btn pri" data-act="planproj">🗂 เลือกแบบในโครงการ${((APP.dwgs || []).length + (APP.plans || []).length + (APP.svPlans || []).length) ? ' (' + ((APP.dwgs || []).length + (APP.plans || []).length + (APP.svPlans || []).length) + ')' : ''}</button><label class="btn">📂 อัปโหลด PDF / JPG<input type="file" accept="application/pdf,.pdf,image/*" data-planup="1" hidden></label></div></div>`;
+  return `<div class="pl-has"><button class="plt" data-act="planed" title="แตะเพื่อปักหมุด / แก้ตำแหน่ง"><img src="${esc(P.url)}" alt="" loading="lazy"><div class="pe-ov">${planOv(P, false)}</div></button>
+    <div class="pl-inf"><b>${esc(P.name || 'แบบ')}</b><small>${(P.pins || []).length} หมุด · ${(P.boxes || []).length} กรอบ${!(P.pins || []).length && !(P.boxes || []).length ? ' · <span style="color:var(--red)">ยังไม่ได้ระบุตำแหน่ง</span>' : ''}</small>
+    <div class="row2"><button class="btn" data-act="planed">📍 ปักหมุด / แก้ตำแหน่ง</button><button class="btn" data-act="planproj">🗂 เปลี่ยนแบบ</button><label class="btn">📂 อัปโหลดใหม่<input type="file" accept="application/pdf,.pdf,image/*" data-planup="1" hidden></label><button class="btn del" data-act="plandel">ลบ</button></div></div></div>`; }
 const AP_STEPS = [['qs', '🧮', 'QS · ตรวจตัวเลข', 'ราคาต่อหน่วย · จำนวน · ยอดรวม', ['qs', 'qs_mgr']], ['pm', '👷', 'PM · ตรวจเนื้อหา', 'ข้อเท็จจริง · รูป · ผู้รับผิดชอบ · ระยะเวลา', ['pm', 'pm_mgr']],
   ['dir', '✍️', 'ผู้บริหาร · อนุมัติส่ง', 'อนุมัติให้ส่งเอกสารฉบับจริงถึงลูกค้า', ['director']]];
-const apHash = (c) => { const t = JSON.stringify([c.kind || 'dmg', c.title, c.found, c.area, c.works, c.cause, c.party, c.desc, c.lines, c.ohp, !!c.ohpShow, c.vatOn !== false, c.eot, c.eotWhy, c.valid, c.payTerm, (c.photos || {}).before]);
+const apHash = (c) => { const t = JSON.stringify([c.kind || 'dmg', c.title, c.found, c.area, c.works, c.cause, c.party, c.desc, c.lines, c.ohp, !!c.ohpShow, c.vatOn !== false, c.eot, c.eotWhy, c.valid, c.payTerm, (c.photos || {}).before, c.plan ? [c.plan.url, c.plan.pins, c.plan.boxes] : null]);
   let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36) + t.length.toString(36); };
 const apOf = (c) => { const a = c.appr || {}; return a.h && a.h === apHash(c) ? a : {}; };
 const apN = (c) => { const a = apOf(c); return AP_STEPS.filter(x => a[x[0]]).length; };
-const apOk = (c) => apN(c) === AP_STEPS.length;
+const apOk = (c) => apN(c) === AP_STEPS.length && !!c.plan;
 const canAp = (k) => { const r = (APP.me && APP.me.role) || ''; if (r === 'superadmin') return true; const st = AP_STEPS.find(x => x[0] === k); return !!st && st[4].includes(r); };
 const apTurn = (c) => { if (c._new || apOk(c) || c.st === 'paid' || c.st === 'rejected') return ''; const a = apOf(c);
   for (const x of AP_STEPS) { if (a[x[0]]) continue; if (x[0] === 'dir' && !(a.qs && a.pm)) continue; if (canAp(x[0])) return x[0]; } return ''; };
@@ -178,7 +275,12 @@ async function openProject(pid) {
   await reload();
 }
 async function reload() {
-  const [m, r] = await Promise.all([stRead(KEY), stRead(RKEY)]);
+  const [m, r, dp] = await Promise.all([stRead(KEY), stRead(RKEY), stRead('defectPlans').catch(() => ({}))]);
+  APP.plans = planList((dp || {})[APP.pid] || {});
+  // แบบที่มีอยู่แล้วในโครงการ: Drawing Log (ตาราง drawings) + แบบที่โหลดในแอป Survey (survey_log)
+  try { const [dw, sv] = await Promise.all([sb.from('drawings').select('id,data').eq('project', APP.pid), sb.from('survey_log').select('id,data').eq('project', APP.pid)]);
+    APP.dwgs = ((dw && dw.data) || []).map(r => ({ id: r.id, ...(r.data || {}) })).filter(d => d.file && !d.deleted);
+    const seen = new Set(); APP.svPlans = ((sv && sv.data) || []).map(r => (((r.data || {}).sk || {}).bg)).filter(b => b && b.url && !seen.has(b.url) && seen.add(b.url)); } catch (e) { APP.dwgs = APP.dwgs || []; APP.svPlans = APP.svPlans || []; }
   APP.claims = Array.isArray(m[APP.pid]) ? m[APP.pid] : [];
   APP.claims.forEach(c => { APP.base[c.id] = c.at || ''; });
   APP.rates = { trades: (r.trades && r.trades.length) ? r.trades : DEF_TRADES.map(n => ({ n, rate: '' })), ohp: r.ohp != null ? r.ohp : 15, by: r.by || '', at: r.at || '' };
@@ -219,7 +321,7 @@ function card(c) {
   const k = calc(c), st = FLOW.indexOf(c.st);
   return `<button class="cc" data-act="open" data-id="${esc(c.id)}" style="border-left-color:${s[2]}">
     <div class="r1"><span class="no">${esc(docNo(c, c.no) || '—')}</span><span class="tt">${T3(c, '', '🚧 ', '💰 ')}${esc(c.title || '(ยังไม่ใส่หัวข้อ)')}</span><span class="pill" style="background:${s[3]};color:${s[2]}">${esc(s[1])}</span></div>
-    ${c.st !== 'paid' && c.st !== 'rejected' ? `<div class="apst ${apOk(c) ? 'ok' : apTurn(c) ? 'me' : ''}">${apOk(c) ? '✓ อนุมัติครบ · พร้อมส่ง' : '⏳ DRAFT · อนุมัติ ' + apN(c) + '/3' + (apTurn(c) ? ' · รอคุณอนุมัติ' : '')}</div>` : ''}
+    ${!c.plan && c.st !== 'paid' && c.st !== 'rejected' ? '<div class="apst no">📐 ยังไม่แนบแบบ</div> ' : ''}${c.st !== 'paid' && c.st !== 'rejected' ? `<div class="apst ${apOk(c) ? 'ok' : apTurn(c) ? 'me' : ''}">${apOk(c) ? '✓ อนุมัติครบ · พร้อมส่ง' : '⏳ DRAFT · อนุมัติ ' + apN(c) + '/3' + (apTurn(c) ? ' · รอคุณอนุมัติ' : '')}</div>` : ''}
     <div class="r2"><span>${cz[1]} ${esc(cz[2])}</span>${c.area ? `<span>· 📍 ${esc(c.area)}</span>` : ''}<span>· พบ ${dmy(c.found)}</span>${c.party ? `<span>· ${esc(c.party)}</span>` : ''}</div>
     <div class="money">${st < 2 && c.st !== 'rejected' ? `<span>ประเมิน <b>${baht(k.total)}</b></span>` : `<span>เคลม <b>${baht(claimAmt(c))}</b></span>`}
       ${apprAmt(c) ? `<span style="color:var(--green)">อนุมัติ <b>${baht(apprAmt(c))}</b></span>` : ''}${paidAmt(c) ? `<span style="color:#1F6B3A">รับแล้ว <b>${baht(paidAmt(c))}</b></span>` : ''}
@@ -297,8 +399,9 @@ function apBlock(c) {
   const row = ([key, ic, tt, ds]) => { const v = a[key], can = canAp(key), wait = key === 'dir' && !(a.qs && a.pm);
     return `<div class="ap-r ${v ? 'ok' : ''}"><i>${v ? '✓' : ic}</i><div class="ap-t"><b>${esc(tt)}</b><small>${v ? `${esc(v.by)} · ${when(v.at)}` : esc(ds)}</small></div>
       ${v ? (v.by === APP.me.name || APP.me.role === 'superadmin' ? `<button class="btn" data-act="unappr" data-k="${key}" style="font-size:12.5px">ยกเลิก</button>` : '')
-        : can ? `<button class="btn ok" data-act="appr" data-k="${key}" ${wait ? 'disabled title="รอ QS และ PM อนุมัติก่อน"' : ''}>${wait ? 'รอ QS + PM' : 'อนุมัติ'}</button>` : `<span class="ap-w">รอ${key === 'dir' ? 'ผู้บริหาร' : key.toUpperCase()}</span>`}</div>`; };
-  return `${ok ? `<div class="ap-ok">✓ อนุมัติครบ — พิมพ์ <b>ฉบับจริง</b> (ไม่มีลายน้ำ DRAFT) ส่งลูกค้าได้ · ยอด ${baht(k.total)}</div>` : `<div class="info">เอกสารมีลายน้ำ <b>DRAFT</b> จนกว่า QS → PM → ผู้บริหาร อนุมัติครบ · แก้ข้อมูล / ตัวเลขหลังอนุมัติ = ต้องอนุมัติใหม่</div>`}
+        : can ? `<button class="btn ok" data-act="appr" data-k="${key}" ${wait || !c.plan ? 'disabled title="' + (!c.plan ? 'ต้องแนบแบบประกอบก่อน' : 'รอ QS และ PM อนุมัติก่อน') + '"' : ''}>${wait ? 'รอ QS + PM' : 'อนุมัติ'}</button>` : `<span class="ap-w">รอ${key === 'dir' ? 'ผู้บริหาร' : key.toUpperCase()}</span>`}</div>`; };
+  const noPlan = !c.plan;
+  return `${noPlan ? `<div class="warnbox">📐 ต้องแนบแบบประกอบ (ข้อ 1) ก่อนจึงอนุมัติได้</div>` : ''}${ok ? `<div class="ap-ok">✓ อนุมัติครบ — พิมพ์ <b>ฉบับจริง</b> (ไม่มีลายน้ำ DRAFT) ส่งลูกค้าได้ · ยอด ${baht(k.total)}</div>` : `<div class="info">เอกสารมีลายน้ำ <b>DRAFT</b> จนกว่า QS → PM → ผู้บริหาร อนุมัติครบ · แก้ข้อมูล / ตัวเลขหลังอนุมัติ = ต้องอนุมัติใหม่</div>`}
     ${back && !apN(c) ? `<div class="warnbox">↩ ส่งกลับแก้ไข โดย ${esc(back.by)} · ${when(back.at)}${back.why ? ' — ' + esc(back.why) : ''}</div>` : ''}
     <div class="ap">${AP_STEPS.map(row).join('')}</div>
     ${!ok && AP_STEPS.some(x => canAp(x[0])) ? `<div class="act"><button class="btn del" data-act="apback" style="font-size:13px">↩ ส่งกลับแก้ไข</button></div>` : ''}`;
@@ -363,6 +466,7 @@ function renderSheet() {
         <div class="lbl">${T3(c, 'รายละเอียด', 'รายละเอียด', 'ขอบเขตงาน')}</div>${inp('desc', c.desc, { area: 1, ph: T3(c, 'เกิดอะไร เมื่อไร ขนาดความเสียหาย (กว้าง × ยาว) สิ่งที่ต้องซ่อม', 'แจ้งใครไปแล้ว เมื่อไร ได้คำตอบอย่างไร · งานที่ต้องทำแทน (ย้ายสายไฟ · ซ่อมฝ้า) · ผลกระทบต่องานของเรา', 'ขอบเขตงาน · สเปกวัสดุ / รุ่น · ขนาด / ปริมาณ · สิ่งที่ไม่รวมในราคา') })}
         ${pics('before', T3(c, '📷 รูปความเสียหาย (ก่อนซ่อม)', '📷 รูปสภาพหน้างาน (ปัจจุบัน)', '📷 รูปประกอบ / หน้างาน'))}${pics('after', T3(c, '📷 รูปหลังซ่อม', '📷 รูปหลังดำเนินการ', '📷 รูปหลังดำเนินการ'))}
         ${KD(c) === 'quo' ? `<div class="g2"><div><div class="lbl">ยืนราคา (วัน)</div>${inp('valid', c.valid == null ? 30 : c.valid, { num: 1, ph: '30' })}</div><div><div class="lbl">เงื่อนไขชำระเงิน <span class="hint">ถ้ามี</span></div>${inp('payTerm', c.payTerm, { ph: 'เช่น ตามงวดงานในสัญญาหลัก' })}</div></div>` : ''}
+        <div class="lbl">📐 แบบประกอบ * <span class="hint">บังคับ · แนบเป็นเอกสารแนบ ก ของหนังสือ</span></div>${planBox(c)}
         ${KD(c) !== 'dmg' ? '<div class="info">หนังสือจะระบุว่า บริษัทฯ เริ่มดำเนินการเมื่อได้รับอนุมัติเป็นลายลักษณ์อักษร (VO) เท่านั้น · No Signed VO = No Additional Work</div>' : ''}
       </div>
       <div class="blk"><h3><span class="n">2</span>${T3(c, 'ค่าซ่อม + วันทำงาน', 'ราคาเสนอดำเนินการแทน + วันทำงาน', 'รายการราคา + ระยะเวลาดำเนินการ')} <small>ตัวคำนวณ</small></h3>
@@ -517,7 +621,7 @@ async function printClaim(lang) {
   const nf = F(c, 'notified');
   let TRM = {};
   if (EN || BOTH) { toast('กำลังแปลข้อความเป็นภาษาอังกฤษ…', 6000);
-    TRM = await trThai([p.client, p.owner, projName(p), c.title, c.area, c.party, c.desc, c.eotWhy, c.payTerm, nf.to, c.by, ...AP_STEPS.map(x => (apOf(c)[x[0]] || {}).by), ...(c.lines || []).map(l => l.n)], APP.acc && APP.acc.id); }
+    TRM = await trThai([p.client, p.owner, projName(p), c.title, c.area, (c.plan || {}).name, c.party, c.desc, c.eotWhy, c.payTerm, nf.to, c.by, ...AP_STEPS.map(x => (apOf(c)[x[0]] || {}).by), ...(c.lines || []).map(l => l.n)], APP.acc && APP.acc.id); }
   const U = (v) => { const x = String(v == null ? '' : v); const t = TRM[x.trim()]; if (EN) return esc(t || x); if (BOTH && t) return esc(x) + '<br><span class="en">' + esc(t) + '</span>'; return esc(x); };
   const Ui = (v) => { const x = String(v == null ? '' : v); const t = TRM[x.trim()]; if (EN) return esc(t || x); if (BOTH && t) return esc(x) + ' (' + esc(t) + ')'; return esc(x); };
   const nfTxF = () => nf.date ? (EN ? `${dmy(nf.date)} by ${esc(EN_CH[nf.ch] || nf.ch || '')}${nf.to ? ' to ' + Ui(nf.to) : ''}`
@@ -530,7 +634,9 @@ async function printClaim(lang) {
     table{width:100%;border-collapse:collapse;margin-top:4px}th,td{border:1px solid #bbb;padding:4px 6px;vertical-align:top}th{background:#F3EDDF;text-align:left}.r{text-align:right;white-space:nowrap}
     .kv td:first-child{width:28%;background:#FAF6EE;font-weight:600}.ph{display:flex;flex-wrap:wrap;gap:4px}.ph img{width:23.5%;height:110px;object-fit:cover;border:1px solid #ccc}
     .sg{display:flex;gap:24px;margin-top:28px}.sg div{flex:1;text-align:center}.sg .ln{border-bottom:1px solid #333;height:34px;margin-bottom:4px}
-    .apv{display:inline-block;font-weight:700;color:#1F6B3A;margin-top:-26px}.apf{margin-top:16px;font-size:9.5px;color:#6E695E;border-top:1px dashed #ccc;padding-top:4px}.note{font-size:10.5px;color:#8E2F1F;border:1px solid #E8A898;background:#FDECEC;padding:5px 8px;margin-top:10px}</style></head><body>
+    .att{page-break-before:always;break-before:page}.att .hd{display:flex;justify-content:space-between;gap:12px;border-bottom:2px solid #1C1B18;padding-bottom:6px;margin-bottom:8px}.pl{position:relative;margin:0 auto;border:1px solid #bbb}.pl img{position:absolute;inset:0;width:100%;height:100%}
+    .pe-box{position:absolute;border:2.5px solid #E03131;background:rgba(224,49,49,.08);border-radius:3px}.pe-pin{position:absolute;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;background:#E03131;color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+    .lg{margin-top:6px;font-size:10.5px;color:#444}.apv{display:inline-block;font-weight:700;color:#1F6B3A;margin-top:-26px}.apf{margin-top:16px;font-size:9.5px;color:#6E695E;border-top:1px dashed #ccc;padding-top:4px}.note{font-size:10.5px;color:#8E2F1F;border:1px solid #E8A898;background:#FDECEC;padding:5px 8px;margin-top:10px}</style></head><body>
     ${APOK ? '' : '<div class="wm">DRAFT</div>'}
     <div class="hd"><div><b>${EN ? 'Wellcon Interior Co., Ltd.' : 'บริษัท เวลล์คอน อินทีเรีย จำกัด · Wellcon Interior Co., Ltd.'}</b><br>${EN ? 'Centroport 36/38 Moo 13, Bueng Kham Phroi, Lam Luk Ka, Pathum Thani 12150, Thailand' : 'เซ็นโทรพอร์ต 36/38 ม.13 ต.บึงคำพร้อย อ.ลำลูกกา จ.ปทุมธานี 12150'}<br>${L('เลขประจำตัวผู้เสียภาษี', 'Tax ID')} 0105560007187 · www.wellcon.co.th</div><div style="text-align:right">${L('เลขที่', 'No.')} <b>${esc(s.ref || docNo(c, c.no))}</b><br>${L('วันที่', 'Date')} ${dmy(s.date || isoToday())}</div></div>
     ${QUO ? (EN ? `<h1>Quotation for Additional Works</h1>` : `<h1>ใบเสนอราคางานเพิ่มเติม</h1><h2>Quotation for Additional Works</h2>`) : OBS ? (EN ? `<h1>Notice of Work Obstruction &amp; Proposed Cost to Carry Out Works by Others${days ? ' and Extension of Time' : ''}</h1>` : `<h1>หนังสือแจ้งอุปสรรคการทำงานและเสนอราคาดำเนินการแทน</h1><h2>Notice of Work Obstruction &amp; Proposed Cost to Carry Out Works by Others${days ? ' and Extension of Time' : ''}</h2>`)
@@ -557,6 +663,9 @@ async function printClaim(lang) {
       'We wish to inform you that the works described above, which are the responsibility of ' + (c.party ? Ui(c.party) : 'others') + ', have not been carried out despite our notification. This has prevented us from proceeding with our ' + esc(worksTx === '—' ? 'works' : worksTx.toLowerCase() + ' works') + ' as programmed. To avoid further delay, we propose to carry out these works on their behalf at the cost stated above' + (days ? ', with an extension of time of ' + days + ' days' : '') + '. The works will commence only upon receipt of your written approval (Variation Order). We reserve our right to an extension of time for any delay arising from this matter. We would be grateful for your kind consideration and approval.') : P('บริษัทฯ ขอเรียนแจ้งความเสียหายต่องานของบริษัทฯ ซึ่งเกิดจากสาเหตุที่อยู่นอกขอบเขตความรับผิดชอบของบริษัทฯ ตามรายละเอียดข้างต้น และขอเรียกร้องค่าใช้จ่ายในการซ่อมแซม' + (days ? ' และการขยายระยะเวลา' : '') + ' จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ',
       'We hereby notify you of the damage to our works, caused by matters outside our scope of responsibility as detailed above, and claim the cost of repair' + (days ? ' together with the additional working time' : '') + '. We would be grateful for your kind consideration and approval.')}</div>
     <div class="sg"><div><div class="ln"></div>${L('ผู้จัดทำ', 'Prepared by')}<br>${Ui(c.by || '')}</div><div><div class="ln"></div>${APOK ? `<span class="apv">${Ui(AP.dir.by)} · ${dmy(String(AP.dir.at).slice(0, 10))}</span><br>` : ''}${L('ผู้อนุมัติ', 'Approved by')} · Wellcon Interior</div><div><div class="ln"></div>${OBS || QUO ? L('ผู้อนุมัติ · ผู้ว่าจ้าง', 'Approved by · Employer') : L('ผู้รับทราบ · ผู้ว่าจ้าง', 'Acknowledged by · Employer')}</div></div>
+    ${c.plan ? (() => { const PL = c.plan, ar = (PL.h || 1) / (PL.w || 1), wmm = Math.min(182, 215 / ar); return `<div class="att"><div class="hd"><div><b>${L('เอกสารแนบ ก · แบบแสดงตำแหน่ง', 'Attachment A · Location plan')}</b><br>${U(PL.name || '')}</div><div style="text-align:right">${L('อ้างอิง', 'Ref.')} <b>${esc(s.ref || docNo(c, c.no))}</b><br>${U(c.title || '')}</div></div>
+      <div class="pl" style="width:${wmm.toFixed(1)}mm;height:${(wmm * ar).toFixed(1)}mm"><img src="${esc(PL.url)}" alt="">${planOv(PL, true)}</div>
+      <div class="lg">${(PL.pins || []).length ? L('หมายเลข', 'Markers') + ' 1–' + PL.pins.length + ' = ' + L('ตำแหน่งงานตามหนังสือฉบับนี้', 'locations referred to in this letter') : ''}${(PL.boxes || []).length ? ((PL.pins || []).length ? ' · ' : '') + L('กรอบสีแดง = พื้นที่ดำเนินการ', 'Red box = work area') : ''}${c.area ? ' · ' + L('ตำแหน่ง', 'Location') + ': ' + U(c.area) : ''}</div></div>`; })() : ''}
     ${APOK ? `<div class="apf">${L('อนุมัติเอกสารแล้ว', 'Document approved')}: QS ${Ui(AP.qs.by)} (${dmy(String(AP.qs.at).slice(0, 10))}) · PM ${Ui(AP.pm.by)} (${dmy(String(AP.pm.at).slice(0, 10))}) · ${L('ผู้บริหาร', 'Management')} ${Ui(AP.dir.by)} (${dmy(String(AP.dir.at).slice(0, 10))})</div>` : ''}
     </body></html>`;
   const old = document.getElementById('cl-print'); if (old) old.remove();
@@ -585,7 +694,11 @@ document.addEventListener('click', async (e) => {
   else if (a === 'picdel' && c) { if (!confirm('ลบรูปนี้?')) return; c.photos[b.dataset.k].splice(+b.dataset.i, 1); logPush(c, 'ลบรูป 1 รูป'); renderSheet(); schedule(); }
   else if (a === 'lb') { const d = document.createElement('div'); d.className = 'lb'; d.innerHTML = `<img src="${esc(b.dataset.u)}">`; d.onclick = () => d.remove(); document.body.appendChild(d); }
   else if (a === 'go' && c) go(b.dataset.to);
+  else if (a === 'planproj' && c) pickProjPlan();
+  else if (a === 'planed' && c) openPlanEditor();
+  else if (a === 'plandel' && c) { if (confirm('ลบแบบประกอบออกจากเรื่องนี้?')) { c.plan = null; logPush(c, 'ลบแบบประกอบ'); renderSheet(); schedule(); } }
   else if (a === 'appr' && c) { const k = b.dataset.k; if (!canAp(k)) { toast('บัญชีนี้ไม่มีสิทธิ์อนุมัติขั้นนี้'); return; } const ap = apOf(c), t = calc(c).total;
+    if (!c.plan) { toast('ต้องแนบแบบประกอบก่อนอนุมัติ'); return; }
     if (k === 'dir' && !(ap.qs && ap.pm)) { toast('รอ QS และ PM อนุมัติก่อน'); return; }
     const msg = k === 'qs' ? 'ยืนยัน: ตรวจราคาต่อหน่วย จำนวน และยอดรวม ' + baht(t) + ' แล้ว' : k === 'pm' ? 'ยืนยัน: ตรวจเนื้อหา ข้อเท็จจริง รูป ผู้รับผิดชอบ และระยะเวลาแล้ว' : 'อนุมัติให้ส่งเอกสารฉบับจริงถึงลูกค้า ยอด ' + baht(t) + ' ?';
     if (!confirm(msg)) return; const h = apHash(c); const cur = (c.appr && c.appr.h === h) ? c.appr : { back: (c.appr || {}).back || null };
@@ -620,6 +733,7 @@ document.addEventListener('input', (e) => {
 });
 document.addEventListener('change', (e) => {
   const t = e.target, c = APP.cur;
+  if (t.dataset.planup && c) { const f = (t.files || [])[0]; t.value = ''; if (f) uploadPlan(f); return; }
   if (t.dataset.pic && c) { const files = [...(t.files || [])]; t.value = ''; if (files.length) addPics(t.dataset.pic, files); return; }
   if (t.dataset.s != null && t.tagName === 'SELECT') { APP.stg = APP.stg || {}; APP.stg[t.dataset.s] = t.value; return; }
   if (!c || t.dataset.f == null) return;
