@@ -146,17 +146,6 @@ async function planFromCanvas(c, cv, nm, extra) { const blob = await new Promise
   const up = await sb.storage.from(BUCKET).upload(key, blob, { contentType: 'image/jpeg', upsert: false }); if (up.error) throw up.error; const { data } = sb.storage.from(BUCKET).getPublicUrl(key);
   if (!(APP.cur && APP.cur.id === c.id)) return false; APP.cur.plan = { url: data.publicUrl, w: cv.width, h: cv.height, name: nm, pins: [], boxes: [], ...(extra || {}) };
   logPush(APP.cur, 'แนบแบบประกอบ: ' + nm); APP.busyPlan = false; renderSheet(); schedule(); openPlanEditor(); return true; }
-// แบบจาก Drawing Log (PDF ในโครงการ) → เลือกหน้า → แนบ
-async function useDwg(d) { const c = APP.cur; if (!c) return; APP.busyPlan = true; renderSheet();
-  try { const isImg = /\.(jpe?g|png|webp)$/i.test(d.fileName || '') || /\.(jpe?g|png|webp)(\?|$)/i.test(d.file);
-    const nm0 = [d.no, d.name || d.fileName].filter(Boolean).join(' · ') + (d.rev ? ' (' + d.rev + ')' : ''); let cv, pg = null;
-    if (isImg) { const im = await new Promise((r2, j2) => { const x = new Image(); x.crossOrigin = 'anonymous'; x.onload = () => r2(x); x.onerror = j2; x.src = d.file; }); const k = Math.min(1, 2400 / Math.max(im.width, im.height));
-      cv = document.createElement('canvas'); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k); const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(im, 0, 0, cv.width, cv.height); }
-    else { toast('กำลังเปิดแบบจาก Drawing Log…', 4000); const lib = await pdfLib(); const pdf = await lib.getDocument({ url: d.file }).promise; pg = 1;
-      if (pdf.numPages > 1) { pg = await pickPdfPage(pdf, nm0); if (!pg) { APP.busyPlan = false; renderSheet(); return; } } cv = await pdfPage(pdf, pg, 2400); }
-    if (await planFromCanvas(c, cv, nm0 + (pg && pg > 1 ? ' · หน้า ' + pg : ''), { src: 'dwg', dwg: { id: d.id, no: d.no || '', rev: d.rev || '' }, page: pg })) return;
-  } catch (e) { toast('เปิดแบบจาก Drawing Log ไม่สำเร็จ — ลองอัปโหลดไฟล์แทน'); }
-  APP.busyPlan = false; renderSheet(); }
 async function uploadPlan(file) { const c = APP.cur; if (!c) return; APP.busyPlan = true; renderSheet();
   try { let cv, pg = null; const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name || '');
     if (isPdf) { const lib = await pdfLib(); const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; pg = 1; if (pdf.numPages > 1) { pg = await pickPdfPage(pdf, file.name); if (!pg) { APP.busyPlan = false; renderSheet(); return; } } cv = await pdfPage(pdf, pg, 2400); }
@@ -167,24 +156,47 @@ async function uploadPlan(file) { const c = APP.cur; if (!c) return; APP.busyPla
   } catch (e) { toast('แนบแบบไม่สำเร็จ — ตรวจไฟล์ / สัญญาณเน็ต'); }
   APP.busyPlan = false; renderSheet(); }
 const normZ = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9ก-๙]+/g, '');
+const isImgF = (n) => /\.(jpe?g|png|webp|gif)(\?|$)/i.test(String(n || '')) || /\/pic-/i.test(String(n || ''));
+// ไฟล์ทั้งหมดของแบบ 1 รายการใน Drawing Log: PDF ล่าสุด · รูป JPG · ไฟล์ revision เก่า
+function dwgFiles(d) { const L = [], seen = new Set(); const add = (url, name, lab) => { if (!url || seen.has(url)) return; seen.add(url); L.push({ url, name: name || '', lab, kind: isImgF(name || url) ? 'img' : 'pdf' }); };
+  add(d.file, d.fileName, d.rev || 'ล่าสุด'); add(d.pic, 'pic.jpg', 'รูปแนบ');
+  (Array.isArray(d.revHist) ? d.revHist : []).slice().reverse().forEach(h => add(h.file, h.fileName, (h.rev || 'Rev เก่า') + ' (เก่า)')); return L; }
+// เลือกแบบในโครงการ: Drawing Log (PDF → เลือกหน้าจากภาพย่อ · JPG → ใช้ทันที) · แบบจาก Survey · แบบใน Defect Check
 function pickProjPlan() { const c = APP.cur; const D = (APP.dwgs || []).slice(), PL = APP.plans || [], SV = APP.svPlans || [];
   if (!D.length && !PL.length && !SV.length) { toast('โครงการนี้ยังไม่มีแบบใน Drawing Log — อัปโหลด PDF / JPG แทน'); return; }
   const za = normZ(c && c.area), zt = normZ(c && c.title); const hit = (d) => { const z = normZ(d.zone); return !!z && ((za && (za.includes(z) || z.includes(za))) || (zt && zt.includes(z))); };
   D.sort((x, y) => (hit(y) - hit(x)) || String(x.no || '').localeCompare(String(y.no || '')));
-  const w = document.createElement('div'); w.className = 'pdfpk';
-  w.innerHTML = '<div class="pdfpk-box"><div class="pdfpk-h"><div><b>เลือกแบบในโครงการ</b><span>' + esc(projName(APP.proj)) + ' · แบบที่มีอยู่แล้วในระบบ</span></div><button data-x="1">×</button></div><div class="pdfpk-sc">' +
-    (D.length ? '<div class="pk-sec">📚 Drawing Log · ' + D.length + ' ชุด' + (D.some(hit) ? ' · <span class="pk-hit">แนะนำ = โซนตรงกับพื้นที่ของเรื่องนี้</span>' : '') + '</div><div class="pk-dw">' +
-      D.map((d, i) => '<button class="pk-d' + (hit(d) ? ' hit' : '') + '" data-d="' + i + '"><i>' + (/\.(jpe?g|png|webp)$/i.test(d.fileName || '') ? '🖼' : 'PDF') + '</i><span><b>' + esc(d.no || '') + ' · ' + esc(d.name || d.fileName || 'แบบ') + '</b><small>' + [d.rev, d.zone, d.disc && d.disc !== '—' ? d.disc : ''].filter(Boolean).map(esc).join(' · ') + (hit(d) ? ' · ⭐ แนะนำ' : '') + '</small></span></button>').join('') + '</div>' : '') +
-    (SV.length ? '<div class="pk-sec">📐 แบบที่โหลดในแอป Survey · ' + SV.length + '</div><div class="pdfpk-g">' + SV.map((p, i) => '<button class="pdfpk-i" data-s="' + i + '"><div class="pdfpk-t"><img src="' + esc(p.url) + '" loading="lazy" alt=""></div><span>' + esc(p.name || 'แบบ') + '</span></button>').join('') + '</div>' : '') +
-    (PL.length ? '<div class="pk-sec">🗺 แบบใน Defect Check / Site Issues · ' + PL.length + '</div><div class="pdfpk-g">' + PL.map((p, i) => '<button class="pdfpk-i" data-i="' + i + '"><div class="pdfpk-t"><img src="' + esc(p.file) + '" loading="lazy" alt=""></div><span>' + esc(p.name) + '</span></button>').join('') + '</div>' : '') +
-    '</div></div>';
-  document.body.appendChild(w);
+  const w = document.createElement('div'); w.className = 'pdfpk'; document.body.appendChild(w); let gen = 0, pdfView = null;
+  const close = () => { gen++; w.remove(); };
   const setP = (pl, lg) => { const cc = APP.cur; if (!cc) return; cc.plan = { pins: [], boxes: [], ...pl }; logPush(cc, 'แนบแบบประกอบ: ' + lg); renderSheet(); schedule(); openPlanEditor(); };
-  w.addEventListener('click', (e) => { const bd = e.target.closest('[data-d]'), bs = e.target.closest('[data-s]'), bi = e.target.closest('[data-i]');
-    if (bd) { w.remove(); useDwg(D[+bd.dataset.d]); return; }
-    if (bs) { const p = SV[+bs.dataset.s]; w.remove(); setP({ url: p.url, w: p.w, h: p.h, name: p.name || 'แบบ (Survey)', src: 'survey' }, p.name || 'แบบ (Survey)'); return; }
-    if (bi) { const p = PL[+bi.dataset.i]; w.remove(); setP({ url: p.file, w: p.w, h: p.h, name: p.name, src: 'proj', key: p.key }, p.name); return; }
-    if (e.target.closest('[data-x]') || e.target === w) w.remove(); }); }
+  const useImg = (url, name, extra) => { const im = new Image(); im.onload = () => { close(); setP({ url, w: im.naturalWidth, h: im.naturalHeight, name, ...(extra || {}) }, name); }; im.onerror = () => toast('เปิดรูปไม่ได้'); im.src = url; };
+  const listHtml = () => '<div class="pdfpk-box"><div class="pdfpk-h"><div><b>เลือกแบบในโครงการ</b><span>' + esc(projName(APP.proj)) + ' · แตะ PDF เพื่อเลือกหน้า · แตะ JPG เพื่อใช้รูป</span></div><button data-x="1">×</button></div><div class="pdfpk-sc">' +
+    (D.length ? '<div class="pk-sec">📚 Drawing Log · ' + D.length + ' ชุด' + (D.some(hit) ? ' · <span class="pk-hit">⭐ = โซนตรงกับพื้นที่ของเรื่องนี้</span>' : '') + '</div><div class="pk-dw">' +
+      D.map((d, i) => { const F = dwgFiles(d); return '<div class="pk-d' + (hit(d) ? ' hit' : '') + '">' + (d.pic ? '<img class="pk-th" src="' + esc(d.pic) + '" loading="lazy" alt="">' : '<i>PDF</i>') +
+        '<span class="pk-tx"><b>' + (hit(d) ? '⭐ ' : '') + esc(d.no || '') + ' · ' + esc(d.name || d.fileName || 'แบบ') + '</b><small>' + [d.rev, d.zone, d.disc && d.disc !== '—' ? d.disc : ''].filter(Boolean).map(esc).join(' · ') + '</small>' +
+        '<span class="pk-fs">' + F.map((f, j) => '<button class="pk-f ' + f.kind + '" data-d="' + i + '" data-f="' + j + '">' + (f.kind === 'pdf' ? '📄 PDF · ' : '🖼 JPG · ') + esc(f.lab) + (f.kind === 'pdf' ? ' · เลือกหน้า ›' : '') + '</button>').join('') + '</span></span></div>'; }).join('') + '</div>' : '') +
+    (SV.length ? '<div class="pk-sec">📐 แบบที่โหลดในแอป Survey · ' + SV.length + '</div><div class="pdfpk-g">' + SV.map((p, i) => '<button class="pdfpk-i" data-s="' + i + '"><div class="pdfpk-t"><img src="' + esc(p.url) + '" loading="lazy" alt=""></div><span>' + esc(p.name || 'แบบ') + '</span></button>').join('') + '</div>' : '') +
+    (PL.length ? '<div class="pk-sec">🗺 แบบใน Defect Check / Site Issues · ' + PL.length + '</div><div class="pdfpk-g">' + PL.map((p, i) => '<button class="pdfpk-i" data-i="' + i + '"><div class="pdfpk-t"><img src="' + esc(p.file) + '" loading="lazy" alt=""></div><span>' + esc(p.name) + '</span></button>').join('') + '</div>' : '') + '</div></div>';
+  const showList = () => { gen++; pdfView = null; w.innerHTML = listHtml(); };
+  const showPdf = async (d, f) => { const my = ++gen; const nm0 = [d.no, d.name || d.fileName].filter(Boolean).join(' · ') + (f.lab ? ' (' + f.lab + ')' : '');
+    w.innerHTML = '<div class="pdfpk-box"><div class="pdfpk-h"><button class="pk-back" data-back="1">‹ กลับ</button><div><b>เลือกหน้า</b><span>' + esc(nm0) + '</span></div><button data-x="1">×</button></div><div class="pdfpk-g" id="pk-pages"><div class="pk-load">กำลังเปิด PDF…</div></div></div>';
+    try { const lib = await pdfLib(); const pdf = await lib.getDocument({ url: f.url }).promise; if (my !== gen) return; pdfView = { d, f, pdf, nm0 };
+      const g = w.querySelector('#pk-pages'); g.innerHTML = ''; w.querySelector('.pdfpk-h span').textContent = nm0 + ' · ' + pdf.numPages + ' หน้า · แตะหน้าที่ต้องการ';
+      for (let i = 1; i <= pdf.numPages; i++) { const b = document.createElement('button'); b.className = 'pdfpk-i'; b.dataset.p = String(i); b.innerHTML = '<div class="pdfpk-t">…</div><span>หน้า ' + i + '</span>'; g.appendChild(b); }
+      for (let i = 1; i <= pdf.numPages; i++) { if (my !== gen) return; try { const cv = await pdfPage(pdf, i, 360); const t = g.querySelector('[data-p="' + i + '"] .pdfpk-t'); if (t) { t.innerHTML = ''; const im = new Image(); im.src = cv.toDataURL('image/jpeg', .72); t.appendChild(im); } } catch (e) {} }
+    } catch (e) { if (my === gen) { const g = w.querySelector('#pk-pages'); if (g) g.innerHTML = '<div class="pk-load">เปิด PDF ไม่สำเร็จ — ลองไฟล์ JPG หรืออัปโหลดไฟล์แทน</div>'; } } };
+  const usePage = async (n) => { const V = pdfView; if (!V) return; close(); const cc = APP.cur; if (!cc) return; APP.busyPlan = true; renderSheet();
+    try { const cv = await pdfPage(V.pdf, n, 2400); if (await planFromCanvas(cc, cv, V.nm0 + (V.pdf.numPages > 1 ? ' · หน้า ' + n : ''), { src: 'dwg', dwg: { id: V.d.id, no: V.d.no || '', rev: V.d.rev || '' }, page: n })) return; } catch (e) { toast('แนบแบบไม่สำเร็จ — ตรวจสัญญาณเน็ต'); }
+    APP.busyPlan = false; renderSheet(); };
+  w.addEventListener('click', (e) => { const t = e.target;
+    if (t.closest('[data-x]') || t === w) { close(); return; }
+    if (t.closest('[data-back]')) { showList(); return; }
+    const bp = t.closest('[data-p]'); if (bp && pdfView) { usePage(+bp.dataset.p); return; }
+    const bf = t.closest('[data-f]'); if (bf) { const d = D[+bf.dataset.d], f = dwgFiles(d)[+bf.dataset.f]; if (!f) return;
+      if (f.kind === 'pdf') showPdf(d, f); else useImg(f.url, [d.no, d.name || d.fileName].filter(Boolean).join(' · ') + ' (' + f.lab + ')', { src: 'dwg', dwg: { id: d.id, no: d.no || '', rev: d.rev || '' } }); return; }
+    const bs = t.closest('[data-s]'); if (bs) { const p = SV[+bs.dataset.s]; close(); setP({ url: p.url, w: p.w, h: p.h, name: p.name || 'แบบ (Survey)', src: 'survey' }, p.name || 'แบบ (Survey)'); return; }
+    const bi = t.closest('[data-i]'); if (bi) { const p = PL[+bi.dataset.i]; close(); setP({ url: p.file, w: p.w, h: p.h, name: p.name, src: 'proj', key: p.key }, p.name); return; } });
+  showList(); }
 // หน้าปักหมุด / ตีกรอบตำแหน่งงานบนแบบ
 function openPlanEditor() { const c = APP.cur; if (!c || !c.plan) return; const P = c.plan;
   let pins = (P.pins || []).map(x => ({ ...x })), boxes = (P.boxes || []).map(x => ({ ...x })), mode = pins.length || boxes.length ? 'pin' : 'pin', zoom = 1; const hist = [];
