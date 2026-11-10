@@ -120,15 +120,21 @@ function alertOf(c) {
   if (c.st === 'invoiced') { const d = daysSince(F(c, 'invoiced').date); return d != null && d > 30 ? '⚠ ค้างรับ ' + d + ' วันหลังวางบิล' : ''; }
   return '';
 }
-// ---------- v1.369 อนุมัติเอกสารก่อนส่ง: QS (ตัวเลข) → PM (เนื้อหา) → ผู้บริหาร (อนุมัติส่ง) · ครบ = ฉบับจริงไม่มีลายน้ำ DRAFT ----------
-// c.appr = { h:<ลายนิ้วมือเนื้อหาตอนอนุมัติ>, qs:{ by, role, at, amt }, pm:{…}, dir:{…}, back:{ by, at, why } } · แก้เนื้อหา / ตัวเลข หลังอนุมัติ = ยกเลิกการอนุมัติทั้งหมดอัตโนมัติ
+// ---------- v1.371 อนุมัติเอกสารก่อนส่ง: ขั้นเดียว — QS หรือ PM คนใดคนหนึ่งอนุมัติ = ฉบับจริงไม่มีลายน้ำ DRAFT (v1.369 เดิม 3 ขั้น) ----------
+// c.appr = { h:<ลายนิ้วมือเนื้อหาตอนอนุมัติ>, ok:{ by, role, at, amt }, back:{ by, at, why } } (ข้อมูลเดิม qs / pm / dir ยังนับเป็นอนุมัติแล้ว) · แก้เนื้อหา / ตัวเลข หลังอนุมัติ = ยกเลิกการอนุมัติทั้งหมดอัตโนมัติ
 // ---------- v1.370 แบบประกอบ (บังคับ): แนบแบบจากโครงการ / อัปโหลด PDF · JPG + ปักหมุด / ตีกรอบตำแหน่งงาน → พิมพ์เป็นเอกสารแนบ ก ----------
 // c.plan = { url, w, h, name, src:'proj'|'upload', key, pins:[{ x, y }], boxes:[{ x1, y1, x2, y2 }] }  (พิกัด % ของภาพแบบ)
+// v1.29 แบบคมชัด (WDraw): P.pdf = { pdf: url ต้นฉบับ, page } · P.kind = 'dxf' (SVG เวกเตอร์ หน่วย มม.)
+const WD = window.WDraw || null; if (WD) WD.setBase('vendor/');
+const vecOf = (P) => { const o = {}; if (P && P.src && P.src.pdf) o.pdf = { pdf: P.src.pdf, page: P.src.page || 1 }; if (P && P.pdf && P.pdf.pdf) o.pdf = P.pdf; if (P && P.kind === 'dxf') { o.kind = 'dxf'; if (P.mm) o.mm = P.mm; } return o; };
+const wdO = (P) => ({ file: P.url || P.file, w: P.w, h: P.h, kind: P.kind || '', src: P.pdf || null });
+async function planUp(c, blob, ext, ctype) { const key = 'claims/' + APP.pid + '/' + c.id + '/plan-' + Date.now() + '.' + ext;
+  const up = await sb.storage.from(BUCKET).upload(key, blob, { contentType: ctype, upsert: false }); if (up.error) throw up.error; return sb.storage.from(BUCKET).getPublicUrl(key).data.publicUrl; }
 function planList(PL) { const AR = Array.isArray(PL.__areas) ? PL.__areas : []; const byId = Object.fromEntries(AR.map(a => [a.id, a]));
   const path = (id) => { const o = []; let a = byId[id], g = 0; while (a && g++ < 10) { o.unshift(a.name); a = a.parent ? byId[a.parent] : null; } return o.join(' › '); };
   return Object.keys(PL).filter(k => k.indexOf('__') !== 0 && PL[k] && PL[k].file).map(k => { const P = PL[k], base = k.split('#')[0];
     const nm = base.indexOf('a:') === 0 ? path(base.slice(2)) : base === 'all' ? (String(PL.__allName || '').trim() || 'ทั้งโครงการ') : base;
-    return { key: k, file: P.file, w: P.w, h: P.h, name: (nm || P.name || 'แบบ') + (P.label ? ' · ' + P.label : (P.page ? ' · หน้า ' + P.page : '')) }; }).sort((a, b) => a.name.localeCompare(b.name, 'th')); }
+    return { key: k, file: P.file, w: P.w, h: P.h, ...vecOf(P), name: (nm || P.name || 'แบบ') + (P.label ? ' · ' + P.label : (P.page ? ' · หน้า ' + P.page : '')) }; }).sort((a, b) => a.name.localeCompare(b.name, 'th')); }
 const planOv = (P, big) => ((P.boxes || []).map(b => `<div class="pe-box" style="left:${Math.min(b.x1, b.x2)}%;top:${Math.min(b.y1, b.y2)}%;width:${Math.abs(b.x2 - b.x1)}%;height:${Math.abs(b.y2 - b.y1)}%"></div>`).join('') +
   (P.pins || []).map((q, i) => `<div class="pe-pin${big ? '' : ' sm'}" style="left:${q.x}%;top:${q.y}%">${i + 1}</div>`).join(''));
 let pdfP = null;
@@ -147,12 +153,15 @@ async function planFromCanvas(c, cv, nm, extra) { const blob = await new Promise
   if (!(APP.cur && APP.cur.id === c.id)) return false; APP.cur.plan = { url: data.publicUrl, w: cv.width, h: cv.height, name: nm, pins: [], boxes: [], ...(extra || {}) };
   logPush(APP.cur, 'แนบแบบประกอบ: ' + nm); APP.busyPlan = false; renderSheet(); schedule(); openPlanEditor(); return true; }
 async function uploadPlan(file) { const c = APP.cur; if (!c) return; APP.busyPlan = true; renderSheet();
-  try { let cv, pg = null; const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name || '');
-    if (isPdf) { const lib = await pdfLib(); const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; pg = 1; if (pdf.numPages > 1) { pg = await pickPdfPage(pdf, file.name); if (!pg) { APP.busyPlan = false; renderSheet(); return; } } cv = await pdfPage(pdf, pg, 2400); }
+  try { let cv, pg = null, ex = {}; const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name || '');
+    if (WD && WD.isDxf(file)) { const R = await WD.importDxf(file); const url = await planUp(c, R.blob, 'svg', 'image/svg+xml');
+      if (!(APP.cur && APP.cur.id === c.id)) return; APP.cur.plan = { url, w: R.w, h: R.h, name: R.name + ' (DXF)', pins: [], boxes: [], src: 'upload', kind: 'dxf', mm: [R.wmm, R.hmm] };
+      logPush(APP.cur, 'แนบแบบประกอบ (DXF): ' + R.name); APP.busyPlan = false; renderSheet(); schedule(); openPlanEditor(); return; }
+    if (isPdf) { const lib = await pdfLib(); const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; pg = 1; if (pdf.numPages > 1) { pg = await pickPdfPage(pdf, file.name); if (!pg) { APP.busyPlan = false; renderSheet(); return; } } cv = await pdfPage(pdf, pg, 2400); try { ex.pdf = { pdf: await planUp(c, file.slice(0, file.size, 'application/pdf'), 'pdf', 'application/pdf'), page: pg }; } catch (e) { console.warn('pdf src', e); } }
     else { const u = URL.createObjectURL(file); const im = await new Promise((r2, j2) => { const x = new Image(); x.onload = () => r2(x); x.onerror = j2; x.src = u; }); const k = Math.min(1, 2400 / Math.max(im.width, im.height));
       cv = document.createElement('canvas'); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k); const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(im, 0, 0, cv.width, cv.height); URL.revokeObjectURL(u); }
     const nm = String(file.name || 'แบบ').replace(/\.[a-z0-9]+$/i, '') + (pg && pg > 1 ? ' · หน้า ' + pg : '');
-    if (await planFromCanvas(c, cv, nm, { src: 'upload', page: pg })) return;
+    if (await planFromCanvas(c, cv, nm, { src: 'upload', page: pg, ...ex })) return;
   } catch (e) { toast('แนบแบบไม่สำเร็จ — ตรวจไฟล์ / สัญญาณเน็ต'); }
   APP.busyPlan = false; renderSheet(); }
 const normZ = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9ก-๙]+/g, '');
@@ -186,7 +195,7 @@ function pickProjPlan() { const c = APP.cur; const D = (APP.dwgs || []).slice(),
       for (let i = 1; i <= pdf.numPages; i++) { if (my !== gen) return; try { const cv = await pdfPage(pdf, i, 360); const t = g.querySelector('[data-p="' + i + '"] .pdfpk-t'); if (t) { t.innerHTML = ''; const im = new Image(); im.src = cv.toDataURL('image/jpeg', .72); t.appendChild(im); } } catch (e) {} }
     } catch (e) { if (my === gen) { const g = w.querySelector('#pk-pages'); if (g) g.innerHTML = '<div class="pk-load">เปิด PDF ไม่สำเร็จ — ลองไฟล์ JPG หรืออัปโหลดไฟล์แทน</div>'; } } };
   const usePage = async (n) => { const V = pdfView; if (!V) return; close(); const cc = APP.cur; if (!cc) return; APP.busyPlan = true; renderSheet();
-    try { const cv = await pdfPage(V.pdf, n, 2400); if (await planFromCanvas(cc, cv, V.nm0 + (V.pdf.numPages > 1 ? ' · หน้า ' + n : ''), { src: 'dwg', dwg: { id: V.d.id, no: V.d.no || '', rev: V.d.rev || '' }, page: n })) return; } catch (e) { toast('แนบแบบไม่สำเร็จ — ตรวจสัญญาณเน็ต'); }
+    try { const cv = await pdfPage(V.pdf, n, 2400); if (await planFromCanvas(cc, cv, V.nm0 + (V.pdf.numPages > 1 ? ' · หน้า ' + n : ''), { src: 'dwg', dwg: { id: V.d.id, no: V.d.no || '', rev: V.d.rev || '' }, page: n, pdf: { pdf: V.f.url, page: n } })) return; } catch (e) { toast('แนบแบบไม่สำเร็จ — ตรวจสัญญาณเน็ต'); }
     APP.busyPlan = false; renderSheet(); };
   w.addEventListener('click', (e) => { const t = e.target;
     if (t.closest('[data-x]') || t === w) { close(); return; }
@@ -194,8 +203,8 @@ function pickProjPlan() { const c = APP.cur; const D = (APP.dwgs || []).slice(),
     const bp = t.closest('[data-p]'); if (bp && pdfView) { usePage(+bp.dataset.p); return; }
     const bf = t.closest('[data-f]'); if (bf) { const d = D[+bf.dataset.d], f = dwgFiles(d)[+bf.dataset.f]; if (!f) return;
       if (f.kind === 'pdf') showPdf(d, f); else useImg(f.url, [d.no, d.name || d.fileName].filter(Boolean).join(' · ') + ' (' + f.lab + ')', { src: 'dwg', dwg: { id: d.id, no: d.no || '', rev: d.rev || '' } }); return; }
-    const bs = t.closest('[data-s]'); if (bs) { const p = SV[+bs.dataset.s]; close(); setP({ url: p.url, w: p.w, h: p.h, name: p.name || 'แบบ (Survey)', src: 'survey' }, p.name || 'แบบ (Survey)'); return; }
-    const bi = t.closest('[data-i]'); if (bi) { const p = PL[+bi.dataset.i]; close(); setP({ url: p.file, w: p.w, h: p.h, name: p.name, src: 'proj', key: p.key }, p.name); return; } });
+    const bs = t.closest('[data-s]'); if (bs) { const p = SV[+bs.dataset.s]; close(); setP({ url: p.url, w: p.w, h: p.h, name: p.name || 'แบบ (Survey)', src: 'survey', ...vecOf(p) }, p.name || 'แบบ (Survey)'); return; }
+    const bi = t.closest('[data-i]'); if (bi) { const p = PL[+bi.dataset.i]; close(); setP({ url: p.file, w: p.w, h: p.h, name: p.name, src: 'proj', key: p.key, ...vecOf(p) }, p.name); return; } });
   showList(); }
 // หน้าปักหมุด / ตีกรอบตำแหน่งงานบนแบบ
 function openPlanEditor() { const c = APP.cur; if (!c || !c.plan) return; const P = c.plan;
@@ -206,6 +215,8 @@ function openPlanEditor() { const c = APP.cur; if (!c || !c.plan) return; const 
     <div class="pe-wrap"><div class="pe-st"><img src="${esc(P.url)}" draggable="false" alt=""><div class="pe-ov"></div></div></div>
     <div class="pe-hint">แตะบนแบบเพื่อปักหมุดตำแหน่งงาน (เลขเรียงให้อัตโนมัติ) · โหมดกรอบ: ลากนิ้วเพื่อตีกรอบพื้นที่ · ＋ / － ซูม แล้วเลื่อนดูแบบ</div>`;
   document.body.appendChild(w); const st = w.querySelector('.pe-st'), ov = w.querySelector('.pe-ov'), wrap = w.querySelector('.pe-wrap');
+  const shp = (WD && WD.kindOf(wdO(P))) ? WD.sharpener(st, wdO(P), { clip: wrap, after: () => st.querySelector('img') }) : null; if (shp) { shp.update(300); wrap.addEventListener('scroll', () => shp.update(), { passive: true }); }
+  const shpEnd = () => { if (shp) shp.destroy(); };
   const draw = (tmp) => { ov.innerHTML = planOv({ pins, boxes: tmp ? [...boxes, tmp] : boxes }, true); };
   const setMode = (m) => { mode = m; w.querySelectorAll('[data-pe="m"]').forEach(b => b.classList.toggle('on', b.dataset.m === m)); st.style.touchAction = m === 'box' ? 'none' : 'pan-x pan-y'; };
   const pc = (e) => { const r = st.getBoundingClientRect(); return [Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100)), Math.max(0, Math.min(100, (e.clientY - r.top) / r.height * 100))]; };
@@ -217,36 +228,38 @@ function openPlanEditor() { const c = APP.cur; if (!c || !c.plan) return; const 
     else if (mode === 'box' && G.moved && Math.abs(q[0] - G.p[0]) > 0.5 && Math.abs(q[1] - G.p[1]) > 0.5) { hist.push(JSON.stringify([pins, boxes])); boxes.push({ x1: +G.p[0].toFixed(2), y1: +G.p[1].toFixed(2), x2: +q[0].toFixed(2), y2: +q[1].toFixed(2) }); draw(); } else draw(); });
   st.addEventListener('pointercancel', () => { g = null; draw(); });
   w.addEventListener('click', (e) => { const b = e.target.closest('[data-pe]'); if (!b) return; const a = b.dataset.pe;
-    if (a === 'x') { w.remove(); return; }
-    if (a === 'ok') { const cc = APP.cur; if (cc && cc.plan) { cc.plan = { ...cc.plan, pins, boxes }; logPush(cc, 'ปักหมุดบนแบบ ' + pins.length + ' จุด · กรอบ ' + boxes.length); renderSheet(); schedule(); } w.remove(); if (!pins.length && !boxes.length) toast('ยังไม่ได้ระบุตำแหน่งบนแบบ — แนะนำปักหมุดอย่างน้อย 1 จุด', 3500); return; }
+    if (a === 'x') { shpEnd(); w.remove(); return; }
+    if (a === 'ok') { const cc = APP.cur; if (cc && cc.plan) { cc.plan = { ...cc.plan, pins, boxes }; logPush(cc, 'ปักหมุดบนแบบ ' + pins.length + ' จุด · กรอบ ' + boxes.length); renderSheet(); schedule(); } shpEnd(); w.remove(); if (!pins.length && !boxes.length) toast('ยังไม่ได้ระบุตำแหน่งบนแบบ — แนะนำปักหมุดอย่างน้อย 1 จุด', 3500); return; }
     if (a === 'm') setMode(b.dataset.m);
     if (a === 'undo' && hist.length) { [pins, boxes] = JSON.parse(hist.pop()); draw(); }
     if (a === 'clr' && (pins.length || boxes.length) && confirm('ล้างหมุดและกรอบทั้งหมด?')) { hist.push(JSON.stringify([pins, boxes])); pins = []; boxes = []; draw(); }
-    if (a === 'z') { zoom = Math.max(1, Math.min(4, zoom * (b.dataset.z === '1' ? 1.5 : 1 / 1.5))); st.style.width = (zoom * 100) + '%'; } });
+    if (a === 'z') { zoom = Math.max(1, Math.min(4, zoom * (b.dataset.z === '1' ? 1.5 : 1 / 1.5))); st.style.width = (zoom * 100) + '%'; if (shp) shp.update(); } });
   setMode(mode); draw(); }
 function planBox(c) { const P = c.plan;
   if (APP.busyPlan) return '<div class="pl-req busy"><div class="spin"></div>กำลังแนบแบบ…</div>';
   if (!P) return `<div class="pl-req"><b>📐 ยังไม่ได้แนบแบบ</b><small>ต้องแนบแบบแสดงตำแหน่งงานก่อนอนุมัติ / ส่งลูกค้า</small><div class="row2">
-    <button class="btn pri" data-act="planproj">🗂 เลือกแบบในโครงการ${((APP.dwgs || []).length + (APP.plans || []).length + (APP.svPlans || []).length) ? ' (' + ((APP.dwgs || []).length + (APP.plans || []).length + (APP.svPlans || []).length) + ')' : ''}</button><label class="btn">📂 อัปโหลด PDF / JPG<input type="file" accept="application/pdf,.pdf,image/*" data-planup="1" hidden></label></div></div>`;
+    <button class="btn pri" data-act="planproj">🗂 เลือกแบบในโครงการ${((APP.dwgs || []).length + (APP.plans || []).length + (APP.svPlans || []).length) ? ' (' + ((APP.dwgs || []).length + (APP.plans || []).length + (APP.svPlans || []).length) + ')' : ''}</button><label class="btn">📂 อัปโหลด PDF / JPG / DXF<input type="file" accept="application/pdf,.pdf,image/*,.dxf" data-planup="1" hidden></label></div></div>`;
   return `<div class="pl-has"><button class="plt" data-act="planed" title="แตะเพื่อปักหมุด / แก้ตำแหน่ง"><img src="${esc(P.url)}" alt="" loading="lazy"><div class="pe-ov">${planOv(P, false)}</div></button>
     <div class="pl-inf"><b>${esc(P.name || 'แบบ')}</b><small>${(P.pins || []).length} หมุด · ${(P.boxes || []).length} กรอบ${!(P.pins || []).length && !(P.boxes || []).length ? ' · <span style="color:var(--red)">ยังไม่ได้ระบุตำแหน่ง</span>' : ''}</small>
-    <div class="row2"><button class="btn" data-act="planed">📍 ปักหมุด / แก้ตำแหน่ง</button><button class="btn" data-act="planproj">🗂 เปลี่ยนแบบ</button><label class="btn">📂 อัปโหลดใหม่<input type="file" accept="application/pdf,.pdf,image/*" data-planup="1" hidden></label><button class="btn del" data-act="plandel">ลบ</button></div></div></div>`; }
-const AP_STEPS = [['qs', '🧮', 'QS · ตรวจตัวเลข', 'ราคาต่อหน่วย · จำนวน · ยอดรวม', ['qs', 'qs_mgr']], ['pm', '👷', 'PM · ตรวจเนื้อหา', 'ข้อเท็จจริง · รูป · ผู้รับผิดชอบ · ระยะเวลา', ['pm', 'pm_mgr']],
-  ['dir', '✍️', 'ผู้บริหาร · อนุมัติส่ง', 'อนุมัติให้ส่งเอกสารฉบับจริงถึงลูกค้า', ['director']]];
+    <div class="row2"><button class="btn" data-act="planed">📍 ปักหมุด / แก้ตำแหน่ง</button><button class="btn" data-act="planproj">🗂 เปลี่ยนแบบ</button><label class="btn">📂 อัปโหลดใหม่<input type="file" accept="application/pdf,.pdf,image/*,.dxf" data-planup="1" hidden></label><button class="btn del" data-act="plandel">ลบ</button></div></div></div>`; }
+// v1.30 อนุมัติขั้นเดียว: QS หรือ PM คนใดคนหนึ่งอนุมัติ = เอกสารพร้อมส่ง (ลายน้ำ DRAFT หายไป)
+const AP_STEPS = [['ok', '✍️', 'อนุมัติเอกสาร · QS หรือ PM', 'ตรวจตัวเลข · เนื้อหา · รูป · แบบประกอบ — คนใดคนหนึ่งอนุมัติได้', ['qs', 'qs_mgr', 'pm', 'pm_mgr']]];
+const AP_ROLE = { qs: 'QS', qs_mgr: 'QS', pm: 'PM', pm_mgr: 'PM', superadmin: 'MD' };
 const apHash = (c) => { const t = JSON.stringify([c.kind || 'dmg', c.title, c.found, c.area, c.works, c.cause, c.party, c.desc, c.lines, c.ohp, !!c.ohpShow, c.vatOn !== false, c.eot, c.eotWhy, c.valid, c.payTerm, (c.photos || {}).before, c.plan ? [c.plan.url, c.plan.pins, c.plan.boxes] : null]);
   let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36) + t.length.toString(36); };
 const apOf = (c) => { const a = c.appr || {}; return a.h && a.h === apHash(c) ? a : {}; };
-const apN = (c) => { const a = apOf(c); return AP_STEPS.filter(x => a[x[0]]).length; };
-const apOk = (c) => apN(c) === AP_STEPS.length && !!c.plan;
+const apRec = (c) => { const a = apOf(c); return a.ok || a.dir || a.pm || a.qs || null; };   // รองรับข้อมูลเดิม (qs / pm / dir)
+const apN = (c) => apRec(c) ? 1 : 0;
+const apOk = (c) => !!apRec(c) && !!c.plan;
 const canAp = (k) => { const r = (APP.me && APP.me.role) || ''; if (r === 'superadmin') return true; const st = AP_STEPS.find(x => x[0] === k); return !!st && st[4].includes(r); };
 const apTurn = (c) => { if (c._new || apOk(c) || c.st === 'paid' || c.st === 'rejected') return ''; const a = apOf(c);
-  for (const x of AP_STEPS) { if (a[x[0]]) continue; if (x[0] === 'dir' && !(a.qs && a.pm)) continue; if (canAp(x[0])) return x[0]; } return ''; };
-function apCheck(c) { if (!c || !c.appr) return; const a = c.appr; if (!AP_STEPS.some(x => a[x[0]])) return; if (a.h === apHash(c)) return;
+  return apRec(c) ? '' : (canAp('ok') ? 'ok' : ''); };
+function apCheck(c) { if (!c || !c.appr) return; const a = c.appr; if (!(a.ok || a.qs || a.pm || a.dir)) return; if (a.h === apHash(c)) return;
   c.appr = { back: a.back || null }; logPush(c, 'แก้ไขเนื้อหา / ตัวเลขหลังอนุมัติ — ยกเลิกการอนุมัติทั้งหมด ต้องอนุมัติใหม่'); toast('แก้ไขหลังอนุมัติ — ลายน้ำ DRAFT กลับมา ต้องอนุมัติใหม่', 4000);
   // อัปเดตเฉพาะส่วนอนุมัติบนจอ (ไม่ render ทั้งฟอร์ม — ช่องที่กำลังพิมพ์ไม่หลุดโฟกัส)
   try { const el = document.getElementById('apblk'); if (el) el.outerHTML = apWrap(c); const pb = document.querySelector('.bot [data-act="print"]'); if (pb) pb.textContent = '🖨 ' + T3(c, 'หนังสือเคลม', 'หนังสือเสนอราคา', 'ใบเสนอราคา') + ' (DRAFT)';
     const sb2 = document.querySelector('[data-act="go"][data-to="submitted"]'); if (sb2) sb2.disabled = true; } catch (e) {} }
-const apWrap = (c) => `<div class="blk" id="apblk"><h3><span class="n">✓</span>อนุมัติเอกสารก่อนส่ง <small>QS → PM → ผู้บริหาร · ${apN(c)}/3</small></h3>${apBlock(c)}</div>`;
+const apWrap = (c) => `<div class="blk" id="apblk"><h3><span class="n">✓</span>อนุมัติเอกสารก่อนส่ง <small>QS หรือ PM อนุมัติ · ${apN(c) ? 'อนุมัติแล้ว' : 'รออนุมัติ'}</small></h3>${apBlock(c)}</div>`;
 const needsAct = (c) => /^⚠/.test(alertOf(c)) || c.st === 'draft' || !!apTurn(c);
 
 // =====================================================================
@@ -333,7 +346,7 @@ function card(c) {
   const k = calc(c), st = FLOW.indexOf(c.st);
   return `<button class="cc" data-act="open" data-id="${esc(c.id)}" style="border-left-color:${s[2]}">
     <div class="r1"><span class="no">${esc(docNo(c, c.no) || '—')}</span><span class="tt">${T3(c, '', '🚧 ', '💰 ')}${esc(c.title || '(ยังไม่ใส่หัวข้อ)')}</span><span class="pill" style="background:${s[3]};color:${s[2]}">${esc(s[1])}</span></div>
-    ${!c.plan && c.st !== 'paid' && c.st !== 'rejected' ? '<div class="apst no">📐 ยังไม่แนบแบบ</div> ' : ''}${c.st !== 'paid' && c.st !== 'rejected' ? `<div class="apst ${apOk(c) ? 'ok' : apTurn(c) ? 'me' : ''}">${apOk(c) ? '✓ อนุมัติครบ · พร้อมส่ง' : '⏳ DRAFT · อนุมัติ ' + apN(c) + '/3' + (apTurn(c) ? ' · รอคุณอนุมัติ' : '')}</div>` : ''}
+    ${!c.plan && c.st !== 'paid' && c.st !== 'rejected' ? '<div class="apst no">📐 ยังไม่แนบแบบ</div> ' : ''}${c.st !== 'paid' && c.st !== 'rejected' ? `<div class="apst ${apOk(c) ? 'ok' : apTurn(c) ? 'me' : ''}">${apOk(c) ? '✓ อนุมัติแล้ว · พร้อมส่ง' : '⏳ DRAFT · รอ QS / PM อนุมัติ' + (apTurn(c) ? ' · คุณอนุมัติได้' : '')}</div>` : ''}
     <div class="r2"><span>${cz[1]} ${esc(cz[2])}</span>${c.area ? `<span>· 📍 ${esc(c.area)}</span>` : ''}<span>· พบ ${dmy(c.found)}</span>${c.party ? `<span>· ${esc(c.party)}</span>` : ''}</div>
     <div class="money">${st < 2 && c.st !== 'rejected' ? `<span>ประเมิน <b>${baht(k.total)}</b></span>` : `<span>เคลม <b>${baht(claimAmt(c))}</b></span>`}
       ${apprAmt(c) ? `<span style="color:var(--green)">อนุมัติ <b>${baht(apprAmt(c))}</b></span>` : ''}${paidAmt(c) ? `<span style="color:#1F6B3A">รับแล้ว <b>${baht(paidAmt(c))}</b></span>` : ''}
@@ -359,7 +372,7 @@ function render() {
       ${ST.map(s => `<button class="chip ${f === s[0] ? 'on' : ''}" data-act="f" data-f="${s[0]}">${esc(s[1])} <b>${cnt(s[0])}</b></button>`).join('')}
     </div>
     <div class="list">${view.length ? view.map(card).join('') : `<p class="empty" style="grid-column:1/-1">${L.length ? 'ไม่มีรายการในตัวกรองนี้' : 'ยังไม่มีเคลม · กดปุ่ม <b>+ แจ้งความเสียหาย</b> เมื่อพบงานของเราเสียหายจากผู้อื่น น้ำรั่ว น้ำแอร์ หรือการเจาะรื้อ'}</p>`}</div>
-    <div class="info" style="margin-top:16px">ขั้นตอน: <b>1</b> ถ่ายรูป + บันทึก → <b>2</b> แจ้งลูกค้าภายใน 48 ชม. → <b>3</b> ประเมินค่าซ่อม + วันที่ขอขยาย → <b>4</b> อนุมัติเอกสาร QS → PM → ผู้บริหาร (ครบแล้วลายน้ำ DRAFT หาย) แล้วส่งหนังสือเคลม (DRAFT ให้ผู้บริหารตรวจก่อนส่ง) → <b>5</b> บันทึกผลอนุมัติ → <b>6</b> วางบิล → <b>7</b> รับเงิน</div>
+    <div class="info" style="margin-top:16px">ขั้นตอน: <b>1</b> ถ่ายรูป + บันทึก → <b>2</b> แจ้งลูกค้าภายใน 48 ชม. → <b>3</b> ประเมินค่าซ่อม + วันที่ขอขยาย → <b>4</b> อนุมัติเอกสาร โดย QS หรือ PM (อนุมัติแล้วลายน้ำ DRAFT หาย) แล้วส่งหนังสือเคลม (DRAFT ให้ผู้บริหารตรวจก่อนส่ง) → <b>5</b> บันทึกผลอนุมัติ → <b>6</b> วางบิล → <b>7</b> รับเงิน</div>
     <p class="ver">Claim ${CL_VER}${IS_STG ? ' · STAGING' : ''}</p></main>
     <button class="fab" data-act="new">+ แจ้งเคลม / เสนอราคา</button>${APP.ratesOpen ? ratesSheet() : ''}`;
 }
@@ -407,16 +420,15 @@ function totals() {
     <div class="mut">ราคาเรียกเก็บลูกค้า · ห้ามใส่ต้นทุนจริงของบริษัท · ตรวจตัวเลขกับ QS ก่อนส่ง</div></div>`;
 }
 function apBlock(c) {
-  const a = apOf(c), ok = apOk(c), k = calc(c), back = (c.appr || {}).back;
-  const row = ([key, ic, tt, ds]) => { const v = a[key], can = canAp(key), wait = key === 'dir' && !(a.qs && a.pm);
-    return `<div class="ap-r ${v ? 'ok' : ''}"><i>${v ? '✓' : ic}</i><div class="ap-t"><b>${esc(tt)}</b><small>${v ? `${esc(v.by)} · ${when(v.at)}` : esc(ds)}</small></div>
-      ${v ? (v.by === APP.me.name || APP.me.role === 'superadmin' ? `<button class="btn" data-act="unappr" data-k="${key}" style="font-size:12.5px">ยกเลิก</button>` : '')
-        : can ? `<button class="btn ok" data-act="appr" data-k="${key}" ${wait || !c.plan ? 'disabled title="' + (!c.plan ? 'ต้องแนบแบบประกอบก่อน' : 'รอ QS และ PM อนุมัติก่อน') + '"' : ''}>${wait ? 'รอ QS + PM' : 'อนุมัติ'}</button>` : `<span class="ap-w">รอ${key === 'dir' ? 'ผู้บริหาร' : key.toUpperCase()}</span>`}</div>`; };
-  const noPlan = !c.plan;
-  return `${noPlan ? `<div class="warnbox">📐 ต้องแนบแบบประกอบ (ข้อ 1) ก่อนจึงอนุมัติได้</div>` : ''}${ok ? `<div class="ap-ok">✓ อนุมัติครบ — พิมพ์ <b>ฉบับจริง</b> (ไม่มีลายน้ำ DRAFT) ส่งลูกค้าได้ · ยอด ${baht(k.total)}</div>` : `<div class="info">เอกสารมีลายน้ำ <b>DRAFT</b> จนกว่า QS → PM → ผู้บริหาร อนุมัติครบ · แก้ข้อมูล / ตัวเลขหลังอนุมัติ = ต้องอนุมัติใหม่</div>`}
+  const ok = apOk(c), k = calc(c), back = (c.appr || {}).back, v = apRec(c), can = canAp('ok');
+  const roleTx = (r) => AP_ROLE[r] || '';
+  const row = `<div class="ap-r ${v ? 'ok' : ''}"><i>${v ? '✓' : '✍️'}</i><div class="ap-t"><b>${esc(AP_STEPS[0][2])}</b><small>${v ? `${esc(v.by)}${roleTx(v.role) ? ' (' + roleTx(v.role) + ')' : ''} · ${when(v.at)}` : esc(AP_STEPS[0][3])}</small></div>
+      ${v ? (v.by === APP.me.name || APP.me.role === 'superadmin' ? `<button class="btn" data-act="unappr" data-k="ok" style="font-size:12.5px">ยกเลิก</button>` : '')
+        : can ? `<button class="btn ok" data-act="appr" data-k="ok" ${!c.plan ? 'disabled title="ต้องแนบแบบประกอบก่อน"' : ''}>อนุมัติ</button>` : `<span class="ap-w">รอ QS / PM</span>`}</div>`;
+  return `${!c.plan ? `<div class="warnbox">📐 ต้องแนบแบบประกอบ (ข้อ 1) ก่อนจึงอนุมัติได้</div>` : ''}${ok ? `<div class="ap-ok">✓ อนุมัติแล้ว — พิมพ์ <b>ฉบับจริง</b> (ไม่มีลายน้ำ DRAFT) ส่งลูกค้าได้ · ยอด ${baht(k.total)}</div>` : `<div class="info">เอกสารมีลายน้ำ <b>DRAFT</b> จนกว่า <b>QS หรือ PM</b> คนใดคนหนึ่งอนุมัติ · แก้ข้อมูล / ตัวเลขหลังอนุมัติ = ต้องอนุมัติใหม่</div>`}
     ${back && !apN(c) ? `<div class="warnbox">↩ ส่งกลับแก้ไข โดย ${esc(back.by)} · ${when(back.at)}${back.why ? ' — ' + esc(back.why) : ''}</div>` : ''}
-    <div class="ap">${AP_STEPS.map(row).join('')}</div>
-    ${!ok && AP_STEPS.some(x => canAp(x[0])) ? `<div class="act"><button class="btn del" data-act="apback" style="font-size:13px">↩ ส่งกลับแก้ไข</button></div>` : ''}`;
+    <div class="ap">${row}</div>
+    ${!ok && can ? `<div class="act"><button class="btn del" data-act="apback" style="font-size:13px">↩ ส่งกลับแก้ไข</button></div>` : ''}`;
 }
 function stepper(c) {
   const rej = c.st === 'rejected', cur = rej ? 3 : FLOW.indexOf(c.st);
@@ -443,7 +455,7 @@ function stageBox(c) {
       <div class="act"><button class="btn ok" data-act="go" data-to="notified">✓ บันทึกว่าแจ้งลูกค้าแล้ว</button></div></div>`;
   } else if (st === 'notified') {
     h += `<div class="stage"><h4>3 · ${T3(c, 'ส่งหนังสือเคลม', 'ส่งหนังสือเสนอราคา', 'ส่งใบเสนอราคา')}</h4>${money ? `<div class="g3">${f('date', 'วันที่ส่ง', isoToday(), { type: 'date' })}${f('amt', 'ยอดเคลม (฿)', k.total, { num: 1 })}${f('days', 'ขอขยายเวลา (วัน)', c.eot || '', { num: 1, ph: '0' })}${f('ref', 'เลขที่หนังสือ', '', { ph: 'เช่น WI-CLM-001' })}</div>
-      <div class="info">ยอดดึงจากตัวคำนวณ (${baht(k.total)}) · ${apOk(c) ? '✓ เอกสารอนุมัติครบแล้ว — พิมพ์ฉบับจริงส่งลูกค้า' : '⏳ ต้องอนุมัติครบ (QS → PM → ผู้บริหาร) ก่อนส่ง — ตอนนี้ ' + apN(c) + '/3'}</div>
+      <div class="info">ยอดดึงจากตัวคำนวณ (${baht(k.total)}) · ${apOk(c) ? '✓ เอกสารอนุมัติแล้ว — พิมพ์ฉบับจริงส่งลูกค้า' : '⏳ ต้องให้ QS หรือ PM อนุมัติก่อนส่ง — ตอนนี้ ' + apN(c) + '/3'}</div>
       <div class="act"><button class="btn ok" data-act="go" data-to="submitted" ${apOk(c) ? '' : 'disabled'}>✓ บันทึกว่าส่ง${T3(c, 'เคลม', 'หนังสือ', 'ใบเสนอราคา')}แล้ว</button></div>` : lock}</div>`;
   } else if (st === 'submitted') {
     h += `<div class="stage"><h4>4 · ผลการพิจารณาของลูกค้า</h4>${money ? `<div class="g3">${f('date', 'วันที่ตอบ', isoToday(), { type: 'date' })}${f('amt', 'ยอดที่อนุมัติ (฿)', s.amt, { num: 1 })}${f('days', 'วันที่อนุมัติ', s.days || '', { num: 1, ph: '0' })}${f('who', 'ผู้อนุมัติฝั่งลูกค้า', '', { ph: 'ชื่อ / ตำแหน่ง' })}${f('why', 'เหตุผล (ถ้าไม่อนุมัติ)', '', { ph: 'เช่น ต้องเรียกเก็บจากผู้รับเหมาที่ทำเสียหายเอง' })}</div>
@@ -551,7 +563,7 @@ function go(to) {
   const date = v('date') || isoToday(); const base = { date, by: APP.me.name, at: new Date().toISOString() };
   c.flow = c.flow || {};
   if (to === 'notified') { c.flow.notified = { ...base, ch: v('ch') || 'หนังสือ', to: v('to') || '', ref: v('ref') || '' }; logPush(c, 'แจ้งลูกค้าแล้ว (' + c.flow.notified.ch + ') ' + dmy(date)); }
-  else if (to === 'submitted' && !apOk(c)) { toast('ต้องอนุมัติครบ QS → PM → ผู้บริหาร ก่อนส่งลูกค้า'); return; }
+  else if (to === 'submitted' && !apOk(c)) { toast('ต้องให้ QS หรือ PM อนุมัติก่อนส่งลูกค้า'); return; }
   else if (to === 'submitted') { const amt = num(v('amt')); if (!amt) { toast('ใส่ยอดเคลมก่อน'); return; } c.flow.submitted = { ...base, amt, days: num(v('days')), ref: v('ref') || '', calc: calc(c).total }; if (num(v('days'))) c.eot = num(v('days')); logPush(c, 'ส่งเคลม ' + baht(amt) + (num(v('days')) ? ' · ขอขยาย ' + num(v('days')) + ' วัน' : '')); }
   else if (to === 'approved') { const amt = num(v('amt')); if (!amt) { toast('ใส่ยอดที่ลูกค้าอนุมัติ'); return; } c.flow.approved = { ...base, amt, days: num(v('days')), who: v('who') || '' }; delete c.flow.rejected; logPush(c, 'ลูกค้าอนุมัติ ' + baht(amt) + (num(v('days')) ? ' · ' + num(v('days')) + ' วัน' : '')); }
   else if (to === 'rejected') { c.flow.rejected = { ...base, why: v('why') || '' }; logPush(c, 'ลูกค้าไม่อนุมัติ' + (v('why') ? ' — ' + v('why') : '')); }
@@ -618,11 +630,17 @@ async function printClaim(lang) {
   const L = (th, en) => EN ? en : BOTH ? th + ' / ' + en : th;           // ป้ายสั้น
   const P = (th, en) => EN ? en : BOTH ? th + '<br><span class="en">' + en + '</span>' : th;   // ย่อหน้า
   const c = APP.cur, p = APP.proj || {}, k = calc(c), cz = CM[c.cause] || CM.other, s = F(c, 'submitted');
+  // เอกสารแนบ ก: render แบบใหม่จาก PDF ต้นฉบับที่ 300 dpi (ขนาดบนกระดาษ A4) · DXF = เวกเตอร์คมชัดทุกขนาด
+  let PLU = c.plan ? c.plan.url : ''; const PK = c.plan && WD ? WD.kindOf(wdO(c.plan)) : '';
+  if (PK) { try { toast('กำลังเตรียมแบบความละเอียดสูง…'); let cv;
+      if (PK === 'pdf') cv = await WD.renderPage(c.plan.pdf, 4300);   // A4 · ~360 dpi
+      else { const W0 = 4300, H0 = Math.round(W0 * (c.plan.h || 1) / (c.plan.w || 1)); cv = await WD.renderSvgRegion(c.plan.url, { x: 0, y: 0, w: 1, h: 1 }, W0, H0, 2.2); }
+      PLU = cv.toDataURL('image/jpeg', .92); } catch (e) { console.warn('hires print', e); } }
   const amt = num(s.amt) || k.total, days = num(s.days) || num(c.eot);
   const causeTx = EN ? (EN_CAUSE[c.cause] || EN_CAUSE.other) : BOTH ? cz[2] + ' / ' + (EN_CAUSE[c.cause] || EN_CAUSE.other) : cz[2];
   const worksTx = (c.works || []).map(x => EN ? (EN_WORK[x] || x) : BOTH ? x + (EN_WORK[x] && EN_WORK[x] !== x ? ' (' + EN_WORK[x] + ')' : '') : x).join(', ') || '—';
   // v1.369.0 ค่าดำเนินการ + กำไร: ค่าเริ่มต้นรวมไว้ในราคาต่อหน่วย (ไม่เปิดเผยอัตรากำไรในเอกสารลูกค้า) · เปิด "แสดง OH&P แยกบรรทัด" ได้รายเรื่อง
-  const APOK = apOk(c), AP = apOf(c);
+  const APOK = apOk(c), AR = apRec(c);
   const OBS = isObs(c), QUO = KD(c) === 'quo', T = (d, o, q) => QUO ? q : OBS ? o : d, showOH = !!c.ohpShow, fx = (!showOH && k.sub > 0) ? k.pre / k.sub : 1;
   const LN = (c.lines || []).map(l => { const u0 = l.t === 'lab' ? num(l.rate) : l.t === 'mat' ? num(l.price) : num(l.amt); return { l, u: r2(u0 * fx), a: r2(lineAmt(l) * fx) }; });
   if (!showOH && LN.length) { const d = r2(k.pre - LN.reduce((t, x) => t + x.a, 0)); LN[LN.length - 1].a = r2(LN[LN.length - 1].a + d); }
@@ -633,7 +651,7 @@ async function printClaim(lang) {
   const nf = F(c, 'notified');
   let TRM = {};
   if (EN || BOTH) { toast('กำลังแปลข้อความเป็นภาษาอังกฤษ…', 6000);
-    TRM = await trThai([p.client, p.owner, projName(p), c.title, c.area, (c.plan || {}).name, c.party, c.desc, c.eotWhy, c.payTerm, nf.to, c.by, ...AP_STEPS.map(x => (apOf(c)[x[0]] || {}).by), ...(c.lines || []).map(l => l.n)], APP.acc && APP.acc.id); }
+    TRM = await trThai([p.client, p.owner, projName(p), c.title, c.area, (c.plan || {}).name, c.party, c.desc, c.eotWhy, c.payTerm, nf.to, c.by, (apRec(c) || {}).by, ...(c.lines || []).map(l => l.n)], APP.acc && APP.acc.id); }
   const U = (v) => { const x = String(v == null ? '' : v); const t = TRM[x.trim()]; if (EN) return esc(t || x); if (BOTH && t) return esc(x) + '<br><span class="en">' + esc(t) + '</span>'; return esc(x); };
   const Ui = (v) => { const x = String(v == null ? '' : v); const t = TRM[x.trim()]; if (EN) return esc(t || x); if (BOTH && t) return esc(x) + ' (' + esc(t) + ')'; return esc(x); };
   const nfTxF = () => nf.date ? (EN ? `${dmy(nf.date)} by ${esc(EN_CH[nf.ch] || nf.ch || '')}${nf.to ? ' to ' + Ui(nf.to) : ''}`
@@ -674,11 +692,11 @@ async function printClaim(lang) {
     <div style="margin-top:10px">${QUO ? P('บริษัทฯ ขอเสนอราคาสำหรับงานเพิ่มเติมตามรายละเอียดข้างต้น จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ', 'We are pleased to submit our quotation for the additional works described above, for your kind consideration and approval.') : OBS ? P('บริษัทฯ ขอเรียนแจ้งว่า งานตามรายละเอียดข้างต้นซึ่งอยู่ในความรับผิดชอบของ' + (c.party ? ' ' + esc(c.party) : 'ผู้เกี่ยวข้อง') + ' ยังไม่ได้รับการดำเนินการ แม้บริษัทฯ ได้แจ้งแล้ว ทำให้บริษัทฯ ไม่สามารถดำเนินงาน' + esc((c.works || []).join(', ') || 'ของบริษัทฯ') + 'ได้ตามแผนงาน เพื่อไม่ให้งานล่าช้าเพิ่มเติม บริษัทฯ ขอเสนอดำเนินการแทนตามราคาข้างต้น' + (days ? ' และขอขยายระยะเวลา ' + days + ' วัน' : '') + ' ทั้งนี้ บริษัทฯ จะเริ่มดำเนินการเมื่อได้รับการอนุมัติเป็นลายลักษณ์อักษร (Variation Order) และขอสงวนสิทธิ์ในการขอขยายระยะเวลาสำหรับความล่าช้าที่เกิดจากเหตุนี้ จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ',
       'We wish to inform you that the works described above, which are the responsibility of ' + (c.party ? Ui(c.party) : 'others') + ', have not been carried out despite our notification. This has prevented us from proceeding with our ' + esc(worksTx === '—' ? 'works' : worksTx.toLowerCase() + ' works') + ' as programmed. To avoid further delay, we propose to carry out these works on their behalf at the cost stated above' + (days ? ', with an extension of time of ' + days + ' days' : '') + '. The works will commence only upon receipt of your written approval (Variation Order). We reserve our right to an extension of time for any delay arising from this matter. We would be grateful for your kind consideration and approval.') : P('บริษัทฯ ขอเรียนแจ้งความเสียหายต่องานของบริษัทฯ ซึ่งเกิดจากสาเหตุที่อยู่นอกขอบเขตความรับผิดชอบของบริษัทฯ ตามรายละเอียดข้างต้น และขอเรียกร้องค่าใช้จ่ายในการซ่อมแซม' + (days ? ' และการขยายระยะเวลา' : '') + ' จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ',
       'We hereby notify you of the damage to our works, caused by matters outside our scope of responsibility as detailed above, and claim the cost of repair' + (days ? ' together with the additional working time' : '') + '. We would be grateful for your kind consideration and approval.')}</div>
-    <div class="sg"><div><div class="ln"></div>${L('ผู้จัดทำ', 'Prepared by')}<br>${Ui(c.by || '')}</div><div><div class="ln"></div>${APOK ? `<span class="apv">${Ui(AP.dir.by)} · ${dmy(String(AP.dir.at).slice(0, 10))}</span><br>` : ''}${L('ผู้อนุมัติ', 'Approved by')} · Wellcon Interior</div><div><div class="ln"></div>${OBS || QUO ? L('ผู้อนุมัติ · ผู้ว่าจ้าง', 'Approved by · Employer') : L('ผู้รับทราบ · ผู้ว่าจ้าง', 'Acknowledged by · Employer')}</div></div>
+    <div class="sg"><div><div class="ln"></div>${L('ผู้จัดทำ', 'Prepared by')}<br>${Ui(c.by || '')}</div><div><div class="ln"></div>${APOK ? `<span class="apv">${Ui(AR.by)} · ${dmy(String(AR.at).slice(0, 10))}</span><br>` : ''}${L('ผู้อนุมัติ', 'Approved by')} · Wellcon Interior</div><div><div class="ln"></div>${OBS || QUO ? L('ผู้อนุมัติ · ผู้ว่าจ้าง', 'Approved by · Employer') : L('ผู้รับทราบ · ผู้ว่าจ้าง', 'Acknowledged by · Employer')}</div></div>
     ${c.plan ? (() => { const PL = c.plan, ar = (PL.h || 1) / (PL.w || 1), wmm = Math.min(182, 215 / ar); return `<div class="att"><div class="hd"><div><b>${L('เอกสารแนบ ก · แบบแสดงตำแหน่ง', 'Attachment A · Location plan')}</b><br>${U(PL.name || '')}</div><div style="text-align:right">${L('อ้างอิง', 'Ref.')} <b>${esc(s.ref || docNo(c, c.no))}</b><br>${U(c.title || '')}</div></div>
-      <div class="pl" style="width:${wmm.toFixed(1)}mm;height:${(wmm * ar).toFixed(1)}mm"><img src="${esc(PL.url)}" alt="">${planOv(PL, true)}</div>
+      <div class="pl" style="width:${wmm.toFixed(1)}mm;height:${(wmm * ar).toFixed(1)}mm"><img src="${PLU.indexOf('data:') === 0 ? PLU : esc(PLU)}" alt="">${planOv(PL, true)}</div>
       <div class="lg">${(PL.pins || []).length ? L('หมายเลข', 'Markers') + ' 1–' + PL.pins.length + ' = ' + L('ตำแหน่งงานตามหนังสือฉบับนี้', 'locations referred to in this letter') : ''}${(PL.boxes || []).length ? ((PL.pins || []).length ? ' · ' : '') + L('กรอบสีแดง = พื้นที่ดำเนินการ', 'Red box = work area') : ''}${c.area ? ' · ' + L('ตำแหน่ง', 'Location') + ': ' + U(c.area) : ''}</div></div>`; })() : ''}
-    ${APOK ? `<div class="apf">${L('อนุมัติเอกสารแล้ว', 'Document approved')}: QS ${Ui(AP.qs.by)} (${dmy(String(AP.qs.at).slice(0, 10))}) · PM ${Ui(AP.pm.by)} (${dmy(String(AP.pm.at).slice(0, 10))}) · ${L('ผู้บริหาร', 'Management')} ${Ui(AP.dir.by)} (${dmy(String(AP.dir.at).slice(0, 10))})</div>` : ''}
+    ${APOK ? `<div class="apf">${L('อนุมัติเอกสารแล้ว', 'Document approved')}: ${AP_ROLE[AR.role] ? AP_ROLE[AR.role] + ' ' : ''}${Ui(AR.by)} (${dmy(String(AR.at).slice(0, 10))})</div>` : ''}
     </body></html>`;
   const old = document.getElementById('cl-print'); if (old) old.remove();
   const f = document.createElement('iframe'); f.id = 'cl-print'; f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden'; document.body.appendChild(f);
@@ -711,12 +729,11 @@ document.addEventListener('click', async (e) => {
   else if (a === 'plandel' && c) { if (confirm('ลบแบบประกอบออกจากเรื่องนี้?')) { c.plan = null; logPush(c, 'ลบแบบประกอบ'); renderSheet(); schedule(); } }
   else if (a === 'appr' && c) { const k = b.dataset.k; if (!canAp(k)) { toast('บัญชีนี้ไม่มีสิทธิ์อนุมัติขั้นนี้'); return; } const ap = apOf(c), t = calc(c).total;
     if (!c.plan) { toast('ต้องแนบแบบประกอบก่อนอนุมัติ'); return; }
-    if (k === 'dir' && !(ap.qs && ap.pm)) { toast('รอ QS และ PM อนุมัติก่อน'); return; }
-    const msg = k === 'qs' ? 'ยืนยัน: ตรวจราคาต่อหน่วย จำนวน และยอดรวม ' + baht(t) + ' แล้ว' : k === 'pm' ? 'ยืนยัน: ตรวจเนื้อหา ข้อเท็จจริง รูป ผู้รับผิดชอบ และระยะเวลาแล้ว' : 'อนุมัติให้ส่งเอกสารฉบับจริงถึงลูกค้า ยอด ' + baht(t) + ' ?';
-    if (!confirm(msg)) return; const h = apHash(c); const cur = (c.appr && c.appr.h === h) ? c.appr : { back: (c.appr || {}).back || null };
+    const msg = 'ยืนยันอนุมัติเอกสาร: ตรวจตัวเลข (ยอด ' + baht(t) + ') เนื้อหา รูป และแบบประกอบแล้ว\nลายน้ำ DRAFT จะหายไป และพิมพ์ฉบับจริงส่งลูกค้าได้';
+    if (!confirm(msg)) return; const h = apHash(c); const cur = { back: (c.appr || {}).back || null };
     c.appr = { ...cur, h, [k]: { by: APP.me.name, role: APP.me.role, at: new Date().toISOString(), amt: t } };
-    logPush(c, 'อนุมัติ · ' + AP_STEPS.find(x => x[0] === k)[2] + ' (' + baht(t) + ')' + (apOk(c) ? ' — อนุมัติครบ พร้อมส่งลูกค้า' : '')); renderSheet(); schedule(); toast(apOk(c) ? '✓ อนุมัติครบ — พิมพ์ฉบับจริงได้แล้ว' : '✓ อนุมัติแล้ว'); }
-  else if (a === 'unappr' && c) { const k = b.dataset.k; if (!c.appr) return; const n = { ...c.appr }; delete n[k]; if (k !== 'dir') delete n.dir; c.appr = n; logPush(c, 'ยกเลิกการอนุมัติ · ' + AP_STEPS.find(x => x[0] === k)[2]); renderSheet(); schedule(); }
+    logPush(c, 'อนุมัติเอกสาร (' + (AP_ROLE[APP.me.role] || APP.me.role || '') + ') · ' + baht(t) + ' — พร้อมส่งลูกค้า'); renderSheet(); schedule(); toast('✓ อนุมัติแล้ว — พิมพ์ฉบับจริงได้'); }
+  else if (a === 'unappr' && c) { const k = b.dataset.k; if (!c.appr) return; c.appr = { back: c.appr.back || null }; logPush(c, 'ยกเลิกการอนุมัติเอกสาร'); renderSheet(); schedule(); }
   else if (a === 'apback' && c) { const why = prompt('เหตุผลที่ส่งกลับแก้ไข (ผู้จัดทำจะเห็นข้อความนี้)', ''); if (why === null) return; c.appr = { back: { by: APP.me.name, at: new Date().toISOString(), why: why.trim() } }; logPush(c, '↩ ส่งกลับแก้ไข' + (why.trim() ? ' — ' + why.trim() : '')); renderSheet(); schedule(); toast('ส่งกลับแก้ไขแล้ว'); }
   else if (a === 'undo' && c) undo();
   else if (a === 'resubmit' && c) { c.st = 'notified'; if (c.flow) { delete c.flow.rejected; delete c.flow.submitted; delete c.flow.approved; } logPush(c, 'เตรียมส่งเคลมใหม่'); renderSheet(); schedule(); }
