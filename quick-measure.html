@@ -157,6 +157,15 @@ label.f textarea{min-height:72px;resize:vertical}
 .pr-foot{font-size:11.5px;color:var(--mut);margin:4px 0 0}
 .pr-sign{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12.5px}
 .pr-sign div{border:1px solid var(--line);border-radius:10px;padding:10px;line-height:1.8}
+.chip.mg{background:#1F5F8B;border-color:#1F5F8B;color:#fff;font-weight:600}
+.rq2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:8px}
+.rq2 input,#reqBody label.f input{min-width:0;width:100%}
+.rql small{font-size:12px}
+.steps{display:flex;gap:4px}.steps span{flex:1;text-align:center;font-size:11.5px;padding:5px 2px;border-radius:8px;background:#EFE8DB;color:var(--mut)}
+.steps span.on{background:#1F5F8B;color:#fff;font-weight:600}
+.rqc{border-left:5px solid var(--c)}
+.rs-draft{background:#FBEDE3;color:#7E3A19}.rs-approved{background:#E3ECF5;color:#2F5E8C}.rs-sent{background:#FFF3CF;color:#6B5200}.rs-linked{background:#E6EFE0;color:#3F5A33}.rs-cancelled{background:#EEE;color:#777;text-decoration:line-through}
+.pr-sign3{grid-template-columns:1fr 1fr 1fr}
 @media print{
   @page{size:A4;margin:12mm}
   html,body{height:auto;background:#fff}
@@ -249,6 +258,14 @@ label.f textarea{min-height:72px;resize:vertical}
   <div class="foot"><button class="btn" id="btnTeamCsv">⬇ CSV (Excel)</button><button class="btn pri" id="btnTeamAdd">+ เพิ่มทีม</button></div>
 </section>
 
+<!-- ===== v1.6.0 ใบขอซื้อ / ใบขอจ้าง → Mango ===== -->
+<section id="scrReq" class="scr" hidden>
+  <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="tt"><span class="brand">Wellcon PM · PR / WO → Mango</span><b id="rqTitle">ออก PR / WO</b><span id="rqSub"></span></span></div>
+  <div class="body" id="reqBody"></div>
+  <div class="foot" id="reqFoot"></div>
+</section>
+
 <!-- ===== v1.5.0 ใบขอบเขตงาน ===== -->
 <section id="scrPrint" class="scr" hidden>
   <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -318,7 +335,7 @@ label.f textarea{min-height:72px;resize:vertical}
 <script src="vendor/pdf.min.js"></script>
 <script src="wdraw.js?v=1.1.0"></script>
 <script src="takeoff-engine.js"></script>
-<script src="quick-measure.js?v=1.5.1"></script>
+<script src="quick-measure.js?v=1.6.0"></script>
 <script src="pm-nav.js?v=1.0.0"></script>
 </body>
 </html>
