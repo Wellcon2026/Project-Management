@@ -19,7 +19,6 @@ git push
 - เปิดจากเมนู **วัดพื้นที่ด่วน (มือถือ)** ในหน้าโครงการ → `/quick-measure.html?pid=<id>` (`&env=staging` = ข้อมูลทดสอบ)
 - ข้อมูล: ตาราง `takeoff_field_measures` + `takeoff_field_sheets` (SQL: `supabase-quick-measure.sql`) · อ่านแบบ/โซนจาก QS ผ่าน `takeoff_pm_feed` เท่านั้น · ไม่มีราคา
 - v1.5.0 แบ่งขอบเขตงานตามทีม: ตาราง `takeoff_scope_teams` (ชื่อ · หมวดงาน · สี) + คอลัมน์ `takeoff_field_measures.team_id` (SQL: `supabase-scope-teams.sql`) · หน้า "แบ่งงานตามทีม" + ใบขอบเขตงาน (พิมพ์ / PDF / ส่งรูป) · ไม่มีราคา
-- v1.6.0 ใบขอซื้อ (PR) / ใบขอจ้าง (WO) จากขอบเขตงาน → ไฟล์สำหรับ Mango: ตาราง `takeoff_scope_requests` (SQL: `supabase-scope-requests.sql`) · ร่าง → อนุมัติ → ส่งจัดซื้อ → ผูกเลขที่ Mango · ไม่มีราคา
 
 ### อัปเดตสูตรคำนวณ (takeoff-engine.js) จาก QS
 ห้ามแก้ `takeoff-engine.js` ใน repo นี้ — แก้ที่ `wellcon-qs-takeoff` แล้วคัดลอกมา:
