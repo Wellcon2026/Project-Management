@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.5.1';   // 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
+const QM_VER = 'v1.6.0';   // 1.6.0: ออกใบขอซื้อ (PR) / ใบขอจ้าง (WO) จากขอบเขตงานของทีม → ไฟล์สำหรับ Mango · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -57,7 +57,7 @@ function toPm() { if (document.referrer && new URL(document.referrer).origin ===
 
 // ---------- state ----------
 const APP = { acc: null, me: null, projects: [], pid: null, proj: null, feed: null, set: null, rows: [], sheets: [], noTable: false, filter: 'mine', screen: 'msg', pushed: 0, bin: {},
-  teams: [], team: '', noTeams: false, dcCos: [] };   // v1.5.0 ทีม/ผู้รับเหมาช่วง · team = ทีมที่กำลังทำ ('' = ทุกทีม)
+  teams: [], team: '', noTeams: false, dcCos: [], reqs: [], noReq: false };   // v1.5.0 ทีม/ผู้รับเหมาช่วง · team = ทีมที่กำลังทำ ('' = ทุกทีม)
 
 // ---------- v1.2.0 ย้อน / ทำซ้ำ ทุกการแก้ไข · Ctrl+Z = ย้อน · Ctrl+Y (หรือ Ctrl+Shift+Z) = ทำซ้ำ · มือถือใช้ปุ่ม ↶ / ↷ ----------
 //   kind 'draw' = จุดบนแบบที่กำลังวาด (ล้างเมื่อออกจากหน้าวัด/เปิดแบบอื่น) · kind 'act' = ข้อมูลที่บันทึกแล้ว (ย้อนแก้ฐานข้อมูลจริง)
@@ -101,7 +101,7 @@ async function sheetSet(ids, patch) {
 const measuresOn = (ids) => APP.rows.filter(r => ids.includes(r.sheet_id)).length;
 
 // ---------- screens + ปุ่มย้อนกลับของมือถือ ----------
-const SCR = ['msg', 'proj', 'list', 'pick', 'measure', 'teams', 'print'];
+const SCR = ['msg', 'proj', 'list', 'pick', 'measure', 'teams', 'print', 'req'];
 function show(s, push) {
   SCR.forEach(k => { $('scr' + k[0].toUpperCase() + k.slice(1)).hidden = k !== s; });
   if (push) { history.pushState({ qm: s }, ''); APP.pushed++; }
@@ -114,7 +114,7 @@ window.addEventListener('popstate', (e) => {
   const s = (e.state && e.state.qm) || (APP.pid ? 'list' : (APP.acc ? 'proj' : 'msg'));
   if (APP.pushed > 0) APP.pushed--;
   if (APP.screen === 'measure' && MV.dirty() && !confirm('ยังไม่ได้บันทึกรูปที่วาดอยู่ ออกจากหน้านี้?')) { history.pushState({ qm: 'measure' }, ''); APP.pushed++; return; }
-  show(s, false); if (s === 'list') renderList(); if (s === 'teams') renderTeams();
+  show(s, false); if (s === 'list') renderList(); if (s === 'teams') renderTeams(); if (s === 'req') renderReq();
 });
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (!b) return;
   if (b.dataset.act === 'toPm') toPm(); else if (b.dataset.act === 'back') history.back(); });
@@ -216,7 +216,7 @@ async function loadRows() {
 async function openProject(pid) {
   APP.pid = pid; APP.proj = APP.projects.find(x => x.id === pid);
   msg('<div class="spin"></div><p class="empty">กำลังโหลดข้อมูลโครงการ…</p>');
-  try { await Promise.all([loadSettings(), loadRows(), loadTeams()]); }
+  try { await Promise.all([loadSettings(), loadRows(), loadTeams(), loadReqs()]); }
   catch (e) { console.error(e); msg(`<div class="card" style="margin-top:20px"><b>โหลดข้อมูลไม่สำเร็จ</b><span style="color:var(--mut);font-size:14px">${esc((e && e.message) || e)}</span><button class="btn pri" onclick="location.reload()">ลองใหม่</button></div>`); return; }
   const sub = [projName(APP.proj), projCode(APP.proj)].filter(Boolean).join(' · ');
   $('listProj').textContent = sub; $('pickProj').textContent = sub;
@@ -339,21 +339,31 @@ function renderTeams() {
     <div class="bar"><i style="width:${R.length ? done / R.length * 100 : 0}%"></i></div>
     <span style="font-size:12.5px;color:var(--mut)">วิธีมอบงาน: เปิดแบบ → แตะชื่อทีมในแถบสี → เครื่องมือ <b>ระบุทีม</b> → แตะพื้นที่ที่วัดไว้ (หรือวาดใหม่ระหว่างเลือกทีม จะเป็นของทีมนั้นทันที)</span></div>`);
   if (!APP.teams.length && !APP.noTeams) h.push('<p class="empty">ยังไม่มีทีม — กด “+ เพิ่มทีม” เช่น ฝ้า ทีม A, ฝ้า ทีม B, Built-in โรงงาน</p>');
+  const used = reqOfRow();
   const card = (id, name, trade, col, L, isUn) => {
+    const nReq = L.filter(r => used.has(r.id)).length, left = L.filter(r => !used.has(r.id) && r.qty != null).length;
     const sheets = new Set(L.map(r => r.source === 'qs' ? 'q' + r.qs_file_id + r.page : 'u' + r.sheet_id)).size, open = !!tOpen[id];
     return `<div class="card tcard" style="--c:${esc(col)}"><div class="row1"><span class="tdot"></span><span class="nm">${esc(name)}${trade ? ` <small style="color:var(--mut);font-weight:400">· ${esc(trade)}</small>` : ''}</span>
       <span class="q">${L.length} รายการ</span></div>
-      <span style="font-size:12px;color:var(--mut)">${sheets ? 'อยู่บนแบบ ' + sheets + ' แผ่น' : 'ยังไม่มีพื้นที่ที่มอบ'}${isUn && L.length ? ' · <b style="color:#8C2F2F">ยังไม่มีเจ้าของงาน</b>' : ''}</span>
+      <span style="font-size:12px;color:var(--mut)">${sheets ? 'อยู่บนแบบ ' + sheets + ' แผ่น' : 'ยังไม่มีพื้นที่ที่มอบ'}${isUn && L.length ? ' · <b style="color:#8C2F2F">ยังไม่มีเจ้าของงาน</b>' : ''}${!isUn && !APP.noReq && L.length ? ' · ออก PR/WO แล้ว ' + nReq + '/' + L.length : ''}</span>
       ${sumTable(sumBy(L))}
       <div class="chips">${L.length ? `<button class="chip" data-tlist="${esc(id)}">${open ? 'ซ่อนรายการ ▴' : 'ดูรายการ ▾'}</button>` : ''}
         ${!isUn && L.length ? `<button class="chip" data-tview="${esc(id)}">ดูบนแบบ</button><button class="chip pri" data-tprint="${esc(id)}">📄 ใบขอบเขตงาน</button>` : ''}
+        ${!isUn && canReq() && left ? `<button class="chip mg" data-treq="${esc(id)}">🧾 ออก PR / WO (${left})</button>` : ''}
         ${!isUn && canEditTeams() ? `<button class="chip" data-tedit="${esc(id)}">แก้ไข</button>` : ''}</div>
-      ${open ? '<div class="tl">' + L.map(r => `<button class="tli" data-row="${esc(r.id)}"><span>${esc(rowLabel(r))}<small>${esc(sheetOfRow(r))}</small></span><b>${r.qty == null ? '' : esc(fq(+r.qty, r.unit)) + ' ' + esc(r.unit || '')}</b></button>`).join('') + '</div>' : ''}</div>`;
+      ${open ? '<div class="tl">' + L.map(r => `<button class="tli" data-row="${esc(r.id)}"><span>${esc(rowLabel(r))}<small>${esc(sheetOfRow(r))}${used.has(r.id) ? ' · <b>' + esc(used.get(r.id).doc_no) + '</b>' : ''}</small></span><b>${r.qty == null ? '' : esc(fq(+r.qty, r.unit)) + ' ' + esc(r.unit || '')}</b></button>`).join('') + '</div>' : ''}</div>`;
   };
   APP.teams.forEach(t => h.push(card(t.id, t.name, t.trade, t.color, R.filter(r => r.team_id === t.id), false)));
   if (un.length) h.push(card('_un', 'ยังไม่ระบุทีม', '', '#9A948A', un, true));
+  if (!APP.noReq && APP.reqs.length) {   // v1.6.0 เอกสาร PR / WO → Mango
+    h.push('<div class="sec">ใบขอซื้อ / ใบขอจ้าง → Mango</div>');
+    APP.reqs.forEach(q => { const t = APP.teams.find(x => x.id === q.team_id);
+      h.push(`<button class="card rqc" data-rq="${esc(q.id)}" style="--c:${esc((t && t.color) || '#9A948A')}"><div class="row1"><span class="tdot"></span><span class="nm">${esc(q.doc_no)} · ${esc(q.kind === 'pr' ? 'PR' : 'WO')}</span><span class="tag rs-${esc(q.status)}">${esc(REQ_ST[q.status] || q.status)}</span></div>
+        <div class="row2"><span>${esc(q.vendor_name)}</span><span>${(q.lines || []).length} รายการ</span>${q.mango_no ? `<b>Mango ${esc(q.mango_no)}</b>` : ''}<span>${esc(when(q.created_at))}</span></div></button>`); });
+  }
   h.push('<div class="note">ปริมาณจากการวัดบนแบบ ใช้มอบหมายและควบคุมขอบเขตงาน — ยังไม่ใช่ BOQ · ไม่มีราคา</div>');
   $('teamsBody').innerHTML = h.join('');
+  reqAutoLink();
   $('btnTeamAdd').disabled = !canEditTeams();
 }
 $('teamsBody').addEventListener('click', async (e) => {
@@ -362,6 +372,8 @@ $('teamsBody').addEventListener('click', async (e) => {
   if ((x = b('tlist'))) { tOpen[x.dataset.tlist] = !tOpen[x.dataset.tlist]; renderTeams(); return; }
   if ((x = b('tedit'))) { await openTeam(APP.teams.find(t => t.id === x.dataset.tedit)); return; }
   if ((x = b('tprint'))) { openPrint(x.dataset.tprint); return; }
+  if ((x = b('treq'))) { reqNew(x.dataset.treq); return; }
+  if ((x = b('rq'))) { reqOpen(x.dataset.rq); return; }
   if ((x = b('tview'))) { const id = x.dataset.tview, r = APP.rows.find(q => q.team_id === id && q.type !== 'note'); const src = r && srcOfRow(r);
     if (!src) { toast('ไม่พบแบบของรายการนี้แล้ว'); return; } setCurTeam(id); show('measure', true); MV.open(src); return; }
   if ((x = b('row'))) openRow(x.dataset.row);
@@ -433,6 +445,175 @@ $('btnPrShare').addEventListener('click', async () => {
   files.forEach(f => { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); });
   toast('บันทึกรูปแบบแล้ว — ส่งต่อทาง LINE ได้');
 });
+
+// =====================================================================
+// v1.6.0 ใบขอซื้อ (PR) / ใบขอจ้าง (WO) จากขอบเขตงานของทีม → ส่งฝ่ายจัดซื้อออกเอกสารใน Mango
+//   ร่าง → อนุมัติ (QS / PM คนละคนกับผู้ขอ) → ส่งจัดซื้อ (ไฟล์สำหรับ Mango + ใบพิมพ์) → ผูกเลขที่ Mango
+//   ไม่มีราคา (จัดซื้อใส่ใน Mango) · รายการที่ออกเอกสารแล้วจะไม่ถูกดึงซ้ำ (กันสั่งซ้ำ)
+// =====================================================================
+const REQ_ST = { draft: 'ร่าง · รออนุมัติ', approved: 'อนุมัติแล้ว · รอส่งจัดซื้อ', sent: 'ส่งจัดซื้อแล้ว · รอเลข Mango', linked: 'มีเลขที่ Mango แล้ว', cancelled: 'ยกเลิก' };
+const REQ_KIND = { pr: 'ใบขอซื้อ (PR)', wo: 'ใบขอจ้าง (WO)' };
+const REQ_HINT = { pr: 'ซื้อวัสดุจาก Supplier — ใช้ปริมาณรวมเผื่อเศษ', wo: 'จ้างผู้รับเหมาช่วง / ทีมช่าง — ใช้ปริมาณสุทธิ' };
+const APPROVE_ROLES = ['qs', 'qs_mgr', 'pm', 'pm_mgr', 'superadmin', 'director'], BOSS = ['superadmin', 'director'];
+const LINK_ROLES = APPROVE_ROLES.concat(['proc', 'proc_mgr', 'store', 'fin', 'fin_mgr']);
+const reqActive = (q) => q && q.status !== 'cancelled' && !q.deleted_at;
+const mangoNo = () => String((APP.proj && (APP.proj.mangoNo || APP.proj.mango_no)) || '').trim();
+async function loadReqs() {
+  const r = await sb.from('takeoff_scope_requests').select('*').eq('pm_project_id', APP.pid).is('deleted_at', null).order('created_at', { ascending: false });
+  APP.noReq = !!r.error; APP.reqs = r.error ? [] : (r.data || []);
+}
+// รายการวัด → เอกสารที่ดึงไปแล้ว (เฉพาะที่ยังไม่ยกเลิก)
+function reqOfRow() { const m = new Map(); (APP.reqs || []).filter(reqActive).forEach(q => (q.lines || []).forEach(l => (l.rows || []).forEach(id => m.set(id, q)))); return m; }
+const canReq = () => canEditTeams() && !APP.noReq;
+const canApprove = (q) => APPROVE_ROLES.includes(APP.me.role) && (BOSS.includes(APP.me.role) || norm(q.created_email) !== APP.me.email);
+const canLink = () => LINK_ROLES.includes(APP.me.role);
+async function reqWrite(id, patch) {
+  const q = await sb.from('takeoff_scope_requests').update(patch).eq('id', id).select('*'); if (q.error) throw q.error;
+  const n = q.data && q.data[0]; const i = APP.reqs.findIndex(x => x.id === id); if (n) { if (i >= 0) APP.reqs[i] = n; else APP.reqs.unshift(n); }
+  if (APP.screen === 'teams') renderTeams(); if (APP.screen === 'req' && REQ && REQ.doc && REQ.doc.id === id) { REQ.doc = n; renderReq(); } return n;
+}
+let REQ = null;   // { mode: 'edit' | 'view', doc }
+// เปิดร่างใหม่จากทีม: ดึงเฉพาะรายการที่ยังไม่ได้ออกเอกสาร · รวมตาม งาน + หน่วย
+function reqNew(teamId) {
+  const t = APP.teams.find(x => x.id === teamId); if (!t) return;
+  const used = reqOfRow(), L = APP.rows.filter(r => r.team_id === teamId && r.type !== 'note' && r.qty != null && !used.has(r.id));
+  if (!L.length) { toast('ทุกรายการของทีมนี้ออกเอกสารแล้ว'); return; }
+  const codes = {}; (APP.reqs || []).forEach(q => (q.lines || []).forEach(l => { if (l.code) codes[l.work + '|' + l.unit] = l.code; }));
+  const G = new Map(); L.forEach(r => { const k = (r.work || '(ไม่ระบุงาน)') + '|' + (r.unit || ''); const o = G.get(k) || { work: r.work || '(ไม่ระบุงาน)', unit: r.unit || '', net: 0, gross: 0, rows: [], names: [] };
+    o.net += +r.qty; o.gross += grossQ(r); o.rows.push(r.id); if (r.name && !o.names.includes(r.name)) o.names.push(r.name); G.set(k, o); });
+  const kind = 'wo';   // ค่าเริ่ม = จ้างผู้รับเหมา · เปลี่ยนเป็น PR (ซื้อวัสดุ) ได้ในฟอร์ม
+  const lines = [...G.values()].map(o => ({ work: o.work, unit: o.unit, net: r4(o.net), gross: r4(o.gross), qty: r2(kind === 'pr' ? o.gross : o.net), edited: false,
+    code: codes[o.work + '|' + o.unit] || '', desc: o.work + (o.names.length ? ' — ' + o.names.join(', ') : ''), rows: o.rows }));
+  REQ = { mode: 'edit', doc: { id: null, kind, team_id: t.id, vendor_name: t.name, mango_project: mangoNo() || null, need_date: null, note: '', lines, status: 'draft' } };
+  show('req', true); renderReq();
+}
+const r2 = (v) => Math.round(v * 100) / 100, r4 = (v) => Math.round(v * 10000) / 10000;
+function reqOpen(id) { const q = APP.reqs.find(x => x.id === id); if (!q) return; REQ = { mode: 'view', doc: q }; show('req', true); renderReq(); }
+function renderReq() {
+  if (!REQ) return; const d = REQ.doc, edit = REQ.mode === 'edit', t = APP.teams.find(x => x.id === d.team_id), h = [];
+  $('rqTitle').textContent = d.id ? d.doc_no + ' · ' + REQ_KIND[d.kind] : 'ออก PR / WO ใหม่';
+  $('rqSub').textContent = [projName(APP.proj), projCode(APP.proj)].filter(Boolean).join(' · ');
+  if (!d.mango_project) h.push('<div class="note">โครงการนี้ยังไม่ผูกเลขที่โครงการ Mango — ผูกได้ที่หน้าโครงการใน Wellcon PM (เมนู Mango) · ฝ่ายจัดซื้อยังออกเอกสารได้ แต่ต้องเลือกโครงการใน Mango เอง</div>');
+  if (edit) {
+    h.push(`<div class="card"><span class="sec" style="margin:0">ประเภทเอกสาร</span><div class="chips">${['wo', 'pr'].map(k => `<button class="chip${d.kind === k ? ' on' : ''}" data-rk="${k}">${REQ_KIND[k]}</button>`).join('')}</div>
+      <span style="font-size:12.5px;color:var(--mut)">${REQ_HINT[d.kind]}</span></div>`);
+    h.push(`<div class="card"><label class="f">${d.kind === 'pr' ? 'ผู้ขาย (Supplier)' : 'ผู้รับจ้าง'}<input id="rqVendor" value="${esc(d.vendor_name)}" maxlength="80" autocomplete="off"></label>
+      <label class="f">วันที่ต้องการของ / เริ่มงาน<input id="rqNeed" type="date" value="${esc(d.need_date || '')}"></label></div>`);
+    h.push('<div class="sec">รายการ (ไม่มีราคา — จัดซื้อใส่ราคาใน Mango)</div>');
+    d.lines.forEach((l, i) => h.push(`<div class="card rql"><div class="row1"><span class="nm">${i + 1}. ${esc(l.work)}</span><button class="chip" data-rdel="${i}" style="min-height:34px;font-size:12.5px;color:#8C2F2F">ลบ</button></div>
+      <label class="f">รายละเอียด<input data-rf="desc" data-i="${i}" value="${esc(l.desc)}" maxlength="160"></label>
+      <div class="rq2"><label class="f">จำนวน (${esc(l.unit)})<input data-rf="qty" data-i="${i}" value="${esc(l.qty)}" inputmode="decimal"></label>
+        <label class="f">รหัสสินค้า / รหัสงบ Mango<input data-rf="code" data-i="${i}" value="${esc(l.code)}" maxlength="40" placeholder="ไม่บังคับ" autocomplete="off"></label></div>
+      <small style="color:var(--mut)">วัดได้ สุทธิ ${esc(fq(l.net, l.unit))} · รวมเผื่อ ${esc(fq(l.gross, l.unit))} ${esc(l.unit)} · ${l.rows.length} พื้นที่${l.edited ? ' · <b style="color:#8C2F2F">แก้จำนวนเอง</b>' : ''}</small></div>`));
+    h.push(`<label class="f">หมายเหตุถึงฝ่ายจัดซื้อ<textarea id="rqNote" maxlength="400" placeholder="เช่น ส่งของเข้าไซต์ก่อน 9 โมง · แนบใบขอบเขตงาน">${esc(d.note || '')}</textarea></label>`);
+  } else {
+    const kv = [['ประเภท', REQ_KIND[d.kind]], ['สถานะ', REQ_ST[d.status]], ['โครงการ Mango', d.mango_project || '— ยังไม่ผูก'], [d.kind === 'pr' ? 'ผู้ขาย' : 'ผู้รับจ้าง', d.vendor_name || '—'],
+      d.need_date ? ['วันที่ต้องการ', dmy(new Date(d.need_date + 'T00:00:00'))] : null, ['ผู้ขอ', (d.created_by || '') + ' · ' + when(d.created_at)],
+      d.approved_at ? ['อนุมัติ', (d.approved_by || '') + ' · ' + when(d.approved_at)] : null, d.sent_at ? ['ส่งจัดซื้อ', (d.sent_by || '') + ' · ' + when(d.sent_at)] : null,
+      d.mango_no ? ['เลขที่ Mango', d.mango_no + (d.linked_by ? ' · ' + d.linked_by : '')] : null, d.note ? ['หมายเหตุ', d.note] : null].filter(Boolean);
+    h.push(`<div class="card"><div class="steps">${['draft', 'approved', 'sent', 'linked'].map((s, i, A) => `<span class="${A.indexOf(d.status) >= i ? 'on' : ''}">${['ร่าง', 'อนุมัติ', 'ส่งจัดซื้อ', 'เลข Mango'][i]}</span>`).join('')}</div>
+      <dl class="kv">${kv.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>`);
+    h.push('<div class="sec">รายการ</div><div class="card"><table class="sum"><thead><tr><th>#</th><th>รายละเอียด</th><th class="n">จำนวน</th></tr></thead><tbody>' + (d.lines || []).map((l, i) =>
+      `<tr><td>${i + 1}</td><td>${esc(l.desc)}${l.code ? `<br><small style="color:var(--mut)">รหัส Mango ${esc(l.code)}</small>` : ''}</td><td class="n">${esc(fq(+l.qty, l.unit))} ${esc(l.unit)}</td></tr>`).join('') + '</tbody></table></div>');
+    if (d.status === 'sent' || d.status === 'approved') h.push(`<div class="info">ฝ่ายจัดซื้อ: ใส่เลขที่ <b>${esc(d.doc_no)}</b> ในช่องหมายเหตุ / อ้างอิงของเอกสารใน Mango แล้วนำเลขที่ ${d.kind === 'pr' ? 'PR' : 'WO'} จาก Mango มาผูกที่นี่</div>`);
+    if (d.status === 'cancelled') h.push('<div class="note">เอกสารนี้ยกเลิกแล้ว — รายการพื้นที่กลับไปออกเอกสารใหม่ได้</div>');
+  }
+  $('reqBody').innerHTML = h.join('');
+  // ปุ่มล่าง ตามสถานะ / สิทธิ์
+  const B = [];
+  if (edit) B.push('<button class="btn" data-ra="back">ยกเลิก</button>', `<button class="btn pri" data-ra="save">${d.id ? 'บันทึก' : 'บันทึกร่าง'}</button>`);
+  else {
+    if (d.status === 'draft') { if (canReq() && (norm(d.created_email) === APP.me.email || canApprove(d))) B.push('<button class="btn" data-ra="edit">แก้ไข</button>');
+      B.push(canApprove(d) ? '<button class="btn pri" data-ra="approve">✓ อนุมัติ</button>' : '<button class="btn" disabled>รอ QS / PM อีกคนอนุมัติ</button>'); }
+    if (d.status === 'approved' || d.status === 'sent' || d.status === 'linked') B.push('<button class="btn" data-ra="print">🖨 ใบขอ + แบบ</button>', `<button class="btn pri" data-ra="csv">⬇ ไฟล์สำหรับ Mango</button>`);
+    if ((d.status === 'sent' || d.status === 'approved') && canLink()) B.push('<button class="btn pri wide" data-ra="link">ใส่เลขที่จาก Mango</button>');
+    if (d.status !== 'cancelled' && d.status !== 'linked' && (norm(d.created_email) === APP.me.email || canApprove(d))) B.push('<button class="btn wide" data-ra="cancel" style="color:#8C2F2F">ยกเลิกเอกสาร</button>');
+  }
+  $('reqFoot').innerHTML = B.join('');
+}
+$('reqBody').addEventListener('click', (e) => {
+  const k = e.target.closest('[data-rk]'); if (k && REQ && REQ.mode === 'edit') { syncReq(); const d = REQ.doc; d.kind = k.dataset.rk;
+    d.lines.forEach(l => { if (!l.edited) l.qty = r2(d.kind === 'pr' ? l.gross : l.net); }); renderReq(); return; }
+  const x = e.target.closest('[data-rdel]'); if (x && REQ) { syncReq(); REQ.doc.lines.splice(+x.dataset.rdel, 1); renderReq(); }
+});
+$('reqBody').addEventListener('input', (e) => { const f = e.target.closest('[data-rf]'); if (!f || !REQ) return; const l = REQ.doc.lines[+f.dataset.i]; if (!l) return;
+  if (f.dataset.rf === 'qty') { const v = parseFloat(String(f.value).replace(/,/g, '')); l.qty = v > 0 ? v : 0; l.edited = Math.abs(l.qty - r2(REQ.doc.kind === 'pr' ? l.gross : l.net)) > 1e-6; }
+  else l[f.dataset.rf] = f.value; });
+function syncReq() { if (!REQ || REQ.mode !== 'edit') return; const d = REQ.doc; if ($('rqVendor')) d.vendor_name = $('rqVendor').value.trim(); if ($('rqNeed')) d.need_date = $('rqNeed').value || null; if ($('rqNote')) d.note = $('rqNote').value.trim(); }
+async function saveReq() {
+  syncReq(); const d = REQ.doc;
+  if (!d.lines.length) { toast('ไม่มีรายการ'); return; } if (d.lines.some(l => !(l.qty > 0))) { toast('ใส่จำนวนให้ครบทุกรายการ'); return; } if (!d.vendor_name) { toast('ใส่ชื่อผู้ขาย / ผู้รับจ้าง'); return; }
+  const lines = d.lines.map(l => ({ work: l.work, unit: l.unit, qty: r4(l.qty), net: l.net, gross: l.gross, edited: !!l.edited, code: String(l.code || '').trim(), desc: String(l.desc || '').trim() || l.work, rows: l.rows }));
+  const body = { kind: d.kind, vendor_name: d.vendor_name, need_date: d.need_date, note: d.note || null, lines, mango_project: mangoNo() || null };
+  try {
+    if (d.id) { await reqWrite(d.id, body); REQ.mode = 'view'; renderReq(); toast('บันทึกแล้ว'); return; }
+    let n = (APP.reqs || []).length + 1, r = null;
+    for (let k = 0; k < 6; k++) { const doc_no = d.kind.toUpperCase() + '-QM-' + String(n + k).padStart(3, '0');
+      r = await sb.from('takeoff_scope_requests').insert({ ...body, pm_project_id: APP.pid, doc_no, team_id: d.team_id, status: 'draft', created_by: APP.me.name, created_email: APP.me.email, created_role: APP.me.role }).select('*');
+      if (!r.error || !/duplicate|unique/i.test(r.error.message || '')) break; }
+    if (r.error) throw r.error; const q = r.data[0]; APP.reqs.unshift(q); REQ = { mode: 'view', doc: q }; history.replaceState({ qm: 'req' }, ''); renderReq();
+    toast('บันทึกร่าง ' + q.doc_no + ' แล้ว — ให้ QS / PM อีกคนกดอนุมัติ');
+  } catch (x) { toast('บันทึกไม่สำเร็จ: ' + ((x && x.message) || x), 5000); }
+}
+$('reqFoot').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-ra]'); if (!b || !REQ) return; const a = b.dataset.ra, d = REQ.doc, now = new Date().toISOString();
+  try {
+    if (a === 'back') { if (d.id) { REQ.mode = 'view'; REQ.doc = APP.reqs.find(x => x.id === d.id) || d; renderReq(); } else history.back(); }
+    else if (a === 'save') await saveReq();
+    else if (a === 'edit') { REQ = { mode: 'edit', doc: JSON.parse(JSON.stringify(d)) }; renderReq(); }
+    else if (a === 'approve') { if (!confirm('อนุมัติ ' + d.doc_no + '?\nตรวจจำนวนกับ BOQ แล้ว (No Approved BOQ = No PO)')) return; await reqWrite(d.id, { status: 'approved', approved_by: APP.me.name, approved_at: now }); toast('อนุมัติแล้ว — ส่งไฟล์ให้ฝ่ายจัดซื้อได้เลย'); }
+    else if (a === 'csv') { reqCsv(d); if (d.status === 'approved') await reqWrite(d.id, { status: 'sent', sent_by: APP.me.name, sent_at: now }); }
+    else if (a === 'print') { await reqPrint(d); if (d.status === 'approved') await reqWrite(d.id, { status: 'sent', sent_by: APP.me.name, sent_at: now }); }
+    else if (a === 'link') { const v = prompt('เลขที่ ' + (d.kind === 'pr' ? 'PR' : 'WO') + ' จาก Mango', d.mango_no || ''); if (v === null) return; const no = v.trim(); if (!no) return;
+      await reqWrite(d.id, { status: 'linked', mango_no: no, linked_by: APP.me.name, linked_at: now, ...(d.sent_at ? {} : { sent_by: APP.me.name, sent_at: now }) }); toast('ผูกเลขที่ Mango ' + no + ' แล้ว'); }
+    else if (a === 'cancel') { if (!confirm('ยกเลิก ' + d.doc_no + '?\nพื้นที่ในเอกสารนี้จะกลับไปออกเอกสารใหม่ได้')) return; await reqWrite(d.id, { status: 'cancelled' }); toast('ยกเลิกแล้ว'); }
+  } catch (x) { toast('ไม่สำเร็จ: ' + ((x && x.message) || x), 5000); }
+});
+// ไฟล์สำหรับฝ่ายจัดซื้อ (เปิดใน Excel → คีย์ / นำเข้า Mango) · ไม่มีราคา
+function reqCsv(d) {
+  const q = (v) => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const head = ['เลขที่อ้างอิง Wellcon', 'ประเภท', 'เลขที่โครงการ Mango', 'ชื่อโครงการ', d.kind === 'pr' ? 'ผู้ขาย' : 'ผู้รับจ้าง', 'วันที่ต้องการ', 'ลำดับ', 'รหัสสินค้า/รหัสงบ Mango', 'รายละเอียด', 'จำนวน', 'หน่วย', 'หมายเหตุ'];
+  const nd = d.need_date ? dmy(new Date(d.need_date + 'T00:00:00')) : '';
+  const L = [head.map(q).join(',')].concat((d.lines || []).map((l, i) => [d.doc_no, d.kind.toUpperCase(), d.mango_project || '', projName(APP.proj), d.vendor_name, nd, i + 1, l.code, l.desc, (+l.qty).toFixed(2), l.unit, i ? '' : (d.note || '')].map(q).join(',')));
+  const blob = new Blob(['﻿' + L.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Mango-' + d.doc_no + '-' + (projCode(APP.proj) || APP.pid) + '.csv';
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); toast('ดาวน์โหลดไฟล์สำหรับ Mango แล้ว (ไม่มีราคา)');
+}
+// ใบขอซื้อ / ขอจ้าง + แบบที่ระบายพื้นที่ (ใช้หน้าพิมพ์เดียวกับใบขอบเขตงาน)
+async function reqPrint(d) {
+  const t = APP.teams.find(x => x.id === d.team_id) || { name: d.vendor_name, color: '#B8582A', trade: '' };
+  const ids = new Set(); (d.lines || []).forEach(l => (l.rows || []).forEach(id => ids.add(id)));
+  const L = APP.rows.filter(r => ids.has(r.id));
+  show('print', true); PR_IMGS = []; $('prTitle').textContent = d.doc_no + ' · ' + REQ_KIND[d.kind]; $('prBody').innerHTML = '<div class="spin"></div><p class="empty">กำลังเตรียมเอกสาร…</p>';
+  const G = new Map(); L.forEach(r => { const k = r.source === 'qs' ? 'qs:' + r.qs_file_id + ':' + r.page : 'up:' + r.sheet_id; if (!G.has(k)) G.set(k, []); G.get(k).push(r); });
+  const parts = []; let no = 0;
+  for (const [, rows] of G) { const src = srcOfRow(rows[0]), nums = rows.map(() => ++no); let img = '';
+    try { if (src) img = await sheetImage(src, rows, t, nums); } catch (x) { console.error(x); } if (img) PR_IMGS.push({ name: (src && src.name) || 'แบบ', url: img });
+    parts.push(`<section class="pr-page"><h4>${esc((src && src.name) || sheetOfRow(rows[0]))}</h4>${img ? `<img src="${img}" alt="">` : ''}
+      <p style="font-size:12px;margin:0">${rows.map((r, i) => '#' + nums[i] + ' ' + esc(r.name || r.work || '') + ' ' + esc(fq(+r.qty, r.unit)) + ' ' + esc(r.unit || '')).join(' · ')}</p></section>`); }
+  const nd = d.need_date ? dmy(new Date(d.need_date + 'T00:00:00')) : '—';
+  $('prBody').innerHTML = `<div class="pr-doc">
+    <div class="pr-hd"><div><b>WELLCON INTERIOR</b><span>${esc(REQ_KIND[d.kind])} · ภายใน — ส่งฝ่ายจัดซื้อออกเอกสารใน Mango</span></div><div class="pr-meta">เลขที่ <b>${esc(d.doc_no)}</b><br>วันที่ ${esc(dmy(new Date(d.created_at || Date.now())))}</div></div>
+    <dl class="kv pr-kv"><dt>โครงการ</dt><dd>${esc([projName(APP.proj), projCode(APP.proj)].filter(Boolean).join(' · '))} · Mango ${esc(d.mango_project || '— ยังไม่ผูก')}</dd>
+      <dt>${d.kind === 'pr' ? 'ผู้ขาย' : 'ผู้รับจ้าง'}</dt><dd><b>${esc(d.vendor_name)}</b></dd><dt>วันที่ต้องการ</dt><dd>${esc(nd)}</dd>
+      <dt>สถานะ</dt><dd>${esc(REQ_ST[d.status])}${d.mango_no ? ' · Mango ' + esc(d.mango_no) : ''}</dd></dl>
+    <table class="sum pr-t"><thead><tr><th>#</th><th>รหัส Mango</th><th>รายละเอียด</th><th class="n">จำนวน</th><th>หน่วย</th></tr></thead><tbody>
+      ${(d.lines || []).map((l, i) => `<tr><td>${i + 1}</td><td>${esc(l.code || '')}</td><td>${esc(l.desc)}</td><td class="n">${esc(fq(+l.qty, l.unit))}</td><td>${esc(l.unit)}</td></tr>`).join('')}</tbody></table>
+    ${d.note ? `<p style="font-size:13px;margin:0">หมายเหตุ: ${esc(d.note)}</p>` : ''}
+    ${parts.join('')}
+    <p class="pr-foot">ไม่มีราคา — ฝ่ายจัดซื้อใส่ราคาและออกเอกสารใน Mango โดยอ้างอิงเลขที่ ${esc(d.doc_no)} · ปริมาณจากการวัดบนแบบ ตรวจกับ BOQ ก่อนออก PO / สัญญาจ้าง · <b>No Approved BOQ = No PO</b></p>
+    <div class="pr-sign pr-sign3"><div>ผู้ขอ<br>${esc(d.created_by || '')}<br><br>ลงชื่อ ..............................</div><div>ผู้อนุมัติ (QS / PM)<br>${esc(d.approved_by || '')}<br><br>ลงชื่อ ..............................</div>
+      <div>ฝ่ายจัดซื้อ<br>เลขที่ Mango ${esc(d.mango_no || '................')}<br><br>ลงชื่อ ..............................</div></div></div>`;
+  $('btnPrShare').hidden = !PR_IMGS.length;
+}
+// ผูกเลขที่ Mango อัตโนมัติ เมื่อ Mango เปิดให้อ่านรายการ PR (/api/mango?type=pr) — หาเลข PR-QM-xxx ในหมายเหตุ
+let mgTried = false;
+async function reqAutoLink() {
+  if (mgTried || APP.noReq || !mangoNo()) return; const W = APP.reqs.filter(q => q.kind === 'pr' && q.status === 'sent' && !q.mango_no); if (!W.length) return; mgTried = true;
+  try { const r = await fetch('/api/mango?type=pr&project=' + encodeURIComponent(mangoNo()), { headers: { 'X-Wellcon-User': APP.me.email } }); const j = await r.json(); if (!j || !j.ok || !Array.isArray(j.rows)) return;
+    for (const q of W) { const hit = j.rows.find(x => String(x.desc || '').includes(q.doc_no)); if (hit && hit.no) await reqWrite(q.id, { status: 'linked', mango_no: String(hit.no), linked_by: 'Mango (อัตโนมัติ)', linked_at: new Date().toISOString() }); }
+  } catch (e) {}
+}
 
 // ---------- โหลดภาพแบบ (ใช้ทั้งหน้าวัดและใบขอบเขตงาน) ----------
 async function blobOf(src) {
