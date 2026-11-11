@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.5.1';   // 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
+const QM_VER = 'v1.5.2';   // 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -233,6 +233,7 @@ const teamOf = (r) => (r && r.team_id ? APP.teams.find(t => t.id === r.team_id) 
 const curTeam = () => (APP.team ? APP.teams.find(t => t.id === APP.team) || null : null);
 const teamKey = () => 'qm_team_' + SCHEMA + '_' + APP.pid;
 function setCurTeam(id) { APP.team = id || ''; try { localStorage.setItem(teamKey(), APP.team); } catch (e) {} }
+const MANGO_URL = 'https://wellcon-interior.mangoanywhere.com/production.anywhere/page/transaction/of/';   // Mango ERP · Office Service (ใบขอซื้อ · สถานะ PR · ใบสั่งจ้าง)
 const canEditTeams = () => !!(APP.set && APP.set.allow_quick_measure) && !APP.noTeams;
 async function loadTeams() {
   const r = await sb.from('takeoff_scope_teams').select('*').eq('pm_project_id', APP.pid).is('deleted_at', null).order('sort').order('created_at');
@@ -338,6 +339,9 @@ function renderTeams() {
   h.push(`<div class="card" style="gap:8px"><div class="row1"><span class="nm">มอบงานแล้ว ${done} / ${R.length} รายการ</span><span class="q">${R.length ? Math.round(done / R.length * 100) : 0}%</span></div>
     <div class="bar"><i style="width:${R.length ? done / R.length * 100 : 0}%"></i></div>
     <span style="font-size:12.5px;color:var(--mut)">วิธีมอบงาน: เปิดแบบ → แตะชื่อทีมในแถบสี → เครื่องมือ <b>ระบุทีม</b> → แตะพื้นที่ที่วัดไว้ (หรือวาดใหม่ระหว่างเลือกทีม จะเป็นของทีมนั้นทันที)</span></div>`);
+  h.push(`<div class="card mgc"><div class="row1"><span class="nm">🛒 เปิดใบขอซื้อ (PR) / ใบสั่งจ้าง (WO) ใน Mango</span></div>
+    <span style="font-size:12.5px;color:var(--mut)">กด “📋 คัดลอกรายการ” ที่ทีม → เปิด Mango → วางในช่องรายละเอียด / หมายเหตุ</span>
+    <a class="btn mgb" href="${MANGO_URL}" target="_blank" rel="noopener">เปิด Mango ↗</a></div>`);
   if (!APP.teams.length && !APP.noTeams) h.push('<p class="empty">ยังไม่มีทีม — กด “+ เพิ่มทีม” เช่น ฝ้า ทีม A, ฝ้า ทีม B, Built-in โรงงาน</p>');
   const card = (id, name, trade, col, L, isUn) => {
     const sheets = new Set(L.map(r => r.source === 'qs' ? 'q' + r.qs_file_id + r.page : 'u' + r.sheet_id)).size, open = !!tOpen[id];
@@ -347,6 +351,7 @@ function renderTeams() {
       ${sumTable(sumBy(L))}
       <div class="chips">${L.length ? `<button class="chip" data-tlist="${esc(id)}">${open ? 'ซ่อนรายการ ▴' : 'ดูรายการ ▾'}</button>` : ''}
         ${!isUn && L.length ? `<button class="chip" data-tview="${esc(id)}">ดูบนแบบ</button><button class="chip pri" data-tprint="${esc(id)}">📄 ใบขอบเขตงาน</button>` : ''}
+        ${!isUn && L.length ? `<button class="chip" data-tcopy="${esc(id)}">📋 คัดลอกรายการ</button>` : ''}
         ${!isUn && canEditTeams() ? `<button class="chip" data-tedit="${esc(id)}">แก้ไข</button>` : ''}</div>
       ${open ? '<div class="tl">' + L.map(r => `<button class="tli" data-row="${esc(r.id)}"><span>${esc(rowLabel(r))}<small>${esc(sheetOfRow(r))}</small></span><b>${r.qty == null ? '' : esc(fq(+r.qty, r.unit)) + ' ' + esc(r.unit || '')}</b></button>`).join('') + '</div>' : ''}</div>`;
   };
@@ -362,11 +367,26 @@ $('teamsBody').addEventListener('click', async (e) => {
   if ((x = b('tlist'))) { tOpen[x.dataset.tlist] = !tOpen[x.dataset.tlist]; renderTeams(); return; }
   if ((x = b('tedit'))) { await openTeam(APP.teams.find(t => t.id === x.dataset.tedit)); return; }
   if ((x = b('tprint'))) { openPrint(x.dataset.tprint); return; }
+  if ((x = b('tcopy'))) { copyScope(x.dataset.tcopy); return; }
   if ((x = b('tview'))) { const id = x.dataset.tview, r = APP.rows.find(q => q.team_id === id && q.type !== 'note'); const src = r && srcOfRow(r);
     if (!src) { toast('ไม่พบแบบของรายการนี้แล้ว'); return; } setCurTeam(id); show('measure', true); MV.open(src); return; }
   if ((x = b('row'))) openRow(x.dataset.row);
 });
 $('btnTeamAdd').addEventListener('click', () => openTeam(null));
+// คัดลอกรายการของทีม (งาน · ห้อง · ปริมาณ) ไปวางใน Mango — ไม่มีราคา
+async function copyScope(id) {
+  const t = APP.teams.find(x => x.id === id); if (!t) return;
+  const L = APP.rows.filter(r => r.team_id === id && r.type !== 'note' && r.qty != null), out = [];
+  out.push('ขอบเขตงาน: ' + t.name + (t.trade ? ' (' + t.trade + ')' : ''));
+  out.push('โครงการ: ' + [projName(APP.proj), projCode(APP.proj)].filter(Boolean).join(' · '));
+  sumBy(L).forEach((o, i) => { const names = []; L.filter(r => (r.work || '(ไม่ระบุงาน)') === o.work && (r.unit || '') === o.unit).forEach(r => { if (r.name && !names.includes(r.name)) names.push(r.name); });
+    out.push((i + 1) + ') ' + o.work + (names.length ? ' — ' + names.join(', ') : '') + ' : ' + fq(o.net, o.unit) + ' ' + o.unit + (Math.abs(o.gross - o.net) > 1e-6 ? ' (รวมเผื่อ ' + fq(o.gross, o.unit) + ')' : '')); });
+  out.push('อ้างอิง: Wellcon PM · ใบขอบเขตงาน ' + dmy(new Date()) + ' · ปริมาณจากการวัดบนแบบ');
+  const txt = out.join('\n'); let ok = false;
+  try { await navigator.clipboard.writeText(txt); ok = true; } catch (e) {}
+  if (!ok) { try { const ta = document.createElement('textarea'); ta.value = txt; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (e) {} }
+  if (ok) toast('คัดลอกรายการ ' + t.name + ' แล้ว — เปิด Mango แล้ววางในช่องรายละเอียด', 3200); else prompt('คัดลอกข้อความนี้ไปวางใน Mango', txt);
+}
 $('btnTeamCsv').addEventListener('click', () => MV.csv());
 
 // ---------- ใบขอบเขตงาน (Scope of Work) ของ 1 ทีม: แบบที่ไฮไลต์ + ตารางปริมาณ · พิมพ์ / บันทึก PDF / แชร์รูป ----------
