@@ -124,6 +124,50 @@ label.f textarea{min-height:72px;resize:vertical}
 .sum input{width:58px;min-height:28px;border:1px solid var(--line);border-radius:6px;padding:2px 4px;font-size:12px;text-align:right}
 .kbd{font-size:11px;color:var(--mut);line-height:1.6}
 .kbd b{display:inline-block;min-width:16px;text-align:center;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 3px;background:#fff;color:var(--ink2);font-weight:600}
+/* v1.5.0 แบ่งขอบเขตงานตามทีม */
+.teams{display:flex;gap:6px;padding:6px 10px;background:#FBF7EF;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.teams::-webkit-scrollbar{display:none}
+.tchip{--c:#3E3F32;flex:none;display:inline-flex;align-items:center;gap:6px;min-height:40px;border-radius:999px;border:1.5px solid var(--line);background:#fff;padding:0 12px;font-size:13.5px;white-space:nowrap}
+.tchip i{width:12px;height:12px;border-radius:4px;background:var(--c);flex:none}
+.tchip small{font-size:11px;color:var(--mut)}
+.tchip em{font-style:normal;font-size:11px;font-weight:600;background:var(--c);color:#fff;border-radius:999px;padding:0 6px;min-width:18px;text-align:center}
+.tchip.on{border-color:var(--c);background:var(--c);color:#fff;font-weight:600}
+.tchip.on i{background:#fff}.tchip.on small{color:rgba(255,255,255,.85)}.tchip.on em{background:#fff;color:var(--c)}
+.tchip.add{border-style:dashed;color:var(--ink2)}
+.tdot{display:inline-block;width:12px;height:12px;border-radius:4px;background:var(--c,#9A948A);flex:none;vertical-align:-1px}
+.tsw{width:40px;height:40px;border-radius:12px;border:3px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.tsw.on{box-shadow:0 0 0 3px var(--ink)}
+.bar{height:8px;border-radius:99px;background:#EFE8DB;overflow:hidden}.bar i{display:block;height:100%;background:#2E7D46;border-radius:99px}
+.tcard{border-left:5px solid var(--c)}
+.chip.pri{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.tl{display:flex;flex-direction:column;gap:4px}
+.tli{display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;font-size:13.5px;min-height:44px}
+.tli span{flex:1;min-width:0;display:flex;flex-direction:column}.tli small{color:var(--mut);font-size:11.5px}.tli b{white-space:nowrap;font-weight:600}
+.tentry{border:1.5px solid #C9B48A;background:#FFF9EE}
+.tsum{border-left:4px solid var(--c);padding:4px 8px;font-size:12.5px;display:flex;flex-direction:column;gap:2px}
+.tsum div{display:flex;justify-content:space-between;gap:8px}
+.tsum div span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.pr-doc{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.pr-hd{display:flex;justify-content:space-between;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:8px}
+.pr-hd b{display:block;letter-spacing:.12em;font-size:15px}.pr-hd span{font-size:13px;color:var(--ink2)}
+.pr-meta{font-size:12px;color:var(--mut);text-align:right}
+.pr-doc h4{margin:6px 0 0;font-size:14px}
+.pr-page{display:flex;flex-direction:column;gap:6px}
+.pr-page img{width:100%;height:auto;border:1px solid var(--line);border-radius:8px;display:block}
+.pr-foot{font-size:11.5px;color:var(--mut);margin:4px 0 0}
+.pr-sign{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12.5px}
+.pr-sign div{border:1px solid var(--line);border-radius:10px;padding:10px;line-height:1.8}
+@media print{
+  @page{size:A4;margin:12mm}
+  html,body{height:auto;background:#fff}
+  .scr,.toast,dialog{display:none!important}
+  #scrPrint{display:block!important;position:static;max-width:none;box-shadow:none}
+  #scrPrint .hdr,#scrPrint .foot,#scrPrint .stg{display:none!important}
+  #scrPrint .body{overflow:visible;padding:0}
+  .pr-doc{border:0;padding:0}
+  .pr-page{break-inside:avoid}
+  .pr-page img{max-height:170mm;object-fit:contain}
+}
 @media (min-width:1000px){
   #scrMeasure .mside{display:flex;flex-direction:column;width:250px;flex:none;background:var(--card);border-right:1px solid var(--line);overflow:auto}
   #scrMeasure #mRight{width:330px;border-right:0;border-left:1px solid var(--line)}
@@ -181,6 +225,7 @@ label.f textarea{min-height:72px;resize:vertical}
     <aside class="mside" id="mLeft" aria-label="แผ่นแบบในโครงการ"></aside>
     <div class="mmain">
       <div class="tools" id="mTools" role="toolbar" aria-label="ชนิดการวัด"></div>
+      <div class="teams" id="mTeams" role="toolbar" aria-label="ทีม / ผู้รับเหมา" hidden></div>
       <div class="cvw" id="cvw"><canvas id="cv"></canvas><div class="hint" id="mHint"></div></div>
       <div class="sheet">
         <div class="big"><b id="mQty">—</b><span id="mUnit"></span><em id="mPer"></em></div>
@@ -194,6 +239,22 @@ label.f textarea{min-height:72px;resize:vertical}
     </div>
     <aside class="mside" id="mRight" aria-label="รายการวัดและสรุป"></aside>
   </div>
+</section>
+
+<!-- ===== v1.5.0 แบ่งงานตามทีม ===== -->
+<section id="scrTeams" class="scr" hidden>
+  <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="tt"><span class="brand">Wellcon PM · ขอบเขตงาน</span><b>แบ่งงานตามทีม / ผู้รับเหมา</b><span id="tmProj"></span></span></div>
+  <div class="body" id="teamsBody"></div>
+  <div class="foot"><button class="btn" id="btnTeamCsv">⬇ CSV (Excel)</button><button class="btn pri" id="btnTeamAdd">+ เพิ่มทีม</button></div>
+</section>
+
+<!-- ===== v1.5.0 ใบขอบเขตงาน ===== -->
+<section id="scrPrint" class="scr" hidden>
+  <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="tt"><span class="brand">Wellcon PM · ขอบเขตงาน</span><b id="prTitle">ใบขอบเขตงาน</b><span>ไม่มีราคา · พิมพ์ / บันทึก PDF / ส่งรูป</span></span></div>
+  <div class="body" id="prBody"></div>
+  <div class="foot"><button class="btn" id="btnPrShare">📤 ส่งรูปแบบ (LINE)</button><button class="btn pri" id="btnPrPrint">🖨 พิมพ์ / PDF</button></div>
 </section>
 
 <!-- เลือกหน้า PDF ตอนนำเข้า (v1.1.0) -->
@@ -210,6 +271,7 @@ label.f textarea{min-height:72px;resize:vertical}
 <dialog class="bs" id="dlgSave"><form method="dialog" class="bs-in" id="frmSave">
   <h3 id="svTitle">บันทึกรายการวัด</h3>
   <div class="big"><b id="svQty"></b><span id="svUnit"></span><em id="svPer"></em></div>
+  <div class="f" id="svTeamWrap"><span style="font-size:13px;color:var(--ink2)">มอบให้ทีม / ผู้รับเหมา</span><div class="chips" id="svTeam"></div></div>
   <label class="f">ชื่อห้อง / โซน<input id="svName" required maxlength="80" autocomplete="off" placeholder="เช่น Master Bedroom"></label>
   <div class="f"><span style="font-size:13px;color:var(--ink2)">งาน</span><div class="chips" id="svWork"></div>
     <label class="f" style="margin-top:6px"><input id="svWorkTxt" maxlength="60" placeholder="หรือพิมพ์ชื่องานเอง" autocomplete="off"></label></div>
@@ -234,8 +296,20 @@ label.f textarea{min-height:72px;resize:vertical}
 <dialog class="bs" id="dlgRow"><form method="dialog" class="bs-in" id="frmRow">
   <h3 id="rwTitle"></h3>
   <dl class="kv" id="rwKv"></dl>
+  <label class="f" id="rwTeamWrap">มอบให้ทีม / ผู้รับเหมา (บันทึกทันที)<select id="rwTeam"></select></label>
   <label class="f" id="rwQsNoteWrap">หมายเหตุจาก QS<textarea id="rwQsNote" maxlength="300" placeholder="ไม่บังคับ"></textarea></label>
   <div class="g3" id="rwBtns" style="grid-template-columns:repeat(2,minmax(0,1fr))"></div>
+</form></dialog>
+
+<!-- v1.5.0 เพิ่ม / แก้ไขทีม -->
+<dialog class="bs" id="dlgTeam"><form method="dialog" class="bs-in" id="frmTeam">
+  <h3 id="tmTitle">เพิ่มทีม / ผู้รับเหมา</h3>
+  <div class="f" id="tmCosWrap"><span style="font-size:13px;color:var(--ink2)">เลือกจากรายชื่อผู้รับเหมาในแอป Defect</span><div class="chips" id="tmCos"></div></div>
+  <label class="f">ชื่อทีม / บริษัท<input id="tmName" maxlength="60" autocomplete="off" placeholder="เช่น ฝ้า ทีม A"></label>
+  <div class="f"><span style="font-size:13px;color:var(--ink2)">หมวดงาน</span><div class="chips" id="tmTrades"></div>
+    <label class="f" style="margin-top:6px"><input id="tmTrade" maxlength="40" autocomplete="off" placeholder="หรือพิมพ์เอง เช่น งานไม้ / สี / หิน"></label></div>
+  <div class="f"><span style="font-size:13px;color:var(--ink2)">สีประจำทีม (ใช้ไฮไลต์บนแบบ)</span><div class="chips" id="tmCol"></div></div>
+  <div class="g3" style="grid-template-columns:1fr 1fr 2fr"><button class="btn" value="del" id="tmDel" formnovalidate style="color:#8C2F2F">ลบทีม</button><button class="btn" value="cancel" formnovalidate>ยกเลิก</button><button class="btn pri" value="ok">บันทึก</button></div>
 </form></dialog>
 
 <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
@@ -244,7 +318,7 @@ label.f textarea{min-height:72px;resize:vertical}
 <script src="vendor/pdf.min.js"></script>
 <script src="wdraw.js?v=1.1.0"></script>
 <script src="takeoff-engine.js"></script>
-<script src="quick-measure.js"></script>
+<script src="quick-measure.js?v=1.5.0"></script>
 <script src="pm-nav.js?v=1.0.0"></script>
 </body>
 </html>
