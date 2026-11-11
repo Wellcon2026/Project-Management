@@ -108,7 +108,10 @@ node scripts/patch-exec-dash.js
 ```bash
 node scripts/patch-pd-short.js
 ```
-(เมนู Takeoff · วัดหน้างาน · QS Tracking บันทึกทีละแถว · ซ่อนแท็บ Takeoff เดิม — เปิดกลับด้วย `?legacyTakeoff=1` · ติดตั้งเป็นแอป + ไอคอน Wellcon PM · หน้าแรกของฉันตามตำแหน่ง · กันรูป/ข้อมูลหายจาก realtime · เมนู Claim · หน้า Home เลือกโครงการ · หน้าภาพรวมโครงการแบบสั้น · หน้าแรกตามบทบาททุกตำแหน่ง · ปุ่มหน้าแรก + ออกจากระบบทุกหน้า · รายงานประจำวัน คนเข้างานแยกตาม trade · คะแนน Level Gate เห็นเฉพาะ Admin / Director / HR · Site Issues ติดตามงาน · จัดเรียงการ์ดหน้าทำงาน · Super Admin เห็นทุกเมนู · เมนู Layboard · ล็อกอินกันรหัสถูกแต่ขึ้นผิด · เลือกภาษาก่อนพิมพ์ · เมนู As-Built & Survey · หน้าแรกแบบใหม่ (ตัวเลขหลัก · ต้องดูแล · รายการโครงการแถวเดียว) · หน้าภาพรวมโครงการแบบสั้น v2 (พับส่วนรอง))
+```bash
+node scripts/patch-usage.js
+```
+(เมนู Takeoff · วัดหน้างาน · QS Tracking บันทึกทีละแถว · ซ่อนแท็บ Takeoff เดิม — เปิดกลับด้วย `?legacyTakeoff=1` · ติดตั้งเป็นแอป + ไอคอน Wellcon PM · หน้าแรกของฉันตามตำแหน่ง · กันรูป/ข้อมูลหายจาก realtime · เมนู Claim · หน้า Home เลือกโครงการ · หน้าภาพรวมโครงการแบบสั้น · หน้าแรกตามบทบาททุกตำแหน่ง · ปุ่มหน้าแรก + ออกจากระบบทุกหน้า · รายงานประจำวัน คนเข้างานแยกตาม trade · คะแนน Level Gate เห็นเฉพาะ Admin / Director / HR · Site Issues ติดตามงาน · จัดเรียงการ์ดหน้าทำงาน · Super Admin เห็นทุกเมนู · เมนู Layboard · ล็อกอินกันรหัสถูกแต่ขึ้นผิด · เลือกภาษาก่อนพิมพ์ · เมนู As-Built & Survey · หน้าแรกแบบใหม่ (ตัวเลขหลัก · ต้องดูแล · รายการโครงการแถวเดียว) · หน้าภาพรวมโครงการแบบสั้น v2 (พับส่วนรอง) · นับการเปิดแอป + ปุ่มการใช้งานระบบ)
 
 ## Layboard · Presentation (ตั้งแต่ 09/11/2026)
 - หน้าแยก `/layboard/index.html?pid=<project id>` — สำเนาแอป Layboard (repo Wellcon2026/layboard) สำหรับทำงานนำเสนอในโครงการ
@@ -130,3 +133,9 @@ node scripts/patch-pd-short.js
 - Claim อนุมัติขั้นเดียว: `c.appr = { h, ok:{ by, role, at, amt }, back }` — QS (`qs`, `qs_mgr`) หรือ PM (`pm`, `pm_mgr`) · superadmin ได้ทุกกรณี
 - Quick Measure: DXF → PNG (ด้านยาว 4096 px) + `mm_per_px` จากไฟล์ (สเกลอัตโนมัติ)
 - DWG ยังไม่รองรับโดยตรง — ให้ AutoCAD "Save As → DXF" (แปลงผ่านบริการภายนอกต้องได้รับอนุมัติผู้บริหารก่อน)
+
+## การใช้งานระบบ · Usage Dashboard (ตั้งแต่ 11/11/2026)
+- หน้าแยก `/usage.html` (`&env=staging` = ข้อมูลทดสอบ) — ปุ่ม "📊 การใช้งานระบบ" บนหน้าแรก PM · เปิดได้: superadmin · director · admin · pm_mgr · qs_mgr · design_mgr · fin_mgr · hr · hr_mgr
+- ข้อมูล: ฟังก์ชัน `usage_report(p_days)` (ตัวเลขสรุปเท่านั้น ไม่มีราคา) · การเปิดแอป: `usage_touch(email, app)` → ตาราง `usage_seen` (1 แถวต่อคน ต่อแอป ต่อวัน) — SQL: `supabase-usage.sql`
+- แอปที่นับ: PM (`pm` · ทุก 30 นาทีที่เปิดอยู่) · Claim (`claim`) · Quick Measure (`qm`) · Defect Check / Site Issues / Survey (`dc` / `si` / `sv` จาก repo wellcon-defect-check)
+- "ใช้งาน" = เปิดแอป หรือบันทึก / แก้ไขข้อมูล (updated_by ของแต่ละตาราง + engagement) · Daily Report นับวันทำงาน จ.–ส. ของโครงการที่กำลังทำงาน

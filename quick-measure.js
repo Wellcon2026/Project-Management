@@ -159,6 +159,7 @@ async function boot() {
     }
     APP.acc = acc;
     APP.me = { name: nickOf(acc), email: norm(acc.email), role: acc.roleKey || '', review: QS_REVIEW.includes(acc.roleKey) };
+    try { sb.rpc('usage_touch', { p_email: APP.me.email, p_app: 'qm' }).then(() => {}, () => {}); } catch (e) {}   // นับการเปิดแอป (หน้าการใช้งานระบบ)
     APP.projects = live.filter(x => seesAll(acc) || (acc.projects || []).includes(x.id));
     const pid = new URLSearchParams(location.search).get('pid');
     if (pid) {

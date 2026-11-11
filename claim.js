@@ -290,6 +290,7 @@ async function boot() {
     const acc = (ho && Date.now() - Number(ho.at || 0) < 12 * 36e5 && okAcc.find(x => match(x, ho))) || (sess && sess.email && Date.now() - Number(sess.at || 0) < SESS_DAYS * 864e5 && okAcc.find(x => match(x, { email: sess.email }))) || null;
     if (!acc) { msg(`<b>ยังไม่ได้เข้าสู่ระบบ Wellcon PM ในเครื่องนี้</b><span style="color:var(--mut);font-size:14px">เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิดเมนู “Claim · เคลมความเสียหาย” จากหน้าโครงการ</span>${goPm}`); return; }
     APP.acc = acc; APP.me = { name: nickOf(acc), email: norm(acc.email), role: acc.roleKey || '' };
+    try { sb.rpc('usage_touch', { p_email: APP.me.email, p_app: 'claim' }).then(() => {}, () => {}); } catch (e) {}   // นับการเปิดแอป (หน้าการใช้งานระบบ)
     APP.projects = live.filter(x => seesAll(acc) || (acc.projects || []).includes(x.id));
     const pid = new URLSearchParams(location.search).get('pid');
     if (pid && !APP.projects.some(x => x.id === pid)) { msg(`<b>คุณไม่ได้รับมอบหมายในโครงการนี้</b><span style="color:var(--mut);font-size:14px">ติดต่อผู้ดูแลระบบถ้าต้องการสิทธิ์</span>${goPm}`); return; }
