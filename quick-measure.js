@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.4.0';   // 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
+const QM_VER = 'v1.5.0';   // 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -56,7 +56,8 @@ const pmUrl = () => '/' + (IS_STG ? '?env=staging' : '');
 function toPm() { if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1 && !APP.pushed) history.back(); else location.href = pmUrl(); }
 
 // ---------- state ----------
-const APP = { acc: null, me: null, projects: [], pid: null, proj: null, feed: null, set: null, rows: [], sheets: [], noTable: false, filter: 'mine', screen: 'msg', pushed: 0, bin: {} };
+const APP = { acc: null, me: null, projects: [], pid: null, proj: null, feed: null, set: null, rows: [], sheets: [], noTable: false, filter: 'mine', screen: 'msg', pushed: 0, bin: {},
+  teams: [], team: '', noTeams: false, dcCos: [] };   // v1.5.0 ทีม/ผู้รับเหมาช่วง · team = ทีมที่กำลังทำ ('' = ทุกทีม)
 
 // ---------- v1.2.0 ย้อน / ทำซ้ำ ทุกการแก้ไข · Ctrl+Z = ย้อน · Ctrl+Y (หรือ Ctrl+Shift+Z) = ทำซ้ำ · มือถือใช้ปุ่ม ↶ / ↷ ----------
 //   kind 'draw' = จุดบนแบบที่กำลังวาด (ล้างเมื่อออกจากหน้าวัด/เปิดแบบอื่น) · kind 'act' = ข้อมูลที่บันทึกแล้ว (ย้อนแก้ฐานข้อมูลจริง)
@@ -85,7 +86,7 @@ async function rowSet(id, patch) {
   if (q.error) throw q.error; const n = q.data && q.data[0]; if (!n) throw new Error('ไม่พบรายการ');
   const i = APP.rows.findIndex(x => x.id === id);
   if (n.deleted_at) { if (i >= 0) APP.rows.splice(i, 1); } else if (i >= 0) APP.rows[i] = n; else APP.rows.unshift(n);
-  if (APP.screen === 'list') renderList(); if (APP.screen === 'measure') MV.side(); return n;
+  if (APP.screen === 'list') renderList(); if (APP.screen === 'measure') MV.side(); if (APP.screen === 'teams') renderTeams(); return n;
 }
 // แก้แถว takeoff_field_sheets แล้วซิงก์ APP.sheets
 async function sheetSet(ids, patch) {
@@ -100,7 +101,7 @@ async function sheetSet(ids, patch) {
 const measuresOn = (ids) => APP.rows.filter(r => ids.includes(r.sheet_id)).length;
 
 // ---------- screens + ปุ่มย้อนกลับของมือถือ ----------
-const SCR = ['msg', 'proj', 'list', 'pick', 'measure'];
+const SCR = ['msg', 'proj', 'list', 'pick', 'measure', 'teams', 'print'];
 function show(s, push) {
   SCR.forEach(k => { $('scr' + k[0].toUpperCase() + k.slice(1)).hidden = k !== s; });
   if (push) { history.pushState({ qm: s }, ''); APP.pushed++; }
@@ -113,7 +114,7 @@ window.addEventListener('popstate', (e) => {
   const s = (e.state && e.state.qm) || (APP.pid ? 'list' : (APP.acc ? 'proj' : 'msg'));
   if (APP.pushed > 0) APP.pushed--;
   if (APP.screen === 'measure' && MV.dirty() && !confirm('ยังไม่ได้บันทึกรูปที่วาดอยู่ ออกจากหน้านี้?')) { history.pushState({ qm: 'measure' }, ''); APP.pushed++; return; }
-  show(s, false); if (s === 'list') renderList();
+  show(s, false); if (s === 'list') renderList(); if (s === 'teams') renderTeams();
 });
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (!b) return;
   if (b.dataset.act === 'toPm') toPm(); else if (b.dataset.act === 'back') history.back(); });
@@ -215,11 +216,250 @@ async function loadRows() {
 async function openProject(pid) {
   APP.pid = pid; APP.proj = APP.projects.find(x => x.id === pid);
   msg('<div class="spin"></div><p class="empty">กำลังโหลดข้อมูลโครงการ…</p>');
-  try { await Promise.all([loadSettings(), loadRows()]); }
+  try { await Promise.all([loadSettings(), loadRows(), loadTeams()]); }
   catch (e) { console.error(e); msg(`<div class="card" style="margin-top:20px"><b>โหลดข้อมูลไม่สำเร็จ</b><span style="color:var(--mut);font-size:14px">${esc((e && e.message) || e)}</span><button class="btn pri" onclick="location.reload()">ลองใหม่</button></div>`); return; }
   const sub = [projName(APP.proj), projCode(APP.proj)].filter(Boolean).join(' · ');
   $('listProj').textContent = sub; $('pickProj').textContent = sub;
   show('list'); renderList();
+}
+
+// =====================================================================
+// v1.5.0 แบ่งขอบเขตงานตามทีม / ผู้รับเหมาช่วง (Scope Markup)
+//   QS / PM ไฮไลต์พื้นที่บนแบบ (แปลน / รูปด้าน) → มอบให้ทีม เช่น ฝ้า Lobby = ทีม A · ฝ้าห้องน้ำ = ทีม B
+//   ตาราง takeoff_scope_teams (ชื่อ · หมวดงาน · สี) · takeoff_field_measures.team_id · ไม่มีราคา
+// =====================================================================
+const TEAM_COLORS = ['#2F6FB0', '#D2462E', '#2E8B57', '#8E44AD', '#E08E0B', '#0E9AA7', '#C2185B', '#6D4C41', '#5C6BC0', '#7CB342', '#00897B', '#F4511E'];
+const teamOf = (r) => (r && r.team_id ? APP.teams.find(t => t.id === r.team_id) || null : null);
+const curTeam = () => (APP.team ? APP.teams.find(t => t.id === APP.team) || null : null);
+const teamKey = () => 'qm_team_' + SCHEMA + '_' + APP.pid;
+function setCurTeam(id) { APP.team = id || ''; try { localStorage.setItem(teamKey(), APP.team); } catch (e) {} }
+const canEditTeams = () => !!(APP.set && APP.set.allow_quick_measure) && !APP.noTeams;
+async function loadTeams() {
+  const r = await sb.from('takeoff_scope_teams').select('*').eq('pm_project_id', APP.pid).is('deleted_at', null).order('sort').order('created_at');
+  APP.noTeams = !!r.error; APP.teams = r.error ? [] : (r.data || []);
+  let t = ''; try { t = localStorage.getItem(teamKey()) || ''; } catch (e) {}
+  APP.team = APP.teams.some(x => x.id === t) ? t : '';
+  // รายชื่อผู้รับเหมาที่ตั้งไว้ในแอป Defect (อ่านอย่างเดียว · ใช้เติมชื่อเร็ว)
+  APP.dcCos = [];
+  try { const c = await sb.from('app_state').select('data').eq('id', 'defectCos').limit(1);
+    const L = c && !c.error && c.data && c.data[0] && c.data[0].data && c.data[0].data.v && c.data[0].data.v[APP.pid];
+    if (Array.isArray(L)) APP.dcCos = L.filter(x => x && x.name); } catch (e) {}
+}
+function teamsChanged() {
+  if (APP.screen === 'measure') MV.side(); if (APP.screen === 'teams') renderTeams(); if (APP.screen === 'list') renderList();
+}
+async function teamWrite(id, patch) {
+  const q = await sb.from('takeoff_scope_teams').update(patch).eq('id', id).select('*'); if (q.error) throw q.error;
+  const n = q.data && q.data[0]; const i = APP.teams.findIndex(x => x.id === id);
+  if (n && !n.deleted_at) { if (i >= 0) APP.teams[i] = n; else APP.teams.push(n); } else if (i >= 0) APP.teams.splice(i, 1);
+  if (n && n.deleted_at && APP.team === id) setCurTeam('');
+  teamsChanged(); return n;
+}
+// เพิ่ม / แก้ไขทีม → resolve(ทีม) หรือ null
+function openTeam(t) {
+  return new Promise((res) => {
+    const d = $('dlgTeam'), isNew = !t; let col = t ? t.color : TEAM_COLORS[APP.teams.length % TEAM_COLORS.length];
+    $('tmTitle').textContent = isNew ? 'เพิ่มทีม / ผู้รับเหมา' : 'แก้ไขทีม';
+    $('tmName').value = t ? t.name : ''; $('tmTrade').value = t ? (t.trade || '') : '';
+    const have = new Set(APP.teams.map(x => norm(x.name)));
+    const cos = isNew ? APP.dcCos.filter(c => !have.has(norm(c.name))) : [];
+    $('tmCosWrap').hidden = !cos.length;
+    $('tmCos').innerHTML = cos.map(c => `<button type="button" class="chip" data-co="${esc(c.id)}">${esc(c.name)}${c.trade ? ' · ' + esc(c.trade) : ''}</button>`).join('');
+    $('tmTrades').innerHTML = WORKS.filter(w => w !== 'อื่น ๆ').map(w => `<button type="button" class="chip" data-tr="${esc(w)}">${esc(w)}</button>`).join('');
+    const sw = () => { $('tmCol').innerHTML = TEAM_COLORS.map(c => `<button type="button" class="tsw${c === col ? ' on' : ''}" data-c="${c}" style="background:${c}" aria-label="สี ${c}" aria-pressed="${c === col}"></button>`).join(''); };
+    sw(); let coRef = t ? t.co_ref || null : null;
+    $('tmCol').onclick = (e) => { const b = e.target.closest('[data-c]'); if (b) { col = b.dataset.c; sw(); } };
+    $('tmTrades').onclick = (e) => { const b = e.target.closest('[data-tr]'); if (b) $('tmTrade').value = b.dataset.tr; };
+    $('tmCos').onclick = (e) => { const b = e.target.closest('[data-co]'); if (!b) return; const c = APP.dcCos.find(x => x.id === b.dataset.co); if (!c) return;
+      $('tmName').value = c.name; if (c.trade) $('tmTrade').value = c.trade; coRef = c.id; };
+    $('tmDel').hidden = isNew;
+    d.returnValue = ''; d.showModal(); if (isNew) setTimeout(() => $('tmName').focus(), 80);
+    d.onclose = async () => {
+      d.onclose = null; const v = d.returnValue;
+      if (v === 'del' && t) {
+        const L = APP.rows.filter(r => r.team_id === t.id);
+        if (!confirm(`ลบทีม “${t.name}”?` + (L.length ? `\n${L.length} รายการที่มอบให้ทีมนี้ จะกลับเป็น “ยังไม่ระบุทีม”` : ''))) { res(null); return; }
+        try {
+          if (L.length) { const q = await sb.from('takeoff_field_measures').update({ team_id: null }).in('id', L.map(x => x.id)).select('*'); if (q.error) throw q.error;
+            (q.data || []).forEach(n => { const i = APP.rows.findIndex(x => x.id === n.id); if (i >= 0) APP.rows[i] = n; }); }
+          await teamWrite(t.id, { deleted_at: new Date().toISOString() });
+          const ids = L.map(x => x.id);
+          hisPush({ kind: 'act', label: 'ลบทีม ' + t.name,
+            undo: async () => { await teamWrite(t.id, { deleted_at: null }); for (const id of ids) await rowSet(id, { team_id: t.id }); },
+            redo: async () => { for (const id of ids) await rowSet(id, { team_id: null }); await teamWrite(t.id, { deleted_at: new Date().toISOString() }); } });
+          toast('ลบทีมแล้ว · กด ↶ ย้อน ได้');
+        } catch (x) { toast('ลบไม่สำเร็จ: ' + ((x && x.message) || x), 4000); }
+        res(null); return;
+      }
+      if (v !== 'ok') { res(null); return; }
+      const name = $('tmName').value.trim(), trade = $('tmTrade').value.trim();
+      if (!name) { toast('ใส่ชื่อทีม / บริษัท'); res(null); return; }
+      if (APP.teams.some(x => x !== t && norm(x.name) === norm(name))) { toast('มีทีมชื่อนี้แล้ว'); res(null); return; }
+      try {
+        if (isNew) {
+          const q = await sb.from('takeoff_scope_teams').insert({ pm_project_id: APP.pid, name, trade, color: col, co_ref: coRef, sort: APP.teams.length,
+            created_by: APP.me.name, created_email: APP.me.email }).select('*');
+          if (q.error) throw q.error; const n = q.data[0]; APP.teams.push(n); setCurTeam(n.id); teamsChanged();
+          hisPush({ kind: 'act', label: 'เพิ่มทีม ' + name, undo: () => teamWrite(n.id, { deleted_at: new Date().toISOString() }), redo: () => teamWrite(n.id, { deleted_at: null }) });
+          toast('เพิ่มทีม “' + name + '” แล้ว — เลือกอยู่ตอนนี้'); res(n);
+        } else {
+          const before = { name: t.name, trade: t.trade || '', color: t.color }, after = { name, trade, color: col };
+          const n = await teamWrite(t.id, after);
+          hisPush({ kind: 'act', label: 'แก้ทีม ' + name, undo: () => teamWrite(t.id, before), redo: () => teamWrite(t.id, after) });
+          toast('บันทึกแล้ว'); res(n);
+        }
+      } catch (x) { toast('บันทึกไม่สำเร็จ: ' + ((x && x.message) || x), 4000); res(null); }
+    };
+  });
+}
+// สรุปปริมาณ: งาน + หน่วย (ไม่รวมโน้ต) — ใช้ทั้งสรุปทีม / ใบขอบเขตงาน / CSV
+const grossQ = (r) => (r.qty == null ? null : E.withWaste(+r.qty, +r.waste_pct || 0));
+function sumBy(rows) {
+  const m = new Map();
+  rows.filter(r => r.type !== 'note' && r.qty != null).forEach(r => { const k = (r.work || '(ไม่ระบุงาน)') + '|' + (r.unit || '');
+    const o = m.get(k) || { work: r.work || '(ไม่ระบุงาน)', unit: r.unit || '', net: 0, gross: 0, n: 0 }; o.net += +r.qty; o.gross += grossQ(r); o.n++; m.set(k, o); });
+  return [...m.values()].sort((a, b) => a.work.localeCompare(b.work, 'th') || a.unit.localeCompare(b.unit));
+}
+const sheetOfRow = (r) => (r.source === 'qs' ? drawingTitle((APP.feed.drawings || []).find(d => d.id === r.qs_file_id), r.page) : ((APP.sheets.find(s => s.id === r.sheet_id) || {}).name || 'รูปที่อัปโหลด'));
+const srcOfRow = (r) => (r.source === 'qs' ? qsSrc((APP.feed.drawings || []).find(x => x.id === r.qs_file_id), r.page) : upSrc(APP.sheets.find(s => s.id === r.sheet_id)));
+function sumTable(S) {
+  if (!S.length) return '<p class="empty" style="padding:6px">ยังไม่มีปริมาณ</p>';
+  return '<table class="sum"><thead><tr><th>งาน</th><th class="n">สุทธิ</th><th class="n">รวมเผื่อ</th></tr></thead><tbody>' + S.map(o =>
+    `<tr><td>${esc(o.work)} <small style="color:var(--mut)">· ${o.n} รายการ</small></td><td class="n">${esc(fq(o.net, o.unit))} ${esc(o.unit)}</td><td class="n">${esc(fq(o.gross, o.unit))} ${esc(o.unit)}</td></tr>`).join('') + '</tbody></table>';
+}
+
+// ---------- หน้า "แบ่งงานตามทีม" (มือถือเป็นหลัก) ----------
+const tOpen = {};
+function renderTeams() {
+  const h = [], R = APP.rows.filter(r => r.type !== 'note');
+  $('tmProj').textContent = [projName(APP.proj), projCode(APP.proj)].filter(Boolean).join(' · ');
+  if (APP.noTeams) h.push('<div class="note">ยังใช้งานไม่ได้: ผู้ดูแลระบบต้องรัน SQL <b>supabase-scope-teams.sql</b> ก่อน</div>');
+  const un = R.filter(r => !teamOf(r)), done = R.length - un.length;
+  h.push(`<div class="card" style="gap:8px"><div class="row1"><span class="nm">มอบงานแล้ว ${done} / ${R.length} รายการ</span><span class="q">${R.length ? Math.round(done / R.length * 100) : 0}%</span></div>
+    <div class="bar"><i style="width:${R.length ? done / R.length * 100 : 0}%"></i></div>
+    <span style="font-size:12.5px;color:var(--mut)">วิธีมอบงาน: เปิดแบบ → แตะชื่อทีมในแถบสี → เครื่องมือ <b>ระบุทีม</b> → แตะพื้นที่ที่วัดไว้ (หรือวาดใหม่ระหว่างเลือกทีม จะเป็นของทีมนั้นทันที)</span></div>`);
+  if (!APP.teams.length && !APP.noTeams) h.push('<p class="empty">ยังไม่มีทีม — กด “+ เพิ่มทีม” เช่น ฝ้า ทีม A, ฝ้า ทีม B, Built-in โรงงาน</p>');
+  const card = (id, name, trade, col, L, isUn) => {
+    const sheets = new Set(L.map(r => r.source === 'qs' ? 'q' + r.qs_file_id + r.page : 'u' + r.sheet_id)).size, open = !!tOpen[id];
+    return `<div class="card tcard" style="--c:${esc(col)}"><div class="row1"><span class="tdot"></span><span class="nm">${esc(name)}${trade ? ` <small style="color:var(--mut);font-weight:400">· ${esc(trade)}</small>` : ''}</span>
+      <span class="q">${L.length} รายการ</span></div>
+      <span style="font-size:12px;color:var(--mut)">${sheets ? 'อยู่บนแบบ ' + sheets + ' แผ่น' : 'ยังไม่มีพื้นที่ที่มอบ'}${isUn && L.length ? ' · <b style="color:#8C2F2F">ยังไม่มีเจ้าของงาน</b>' : ''}</span>
+      ${sumTable(sumBy(L))}
+      <div class="chips">${L.length ? `<button class="chip" data-tlist="${esc(id)}">${open ? 'ซ่อนรายการ ▴' : 'ดูรายการ ▾'}</button>` : ''}
+        ${!isUn && L.length ? `<button class="chip" data-tview="${esc(id)}">ดูบนแบบ</button><button class="chip pri" data-tprint="${esc(id)}">📄 ใบขอบเขตงาน</button>` : ''}
+        ${!isUn && canEditTeams() ? `<button class="chip" data-tedit="${esc(id)}">แก้ไข</button>` : ''}</div>
+      ${open ? '<div class="tl">' + L.map(r => `<button class="tli" data-row="${esc(r.id)}"><span>${esc(rowLabel(r))}<small>${esc(sheetOfRow(r))}</small></span><b>${r.qty == null ? '' : esc(fq(+r.qty, r.unit)) + ' ' + esc(r.unit || '')}</b></button>`).join('') + '</div>' : ''}</div>`;
+  };
+  APP.teams.forEach(t => h.push(card(t.id, t.name, t.trade, t.color, R.filter(r => r.team_id === t.id), false)));
+  if (un.length) h.push(card('_un', 'ยังไม่ระบุทีม', '', '#9A948A', un, true));
+  h.push('<div class="note">ปริมาณจากการวัดบนแบบ ใช้มอบหมายและควบคุมขอบเขตงาน — ยังไม่ใช่ BOQ · ไม่มีราคา</div>');
+  $('teamsBody').innerHTML = h.join('');
+  $('btnTeamAdd').disabled = !canEditTeams();
+}
+$('teamsBody').addEventListener('click', async (e) => {
+  const b = (k) => e.target.closest('[data-' + k + ']');
+  let x;
+  if ((x = b('tlist'))) { tOpen[x.dataset.tlist] = !tOpen[x.dataset.tlist]; renderTeams(); return; }
+  if ((x = b('tedit'))) { await openTeam(APP.teams.find(t => t.id === x.dataset.tedit)); return; }
+  if ((x = b('tprint'))) { openPrint(x.dataset.tprint); return; }
+  if ((x = b('tview'))) { const id = x.dataset.tview, r = APP.rows.find(q => q.team_id === id && q.type !== 'note'); const src = r && srcOfRow(r);
+    if (!src) { toast('ไม่พบแบบของรายการนี้แล้ว'); return; } setCurTeam(id); show('measure', true); MV.open(src); return; }
+  if ((x = b('row'))) openRow(x.dataset.row);
+});
+$('btnTeamAdd').addEventListener('click', () => openTeam(null));
+$('btnTeamCsv').addEventListener('click', () => MV.csv());
+
+// ---------- ใบขอบเขตงาน (Scope of Work) ของ 1 ทีม: แบบที่ไฮไลต์ + ตารางปริมาณ · พิมพ์ / บันทึก PDF / แชร์รูป ----------
+let PR_IMGS = [];
+async function openPrint(id) {
+  const t = APP.teams.find(x => x.id === id); if (!t) return;
+  const L = APP.rows.filter(r => r.team_id === id && r.type !== 'note'); if (!L.length) { toast('ทีมนี้ยังไม่มีพื้นที่ที่มอบ'); return; }
+  show('print', true); PR_IMGS = [];
+  $('prTitle').textContent = 'ใบขอบเขตงาน · ' + t.name;
+  $('prBody').innerHTML = '<div class="spin"></div><p class="empty">กำลังเตรียมแบบ…</p>';
+  // จัดกลุ่มตามแผ่นแบบ · เลขลำดับต่อเนื่องทั้งใบ
+  const G = new Map(); L.forEach(r => { const k = r.source === 'qs' ? 'qs:' + r.qs_file_id + ':' + r.page : 'up:' + r.sheet_id; if (!G.has(k)) G.set(k, []); G.get(k).push(r); });
+  const today = dmy(new Date()); let no = 0; const parts = [];
+  for (const [k, rows] of G) {
+    const src = srcOfRow(rows[0]); const nums = rows.map(() => ++no);
+    let img = '';
+    try { if (src) img = await sheetImage(src, rows, t, nums); } catch (x) { console.error(x); }
+    if (img) PR_IMGS.push({ name: (src && src.name) || 'แบบ', url: img });
+    parts.push(`<section class="pr-page"><h4>${esc((src && src.name) || sheetOfRow(rows[0]))}</h4>
+      ${img ? `<img src="${img}" alt="แบบ ${esc((src && src.name) || '')}">` : '<p class="note">เปิดแบบนี้ไม่สำเร็จ (อาจถูกแทนด้วย Rev. ใหม่)</p>'}
+      <table class="sum pr-t"><thead><tr><th>#</th><th>ห้อง / โซน</th><th>งาน</th><th class="n">ปริมาณ</th><th class="n">รวมเผื่อ</th></tr></thead><tbody>
+      ${rows.map((r, i) => `<tr><td>${nums[i]}</td><td>${esc(r.name || '—')}${r.note ? `<br><small>${esc(r.note)}</small>` : ''}</td><td>${esc(r.work || '')}</td><td class="n">${esc(fq(+r.qty, r.unit))} ${esc(r.unit || '')}</td><td class="n">${esc(fq(grossQ(r), r.unit))} ${esc(r.unit || '')}</td></tr>`).join('')}
+      </tbody></table></section>`);
+  }
+  const S = sumBy(L);
+  $('prBody').innerHTML = `<div class="pr-doc">
+    <div class="pr-hd"><div><b>WELLCON INTERIOR</b><span>ใบแบ่งขอบเขตงาน · Scope of Work</span></div><div class="pr-meta">วันที่ ${esc(today)}<br>ออกโดย ${esc(APP.me.name)}</div></div>
+    <dl class="kv pr-kv"><dt>โครงการ</dt><dd>${esc([projName(APP.proj), projCode(APP.proj)].filter(Boolean).join(' · '))}</dd>
+      <dt>ทีม / ผู้รับเหมา</dt><dd><span class="tdot" style="--c:${esc(t.color)}"></span> <b>${esc(t.name)}</b>${t.trade ? ' · ' + esc(t.trade) : ''}</dd>
+      <dt>ขอบเขต</dt><dd>${L.length} รายการ บนแบบ ${G.size} แผ่น — พื้นที่ระบายสีของทีมนี้เท่านั้น · เส้นเทาจาง = งานของทีมอื่น / ไม่อยู่ในขอบเขต</dd></dl>
+    <h4>สรุปปริมาณ</h4>${sumTable(S)}
+    ${parts.join('')}
+    <p class="pr-foot">ปริมาณจากการวัดบนแบบเพื่อมอบหมายขอบเขตงาน — ไม่ใช่ BOQ / ไม่มีราคา · ผู้รับเหมาต้องตรวจวัดหน้างานจริงก่อนผลิต · <b>No Signature = No Production</b></p>
+    <div class="pr-sign"><div>ผู้มอบหมายงาน (QS / PM)<br><br>ลงชื่อ ............................................<br>วันที่ ......../......../............</div>
+      <div>ผู้รับเหมา รับทราบขอบเขตงาน<br><br>ลงชื่อ ............................................<br>วันที่ ......../......../............</div></div></div>`;
+  $('btnPrShare').hidden = !PR_IMGS.length;
+}
+// วาดแบบ 1 แผ่น (ย่อไม่เกิน 2200 px) + ไฮไลต์พื้นที่ของทีม พร้อมเลขลำดับ · ทีมอื่นเป็นเส้นเทาจาง ไม่มีชื่อ
+async function sheetImage(src, rows, t, nums) {
+  const L = await loadBmp(src); const k = Math.min(1, 2200 / Math.max(L.W, L.H));
+  const c = document.createElement('canvas'); c.width = Math.round(L.W * k); c.height = Math.round(L.H * k); const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.imageSmoothingQuality = 'high'; g.drawImage(L.bmp, 0, 0, c.width, c.height);
+  const s = (p) => [p[0] * k, p[1] * k], u = Math.max(1, Math.max(c.width, c.height) / 800);
+  const pth = (P, close) => { g.beginPath(); P.forEach((p, i) => { const q = s(p); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); }); if (close) g.closePath(); };
+  const mine = new Set(rows.map(r => r.id));
+  const all = APP.rows.filter(r => r.type !== 'note' && (src.source === 'qs' ? (r.source === 'qs' && r.qs_file_id === src.fileId && r.page === src.page) : r.sheet_id === src.sheetId));
+  all.filter(r => !mine.has(r.id)).forEach(r => { const P = r.pts || []; if (!P.length) return; g.strokeStyle = 'rgba(110,110,110,.6)'; g.lineWidth = 1.5 * u; g.setLineDash([5 * u, 4 * u]);
+    if (r.type === 'count') P.forEach(p => { const q = s(p); g.beginPath(); g.arc(q[0], q[1], 4 * u, 0, 7); g.stroke(); });
+    else { pth(P, r.type === 'area'); if (r.type === 'area') { g.fillStyle = 'rgba(120,120,120,.10)'; g.fill(); } g.stroke(); } g.setLineDash([]); });
+  const col = t.color, rgba = (a) => { const n = parseInt(col.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; };
+  const tag = (txt, x, y) => { g.font = `600 ${Math.round(13 * u)}px 'IBM Plex Sans Thai',sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const w = g.measureText(txt).width + 12 * u, h = 20 * u; g.fillStyle = col; g.beginPath(); g.roundRect ? g.roundRect(x - w / 2, y - h / 2, w, h, 6 * u) : g.rect(x - w / 2, y - h / 2, w, h); g.fill(); g.fillStyle = '#fff'; g.fillText(txt, x, y); };
+  rows.forEach((r, i) => { const P = r.pts || []; if (!P.length) return;
+    if (r.type === 'count') { P.forEach(p => { const q = s(p); g.beginPath(); g.arc(q[0], q[1], 7 * u, 0, 7); g.fillStyle = col; g.fill(); }); }
+    else { pth(P, r.type === 'area'); if (r.type === 'area') { g.fillStyle = rgba(.3); g.fill(); } g.lineWidth = (r.type === 'length' ? 4 : 2.5) * u; g.strokeStyle = col; g.stroke(); }
+    const ctr = s(r.type === 'area' ? E.centroid(P) : P[Math.floor(P.length / 2)]); tag('#' + nums[i] + ' ' + (r.name || r.work || ''), ctr[0], ctr[1] - (r.type === 'area' ? 0 : 16 * u)); });
+  return c.toDataURL('image/jpeg', 0.86);
+}
+$('btnPrPrint').addEventListener('click', () => window.print());
+$('btnPrShare').addEventListener('click', async () => {
+  if (!PR_IMGS.length) return;
+  const files = await Promise.all(PR_IMGS.map(async (x, i) => { const b = await (await fetch(x.url)).blob(); return new File([b], `scope-${i + 1}.jpg`, { type: 'image/jpeg' }); }));
+  try { if (navigator.canShare && navigator.canShare({ files })) { await navigator.share({ files, title: $('prTitle').textContent }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  files.forEach(f => { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); });
+  toast('บันทึกรูปแบบแล้ว — ส่งต่อทาง LINE ได้');
+});
+
+// ---------- โหลดภาพแบบ (ใช้ทั้งหน้าวัดและใบขอบเขตงาน) ----------
+async function blobOf(src) {
+  if (APP.bin[src.key]) return APP.bin[src.key];
+  const r = await sb.storage.from(src.bucket).download(src.path);
+  if (r.error) throw r.error; APP.bin[src.key] = r.data; return r.data;
+}
+async function loadBmp(src) {
+  const blob = await blobOf(src);
+  const isPdf = /pdf/i.test(src.mime) || /\.pdf$/i.test(src.path);
+  if (isPdf) {
+    const doc = await pdfjsLib.getDocument({ data: await blob.arrayBuffer() }).promise;
+    const page = await doc.getPage(Math.min(src.page, doc.numPages - 1) + 1), v1 = page.getViewport({ scale: 1 });
+    // r เดียวกับที่ QS ใช้ (เก็บใน page_scales) — ถ้ายังไม่มี คำนวณสูตรเดียวกับ QS
+    const r = src.r || Math.round(clamp(5000 / Math.max(v1.width, v1.height), 1, 2.5) * 1000) / 1000;
+    src.r = r; const W = Math.floor(v1.width * r), H = Math.floor(v1.height * r);
+    // ความคมของภาพแยกจากหน่วยพิกัด: เรนเดอร์อย่างน้อย 2.5 เท่า (ไม่เกิน 4096 px) แล้วย่อ/ขยายวาดลงพิกัด W×H
+    const rr = Math.min(Math.max(r, 2.5), MAX_BMP / Math.max(v1.width, v1.height)), v = page.getViewport({ scale: rr });
+    const c = document.createElement('canvas'); c.width = Math.floor(v.width); c.height = Math.floor(v.height);
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: g, viewport: v }).promise;
+    if (src.source === 'upload' && !src.isPdfR) { src.isPdfR = true; const s = APP.sheets.find(x => x.id === src.sheetId); if (s && !s.page_r) { s.page_r = r; sb.from('takeoff_field_sheets').update({ page_r: r }).eq('id', s.id).then(() => {}); } }
+    return { bmp: c, W, H, page, r };
+  }
+  const bmp = await createImageBitmap(blob); const W = bmp.width, H = bmp.height;
+  if (Math.max(W, H) > MAX_BMP) { const k = MAX_BMP / Math.max(W, H); const c = document.createElement('canvas'); c.width = Math.round(W * k); c.height = Math.round(H * k); c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); return { bmp: c, W, H, page: null, r: 1 }; }
+  return { bmp, W, H, page: null, r: 1 };
 }
 
 // =====================================================================
@@ -236,12 +476,16 @@ function renderList() {
   if (!S.allow_quick_measure) h.push('<div class="info">Admin ปิด Quick Measure ของโครงการนี้ไว้ — ดูรายการเดิมได้ แต่วัดเพิ่มไม่ได้</div>');
   h.push(`<div class="chips" role="tablist"><button class="chip${APP.filter === 'mine' ? ' on' : ''}" data-f="mine">ของฉัน</button><button class="chip${APP.filter === 'all' ? ' on' : ''}" data-f="all">ทุกคน</button>
     <button class="chip" data-f="reload" aria-label="โหลดใหม่">↻ โหลดใหม่</button><button class="chip" data-his="u" title="ย้อน (Ctrl+Z)">↶ ย้อน</button><button class="chip" data-his="r" title="ทำซ้ำ (Ctrl+Y)">↷ ทำซ้ำ</button></div>`);
+  if (!APP.noTeams) { const R = APP.rows.filter(r => r.type !== 'note'), un = R.filter(r => !teamOf(r)).length;   // v1.5.0 ทางเข้า "แบ่งงานตามทีม"
+    h.push(`<button class="card tentry" data-teams><div class="row1"><span class="nm">👥 แบ่งงานตามทีม / ผู้รับเหมา</span><span class="q">${APP.teams.length} ทีม ›</span></div>
+      <div class="row2">${APP.teams.slice(0, 6).map(t => `<span class="tdot" style="--c:${esc(t.color)}"></span>${esc(t.name)}`).join(' ')}${!APP.teams.length ? 'ไฮไลต์พื้นที่บนแบบ → มอบให้ทีม → สรุปปริมาณต่อทีม · ใบขอบเขตงาน' : ''}${un && APP.teams.length ? ` <b style="color:#8C2F2F">· ยังไม่ระบุทีม ${un}</b>` : ''}</div></button>`); }
   if (!rows.length) h.push('<p class="empty">ยังไม่มีรายการ — กด “+ วัดเพิ่ม” เพื่อเริ่มวัด</p>');
   rows.forEach(r => {
     const role = ROLE_TH[r.created_role] || r.created_role || '';
     const who = APP.filter === 'all' ? (r.created_by || '') + (role ? ' (' + role + ')' : '') : role || r.created_by || '';
-    h.push(`<button class="card" data-row="${esc(r.id)}"><div class="row1"><span class="nm">${esc(rowLabel(r))}</span><span class="q">${r.qty == null ? '—' : esc(fq(+r.qty, r.unit)) + ' ' + esc(r.unit || '')}</span></div>
-      <div class="row2"><span class="tag t-${esc(r.status)}">${esc(ST[r.status] || r.status)}</span><span>${esc(when(r.created_at))}${who ? ' · ' + esc(who) : ''}</span>${r.status === 'returned' && r.qs_note ? `<span style="color:#8C2F2F">QS: ${esc(r.qs_note)}</span>` : ''}</div></button>`);
+    const tm = teamOf(r);
+    h.push(`<button class="card" data-row="${esc(r.id)}"><div class="row1">${tm ? `<span class="tdot" style="--c:${esc(tm.color)}"></span>` : ''}<span class="nm">${esc(rowLabel(r))}</span><span class="q">${r.qty == null ? '—' : esc(fq(+r.qty, r.unit)) + ' ' + esc(r.unit || '')}</span></div>
+      <div class="row2"><span class="tag t-${esc(r.status)}">${esc(ST[r.status] || r.status)}</span>${tm ? `<b style="color:${esc(tm.color)}">${esc(tm.name)}</b>` : ''}<span>${esc(when(r.created_at))}${who ? ' · ' + esc(who) : ''}</span>${r.status === 'returned' && r.qs_note ? `<span style="color:#8C2F2F">QS: ${esc(r.qs_note)}</span>` : ''}</div></button>`);
   });
   h.push('<div class="note">ตัวเลขที่ PM วัด ใช้วางแผนหน้างานและตรวจของเข้า ไม่แทนที่ BOQ ของ QS จนกว่า QS ตรวจรับ</div>');
   // ปริมาณ baseline จาก QS — แสดงเฉพาะเมื่อ Admin เปิด "แสดงปริมาณ BOQ" (ไม่มีราคา)
@@ -265,6 +509,7 @@ function renderList() {
 $('listBody').addEventListener('click', async (e) => {
   const f = e.target.closest('[data-f]');
   if (f) { if (f.dataset.f === 'reload') { toast('กำลังโหลดใหม่…', 900); try { await Promise.all([loadSettings(), loadRows()]); } catch (x) { toast('โหลดไม่สำเร็จ'); } } else APP.filter = f.dataset.f; renderList(); return; }
+  if (e.target.closest('[data-teams]')) { show('teams', true); renderTeams(); return; }
   const b = e.target.closest('[data-row]'); if (b) openRow(b.dataset.row);
 });
 $('btnNew').addEventListener('click', () => { renderPick(); show('pick', true); });
@@ -291,6 +536,7 @@ function openRow(id) {
   $('rwTitle').textContent = rowLabel(r);
   const kv = [['ปริมาณ', r.qty == null ? '—' : fq(+r.qty, r.unit) + ' ' + (r.unit || '')], r.perimeter_m ? ['รอบรูป', f2(+r.perimeter_m) + ' ม.'] : null,
     r.height_mm ? ['ความสูง', f2(r.height_mm / 1000) + ' ม.'] : null, r.deduct ? ['ชนิด', 'หักออก'] : null,
+    teamOf(r) ? ['ทีม', teamOf(r).name + (teamOf(r).trade ? ' · ' + teamOf(r).trade : '')] : null,
     ['สถานะ', ST[r.status] || r.status], ['แบบ', sh || '—'], ['วัดโดย', (r.created_by || '') + ' · ' + when(r.created_at)],
     r.submitted_at ? ['ส่ง QS', (r.submitted_by || '') + ' · ' + when(r.submitted_at)] : null,
     r.reviewed_at ? ['QS ตรวจ', (r.reviewed_by || '') + ' · ' + when(r.reviewed_at)] : null,
@@ -299,6 +545,14 @@ function openRow(id) {
   const canRev = APP.me.review && r.status === 'submitted';
   const canEdit = isMine(r) && (r.status === 'field' || r.status === 'returned');
   $('rwQsNoteWrap').hidden = !canRev; $('rwQsNote').value = '';
+  // v1.5.0 เปลี่ยนทีมของรายการ (บันทึกทันที · ย้อนได้)
+  $('rwTeamWrap').hidden = APP.noTeams || r.type === 'note' || !canEditTeams();
+  $('rwTeam').innerHTML = '<option value="">— ยังไม่ระบุทีม —</option>' + APP.teams.map(t => `<option value="${esc(t.id)}">${esc(t.name)}${t.trade ? ' · ' + esc(t.trade) : ''}</option>`).join('');
+  $('rwTeam').value = teamOf(r) ? r.team_id : '';
+  $('rwTeam').onchange = async () => { const prev = r.team_id || null, next = $('rwTeam').value || null;
+    try { await rowSet(r.id, { team_id: next }); } catch (x) { toast('บันทึกไม่สำเร็จ: ' + ((x && x.message) || x), 4000); return; }
+    hisPush({ kind: 'act', label: 'เปลี่ยนทีม ' + rowLabel(r), undo: () => rowSet(r.id, { team_id: prev }), redo: () => rowSet(r.id, { team_id: next }) });
+    const t = APP.teams.find(x => x.id === next); toast(t ? 'มอบให้ ' + t.name + ' แล้ว' : 'ยกเลิกทีมแล้ว'); r.team_id = next; };
   const B = [];
   if (canRev) { B.push('<button class="btn" value="return">ส่งกลับให้แก้</button>', '<button class="btn pri" value="accept">QS รับแล้ว</button>'); }
   if (canEdit) B.push('<button class="btn" value="del" style="color:#8C2F2F">ลบรายการ</button>');
@@ -327,7 +581,7 @@ async function patchRow(r, patch, remove) {
   if (q.error) { toast('บันทึกไม่สำเร็จ: ' + q.error.message, 4000); return false; }
   const i = APP.rows.findIndex(x => x.id === r.id);
   if (remove) { if (i >= 0) APP.rows.splice(i, 1); } else if (q.data && q.data[0] && i >= 0) APP.rows[i] = q.data[0];
-  renderList(); if (APP.screen === 'measure') MV.side(); toast((remove ? 'ลบแล้ว' : 'บันทึกแล้ว') + ' · กด ↶ ย้อน (Ctrl+Z) ได้'); return true;
+  renderList(); if (APP.screen === 'measure') MV.side(); if (APP.screen === 'teams') renderTeams(); toast((remove ? 'ลบแล้ว' : 'บันทึกแล้ว') + ' · กด ↶ ย้อน (Ctrl+Z) ได้'); return true;
 }
 
 // =====================================================================
@@ -513,8 +767,8 @@ const MV = (() => {
   let PGO = null, PR = 1, HI = null, hiT = 0, hiG = 0;   // v1.4 แบบคมชัด: render ใหม่จาก PDF เฉพาะส่วนที่มองเห็นเมื่อซูมเกินความละเอียดภาพ
   let SRC = null, BMP = null, W = 0, H = 0, V = { k: 1, ox: 0, oy: 0 }, dpr = 1, fitV = null;
   let tool = 'area', pts = [], drag = -1, focusId = null, loupe = null, loading = false, scalePts = null;
-  const KIND = { area: 'พื้นที่', length: 'ความยาว', count: 'นับจุด', note: 'โน้ต', ruler: 'ไม้บรรทัด', scale: 'ตั้งสเกล' };
-  const KEY = { area: 'A', length: 'L', count: 'C', note: 'N', ruler: 'R', scale: 'S' };
+  const KIND = { area: 'พื้นที่', length: 'ความยาว', count: 'นับจุด', note: 'โน้ต', ruler: 'ไม้บรรทัด', assign: '🎨 ระบุทีม', scale: 'ตั้งสเกล' };
+  const KEY = { area: 'A', length: 'L', count: 'C', note: 'N', ruler: 'R', assign: 'T', scale: 'S' };
   // v1.2.0 ประวัติการวาด (ย้อน/ทำซ้ำ) — เก็บสภาพก่อนแก้ทุกครั้ง
   const snapD = () => ({ pts: pts.map(p => p.slice()), sp: scalePts ? scalePts.map(p => p.slice()) : null, tool });
   function restoreD(st) { pts = st.pts.map(p => p.slice()); scalePts = st.sp ? st.sp.map(p => p.slice()) : null; drag = -1; loupe = null;
@@ -538,37 +792,14 @@ const MV = (() => {
   const toDoc = (p) => [(p.x - V.ox) / V.k, (p.y - V.oy) / V.k];
   const toScr = (d) => [d[0] * V.k + V.ox, d[1] * V.k + V.oy];
 
-  async function blobOf(src) {
-    if (APP.bin[src.key]) return APP.bin[src.key];
-    const r = await sb.storage.from(src.bucket).download(src.path);
-    if (r.error) throw r.error; APP.bin[src.key] = r.data; return r.data;
-  }
   async function open(src, focus) {
     hisDrop(e => e.kind === 'draw');
     SRC = src; BMP = null; W = H = 0; PGO = null; HI = null; hiG++; pts = []; drag = -1; scalePts = null; focusId = focus || null; fitV = null; loading = true;
     tool = src.mm ? 'area' : 'scale';
     header(); tools(); paint(); hint('กำลังเปิดแบบ…'); side(); left();
     try {
-      const blob = await blobOf(src);
-      const isPdf = /pdf/i.test(src.mime) || /\.pdf$/i.test(src.path);
-      if (isPdf) {
-        const doc = await pdfjsLib.getDocument({ data: await blob.arrayBuffer() }).promise;
-        const page = await doc.getPage(Math.min(src.page, doc.numPages - 1) + 1), v1 = page.getViewport({ scale: 1 });
-        // r เดียวกับที่ QS ใช้ (เก็บใน page_scales) — ถ้ายังไม่มี คำนวณสูตรเดียวกับ QS
-        const r = src.r || Math.round(clamp(5000 / Math.max(v1.width, v1.height), 1, 2.5) * 1000) / 1000;
-        src.r = r; W = Math.floor(v1.width * r); H = Math.floor(v1.height * r);
-        // ความคมของภาพแยกจากหน่วยพิกัด: เรนเดอร์อย่างน้อย 2.5 เท่า (ไม่เกิน 4096 px) แล้วย่อ/ขยายวาดลงพิกัด W×H
-        // (แผ่นแบบที่ย้ายจาก Takeoff เดิมใช้พิกัด "จุด PDF" r = 1 — ถ้าเรนเดอร์ที่ 1 เท่าภาพจะเบลอ)
-        const rr = Math.min(Math.max(r, 2.5), MAX_BMP / Math.max(v1.width, v1.height)), v = page.getViewport({ scale: rr });
-        const c = document.createElement('canvas'); c.width = Math.floor(v.width); c.height = Math.floor(v.height);
-        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
-        await page.render({ canvasContext: g, viewport: v }).promise; BMP = c; PGO = page; PR = r;
-        if (src.source === 'upload' && !src.isPdfR) { src.isPdfR = true; const s = APP.sheets.find(x => x.id === src.sheetId); if (s && !s.page_r) { s.page_r = r; sb.from('takeoff_field_sheets').update({ page_r: r }).eq('id', s.id).then(() => {}); } }
-      } else {
-        const bmp = await createImageBitmap(blob); W = bmp.width; H = bmp.height;
-        if (Math.max(W, H) > MAX_BMP) { const k = MAX_BMP / Math.max(W, H); const c = document.createElement('canvas'); c.width = Math.round(W * k); c.height = Math.round(H * k); c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); BMP = c; }
-        else BMP = bmp;
-      }
+      const L = await loadBmp(src); if (SRC !== src) return;
+      BMP = L.bmp; W = L.W; H = L.H; PGO = L.page; PR = L.r || 1;
       // QS ยังไม่ตั้งสเกลหน้านี้ → ใช้สเกลที่ PM ตั้งเองในเครื่อง (ไม่เขียนกลับไปที่ QS)
       if (src.source === 'qs' && !src.mm) { try { const m = +localStorage.getItem('qm_scale_' + src.key); if (m > 0) { src.mm = m; src.mmSrc = 'own'; tool = 'area'; } } catch (e) {} }
       loading = false; resize(); fit();
@@ -589,7 +820,7 @@ const MV = (() => {
     else { b.textContent = 'ยังไม่ตั้งสเกล'; b.className = 'badge b-none'; }
   }
   function tools() {
-    const T = ['area', 'length', 'count', 'note', 'ruler']; if (!SRC || SRC.mmSrc !== 'qs') T.push('scale');
+    const T = ['area', 'length', 'count', 'note', 'ruler']; if (!APP.noTeams) T.push('assign'); if (!SRC || SRC.mmSrc !== 'qs') T.push('scale');
     $('mTools').innerHTML = T.map(k => `<button class="chip${tool === k ? ' on' : ''}" data-tool="${k}" aria-pressed="${tool === k}" title="${KIND[k]} (${KEY[k]})">${KIND[k]}</button>`).join('');
     $('btnSave').disabled = !APP.set.allow_quick_measure || APP.noTable;
   }
@@ -601,7 +832,7 @@ const MV = (() => {
 
   function hint(t) { const h = $('mHint'); h.textContent = t || ''; h.hidden = !t; }
   function curMeasure() {
-    if (tool === 'scale' || tool === 'note' || !pts.length) return null;
+    if (tool === 'scale' || tool === 'note' || tool === 'assign' || !pts.length) return null;
     if (tool === 'area' && pts.length < 3) return null;
     if ((tool === 'length' || tool === 'ruler') && pts.length < 2) return null;
     return E.measure({ type: tool === 'ruler' ? 'length' : tool, pts }, SRC && SRC.mm);
@@ -611,9 +842,10 @@ const MV = (() => {
     const m = curMeasure();
     if (m) { $('mQty').textContent = fq(m.q, m.u); $('mUnit').textContent = m.u; $('mPer').textContent = m.perimeter ? 'รอบรูป ' + f2(m.perimeter) + ' ม.' : (tool === 'count' ? '' : ''); }
     else { $('mQty').textContent = '—'; $('mUnit').textContent = ''; $('mPer').textContent = ''; }
-    const needScale = tool !== 'count' && tool !== 'scale' && tool !== 'note' && !SRC.mm;
+    const needScale = tool !== 'count' && tool !== 'scale' && tool !== 'note' && tool !== 'assign' && !SRC.mm;
     if (!APP.set.allow_quick_measure) hint('Admin ปิด Quick Measure — ดูแบบได้อย่างเดียว');
     else if (tool === 'note') hint('แตะตำแหน่งบนแบบเพื่อปักโน้ต');
+    else if (tool === 'assign') hint(curTeam() ? 'แตะพื้นที่ / เส้น / จุดที่วัดไว้ → มอบให้ “' + curTeam().name + '” · แตะซ้ำ = ยกเลิก' : 'เลือกทีมจากแถบสีด้านบนก่อน แล้วแตะพื้นที่ที่วัดไว้เพื่อมอบงาน');
     else if (tool === 'ruler' && !needScale) hint(pts.length === 2 ? 'ไม้บรรทัด: วัดชั่วคราว ไม่บันทึก · แตะใหม่เพื่อวัดอีกเส้น' : 'ไม้บรรทัด: แตะ 2 จุดเพื่อวัดระยะ (ไม่บันทึก)');
     else if (tool === 'scale') hint(scalePts && scalePts.length === 1 ? 'แตะปลายอีกด้านของระยะที่รู้ค่า' : 'ตั้งสเกล: แตะต้นและปลายของระยะที่รู้ค่า (เช่น ประตู 0.90 ม.)');
     else if (needScale) hint('ยังไม่ตั้งสเกล — เลือก “ตั้งสเกล” ก่อนวัดพื้นที่/ความยาว');
@@ -656,13 +888,19 @@ const MV = (() => {
         if (APP.set.show_qty) { const m = E.measure({ type: 'area', pts: P, deduct: z.deduct }, SRC.mm); const codes = (z.codes || []).join(' ');
           label([m ? f2(m.q) + ' ตร.ม.' : '', codes].filter(Boolean).join(' · '), c[0], c[1] + 9, 11, '#4A4840'); } } });
     // รายการที่วัดไว้แล้วบนแบบนี้
-    rowsHere().forEach(r => { const P = r.pts || []; if (!P.length) return; const on = r.id === focusId; const col = on ? '#B8582A' : (r.color || '#8A6D3B');
+    // v1.5.0 สีตามทีม · เลือกทีมอยู่ = ทีมอื่นจางลง
+    rowsHere().forEach(r => { const P = r.pts || []; if (!P.length) return; const on = r.id === focusId, tm = teamOf(r), dim = !!APP.team && r.type !== 'note' && (!tm || tm.id !== APP.team);
+      const col = on ? '#B8582A' : tm ? tm.color : (r.color || '#8A6D3B'); ctx.save(); if (dim) ctx.globalAlpha = 0.3; paintRow(r, P, on, tm, dim, col); ctx.restore(); });
+    function paintRow(r, P, on, tm, dim, col) {
       if (r.type === 'note') { const s = toScr(P[0]); ctx.beginPath(); ctx.moveTo(s[0], s[1]); ctx.lineTo(s[0] - 7, s[1] - 14); ctx.lineTo(s[0] + 7, s[1] - 14); ctx.closePath(); ctx.fillStyle = on ? '#B8582A' : '#C58A1C'; ctx.fill();
         ctx.beginPath(); ctx.arc(s[0], s[1] - 18, 8, 0, 7); ctx.fill(); label(String(r.note || 'โน้ต').split(' · ')[0].slice(0, 40), s[0], s[1] - 36, 12, '#5A3C08', on); return; }
       if (r.type === 'count') { P.forEach(p => { const s = toScr(p); ctx.beginPath(); ctx.arc(s[0], s[1], 6, 0, 7); ctx.fillStyle = hexA(col, .8); ctx.fill(); }); }
-      else { path(P, r.type === 'area'); if (r.type === 'area') { ctx.fillStyle = hexA(col, on ? .22 : .1); ctx.fill(); } ctx.lineWidth = on ? 3 : 2; ctx.strokeStyle = col; ctx.stroke(); }
+      else { path(P, r.type === 'area'); if (r.type === 'area') { ctx.fillStyle = hexA(col, on ? .3 : tm ? .24 : .1); ctx.fill(); } ctx.lineWidth = on ? 3 : tm ? (r.type === 'length' ? 4 : 2.5) : 2; ctx.strokeStyle = col; ctx.stroke(); }
+      if (dim) return;
       const c = toScr(r.type === 'length' ? P[Math.floor(P.length / 2)] : E.centroid(P));
-      label(rowLabel(r) + (r.qty != null ? ' · ' + fq(+r.qty, r.unit) + ' ' + (r.unit || '') : ''), c[0], c[1] - (r.type === 'length' ? 12 : 0), 12, on ? '#7E3A19' : '#4A4840', on); });
+      label(rowLabel(r) + (r.qty != null ? ' · ' + fq(+r.qty, r.unit) + ' ' + (r.unit || '') : ''), c[0], c[1] - (r.type === 'length' ? 12 : 0) - (tm && !APP.team ? 8 : 0), 12, on ? '#7E3A19' : '#4A4840', on);
+      if (tm && !APP.team) label(tm.name, c[0], c[1] - (r.type === 'length' ? 12 : 0) + 8, 11.5, tm.color, true);
+    }
     // รูปที่กำลังวาด
     const D = tool === 'scale' ? (scalePts || []) : pts;
     if (D.length && tool === 'ruler') {   // ไม้บรรทัด: เส้นประสีน้ำเงิน + ระยะ (ไม่บันทึก)
@@ -730,12 +968,54 @@ const MV = (() => {
     if (ortho && prev && !(tool === 'ruler' && pts.length >= 2)) d = Math.abs(d[0] - prev[0]) >= Math.abs(d[1] - prev[1]) ? [d[0], prev[1]] : [prev[0], d[1]];
     if (tool === 'ruler') { if (!SRC.mm) { toast('ตั้งสเกลก่อน — เลือก “ตั้งสเกล” ด้านบน'); return; } pts = pts.length >= 2 ? [d] : pts.concat([d]); return; }   // ไม่ลงประวัติ (ไม่บันทึก)
     if (!APP.set.allow_quick_measure) return;
+    if (tool === 'assign') { assignAt(d); return; }
     if (tool === 'note') { saveNote(d); return; }
     if (tool === 'scale') { rec('จุดสเกล'); scalePts = scalePts && scalePts.length < 2 ? scalePts.concat([d]) : [d]; if (scalePts.length === 2) setTimeout(askScale, 120); return; }
     if (tool !== 'count' && !SRC.mm) { toast('ตั้งสเกลก่อน — เลือก “ตั้งสเกล” ด้านบน'); return; }
     if (tool === 'length' && pts.length === 0) focusId = null;
     rec('เพิ่มจุด'); pts.push(d);
   }
+
+  // ---------- v1.5.0 ระบุทีม: แตะรูปที่วัดไว้ → มอบให้ทีมที่เลือก ----------
+  const inPoly = (p, Q) => { let k = false; for (let i = 0, j = Q.length - 1; i < Q.length; j = i++) if ((Q[i][1] > p[1]) !== (Q[j][1] > p[1]) && p[0] < (Q[j][0] - Q[i][0]) * (p[1] - Q[i][1]) / (Q[j][1] - Q[i][1]) + Q[i][0]) k = !k; return k; };
+  const segD = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy; const t = L ? clamp(((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L, 0, 1) : 0; return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy); };
+  const polyA = (P) => { let a = 0; for (let i = 0, j = P.length - 1; i < P.length; j = i++) a += (P[j][0] + P[i][0]) * (P[j][1] - P[i][1]); return Math.abs(a / 2); };
+  function hitRow(d) {   // เส้น/จุดใกล้นิ้วมาก่อน · พื้นที่ซ้อนกัน → เลือกรูปที่เล็กที่สุด (ห้องในโซน)
+    const tol = 16 / V.k; let best = null, bs = Infinity;
+    rowsHere().forEach(r => { const P = r.pts || []; if (!P.length || r.type === 'note') return; let sc = Infinity;
+      if (r.type === 'count') { if (P.some(p => Math.hypot(p[0] - d[0], p[1] - d[1]) < tol * 1.3)) sc = 0; }
+      else if (r.type === 'length') { for (let i = 1; i < P.length; i++) if (segD(d, P[i - 1], P[i]) < tol) { sc = 0; break; } }
+      else if (P.length > 2) { let near = false; for (let i = 0; i < P.length; i++) if (segD(d, P[i], P[(i + 1) % P.length]) < tol) near = true;
+        if (inPoly(d, P) || near) sc = 1 + polyA(P); }
+      if (sc < bs) { bs = sc; best = r; } });
+    return best;
+  }
+  async function assignAt(d) {
+    const tm = curTeam(); if (!tm) { toast('เลือกทีมจากแถบสีด้านบนก่อน (หรือกด “+ ทีม”)'); return; }
+    const r = hitRow(d); if (!r) { toast('แตะในพื้นที่ / เส้น / จุดที่วัดไว้แล้ว — ถ้ายังไม่ได้วัด ให้วาดก่อน'); return; }
+    const prev = r.team_id || null, next = prev === tm.id ? null : tm.id;
+    try { await rowSet(r.id, { team_id: next }); } catch (x) { toast('บันทึกไม่สำเร็จ: ' + ((x && x.message) || x), 4000); return; }
+    focusId = r.id; draw(); side();
+    hisPush({ kind: 'act', label: (next ? 'มอบ ' : 'ยกเลิกทีม ') + rowLabel(r), undo: () => rowSet(r.id, { team_id: prev }), redo: () => rowSet(r.id, { team_id: next }) });
+    const pt = prev && APP.teams.find(t => t.id === prev);
+    toast(next ? `มอบ “${rowLabel(r)}” ให้ ${tm.name} แล้ว` + (pt ? ` (เดิม ${pt.name})` : '') : `ยกเลิกทีมของ “${rowLabel(r)}”`);
+  }
+  // แถบทีม (เหนือแบบ): ทุกทีม · ทีมต่าง ๆ (จำนวนบนแบบนี้) · + ทีม · แตะทีมที่เลือกอยู่ซ้ำ = แก้ไข
+  function teamBar() {
+    const el = $('mTeams'); if (!el) return; el.hidden = APP.noTeams; if (APP.noTeams) return;
+    const here = rowsHere().filter(r => r.type !== 'note');
+    el.innerHTML = `<button class="tchip${!APP.team ? ' on' : ''}" data-team="" style="--c:#3E3F32">ทุกทีม</button>` + APP.teams.map(t => { const n = here.filter(r => r.team_id === t.id).length;
+      return `<button class="tchip${APP.team === t.id ? ' on' : ''}" data-team="${esc(t.id)}" style="--c:${esc(t.color)}" title="${APP.team === t.id ? 'แตะอีกครั้งเพื่อแก้ไขทีม' : 'เลือกทีมนี้'}"><i></i>${esc(t.name)}${t.trade ? '<small>' + esc(t.trade) + '</small>' : ''}${n ? '<em>' + n + '</em>' : ''}</button>`; }).join('')
+      + (canEditTeams() ? '<button class="tchip add" data-team-add>+ ทีม</button>' : '') + '<button class="tchip add" data-team-sum>สรุปทีม</button>';
+  }
+  $('mTeams').addEventListener('click', async (e) => {
+    if (e.target.closest('[data-team-add]')) { const n = await openTeam(null); if (n) { if (tool !== 'assign' && !pts.length && rowsHere().some(r => r.type !== 'note' && !r.team_id)) { tool = 'assign'; tools(); } draw(); upd(); side(); } return; }
+    if (e.target.closest('[data-team-sum]')) { show('teams', true); renderTeams(); return; }
+    const b = e.target.closest('[data-team]'); if (!b) return; const id = b.dataset.team;
+    if (id && id === APP.team && canEditTeams()) { await openTeam(APP.teams.find(t => t.id === id)); draw(); upd(); side(); return; }
+    setCurTeam(id); draw(); upd(); side();
+    if (id) toast('ทีม ' + (curTeam() || {}).name + ' — วาดใหม่จะเป็นของทีมนี้ · หรือใช้ “ระบุทีม” แตะพื้นที่เดิม', 2200);
+  });
 
   // ---------- ตั้งสเกล ----------
   function askScale() {
@@ -765,6 +1045,7 @@ const MV = (() => {
   $('btnSave').addEventListener('click', () => {
     if (tool === 'ruler') { toast('ไม้บรรทัดใช้วัดชั่วคราว ไม่บันทึก — เลือก “ความยาว” ถ้าต้องการบันทึก'); return; }
     if (tool === 'note') { toast('แตะบนแบบเพื่อปักโน้ต'); return; }
+    if (tool === 'assign') { toast('โหมดระบุทีมไม่ต้องกดบันทึก — แตะพื้นที่เพื่อมอบงานได้เลย'); return; }
     const m = curMeasure();
     if (!m) { toast(tool === 'scale' ? 'เลือกชนิดการวัดก่อน' : tool === 'area' ? 'แตะมุมห้องอย่างน้อย 3 จุด' : tool === 'length' ? 'แตะอย่างน้อย 2 จุด' : 'แตะเพื่อนับอย่างน้อย 1 จุด'); return; }
     openSave(m);
@@ -782,6 +1063,8 @@ const MV = (() => {
     $('svHWrap').hidden = tool !== 'length'; $('svDedWrap').hidden = tool !== 'area';
     $('svCntWrap').hidden = tool !== 'count'; $('svWasteWrap').hidden = tool === 'count'; $('svCnt').value = ''; $('svWaste').value = '';
     $('svTitle').textContent = 'บันทึก' + KIND[tool];
+    steam = APP.team || ''; svTeams(); $('svTeamWrap').hidden = APP.noTeams;
+    { const t0 = curTeam(); if (t0 && t0.trade) pickWork(t0.trade); }
     const sv = () => { const mm = curSave(); const w = wasteOf(); $('svQty').textContent = fq(mm.q, mm.u); $('svUnit').textContent = mm.u; const ex = [];
       if (mm.perimeter) ex.push('รอบรูป ' + f2(mm.perimeter) + ' ม.'); if (mm.length && mm.height) ex.push('ยาว ' + f2(mm.length) + ' ม. × สูง ' + f2(mm.height / 1000) + ' ม.');
       if (tool === 'count' && perOf() !== 1) ex.push(pts.length + ' จุด × ' + perOf()); if (w) ex.push('รวมเผื่อ ' + w + '% = ' + f2(E.withWaste(mm.q, w)));
@@ -790,6 +1073,21 @@ const MV = (() => {
     const d = $('dlgSave'); d.returnValue = ''; d.showModal();
     d.onclose = () => { d.onclose = null; if (d.returnValue === 'ok') doSave(); };
   }
+  // v1.5.0 ทีมของรายการ (ค่าเริ่ม = ทีมที่เลือกอยู่) · เลือกทีม → งานตามหมวดของทีม
+  let steam = '';
+  function svTeams() {
+    $('svTeam').innerHTML = `<button type="button" class="tchip${!steam ? ' on' : ''}" data-st="" style="--c:#9A948A">ไม่ระบุ</button>` + APP.teams.map(t =>
+      `<button type="button" class="tchip${steam === t.id ? ' on' : ''}" data-st="${esc(t.id)}" style="--c:${esc(t.color)}"><i></i>${esc(t.name)}${t.trade ? '<small>' + esc(t.trade) + '</small>' : ''}</button>`).join('')
+      + (canEditTeams() ? '<button type="button" class="tchip add" data-st-add>+ ทีมใหม่</button>' : '');
+  }
+  function pickWork(w) { const hit = [...$('svWork').querySelectorAll('[data-w]')].find(b => b.dataset.w === w);
+    if (hit) { work = w; $('svWorkTxt').value = ''; $('svWork').querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === hit)); }
+    else { work = ''; $('svWorkTxt').value = w; $('svWork').querySelectorAll('.chip').forEach(x => x.classList.remove('on')); } }
+  $('svTeam').addEventListener('click', async (e) => {
+    if (e.target.closest('[data-st-add]')) { const n = await openTeam(null); if (n) { steam = n.id; if (n.trade) pickWork(n.trade); } svTeams(); return; }
+    const b = e.target.closest('[data-st]'); if (!b) return; steam = b.dataset.st; svTeams();
+    const t = APP.teams.find(x => x.id === steam); if (t && t.trade) pickWork(t.trade);
+  });
   $('svWork').addEventListener('click', (e) => { const b = e.target.closest('[data-w]'); if (!b) return; work = b.dataset.w; $('svWorkTxt').value = '';
     $('svWork').querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === b)); });
   $('svWorkTxt').addEventListener('input', () => { if ($('svWorkTxt').value.trim()) { work = ''; $('svWork').querySelectorAll('.chip').forEach(x => x.classList.remove('on')); } });
@@ -807,6 +1105,7 @@ const MV = (() => {
       qty: Math.round(m.q * 10000) / 10000, unit: m.u, perimeter_m: m.perimeter != null ? Math.round(m.perimeter * 10000) / 10000 : null, engine_version: E.ENGINE_VERSION,
       status: 'field', note: $('svNote').value.trim() || null, created_by: APP.me.name, created_email: APP.me.email, created_role: APP.me.role,
       count_per: perOf(), waste_pct: wasteOf() || null };
+    if (!APP.noTeams) { row.team_id = steam || null; if ((steam || '') !== APP.team) setCurTeam(steam); }
     const r = await sb.from('takeoff_field_measures').insert(row).select('*');
     if (r.error) { toast('บันทึกไม่สำเร็จ: ' + r.error.message, 5000); return; }
     const before = snapD(), key = SRC.key, saved = r.data[0];
@@ -815,7 +1114,7 @@ const MV = (() => {
       undo: async () => { const c = APP.rows.find(x => x.id === saved.id); if (c && c.status !== 'field' && c.status !== 'returned') throw new Error('รายการนี้ส่ง QS แล้ว');
         await rowSet(saved.id, { deleted_at: new Date().toISOString() }); if (SRC && SRC.key === key && APP.screen === 'measure') { focusId = null; restoreD(before); } },
       redo: async () => { await rowSet(saved.id, { deleted_at: null }); if (SRC && SRC.key === key && APP.screen === 'measure') { focusId = saved.id; restoreD({ pts: [], sp: null, tool: before.tool }); } } });
-    side(); toast('บันทึกแล้ว · ' + fq(m.q, m.u) + ' ' + m.u + ' — วัดห้องถัดไปได้เลย');
+    side(); const st = teamOf(saved); toast('บันทึกแล้ว · ' + fq(m.q, m.u) + ' ' + m.u + (st ? ' → ' + st.name : '') + ' — วัดห้องถัดไปได้เลย');
   }
 
   // ---------- โน้ตบนแบบ (ยกมาจาก Takeoff เดิม) ----------
@@ -856,32 +1155,35 @@ const MV = (() => {
   });
   const packKey = () => 'qm_pack_' + SCHEMA + '_' + APP.pid;
   const packs = () => { try { return JSON.parse(localStorage.getItem(packKey()) || '{}') || {}; } catch (e) { return {}; } };
-  const gross = (r) => r.qty == null ? null : E.withWaste(+r.qty, +r.waste_pct || 0);
-  function summary() {   // รวมทั้งโครงการ ตาม งาน + หน่วย (ไม่รวมโน้ต)
-    const m = new Map();
-    APP.rows.filter(r => r.type !== 'note' && r.qty != null).forEach(r => { const k = (r.work || '(ไม่ระบุงาน)') + '|' + (r.unit || '');
-      const o = m.get(k) || { work: r.work || '(ไม่ระบุงาน)', unit: r.unit || '', net: 0, gross: 0, n: 0 }; o.net += +r.qty; o.gross += gross(r); o.n++; m.set(k, o); });
-    return [...m.values()].sort((a, b) => a.work.localeCompare(b.work, 'th'));
-  }
+  const gross = grossQ;
+  const summary = () => sumBy(APP.rows);   // รวมทั้งโครงการ ตาม งาน + หน่วย (ไม่รวมโน้ต)
   function side() {
+    teamBar();
     if (!wide()) return;
     const L = rowsHere(), h = [], pk = packs();
     h.push(`<div class="side-h"><span>รายการบนแบบนี้ (${L.length})</span></div><div class="side-b">`);
     if (!L.length) h.push('<p class="empty" style="padding:8px">ยังไม่มี — เลือกเครื่องมือด้านบนแล้ววัดได้เลย</p>');
-    L.forEach(r => h.push(`<button class="ms-i${r.id === focusId ? ' on' : ''}" data-mrow="${esc(r.id)}"><span class="sw" style="background:${r.type === 'note' ? '#C58A1C' : esc(r.color || '#8A6D3B')}"></span>
+    L.forEach(r => h.push(`<button class="ms-i${r.id === focusId ? ' on' : ''}" data-mrow="${esc(r.id)}"><span class="sw" style="background:${r.type === 'note' ? '#C58A1C' : esc((teamOf(r) || {}).color || r.color || '#8A6D3B')}"></span>
       <span>${esc(r.type === 'note' ? 'โน้ต · ' + String(r.note || '').split(' · ')[0] : rowLabel(r))}</span><span class="q">${r.qty == null ? '' : esc(fq(+r.qty, r.unit)) + ' ' + esc(r.unit || '')}</span>
-      <small><span class="tag t-${esc(r.status)}">${esc(ST[r.status] || r.status)}</span> ${r.waste_pct ? '+' + esc(r.waste_pct) + '% ' : ''}${+r.count_per > 1 ? '×' + esc(r.count_per) + ' ' : ''}${esc(r.created_by || '')}</small></button>`));
+      <small><span class="tag t-${esc(r.status)}">${esc(ST[r.status] || r.status)}</span> ${r.waste_pct ? '+' + esc(r.waste_pct) + '% ' : ''}${+r.count_per > 1 ? '×' + esc(r.count_per) + ' ' : ''}${teamOf(r) ? '<b style="color:' + esc(teamOf(r).color) + '">' + esc(teamOf(r).name) + '</b> · ' : ''}${esc(r.created_by || '')}</small></button>`));
+    if (!APP.noTeams && APP.teams.length) {   // v1.5.0 สรุปตามทีม (ทั้งโครงการ)
+      h.push('</div><div class="side-h"><span>สรุปตามทีม</span><button class="chip" data-tsum style="min-height:30px;font-size:12px">ใบขอบเขตงาน</button></div><div class="side-b">');
+      const R = APP.rows.filter(r => r.type !== 'note');
+      APP.teams.concat([{ id: '', name: 'ยังไม่ระบุทีม', color: '#9A948A' }]).forEach(t => { const L = R.filter(r => (r.team_id && teamOf(r) ? r.team_id : '') === t.id); if (!L.length && !t.id) return;
+        h.push(`<div class="tsum" style="--c:${esc(t.color)}"><b><span class="tdot"></span> ${esc(t.name)}</b>` + (L.length ? sumBy(L).map(o => `<div><span>${esc(o.work)}</span><span>${esc(fq(o.net, o.unit))} ${esc(o.unit)}</span></div>`).join('') : '<div><span style="color:var(--mut)">ยังไม่มี</span></div>') + '</div>'); });
+    }
     h.push('</div><div class="side-h"><span>สรุปทั้งโครงการ</span><button class="chip" data-csv style="min-height:30px;font-size:12px">⬇ CSV</button></div><div class="side-b">');
     const S = summary();
     if (!S.length) h.push('<p class="empty" style="padding:8px">ยังไม่มีตัวเลข</p>');
     else h.push('<table class="sum"><thead><tr><th>งาน</th><th class="n">สุทธิ</th><th class="n">รวมเผื่อ</th><th class="n" title="ขนาด 1 แพ็ก/แผ่น (จำในเครื่องนี้)">แพ็ก</th></tr></thead><tbody>' + S.map(o => { const k = o.work + '|' + o.unit, p = +pk[k] || 0;
       return `<tr><td>${esc(o.work)}<br><small style="color:var(--mut)">${o.n} รายการ · ${esc(o.unit)}</small></td><td class="n">${esc(fq(o.net, o.unit))}</td><td class="n">${esc(fq(o.gross, o.unit))}</td>
         <td class="n"><input data-pack="${esc(k)}" value="${p || ''}" placeholder="—" inputmode="decimal" title="ใส่ขนาด 1 แพ็ก เช่น 2.88">${p ? '<br><b>' + Math.ceil(o.gross / p - 1e-9) + '</b> แพ็ก' : ''}</td></tr>`; }).join('') + '</tbody></table>');
-    h.push('<p class="kbd">ไม่มีราคา · ตัวเลขหน้างาน ยังไม่ใช่ BOQ<br>คีย์ลัด: <b>A</b> พื้นที่ <b>L</b> ความยาว <b>C</b> นับจุด <b>N</b> โน้ต <b>R</b> ไม้บรรทัด <b>S</b> สเกล <b>F</b> ซูม/พอดีจอ <b>Enter</b> บันทึก <b>Esc</b> ล้างจุด · กด <b>Shift</b> ค้าง = แนวตรง</p></div>');
+    h.push('<p class="kbd">ไม่มีราคา · ตัวเลขหน้างาน ยังไม่ใช่ BOQ<br>คีย์ลัด: <b>A</b> พื้นที่ <b>L</b> ความยาว <b>C</b> นับจุด <b>N</b> โน้ต <b>R</b> ไม้บรรทัด <b>T</b> ระบุทีม <b>S</b> สเกล <b>F</b> ซูม/พอดีจอ <b>Enter</b> บันทึก <b>Esc</b> ล้างจุด · กด <b>Shift</b> ค้าง = แนวตรง</p></div>');
     $('mRight').innerHTML = h.join('');
   }
   $('mRight').addEventListener('click', (e) => {
     if (e.target.closest('[data-csv]')) { exportCsv(); return; }
+    if (e.target.closest('[data-tsum]')) { show('teams', true); renderTeams(); return; }
     const b = e.target.closest('[data-mrow]'); if (b) { focusId = b.dataset.mrow; focusRow(focusId); draw(); upd(); side(); }
   });
   $('mRight').addEventListener('change', (e) => { const i = e.target.closest('[data-pack]'); if (!i) return; const pk = packs(), v = parseFloat(String(i.value).replace(',', '.'));
@@ -890,13 +1192,18 @@ const MV = (() => {
   function exportCsv() {
     const sheetName = (r) => r.source === 'qs' ? drawingTitle((APP.feed.drawings || []).find(d => d.id === r.qs_file_id), r.page) : ((APP.sheets.find(s => s.id === r.sheet_id) || {}).name || '');
     const q = (v) => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-    const head = ['ห้อง/โซน', 'งาน', 'ชนิด', 'ปริมาณสุทธิ', 'หน่วย', 'ตัวคูณ', '% เผื่อ', 'รวมเผื่อ', 'รอบรูป (ม.)', 'ความสูง (ม.)', 'หักออก', 'สถานะ', 'แบบ', 'วัดโดย', 'วันที่', 'หมายเหตุ'];
+    const head = ['ทีม / ผู้รับเหมา', 'ห้อง/โซน', 'งาน', 'ชนิด', 'ปริมาณสุทธิ', 'หน่วย', 'ตัวคูณ', '% เผื่อ', 'รวมเผื่อ', 'รอบรูป (ม.)', 'ความสูง (ม.)', 'หักออก', 'สถานะ', 'แบบ', 'วัดโดย', 'วันที่', 'หมายเหตุ'];
     const TY = { area: 'พื้นที่', length: 'ความยาว', count: 'นับจุด', note: 'โน้ต' };
-    const lines = [head.map(q).join(',')].concat(APP.rows.map(r => [r.name, r.work, TY[r.type] || r.type, r.qty == null ? '' : (+r.qty).toFixed(2), r.unit, r.count_per, r.waste_pct,
+    const lines = [head.map(q).join(',')].concat(APP.rows.map(r => [(teamOf(r) || {}).name || '', r.name, r.work, TY[r.type] || r.type, r.qty == null ? '' : (+r.qty).toFixed(2), r.unit, r.count_per, r.waste_pct,
       r.qty == null ? '' : gross(r).toFixed(2), r.perimeter_m == null ? '' : (+r.perimeter_m).toFixed(2), r.height_mm ? (r.height_mm / 1000).toFixed(2) : '', r.deduct ? 'ใช่' : '',
       ST[r.status] || r.status, sheetName(r), r.created_by, r.created_at ? dmy(new Date(r.created_at)) : '', r.note].map(q).join(',')));
     lines.push('', 'สรุปตามงาน', ['งาน', 'หน่วย', 'สุทธิ', 'รวมเผื่อ', 'จำนวนรายการ'].map(q).join(','));
     summary().forEach(o => lines.push([o.work, o.unit, o.net.toFixed(2), o.gross.toFixed(2), o.n].map(q).join(',')));
+    if (!APP.noTeams && APP.teams.length) {   // v1.5.0 สรุปตามทีม
+      lines.push('', 'สรุปตามทีม', ['ทีม / ผู้รับเหมา', 'หมวดงาน', 'งาน', 'หน่วย', 'สุทธิ', 'รวมเผื่อ', 'จำนวนรายการ'].map(q).join(','));
+      APP.teams.concat([{ id: '', name: 'ยังไม่ระบุทีม', trade: '' }]).forEach(t => sumBy(APP.rows.filter(r => (r.team_id && teamOf(r) ? r.team_id : '') === t.id))
+        .forEach(o => lines.push([t.name, t.trade || '', o.work, o.unit, o.net.toFixed(2), o.gross.toFixed(2), o.n].map(q).join(','))));
+    }
     const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'วัดหน้างาน-' + (projCode(APP.proj) || APP.pid) + '-' + dmy(new Date()).replace(/\//g, '') + '.csv';
     document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); toast('ดาวน์โหลด CSV แล้ว (ไม่มีราคา)');
@@ -905,15 +1212,15 @@ const MV = (() => {
   document.addEventListener('keydown', (e) => {
     if (APP.screen !== 'measure' || e.ctrlKey || e.metaKey || e.altKey || document.querySelector('dialog[open]')) return;
     const t = e.target; if (t && /^(input|textarea|select)$/i.test(t.tagName)) return;
-    const k = String(e.key || '').toLowerCase(), map = { a: 'area', l: 'length', c: 'count', n: 'note', r: 'ruler', s: 'scale' };
-    if (map[k]) { if (map[k] === 'scale' && SRC && SRC.mmSrc === 'qs') return; e.preventDefault(); setTool(map[k]); }
+    const k = String(e.key || '').toLowerCase(), map = { a: 'area', l: 'length', c: 'count', n: 'note', r: 'ruler', s: 'scale', t: 'assign' };
+    if (map[k]) { if (map[k] === 'scale' && SRC && SRC.mmSrc === 'qs') return; if (map[k] === 'assign' && APP.noTeams) return; e.preventDefault(); setTool(map[k]); }
     else if (k === 'f') { e.preventDefault(); $('btnZoom').click(); }
     else if (k === 'enter') { e.preventDefault(); $('btnSave').click(); }
     else if (k === 'escape') { if (pts.length || (scalePts && scalePts.length)) { rec('ล้างจุด'); pts = []; scalePts = null; draw(); upd(); } }
   });
   window.matchMedia('(min-width:1000px)').addEventListener('change', () => { if (APP.screen === 'measure') { side(); left(); } });
 
-  return { open, resize: () => { resize(); upd(); }, dirty: () => pts.length > 0 && tool !== 'ruler', key: () => (SRC ? SRC.key : ''), side };
+  return { open, resize: () => { resize(); upd(); }, dirty: () => pts.length > 0 && tool !== 'ruler', key: () => (SRC ? SRC.key : ''), side, csv: exportCsv };
 })();
 
 // ทดสอบบนเครื่องผู้พัฒนาเท่านั้น (localhost)
