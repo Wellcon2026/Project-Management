@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.5.0';   // 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
+const QM_VER = 'v1.5.1';   // 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -898,8 +898,15 @@ const MV = (() => {
       else { path(P, r.type === 'area'); if (r.type === 'area') { ctx.fillStyle = hexA(col, on ? .3 : tm ? .24 : .1); ctx.fill(); } ctx.lineWidth = on ? 3 : tm ? (r.type === 'length' ? 4 : 2.5) : 2; ctx.strokeStyle = col; ctx.stroke(); }
       if (dim) return;
       const c = toScr(r.type === 'length' ? P[Math.floor(P.length / 2)] : E.centroid(P));
-      label(rowLabel(r) + (r.qty != null ? ' · ' + fq(+r.qty, r.unit) + ' ' + (r.unit || '') : ''), c[0], c[1] - (r.type === 'length' ? 12 : 0) - (tm && !APP.team ? 8 : 0), 12, on ? '#7E3A19' : '#4A4840', on);
-      if (tm && !APP.team) label(tm.name, c[0], c[1] - (r.type === 'length' ? 12 : 0) + 8, 11.5, tm.color, true);
+      // v1.5.1 ป้ายยาวเกินรูป (ซูมออก) → ย่อเหลือชื่อห้อง / ซ่อน · ซูมเข้าแล้วเห็นครบ
+      let x0 = 1e9, x1 = -1e9; P.forEach(p => { const q = toScr(p); x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); });
+      const room = Math.max(on ? 1e9 : 0, (x1 - x0) * (r.type === 'count' ? 1 : 1.15), r.type === 'count' ? 90 : 0);
+      const fits = (t, sz, b) => { ctx.font = (b ? '600 ' : '') + sz + "px 'IBM Plex Sans Thai',sans-serif"; return ctx.measureText(t).width <= room; };
+      const qs = r.qty != null ? fq(+r.qty, r.unit) + ' ' + (r.unit || '') : '';
+      let main = rowLabel(r) + (qs ? ' · ' + qs : ''); if (!fits(main, 12, on)) main = (r.name || r.work || '') + (qs ? ' · ' + qs : ''); if (!fits(main, 12, on)) main = r.name || qs; if (!fits(main, 12, on)) main = '';
+      const tl = tm && !APP.team && fits(tm.name, 11.5, true) ? tm.name : '';
+      if (main) label(main, c[0], c[1] - (r.type === 'length' ? 12 : 0) - (tl ? 8 : 0), 12, on ? '#7E3A19' : '#4A4840', on);
+      if (tl) label(tl, c[0], c[1] - (r.type === 'length' ? 12 : 0) + (main ? 8 : 0), 11.5, tm.color, true);
     }
     // รูปที่กำลังวาด
     const D = tool === 'scale' ? (scalePts || []) : pts;
