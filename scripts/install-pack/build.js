@@ -9,7 +9,7 @@ const APPS = [
     what: 'ระบบหลัก — โครงการ งานประจำวัน รายงาน Daily Report, VO, เอกสาร, My Space',
     login: 'ชื่อผู้ใช้ + PIN ที่ได้รับจากบริษัท' },
   // v1.377.0 Defect Check รวม As-Built & Survey ไว้ในแอปเดียว (Site Issues ยกเลิก · ที่อยู่เดิม site-issues / survey ส่งต่อมาที่นี่)
-  { k: 'dc', name: 'Defect Check', full: 'ตรวจงาน / Punch List · As-Built & Survey', url: 'https://wellcon-defect-check.vercel.app',
+  { k: 'dc', name: 'Wellcon Site Work', full: 'Defect ตรวจงาน · As-Built & Survey (เดิม Defect Check)', url: 'https://wellcon-defect-check.vercel.app',
     acc: '#C2681E', tint: '#F8E7D8', who: 'PM · Site · QC · Designer · Site Manager',
     what: 'Defect: ปักหมุดบนแบบ ถ่ายรูป ติดตามการแก้ไข รายงานส่งมอบ TH / EN · Survey: วาดผังพร้อมระยะ ใส่สัญลักษณ์ ประตู หน้าต่าง ปลั๊ก ส่งออก DXF — สลับ Defect / Survey ที่ปุ่มบนแถบด้านบน',
     login: 'บัญชีเดียวกับ Wellcon PM' },
