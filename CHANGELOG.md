@@ -2,6 +2,13 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## เมนู Site Work เปิดแอปตัวเต็ม · v1.378.0 · 12/11/2026
+- ผู้บริหารสั่ง: เมนูในโครงการต้องพาไป Wellcon Site Work ตัวเต็ม (มีแถบ Site Work + ปุ่ม Defect / Survey / Scope)
+- เมนูหน้าโครงการ: "Site Work · Defect / Survey / Scope" เมนูเดียว แทน "Defect Check · ตรวจงาน (QC)" + "As-Built & Survey" — กดแล้วเปิดแท็บใหม่ที่โครงการเดียวกัน (เดิมฝังในหน้า PM แบบย่อ)
+- การ์ดบนหน้าทำงานที่เป็น Defect Check เปิดแอปตัวเต็มเหมือนกัน · การ์ด As-Built & Survey เดิมหายไป (Survey อยู่ในแอป)
+- ครั้งแรกที่เปิดบนเครื่อง ต้องล็อกอิน Site Work 1 ครั้ง (ชื่อผู้ใช้ + PIN เดียวกับ PM)
+- สคริปต์: `scripts/patch-site-work-menu.js`
+
 ## Defect Check รวม Survey · ยกเลิก Site Issues · v1.377.0 · 12/11/2026
 - ผู้บริหารสั่ง: ใช้แอป Wellcon Defect Check ตัวเดียว (มี Survey อยู่ในแอป · wellcon-defect-check v1.32.0+) — ชื่อและทางลัดเดิมใช้ต่อได้
 - เมนูหน้าโครงการ / การ์ดหน้าทำงาน: ตัด "Site Issues · ติดตามงาน" (เรื่องเดิมย้ายเข้า Defect แล้ว) · Defect Check และ As-Built & Survey ชื่อเดิม
