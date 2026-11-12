@@ -1,6 +1,6 @@
 # Wellcon App Pack (`/install/`)
 
-หน้าแจกพนักงานสำหรับติดตั้งแอป Wellcon (PM · Defect Check · Site Issues · Layboard)
+หน้าแจกพนักงานสำหรับติดตั้งแอป Wellcon (PM · Defect Check รวม Survey · Layboard)
 พร้อม QR code และแผ่น A4 (`install/wellcon-app-pack-A4.pdf`)
 
 แก้รายการแอป/ข้อความ → แก้ `build.js` (APPS) หรือ `tpl.html` แล้วสร้างใหม่:

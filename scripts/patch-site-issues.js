@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 /* =====================================================================
+   ⚠ Site Issues ยกเลิกแล้ว (12/11/2026 · v1.377.0) — เรื่องเดิมย้ายเข้า Defect Check · เมนู / การ์ดถูกซ่อนโดย scripts/patch-defect-survey.js
+     สคริปต์นี้ยังต้องรันตามลำดับเดิม เพราะ patch-survey-menu.js / patch-work-arrange.js ต่อยอดจากจุดที่สคริปต์นี้เพิ่ม — อย่าเปิดเมนู Site Issues กลับ
    เพิ่ม "Site Issues · ติดตามงาน" เข้า Wellcon PM
      node scripts/patch-site-issues.js        (รันหลัง patch-claim-menu.js และ patch-role-home.js)
    - แอปติดตามงานอยู่ใน wellcon-defect-check (ลิงก์ /issues) — ปักหมุดปัญหาบนแบบชุดเดียวกับ Defect · ข้อมูลตาราง issue_log
