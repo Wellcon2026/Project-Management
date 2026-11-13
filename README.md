@@ -128,6 +128,9 @@ node scripts/patch-work-pr.js
 node scripts/patch-plan-by.js
 ```
 ```bash
+node scripts/patch-tags.js
+```
+```bash
 node scripts/patch-work-user.js
 node scripts/patch-kpi-go.js
 node scripts/patch-defect-survey.js
@@ -161,3 +164,9 @@ node scripts/patch-site-work-menu.js
 - ข้อมูล: ฟังก์ชัน `usage_report(p_days)` (ตัวเลขสรุปเท่านั้น ไม่มีราคา) · การเปิดแอป: `usage_touch(email, app)` → ตาราง `usage_seen` (1 แถวต่อคน ต่อแอป ต่อวัน) — SQL: `supabase-usage.sql`
 - แอปที่นับ: PM (`pm` · ทุก 30 นาทีที่เปิดอยู่) · Claim (`claim`) · Quick Measure (`qm`) · Defect Check / Site Issues / Survey (`dc` / `si` / `sv` จาก repo wellcon-defect-check)
 - "ใช้งาน" = เปิดแอป หรือบันทึก / แก้ไขข้อมูล (updated_by ของแต่ละตาราง + engagement) · Daily Report นับวันทำงาน จ.–ส. ของโครงการที่กำลังทำงาน
+
+## ระบบแท็ก — แจ้งเตือนเหลือแบบเดียว (ตั้งแต่ 13/11/2026)
+- ไฟล์กลาง `wctag.js` (ต้นฉบับอยู่ repo นี้ · คัดลอกไป repo wellcon-defect-check) · ตาราง `wc_tags` (SQL: `supabase-tags.sql` · ติดตั้งแล้ว public + staging) — 1 แถว = 1 คนที่ถูกแท็ก
+- ใช้ใน: Wellcon PM (`scripts/patch-tags.js`) · Claim · Quick Measure (ผ่าน `pm-nav.js` v1.1.0 = กระดิ่งบนหัว) · Site Work (Defect / Survey)
+- คนที่ถูกแท็กเปิดแอปใดก็ได้ → popup ทันที · กระดิ่ง 🔔 = ถึงฉัน / ฉันแท็กไป · "เปิดเรื่อง" ไปหน้าเอกสารนั้นตรง ๆ
+- kind `approve` = ขออนุมัติ (เช่น QS ของโครงการ) — ปิดอัตโนมัติเมื่ออนุมัติ / ส่งกลับแก้ไข
