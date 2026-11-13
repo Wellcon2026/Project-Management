@@ -27,13 +27,13 @@ const EDITS = [
   ['ปุ่มแท็กข้างแชร์ลิงก์', '<span>แชร์ลิงก์</span></button>', '<span>แชร์ลิงก์</span></button>\n        ' + TAGBTN],
   ['ชื่อปุ่มกระดิ่ง', 'title="แจ้งเตือน — สิ่งที่ต้องทำวันนี้"', 'title="แจ้งเตือน · แท็ก — เฉพาะเรื่องที่มีคนแท็กคุณ"'],
   ['กระดิ่ง → รายการแท็ก', "      onNotif: ()=>this.setState({ notifOpen:!S.notifOpen, topMenu:false }),",
-    "      onNotif: ()=>{ this.setState({ topMenu:false, notifOpen:false }); if(window.WCTag) window.WCTag.open(); },   // TAGS v1.375.0 แจ้งเตือนเหลือแบบเดียว = แท็ก\n      onTagHere: ()=>this._wctHere(),"],
+    "      onNotif: ()=>{ this.setState({ topMenu:false, notifOpen:false }); if(window.WCTag) window.WCTag.open(); },   // TAGS v1.379.0 แจ้งเตือนเหลือแบบเดียว = แท็ก\n      onTagHere: ()=>this._wctHere(),"],
   ['แสดงกระดิ่งทุกคน', "      notifShow:this.featOn('notif'),", "      notifShow:true,"],
   ['ตัวเลขบนกระดิ่ง = แท็กค้าง', "      notifHasBadge:notifItems.length>0, notifBadge:String(notifItems.length),", "      notifHasBadge:(S.wctN||0)>0, notifBadge:String((S.wctN||0)>99?'99+':(S.wctN||0)),"],
   ['เริ่มระบบแท็ก', "  componentDidMount(){ try{ if(typeof window!=='undefined'){ setTimeout(()=>this._usgTouch(),8000);",
     "  componentDidMount(){ try{ if(typeof window!=='undefined'){ this._wctT=setInterval(()=>this._wctSync(),1500); if(window.WCTag) window.WCTag.onChange((n)=>{ if((this.state.wctN||0)!==n) this.setState({ wctN:n }); }); } }catch(e){}\n    try{ if(typeof window!=='undefined'){ setTimeout(()=>this._usgTouch(),8000);"],
   ['ตัวช่วยระบบแท็ก', "  _claimOpen(pid){",
-    "  // v1.375.0 ระบบแท็ก (wctag.js): ตั้งค่าเมื่อ login / ล้างเมื่อออก · แท็กคนเกี่ยวกับหน้าที่เปิดอยู่\n" +
+    "  // v1.379.0 ระบบแท็ก (wctag.js): ตั้งค่าเมื่อ login / ล้างเมื่อออก · แท็กคนเกี่ยวกับหน้าที่เปิดอยู่\n" +
     "  _wctSync(){ try{ const W=window.WCTag, S=this.state, me=S.me||{}; if(!W) return; const em=String(me.email||'').toLowerCase();\n" +
     "    if(!em||em==='demo@wellcon.co.th'||!this._sb){ if(this._wctFor){ this._wctFor=''; W.reset(); } return; } if(this._wctFor===em) return; this._wctFor=em;\n" +
     "    W.setup({ sb:this._sb, app:'pm', me:{ email:em, name:(this.nickOf&&this.nickOf(me))||me.name||em, role:me.roleKey||'' }, accounts:S.accounts||[], projects:(S.projects||[]).map(p=>({ id:p.id, name:p.name })), onTag:()=>this._wctHere() }); }catch(e){ console.error(e); } }\n" +
