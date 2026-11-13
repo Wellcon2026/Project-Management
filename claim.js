@@ -310,8 +310,35 @@ async function openProject(pid) {
   $('app').innerHTML = hdr(projName(APP.proj), 'Claim · เคลมความเสียหาย') + '<div class="spin"></div>';
   await reload();
   // ลิงก์จากแท็ก: ?cid=<เคลม> → เปิดเคลมนั้นทันที
+  await fromDefect();   // v1.380.0 ลิงก์จาก Site Work: ?from=dc&did=<Defect>&ck=dmg|quo
   const cid = new URLSearchParams(location.search).get('cid'); if (cid) { const x = APP.claims.find(y => y.id === cid); if (x) { APP.cur = clone(x); APP.dirty = false; APP.stg = null; renderSheet(); } else toast('ไม่พบเคลมนี้แล้ว (อาจถูกลบ)'); }
 }
+// ---------- v1.380.0 สร้างเคลม / ใบเสนอราคาจาก Defect (Wellcon Site Work) ----------
+// อ่าน Defect จากตาราง punch_log (ฐานข้อมูลเดียวกัน) → เติมหัวข้อ · พื้นที่ · รายละเอียด · รูป · ผูกกลับ src.did (Site Work แสดงเลขที่ / สถานะ) · มีเคลมของ Defect นี้แล้ว = เปิดอันเดิม
+const DC_URL = 'https://wellcon-defect-check.vercel.app';
+async function fromDefect() {
+  const q = new URLSearchParams(location.search); if (q.get('from') !== 'dc' || !q.get('did')) return;
+  const did = q.get('did'), ck = q.get('ck') === 'quo' ? 'quo' : 'dmg';
+  const u = new URL(location.href); ['from', 'did', 'ck'].forEach(k => u.searchParams.delete(k));
+  const ex = APP.claims.find(c => c.src && c.src.did === did);
+  if (ex) { u.searchParams.set('cid', ex.id); history.replaceState(null, '', u); toast('Defect นี้มีเคลมแล้ว — เปิดเคลมเดิม'); return; }
+  history.replaceState(null, '', u);
+  let d = null; try { const r = await sb.from('punch_log').select('id,project,data').eq('id', did).maybeSingle(); if (r.data && r.data.project === APP.pid) d = { ...(r.data.data || {}), id: r.data.id }; } catch (e) { console.error(e); }
+  if (!d) { toast('ไม่พบ Defect นี้ในโครงการ — สร้างเคลมใหม่ได้ตามปกติ', 4000); return; }
+  const c = newClaim(); c.kind = ck; c.title = String(d.title || '').slice(0, 160); c.area = d.zone || ''; c.found = d.date || isoToday();
+  c.desc = [d.detail, 'อ้างอิง Defect #' + (d.n || '') + (d.zone ? ' · ' + d.zone : '')].filter(Boolean).join('\n');
+  c.src = { app: 'dc', did, n: d.n || '' }; if (ck === 'quo' && c.valid == null) c.valid = 30;
+  APP.cur = c; APP.dirty = false; APP.stg = null; renderSheet(); toast('สร้าง' + (ck === 'quo' ? 'ใบเสนอราคา' : 'เคลม') + 'จาก Defect #' + (d.n || '') + ' — กำลังดึงรูป…', 2500);
+  const pics = [d.photo, ...(Array.isArray(d.photoMore) ? d.photoMore : [])].filter(x => typeof x === 'string' && x).slice(0, PIC_MAX); let n = 0;
+  for (const p of pics) { try { let url = p;
+      if (/^data:image\//.test(p)) { const b = await (await fetch(p)).blob(); const key = 'claims/' + APP.pid + '/' + c.id + '/before-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '.jpg';
+        const up = await sb.storage.from(BUCKET).upload(key, b, { contentType: b.type || 'image/jpeg', upsert: false }); if (up.error) throw up.error; url = sb.storage.from(BUCKET).getPublicUrl(key).data.publicUrl; }
+      if (APP.cur && APP.cur.id === c.id && /^https?:/.test(url)) { APP.cur.photos.before.push(url); n++; } } catch (e) { console.error(e); } }
+  if (APP.cur && APP.cur.id === c.id) { logPush(APP.cur, 'สร้างจาก Defect #' + (d.n || '') + (n ? ' · รูป ' + n + ' รูป' : '')); renderSheet(); schedule();
+    toast('✓ ดึงข้อมูลจาก Defect #' + (d.n || '') + ' แล้ว' + (n ? ' (รูป ' + n + ')' : '') + ' — เติมรายการซ่อม / ราคา แล้วแท็ก QS ขออนุมัติ', 4500); }
+}
+const dcLink = (c) => DC_URL + '/' + (IS_STG ? '?env=staging' : '') + '#/p/' + encodeURIComponent(APP.pid) + '/list?d=' + encodeURIComponent(c.src.did);
+
 // ---------- ระบบแท็ก (wctag.js) ----------
 const claimUrl = (c) => location.origin + '/claim.html?pid=' + encodeURIComponent(APP.pid) + '&cid=' + encodeURIComponent(c.id) + (IS_STG ? '&env=staging' : '');
 const claimTitle = (c) => 'เคลม ' + (c.no || '') + (c.title ? ' · ' + c.title : '');
@@ -508,6 +535,7 @@ function renderSheet() {
   const html = `<div class="scrim"></div><div class="sheet" id="sheet">
     <div class="sh-h"><button class="x" data-act="close" title="ปิด">‹</button><div class="tt"><b>${esc(docNo(c, c.no))} · ${esc(c.title || T3(c, 'แจ้งความเสียหาย', 'เสนอราคาดำเนินการแทน', 'เสนอราคางานเพิ่มเติม'))}</b><span>${esc(KD(c) !== 'dmg' && (c.st || 'draft') === 'draft' ? 'บันทึกเรื่อง' : (SM[c.st] || SM.draft)[1])} · บันทึกโดย ${esc(c.by || '—')}</span></div><span class="sv" id="sv">${sv}</span></div>
     <div class="sh-b">
+      ${c.src && c.src.did ? `<div class="info">🔗 สร้างจาก <a href="${esc(dcLink(c))}" target="_blank" rel="noopener" style="color:inherit;font-weight:700">Defect #${esc(c.src.n || '')} ↗</a> (Wellcon Site Work)</div>` : ''}
       ${/^⚠/.test(al) ? `<div class="warnbox">${esc(al)}</div>` : al ? `<div class="info">⏱ ${esc(al)}</div>` : ''}
       <div class="blk"><h3><span class="n">1</span>${T3(c, 'ความเสียหาย', 'งานที่ติดขัด', 'งานที่เสนอราคา')}</h3>
         <div class="lbl">ประเภทเรื่อง</div><div class="kinds">${KINDS.map(x => `<button class="kind ${KD(c) === x[0] ? 'on' : ''}" data-act="kind" data-k="${x[0]}"><i>${x[1]}</i><span><b>${esc(x[2])}</b><small>${esc(x[3])}</small></span></button>`).join('')}</div>
