@@ -6,7 +6,8 @@
 (() => {
   'use strict';
   const stg = /[?&]env=staging/.test(location.search);
-  const home = '/' + (stg ? '?env=staging' : '') + '#/work';
+  const H = window.CLAIM_HOST || null;   // v1.2.0 หน้า Claim ในแอป Site Work → 🏠 / ออกจากระบบ ของ Site Work
+  const home = H ? H.home() : '/' + (stg ? '?env=staging' : '') + '#/work';
   const B = 'flex:none;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;';
   const HTML = `<button type="button" data-pmnav="home" title="หน้าแรกของฉัน" aria-label="หน้าแรกของฉัน" style="${B}border:1px solid #C9A961;background:#C9A961;color:#1C1B18"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></button>`
     + `<button type="button" data-pmnav="out" title="ออกจากระบบ" aria-label="ออกจากระบบ" style="${B}border:1px solid #6B3A30;background:transparent;color:#F0A493"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>`;
@@ -23,7 +24,8 @@
     e.preventDefault(); e.stopPropagation();
     if (b.dataset.pmnav === 'home') { location.href = home; return; }
     if (b.dataset.pmnav === 'tag') { if (window.WCTag) window.WCTag.open(); return; }
-    if (!confirm('ออกจากระบบ Wellcon PM?')) return;
+    if (!confirm(H ? 'ออกจากระบบ Wellcon Site Work?' : 'ออกจากระบบ Wellcon PM?')) return;
+    if (H) { try { localStorage.removeItem(H.meKey); sessionStorage.removeItem(H.meKey); } catch (x) {} location.href = H.home(); return; }
     try { localStorage.removeItem('wellcon_pm_session_v1'); } catch (x) {}
     location.href = '/' + (stg ? '?env=staging' : '');
   }, true);

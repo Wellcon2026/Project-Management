@@ -17,7 +17,9 @@ const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
 };
-const SCHEMA = (() => { const h = location.hostname, q = location.search;
+// v1.381.0 ใช้ได้ 2 ที่: Wellcon PM (ค่าเริ่มต้น) · ในแอป Wellcon Site Work (window.CLAIM_HOST — โดเมน / การเข้าสู่ระบบของ Site Work · ไม่ต้องเข้า PM)
+const HOST = window.CLAIM_HOST || null; const HOMEN = HOST ? 'Wellcon Site Work' : 'Wellcon PM';
+const SCHEMA = HOST && HOST.schema ? HOST.schema : (() => { const h = location.hostname, q = location.search;
   if (/[?&]env=prod/.test(q)) return 'public';
   if (/[?&]env=staging/.test(q) || /staging/i.test(h) || /^(localhost|127\.0\.0\.1)$/.test(h)) return 'staging';
   return 'public'; })();
@@ -57,7 +59,7 @@ const CHANNELS = ['หนังสือ', 'อีเมล', 'LINE', 'ประ
 const DEF_TRADES = ['ช่างไม้', 'ช่างฝ้า / ยิปซัม', 'ช่างสี', 'ช่างกระเบื้อง / หิน', 'ช่างไฟฟ้า', 'ช่างประปา', 'หัวหน้าช่าง / โฟร์แมน', 'ผู้ช่วยช่าง / กรรมกร'];
 const LT = { lab: ['👷', 'ค่าแรง', 'ty-lab'], mat: ['🧱', 'วัสดุ', 'ty-mat'], oth: ['🛠', 'เครื่องมือ / อื่น ๆ', 'ty-oth'] };
 
-const sb = window.supabase.createClient(CFG.url, CFG.anonKey, { db: { schema: SCHEMA }, auth: { persistSession: true, autoRefreshToken: true } });
+const sb = window.supabase.createClient(CFG.url, CFG.anonKey, { db: { schema: SCHEMA }, auth: { persistSession: true, autoRefreshToken: true, ...(HOST && HOST.storageKey ? { storageKey: HOST.storageKey } : {}) } });
 
 // ---------- helpers ----------
 const $ = (id) => document.getElementById(id);
@@ -82,7 +84,7 @@ const projCode = (p) => p ? (p.code || p.jobNo || p.no || '') : '';
 const clone = (o) => JSON.parse(JSON.stringify(o));
 let toastT = null;
 function toast(m, ms) { const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms || 2600); }
-const pmUrl = () => '/' + (IS_STG ? '?env=staging' : '');
+const pmUrl = () => HOST ? HOST.home(APP.pid) : '/' + (IS_STG ? '?env=staging' : '');
 
 // ---------- state ----------
 const APP = { me: null, acc: null, projects: [], pid: null, proj: null, claims: [], rates: null, base: {},
@@ -278,17 +280,19 @@ function msg(html) { $('app').innerHTML = `${IS_STG ? '<div class="stg">ข้�
 async function boot() {
   try {
     let ok = false; try { const r = await sb.auth.getSession(); ok = !!(r && r.data && r.data.session); } catch (e) {}
-    const goPm = `<a class="btn pri" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="${pmUrl()}">ไปหน้า Wellcon PM</a>`;
-    if (!ok) { msg(`<b>ยังไม่ได้เชื่อมต่อ Wellcon PM ในเครื่องนี้</b><span style="color:var(--mut);font-size:14px">เปิด Wellcon PM และเข้าสู่ระบบก่อน แล้วกดเมนู “Claim · เคลมความเสียหาย” จากหน้าโครงการ</span>${goPm}`); return; }
+    const goPm = `<a class="btn pri" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="${pmUrl()}">ไปหน้า ${HOMEN}</a>`;
+    const howTo = HOST ? 'เปิด Wellcon Site Work และเข้าสู่ระบบก่อน แล้วกด “ทำเคลม” จากหน้า Defect' : 'เปิด Wellcon PM และเข้าสู่ระบบก่อน แล้วกดเมนู “Claim · เคลมความเสียหาย” จากหน้าโครงการ';
+    if (!ok) { msg(`<b>ยังไม่ได้เชื่อมต่อ ${HOMEN} ในเครื่องนี้</b><span style="color:var(--mut);font-size:14px">${howTo}</span>${goPm}`); return; }
     const [a, p] = await Promise.all([sb.from('accounts').select('id,data'), sb.from('projects').select('id,project,data')]);
     if (a.error) throw a.error; if (p.error) throw p.error;
     const accounts = (a.data || []).map(rowOf); const live = (p.data || []).map(rowOf).filter(x => !x.deleted && !x.del);
     let sess = null; try { sess = JSON.parse(localStorage.getItem(SESS_KEY) || 'null'); } catch (e) {}
+    if (HOST) { sess = null; try { const o = JSON.parse(localStorage.getItem(HOST.meKey) || sessionStorage.getItem(HOST.meKey) || 'null'); if (o && (o.email || o.uid)) sess = { email: o.email || '', uid: o.uid || '', at: Date.now() }; } catch (e) {} }
     let ho = null; try { ho = JSON.parse(localStorage.getItem('wellcon_pm_handoff') || 'null'); } catch (e) {}   // ตัวตนที่ PM ส่งมาตอนกดเมนู (ภายใน 12 ชม.)
     const okAcc = accounts.filter(x => x.active !== false && !x.disabled);
-    const match = (x, o) => !!o && ((o.email && norm(x.email) === norm(o.email)) || (o.id && String(x.id) === String(o.id)) || (o.username && norm(x.username) === norm(o.username)));
-    const acc = (ho && Date.now() - Number(ho.at || 0) < 12 * 36e5 && okAcc.find(x => match(x, ho))) || (sess && sess.email && Date.now() - Number(sess.at || 0) < SESS_DAYS * 864e5 && okAcc.find(x => match(x, { email: sess.email }))) || null;
-    if (!acc) { msg(`<b>ยังไม่ได้เข้าสู่ระบบ Wellcon PM ในเครื่องนี้</b><span style="color:var(--mut);font-size:14px">เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิดเมนู “Claim · เคลมความเสียหาย” จากหน้าโครงการ</span>${goPm}`); return; }
+    const match = (x, o) => !!o && ((o.email && norm(x.email) === norm(o.email)) || (o.id && String(x.id) === String(o.id)) || (o.username && norm(x.username) === norm(o.username)) || (o.uid && String(x.uid || '') === String(o.uid)));
+    const acc = (ho && Date.now() - Number(ho.at || 0) < 12 * 36e5 && okAcc.find(x => match(x, ho))) || (sess && sess.email && Date.now() - Number(sess.at || 0) < SESS_DAYS * 864e5 && okAcc.find(x => match(x, { email: sess.email, uid: sess.uid }))) || null;
+    if (!acc) { msg(`<b>ยังไม่ได้เข้าสู่ระบบ ${HOMEN} ในเครื่องนี้</b><span style="color:var(--mut);font-size:14px">${howTo}</span>${goPm}`); return; }
     APP.acc = acc; APP.me = { name: nickOf(acc), email: norm(acc.email), role: acc.roleKey || '' };
     try { sb.rpc('usage_touch', { p_email: APP.me.email, p_app: 'claim' }).then(() => {}, () => {}); } catch (e) {}   // นับการเปิดแอป (หน้าการใช้งานระบบ)
     if (window.WCTag) WCTag.setup({ sb, app: 'claim', me: APP.me, accounts: okAcc, projects: live });   // ระบบแท็ก: popup เรื่องที่ถูกแท็ก + กระดิ่ง
@@ -315,7 +319,7 @@ async function openProject(pid) {
 }
 // ---------- v1.380.0 สร้างเคลม / ใบเสนอราคาจาก Defect (Wellcon Site Work) ----------
 // อ่าน Defect จากตาราง punch_log (ฐานข้อมูลเดียวกัน) → เติมหัวข้อ · พื้นที่ · รายละเอียด · รูป · ผูกกลับ src.did (Site Work แสดงเลขที่ / สถานะ) · มีเคลมของ Defect นี้แล้ว = เปิดอันเดิม
-const DC_URL = 'https://wellcon-defect-check.vercel.app';
+const DC_URL = HOST ? location.origin : 'https://wellcon-defect-check.vercel.app';
 async function fromDefect() {
   const q = new URLSearchParams(location.search); if (q.get('from') !== 'dc' || !q.get('did')) return;
   const did = q.get('did'), ck = q.get('ck') === 'quo' ? 'quo' : 'dmg';
