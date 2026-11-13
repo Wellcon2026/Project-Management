@@ -13,7 +13,7 @@
 (function () {
   'use strict';
   if (window.WCTag) return;
-  const VER = '1.0.0';
+  const VER = '1.1.0';   // 1.1.0: เข้าสู่ระบบครั้งเดียว ข้ามแอป (ตั๋วใช้ครั้งเดียว ?wsso=)
   const ROLE = { pm: 'PM', pm_mgr: 'PM Manager', qs: 'QS', qs_mgr: 'QS Manager', sitemgr: 'Site Manager', site: 'หัวหน้าช่าง', safety: 'Safety', designer: 'Designer',
     design_mgr: 'Design Manager', director: 'Director', superadmin: 'Admin', admin: 'Admin', proc: 'จัดซื้อ', proc_mgr: 'จัดซื้อ', store: 'Store', fin: 'การเงิน', fin_mgr: 'การเงิน',
     hr: 'HR', hr_mgr: 'HR', factory: 'โรงงาน', office: 'Office', driver: 'คนขับรถ' };
@@ -186,7 +186,7 @@
       ${x.note ? '<div class="n">' + esc(x.note) + '</div>' : ''}
       ${mine ? (x.url ? '<div class="a"><button class="wct-b" data-go="' + esc(x.id) + '">เปิดเรื่อง</button></div>' : '') : `<div class="a">${x.url ? `<button class="wct-b p" data-go="${esc(x.id)}">เปิดเรื่อง</button>` : ''}<button class="wct-b" data-done="${esc(x.id)}">✓ ${ap ? 'จัดการแล้ว' : 'รับทราบ'}</button></div>`}</div>`;
   }
-  function go(x) { if (!x || !x.url) return; mark([x.id], 'seen').then(() => {}); try { const u = new URL(x.url, location.href);
+  function go(x) { if (!x || !x.url) return; mark([x.id], 'seen').then(() => {}); if (isApp(x.url)) { ticketUrl(x.url).then(v => { location.href = v; }); return; } try { const u = new URL(x.url, location.href);
     if (u.origin === location.origin && u.pathname === location.pathname && u.search === location.search && u.hash !== location.hash) { location.hash = u.hash; location.reload(); return; } location.href = u.href; } catch (e) { location.href = x.url; } }
   // รายการทั้งหมด (กดกระดิ่ง)
   async function open() {
@@ -227,6 +227,27 @@
     });
   }
 
+  // ---------- v1.1.0 เข้าสู่ระบบครั้งเดียว ข้ามแอป Wellcon ----------
+  // กดลิงก์ / ปุ่มที่ไปอีกแอป (PM ⇄ Site Work · Claim) → ขอ "ตั๋วใช้ครั้งเดียว อายุ 2 นาที" (sso_issue) แนบ ?wsso= → แอปปลายทางแลกตั๋ว (sso_redeem) = เข้าสู่ระบบคนเดิมทันที
+  // ลิงก์ที่ถูกส่งต่อ / เปิดซ้ำ ใช้ตั๋วไม่ได้ (ใช้แล้ว / หมดอายุ) → ต้องเข้าสู่ระบบเอง
+  const APP_RE = /^https:\/\/(project-management-1(-[a-z0-9-]+)?|wellcon-defect-check(-[a-z0-9-]+)?)\.vercel\.app$/i, LOCAL_RE = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
+  function isApp(u) { try { const x = new URL(u, location.href); return x.origin !== location.origin && (APP_RE.test(x.origin) || (LOCAL_RE.test(x.origin) && LOCAL_RE.test(location.origin))); } catch (e) { return false; } }
+  async function ticketUrl(u) { if (!S.sb || !S.me) return u; try { const r = await S.sb.rpc('sso_issue', { p_email: S.me.email }); if (r.error || !r.data) return u;
+    const x = new URL(u, location.href); x.searchParams.set('wsso', r.data); return x.href; } catch (e) { return u; } }
+  const _open = window.open.bind(window);
+  window.open = function (u, t, f) {
+    if (u && isApp(u) && S.me && S.sb) { const w = _open('', t || '_blank'); if (!w) return _open(u, t, f);
+      try { w.document.write('<p style="font:16px system-ui,sans-serif;padding:24px;color:#1F2B45">กำลังเปิด… (เข้าสู่ระบบให้อัตโนมัติ)</p>'); } catch (e) {}
+      ticketUrl(u).then(v => { try { w.location.replace(v); } catch (e) { _open(v, t); } }); return w; }
+    return _open(u, t, f); };
+  document.addEventListener('click', (e) => { const a = e.target && e.target.closest && e.target.closest('a[href]'); if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    if (!isApp(a.href) || !S.me || !S.sb) return; e.preventDefault(); const tg = a.getAttribute('target');
+    if (tg && tg !== '_self') window.open(a.href, tg); else ticketUrl(a.href).then(v => { location.href = v; }); }, true);
+  // แอปปลายทาง: แลกตั๋ว → อีเมลผู้ใช้ (หรือ null) · ลบ ?wsso= ออกจากแถบที่อยู่ทันที
+  async function ssoTake(sb) { let t = ''; try { t = new URLSearchParams(location.search).get('wsso') || ''; } catch (e) {} if (!t) return null;
+    try { const u = new URL(location.href); u.searchParams.delete('wsso'); history.replaceState(history.state, '', u.href); } catch (e) {}
+    try { const r = await (sb || S.sb).rpc('sso_redeem', { p_t: t }); return r.error ? null : (r.data ? String(r.data).toLowerCase() : null); } catch (e) { return null; } }
+
   // ---------- ตั้งค่า (เรียกครั้งเดียวหลัง login) ----------
   function setup(o) {
     o = o || {}; S.sb = o.sb || S.sb; S.app = o.app || S.app; if (o.onTag !== undefined) S.onTag = o.onTag;   // onTag = ปุ่ม "🏷 แท็กคน" (เรื่องที่เปิดอยู่) ในแผงกระดิ่ง
@@ -239,6 +260,6 @@
     if (!S._vis) { S._vis = 1; document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.me) check(); }); }
   }
   function reset() { S.me = null; S.open = []; S.sent = []; S.shown = {}; clearInterval(S.timer); emit(); }
-  window.WCTag = { VER, setup, reset, pick, send, tag, close, byRole, check, refresh, open, bell, toast, people: () => S.people.slice(), person, onChange: (f) => { S.subs.push(f); f(S.open.length, S.open.filter(x => !x.seen_at).length); },
+  window.WCTag = { VER, setup, reset, pick, send, tag, close, byRole, check, ssoTake, ticketUrl, isApp, refresh, open, bell, toast, people: () => S.people.slice(), person, onChange: (f) => { S.subs.push(f); f(S.open.length, S.open.filter(x => !x.seen_at).length); },
     count: () => S.open.length, ROLE, _S: S };
 })();

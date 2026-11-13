@@ -139,6 +139,9 @@ node scripts/patch-tags.js
 ```bash
 node scripts/patch-claim-sitework.js
 ```
+```bash
+node scripts/patch-sso.js
+```
 (เมนู Takeoff · วัดหน้างาน · QS Tracking บันทึกทีละแถว · ซ่อนแท็บ Takeoff เดิม — เปิดกลับด้วย `?legacyTakeoff=1` · ติดตั้งเป็นแอป + ไอคอน Wellcon PM · หน้าแรกของฉันตามตำแหน่ง · กันรูป/ข้อมูลหายจาก realtime · เมนู Claim · หน้า Home เลือกโครงการ · หน้าภาพรวมโครงการแบบสั้น · หน้าแรกตามบทบาททุกตำแหน่ง · ปุ่มหน้าแรก + ออกจากระบบทุกหน้า · รายงานประจำวัน คนเข้างานแยกตาม trade · คะแนน Level Gate เห็นเฉพาะ Admin / Director / HR · Site Issues ติดตามงาน · จัดเรียงการ์ดหน้าทำงาน · Super Admin เห็นทุกเมนู · เมนู Layboard · ล็อกอินกันรหัสถูกแต่ขึ้นผิด · เลือกภาษาก่อนพิมพ์ · เมนู As-Built & Survey · หน้าแรกแบบใหม่ (ตัวเลขหลัก · ต้องดูแล · รายการโครงการแถวเดียว) · หน้าภาพรวมโครงการแบบสั้น v2 (พับส่วนรอง) · นับการเปิดแอป + ปุ่มการใช้งานระบบ · ปิด Level Gate ทั้งระบบ · กันแอปพัง removeChild · เมนูลิงก์ Mango ใบขอซื้อ / ใบสั่งจ้าง · หน้าแรกทุกคน: การ์ด PR (Mango) แทน Project Management · แผนงาน: คอลัมน์ผู้สร้างกิจกรรม · การ์ดหน้าแรกรายคน · การ์ดตัวเลขสรุปแตะได้ · Defect Check รวม Survey (ตัด Site Issues))
 
 ## Layboard · Presentation (ตั้งแต่ 09/11/2026)
@@ -173,3 +176,8 @@ node scripts/patch-claim-sitework.js
 - ใช้ใน: Wellcon PM (`scripts/patch-tags.js`) · Quick Measure (ผ่าน `pm-nav.js` = กระดิ่งบนหัว) · Site Work (Defect / Survey / Claim)
 - คนที่ถูกแท็กเปิดแอปใดก็ได้ → popup ทันที · กระดิ่ง 🔔 = ถึงฉัน / ฉันแท็กไป · "เปิดเรื่อง" ไปหน้าเอกสารนั้นตรง ๆ
 - kind `approve` = ขออนุมัติ (เช่น QS ของโครงการ) — ปิดอัตโนมัติเมื่ออนุมัติ / ส่งกลับแก้ไข
+
+## เข้าสู่ระบบครั้งเดียว ข้ามแอป (ตั้งแต่ 13/11/2026 · v1.383.0)
+- กดเมนู / ลิงก์ / ปุ่มที่ไปอีกแอป (Wellcon PM ⇄ Site Work ⇄ Claim) → `wctag.js` 1.1.0 ขอตั๋ว `sso_issue` (ใช้ครั้งเดียว · อายุ 2 นาที) แนบ `?wsso=` → แอปปลายทาง `sso_redeem` แล้วเข้าสู่ระบบคนเดิม · ตั๋วถูกลบออกจากแถบที่อยู่ทันที
+- ลิงก์ที่ถูกส่งต่อ / เปิดซ้ำ ใช้ตั๋วไม่ได้ → ต้องเข้าสู่ระบบเอง · SQL: `supabase-sso.sql` (ติดตั้งแล้ว public + staging · ตาราง `sso_tickets` ไม่มีใครอ่านตรงได้)
+- PM รับตั๋ว: `scripts/patch-sso.js` · Site Work / Claim รับตั๋วใน repo wellcon-defect-check
