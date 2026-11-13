@@ -136,6 +136,9 @@ node scripts/patch-site-work-menu.js
 ```bash
 node scripts/patch-tags.js
 ```
+```bash
+node scripts/patch-claim-sitework.js
+```
 (เมนู Takeoff · วัดหน้างาน · QS Tracking บันทึกทีละแถว · ซ่อนแท็บ Takeoff เดิม — เปิดกลับด้วย `?legacyTakeoff=1` · ติดตั้งเป็นแอป + ไอคอน Wellcon PM · หน้าแรกของฉันตามตำแหน่ง · กันรูป/ข้อมูลหายจาก realtime · เมนู Claim · หน้า Home เลือกโครงการ · หน้าภาพรวมโครงการแบบสั้น · หน้าแรกตามบทบาททุกตำแหน่ง · ปุ่มหน้าแรก + ออกจากระบบทุกหน้า · รายงานประจำวัน คนเข้างานแยกตาม trade · คะแนน Level Gate เห็นเฉพาะ Admin / Director / HR · Site Issues ติดตามงาน · จัดเรียงการ์ดหน้าทำงาน · Super Admin เห็นทุกเมนู · เมนู Layboard · ล็อกอินกันรหัสถูกแต่ขึ้นผิด · เลือกภาษาก่อนพิมพ์ · เมนู As-Built & Survey · หน้าแรกแบบใหม่ (ตัวเลขหลัก · ต้องดูแล · รายการโครงการแถวเดียว) · หน้าภาพรวมโครงการแบบสั้น v2 (พับส่วนรอง) · นับการเปิดแอป + ปุ่มการใช้งานระบบ · ปิด Level Gate ทั้งระบบ · กันแอปพัง removeChild · เมนูลิงก์ Mango ใบขอซื้อ / ใบสั่งจ้าง · หน้าแรกทุกคน: การ์ด PR (Mango) แทน Project Management · แผนงาน: คอลัมน์ผู้สร้างกิจกรรม · การ์ดหน้าแรกรายคน · การ์ดตัวเลขสรุปแตะได้ · Defect Check รวม Survey (ตัด Site Issues))
 
 ## Layboard · Presentation (ตั้งแต่ 09/11/2026)
@@ -145,11 +148,11 @@ node scripts/patch-tags.js
 - อัปเดตจาก Layboard ต้นฉบับ: `node scripts/sync-layboard.js /path/to/layboard` (pm-gate.js ไม่ถูกเขียนทับ)
 
 ## Claim · เคลมความเสียหาย (ตั้งแต่ 08/11/2026)
-หน้าแยก ไม่อยู่ใน `index.html`: `claim.html` + `claim.js` (ใช้ `vendor/supabase.js` ร่วม)
-- เปิดจากเมนู **Claim · เคลมความเสียหาย** ในหน้าโครงการ / ปุ่มบนหน้างานของฉัน → `/claim.html?pid=<id>` (`&env=staging` = ข้อมูลทดสอบ)
+**ตั้งแต่ 13/11/2026 (v1.382.0) Claim มีที่เดียว = ในแอป Wellcon Site Work (`/claim` · โค้ดอยู่ repo wellcon-defect-check)** — ไม่มี Claim แยกใน PM แล้ว · ข้อมูลชุดเดียว
+- เมนู **Claim · เคลมความเสียหาย** ใน PM → เปิด Site Work `/claim?pid=<id>` (แท็บใหม่ · `scripts/patch-claim-sitework.js`) · `/claim.html` ของ PM = หน้าส่งต่อ (ลิงก์ / แท็กเก่ายังใช้ได้)
 - ข้อมูล: `app_state.damageClaims` = `{ <pid>: [claim] }` · `app_state.claimRates` = อัตราค่าแรงเรียกเก็บลูกค้า · PM หลักไม่อ่าน/เขียน 2 คีย์นี้ · ไม่ต้องรัน SQL
 - รูป: Storage `general-photo/claims/<pid>/<claimId>/` (เก็บแค่ลิงก์ในข้อมูล)
-- ปุ่ม 🏠 หน้าแรก + ออกจากระบบ ในหน้าแยก (claim / quick-measure): `pm-nav.js`
+- ปุ่ม 🏠 หน้าแรก + ออกจากระบบ ในหน้าแยก (quick-measure / usage): `pm-nav.js`
 - ราคาในหน้านี้ = ราคาเรียกเก็บลูกค้าเท่านั้น ห้ามใส่ต้นทุน/กำไรจริง · หนังสือเคลมเป็น DRAFT ต้องให้ผู้บริหารตรวจก่อนส่ง
 
 ## แบบคมชัด + DXF (`wdraw.js` · ตั้งแต่ 10/11/2026)
@@ -167,6 +170,6 @@ node scripts/patch-tags.js
 
 ## ระบบแท็ก — แจ้งเตือนเหลือแบบเดียว (ตั้งแต่ 13/11/2026)
 - ไฟล์กลาง `wctag.js` (ต้นฉบับอยู่ repo นี้ · คัดลอกไป repo wellcon-defect-check) · ตาราง `wc_tags` (SQL: `supabase-tags.sql` · ติดตั้งแล้ว public + staging) — 1 แถว = 1 คนที่ถูกแท็ก
-- ใช้ใน: Wellcon PM (`scripts/patch-tags.js`) · Claim · Quick Measure (ผ่าน `pm-nav.js` v1.1.0 = กระดิ่งบนหัว) · Site Work (Defect / Survey)
+- ใช้ใน: Wellcon PM (`scripts/patch-tags.js`) · Quick Measure (ผ่าน `pm-nav.js` = กระดิ่งบนหัว) · Site Work (Defect / Survey / Claim)
 - คนที่ถูกแท็กเปิดแอปใดก็ได้ → popup ทันที · กระดิ่ง 🔔 = ถึงฉัน / ฉันแท็กไป · "เปิดเรื่อง" ไปหน้าเอกสารนั้นตรง ๆ
 - kind `approve` = ขออนุมัติ (เช่น QS ของโครงการ) — ปิดอัตโนมัติเมื่ออนุมัติ / ส่งกลับแก้ไข
