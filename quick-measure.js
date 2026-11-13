@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.5.2';   // 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
+const QM_VER = 'v1.5.3';   // 1.5.3: ระบบแท็ก — ส่ง QS ตรวจ = แท็ก QS · QS รับ / ส่งกลับ = แท็กผู้วัด · 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -161,6 +161,7 @@ async function boot() {
     APP.acc = acc;
     APP.me = { name: nickOf(acc), email: norm(acc.email), role: acc.roleKey || '', review: QS_REVIEW.includes(acc.roleKey) };
     try { sb.rpc('usage_touch', { p_email: APP.me.email, p_app: 'qm' }).then(() => {}, () => {}); } catch (e) {}   // นับการเปิดแอป (หน้าการใช้งานระบบ)
+    if (window.WCTag) WCTag.setup({ sb, app: 'qm', me: APP.me, accounts: accounts.filter(x => x.active !== false && !x.disabled), projects: live });   // ระบบแท็ก
     APP.projects = live.filter(x => seesAll(acc) || (acc.projects || []).includes(x.id));
     const pid = new URLSearchParams(location.search).get('pid');
     if (pid) {
@@ -547,7 +548,11 @@ $('btnSubmit').addEventListener('click', async () => {
       for (const p of prev) await rowSet(p.id, { status: p.status, submitted_by: p.submitted_by, submitted_at: p.submitted_at }); },
     redo: async () => { const t = new Date().toISOString(); for (const p of prev) await rowSet(p.id, { status: 'submitted', submitted_by: APP.me.name, submitted_at: t }); } });
   renderList(); toast(`ส่ง ${L.length} รายการให้ QS ตรวจแล้ว · ส่งผิดกด ↶ ย้อน (Ctrl+Z)`);
+  // ระบบแท็ก: แจ้ง QS ของโครงการ (ขออนุมัติ) + คนที่เกี่ยวข้อง
+  if (window.WCTag) WCTag.tag({ title: 'ขอตรวจรับตัวเลขวัดหน้างาน ' + L.length + ' รายการ · ' + projName(APP.proj), sub: 'QS ของโครงการถูกเลือกไว้แล้ว · เพิ่มคนที่เกี่ยวข้องได้',
+    project: APP.pid, ref_type: 'qm', ref_id: APP.pid, url: qmUrl(), approve: WCTag.byRole(APP.pid, ['qs', 'qs_mgr']), roles: [['qs', 'qs_mgr'], ['pm', 'pm_mgr']] });
 });
+const qmUrl = () => location.origin + '/quick-measure.html?pid=' + encodeURIComponent(APP.pid) + (IS_STG ? '&env=staging' : '');
 
 // ---------- รายละเอียด 1 รายการ ----------
 function openRow(id) {
@@ -585,7 +590,10 @@ function openRow(id) {
       if (v === 'return' && !$('rwQsNote').value.trim()) { toast('ใส่หมายเหตุว่าต้องแก้อะไร ก่อนส่งกลับ'); setTimeout(() => openRow(id), 50); return; }
       const patch = { status: v === 'accept' ? 'accepted' : 'returned', reviewed_by: APP.me.name, reviewed_at: new Date().toISOString(), qs_note: $('rwQsNote').value.trim() || null };
       const before = { status: r.status, reviewed_by: r.reviewed_by || null, reviewed_at: r.reviewed_at || null, qs_note: r.qs_note || null };
-      if (await patchRow(r, patch)) hisPush({ kind: 'act', label: (v === 'accept' ? 'QS รับ ' : 'ส่งกลับ ') + rowLabel(r), undo: () => rowSet(r.id, before), redo: () => rowSet(r.id, patch) });
+      if (await patchRow(r, patch)) { hisPush({ kind: 'act', label: (v === 'accept' ? 'QS รับ ' : 'ส่งกลับ ') + rowLabel(r), undo: () => rowSet(r.id, before), redo: () => rowSet(r.id, patch) });
+        // ระบบแท็ก: แจ้งผู้วัด · ปิดแท็กขอตรวจของ QS เมื่อไม่มีรายการรอตรวจแล้ว
+        if (window.WCTag) { if (r.created_email) WCTag.send({ project: APP.pid, ref_type: 'qm', ref_id: APP.pid, title: (v === 'accept' ? 'QS รับตัวเลขแล้ว: ' : 'QS ส่งกลับให้แก้: ') + rowLabel(r), note: patch.qs_note || null, url: qmUrl(), to: [r.created_email] });
+          if (!APP.rows.some(x => x.status === 'submitted')) WCTag.close({ ref_type: 'qm', ref_id: APP.pid, kind: 'approve' }); } }
     } else if (v === 'del') {
       if (!confirm('ลบรายการ “' + rowLabel(r) + '”?')) return;
       if (await patchRow(r, { deleted_at: new Date().toISOString() }, true)) hisPush({ kind: 'act', label: 'ลบ ' + rowLabel(r), undo: () => rowSet(r.id, { deleted_at: null }), redo: () => rowSet(r.id, { deleted_at: new Date().toISOString() }) });

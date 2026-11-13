@@ -291,6 +291,7 @@ async function boot() {
     if (!acc) { msg(`<b>ยังไม่ได้เข้าสู่ระบบ Wellcon PM ในเครื่องนี้</b><span style="color:var(--mut);font-size:14px">เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิดเมนู “Claim · เคลมความเสียหาย” จากหน้าโครงการ</span>${goPm}`); return; }
     APP.acc = acc; APP.me = { name: nickOf(acc), email: norm(acc.email), role: acc.roleKey || '' };
     try { sb.rpc('usage_touch', { p_email: APP.me.email, p_app: 'claim' }).then(() => {}, () => {}); } catch (e) {}   // นับการเปิดแอป (หน้าการใช้งานระบบ)
+    if (window.WCTag) WCTag.setup({ sb, app: 'claim', me: APP.me, accounts: okAcc, projects: live });   // ระบบแท็ก: popup เรื่องที่ถูกแท็ก + กระดิ่ง
     APP.projects = live.filter(x => seesAll(acc) || (acc.projects || []).includes(x.id));
     const pid = new URLSearchParams(location.search).get('pid');
     if (pid && !APP.projects.some(x => x.id === pid)) { msg(`<b>คุณไม่ได้รับมอบหมายในโครงการนี้</b><span style="color:var(--mut);font-size:14px">ติดต่อผู้ดูแลระบบถ้าต้องการสิทธิ์</span>${goPm}`); return; }
@@ -308,7 +309,23 @@ async function openProject(pid) {
   const u = new URL(location.href); u.searchParams.set('pid', pid); history.replaceState(null, '', u);
   $('app').innerHTML = hdr(projName(APP.proj), 'Claim · เคลมความเสียหาย') + '<div class="spin"></div>';
   await reload();
+  // ลิงก์จากแท็ก: ?cid=<เคลม> → เปิดเคลมนั้นทันที
+  const cid = new URLSearchParams(location.search).get('cid'); if (cid) { const x = APP.claims.find(y => y.id === cid); if (x) { APP.cur = clone(x); APP.dirty = false; APP.stg = null; renderSheet(); } else toast('ไม่พบเคลมนี้แล้ว (อาจถูกลบ)'); }
 }
+// ---------- ระบบแท็ก (wctag.js) ----------
+const claimUrl = (c) => location.origin + '/claim.html?pid=' + encodeURIComponent(APP.pid) + '&cid=' + encodeURIComponent(c.id) + (IS_STG ? '&env=staging' : '');
+const claimTitle = (c) => 'เคลม ' + (c.no || '') + (c.title ? ' · ' + c.title : '');
+const creatorOf = (c) => { if (c.byEmail) return c.byEmail; const p = window.WCTag && WCTag.people().find(x => x.name === c.by); return p ? p.email : ''; };
+// แท็กผู้เกี่ยวข้อง · ap = ขออนุมัติ (QS ของโครงการถูกเลือกไว้ให้ และได้แจ้งเตือนเสมอ)
+async function tagClaim(c, ap) {
+  if (!window.WCTag) return; if (c._new || APP.dirty) await save(); if (c._new) { toast('ใส่ชื่อเรื่องก่อน แล้วค่อยแท็ก'); return; }
+  const qs = ap ? WCTag.byRole(APP.pid, ['qs', 'qs_mgr']) : [];
+  const n = await WCTag.tag({ title: ap ? 'ขออนุมัติ ' + claimTitle(c) : 'แท็ก: ' + claimTitle(c), sub: ap ? 'QS ของโครงการถูกเลือกไว้แล้ว (ขออนุมัติ) · เพิ่มคนที่เกี่ยวข้องได้' : 'เลือกคนที่ต้องรู้เรื่องนี้',
+    project: APP.pid, ref_type: 'claim', ref_id: c.id, url: claimUrl(c), approve: qs, roles: [['qs', 'qs_mgr'], ['pm', 'pm_mgr'], ['director']] });
+  if (n) { c.tagged = (c.tagged || 0) + n; logPush(c, '🏷 แท็ก ' + n + ' คน' + (ap ? ' (ขออนุมัติ)' : '')); renderSheet(); schedule(); }
+}
+function tagCreator(c, title, note) { const em = creatorOf(c); if (!window.WCTag || !em || em === APP.me.email) return;
+  WCTag.send({ project: APP.pid, ref_type: 'claim', ref_id: c.id, title, note, url: claimUrl(c), to: [em] }); }
 async function reload() {
   const [m, r, dp] = await Promise.all([stRead(KEY), stRead(RKEY), stRead('defectPlans').catch(() => ({}))]);
   APP.plans = planList((dp || {})[APP.pid] || {});
@@ -395,7 +412,7 @@ function newClaim() {
   const code = projCode(APP.proj);
   return { id: uid(), no: 'CLM-' + (code ? code + '-' : '') + String(n + 1).padStart(3, '0'), st: 'draft', title: '', found: isoToday(), foundAt: new Date().toISOString(),
     area: '', works: [], cause: '', party: '', desc: '', photos: { before: [], after: [] }, lines: [], ohp: APP.rates ? APP.rates.ohp : 15, vatOn: true,
-    eot: '', eotWhy: '', flow: {}, log: [], by: APP.me.name, t: new Date().toISOString(), _new: true };
+    eot: '', eotWhy: '', flow: {}, log: [], by: APP.me.name, byEmail: APP.me.email, t: new Date().toISOString(), _new: true };
 }
 const ro = () => false;   // ทุกคนในโครงการบันทึกความเสียหายได้ · ขั้นเงินเช็ก canMoney() แยก
 function inp(path, val, opt) { opt = opt || {};
@@ -438,6 +455,8 @@ function apBlock(c) {
   return `${!c.plan ? `<div class="warnbox">📐 ต้องแนบแบบประกอบ (ข้อ 1) ก่อนจึงอนุมัติได้</div>` : ''}${ok ? `<div class="ap-ok">✓ อนุมัติแล้ว — พิมพ์ <b>ฉบับจริง</b> (ไม่มีลายน้ำ DRAFT) ส่งลูกค้าได้ · ยอด ${baht(k.total)}</div>` : `<div class="info">เอกสารมีลายน้ำ <b>DRAFT</b> จนกว่า <b>QS หรือ PM</b> คนใดคนหนึ่งอนุมัติ · แก้ข้อมูล / ตัวเลขหลังอนุมัติ = ต้องอนุมัติใหม่</div>`}
     ${back && !apN(c) ? `<div class="warnbox">↩ ส่งกลับแก้ไข โดย ${esc(back.by)} · ${when(back.at)}${back.why ? ' — ' + esc(back.why) : ''}</div>` : ''}
     <div class="ap">${row}</div>
+    ${window.WCTag ? `<div class="tagr"><span>🏷 ${c.tagged ? 'แท็กแล้ว ' + c.tagged + ' คน — คนที่ถูกแท็กเห็นแจ้งเตือนตอนเปิดแอป' : ok ? 'แท็กคนที่ต้องรู้ว่าอนุมัติแล้ว' : 'ยังไม่ได้แจ้งใคร — แท็ก QS เพื่อขออนุมัติ'}</span>
+      <button class="btn ${!ok && !c.tagged ? 'pri' : ''}" data-act="tag" data-ap="${ok ? '' : '1'}">${ok ? '🏷 แท็กคน' : c.tagged ? '🏷 แท็กเพิ่ม' : '🏷 ขออนุมัติ · แท็ก QS'}</button></div>` : ''}
     ${!ok && can ? `<div class="act"><button class="btn del" data-act="apback" style="font-size:13px">↩ ส่งกลับแก้ไข</button></div>` : ''}`;
 }
 function stepper(c) {
@@ -545,6 +564,8 @@ async function save() {
 }
 async function closeSheet() {
   if (APP.cur && (APP.dirty || APP.saveT)) await save();
+  // ออกเอกสารเคลมใหม่ → ถามแท็ก QS (ขออนุมัติ) + คนที่เกี่ยวข้อง ครั้งเดียวตอนปิด (กด "ไม่แท็ก" ได้ — QS ยังได้แจ้งเตือน)
+  { const c = APP.cur; if (c && !c._new && !c.tagged && !c.tagAsked && !apOk(c) && window.WCTag && hasContent(c)) { c.tagAsked = 1; schedule(); await tagClaim(c, true); if (APP.dirty) await save(); } }
   APP.cur = null; APP.stg = null; const h = $('sheetHost'); if (h) h.innerHTML = ''; render();
 }
 
@@ -742,9 +763,12 @@ document.addEventListener('click', async (e) => {
     const msg = 'ยืนยันอนุมัติเอกสาร: ตรวจตัวเลข (ยอด ' + baht(t) + ') เนื้อหา รูป และแบบประกอบแล้ว\nลายน้ำ DRAFT จะหายไป และพิมพ์ฉบับจริงส่งลูกค้าได้';
     if (!confirm(msg)) return; const h = apHash(c); const cur = { back: (c.appr || {}).back || null };
     c.appr = { ...cur, h, [k]: { by: APP.me.name, role: APP.me.role, at: new Date().toISOString(), amt: t } };
-    logPush(c, 'อนุมัติเอกสาร (' + (AP_ROLE[APP.me.role] || APP.me.role || '') + ') · ' + baht(t) + ' — พร้อมส่งลูกค้า'); renderSheet(); schedule(); toast('✓ อนุมัติแล้ว — พิมพ์ฉบับจริงได้'); }
+    logPush(c, 'อนุมัติเอกสาร (' + (AP_ROLE[APP.me.role] || APP.me.role || '') + ') · ' + baht(t) + ' — พร้อมส่งลูกค้า'); renderSheet(); schedule(); toast('✓ อนุมัติแล้ว — พิมพ์ฉบับจริงได้');
+    if (window.WCTag) { WCTag.close({ ref_type: 'claim', ref_id: c.id, kind: 'approve' }); tagCreator(c, 'อนุมัติแล้ว: ' + claimTitle(c), 'อนุมัติโดย ' + APP.me.name + ' — พิมพ์ฉบับจริงส่งลูกค้าได้'); } }
   else if (a === 'unappr' && c) { const k = b.dataset.k; if (!c.appr) return; c.appr = { back: c.appr.back || null }; logPush(c, 'ยกเลิกการอนุมัติเอกสาร'); renderSheet(); schedule(); }
-  else if (a === 'apback' && c) { const why = prompt('เหตุผลที่ส่งกลับแก้ไข (ผู้จัดทำจะเห็นข้อความนี้)', ''); if (why === null) return; c.appr = { back: { by: APP.me.name, at: new Date().toISOString(), why: why.trim() } }; logPush(c, '↩ ส่งกลับแก้ไข' + (why.trim() ? ' — ' + why.trim() : '')); renderSheet(); schedule(); toast('ส่งกลับแก้ไขแล้ว'); }
+  else if (a === 'apback' && c) { const why = prompt('เหตุผลที่ส่งกลับแก้ไข (ผู้จัดทำจะเห็นข้อความนี้)', ''); if (why === null) return; c.appr = { back: { by: APP.me.name, at: new Date().toISOString(), why: why.trim() } }; logPush(c, '↩ ส่งกลับแก้ไข' + (why.trim() ? ' — ' + why.trim() : '')); renderSheet(); schedule(); toast('ส่งกลับแก้ไขแล้ว');
+    if (window.WCTag) { WCTag.close({ ref_type: 'claim', ref_id: c.id, kind: 'approve' }); tagCreator(c, 'ส่งกลับแก้ไข: ' + claimTitle(c), (why.trim() || 'ไม่ระบุเหตุผล') + ' — โดย ' + APP.me.name); } }
+  else if (a === 'tag' && c) tagClaim(c, b.dataset.ap === '1');
   else if (a === 'undo' && c) undo();
   else if (a === 'resubmit' && c) { c.st = 'notified'; if (c.flow) { delete c.flow.rejected; delete c.flow.submitted; delete c.flow.approved; } logPush(c, 'เตรียมส่งเคลมใหม่'); renderSheet(); schedule(); }
   else if (a === 'del' && c) { if (!confirm('ลบเคลม ' + c.no + ' ?\nรูปและประวัติของเคลมนี้จะถูกลบด้วย')) return;
