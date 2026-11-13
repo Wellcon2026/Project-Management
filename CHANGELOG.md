@@ -2,6 +2,11 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## Claim มีที่เดียว (ใน Wellcon Site Work) · v1.382.0 · 13/11/2026
+- ผู้บริหารสั่ง: ไม่ทำ 2 แอป / 2 ชุดข้อมูล — Claim อยู่ในแอป Wellcon Site Work ที่เดียว (`/claim`) · ข้อมูลเคลมเป็นชุดเดียว (ฐานข้อมูลเดียวกัน `app_state.damageClaims`) เข้าจากไหนก็เห็นเหมือนกัน
+- เมนู / การ์ด Claim ใน PM → เปิด Claim ใน Site Work (แท็บใหม่ · โครงการเดียวกัน) แบบเดียวกับเมนู Site Work · ครั้งแรกบนเครื่องต้องเข้าสู่ระบบ Site Work
+- ลบ `claim.js` ออกจาก PM · `/claim.html` ของ PM = หน้าส่งต่อไป Site Work (ลิงก์ / แท็กเก่ายังเปิดได้) · สคริปต์: `scripts/patch-claim-sitework.js`
+
 ## Claim ใช้ได้ในแอป Site Work · v1.381.0 · Site Work v1.39.0 · 13/11/2026
 - `claim.js` รองรับ `window.CLAIM_HOST` — ใช้ในแอป Wellcon Site Work ได้ (โดเมน / การเข้าสู่ระบบของ Site Work · ไม่ต้องเข้า Wellcon PM) · ข้อมูลเคลมชุดเดียวกัน (app_state `damageClaims`)
 - `pm-nav.js` 1.2.0: ในหน้า Claim ของ Site Work ปุ่ม 🏠 / ออกจากระบบ = ของ Site Work
