@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const APR_VER = 'v1.1.0';   // 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
+const APR_VER = 'v1.2.0';   // 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -98,15 +98,16 @@ const myPrs = () => (APP.all[APP.pid] || []).filter(x => x && !x.deleted);
 
 // ===== เรียนรู้จากใบเก่า: ของ · หน่วย · พื้นที่ =====
 function learn() {
-  const score = new Map(), unit = {};
-  const add = (name, u, w) => { const k = norm(name); if (!k) return; const o = score.get(k) || { name: String(name).trim(), n: 0 }; o.n += w; score.set(k, o); if (u && !unit[k]) unit[k] = u; };
-  Object.keys(APP.all).forEach(pid => (APP.all[pid] || []).forEach(pr => (pr.items || []).forEach(it => add(it.name, it.unit, pid === APP.pid ? 3 : 1))));
+  const score = new Map(), unit = {}, codes = {};
+  const add = (name, u, w, it) => { const k = norm(name); if (!k) return; const o = score.get(k) || { name: String(name).trim(), n: 0 }; o.n += w; score.set(k, o); if (u && !unit[k]) unit[k] = u;
+    if (it && (it.code || it.mat) && !codes[k]) codes[k] = { code: it.code || '', mat: it.mat || '' }; };
+  Object.keys(APP.all).forEach(pid => (APP.all[pid] || []).forEach(pr => (pr.items || []).forEach(it => add(it.name, it.unit, pid === APP.pid ? 3 : 1, it))));
   COMMON.forEach(([n, u], i) => { add(n, u, 0.2 - i * 0.005); });
   const items = [...score.values()].sort((a, b) => b.n - a.n).map(o => ({ name: o.name, unit: unit[norm(o.name)] || '' }));
   const areas = []; const seenA = new Set();
   myPrs().forEach(pr => { [pr.area, ...(pr.items || []).map(i => i.remark)].forEach(a => { const k = norm(a); if (k && !seenA.has(k)) { seenA.add(k); areas.push(String(a).trim()); } }); });
   APP.rooms.forEach(a => { const k = norm(a); if (k && !seenA.has(k)) { seenA.add(k); areas.push(a); } });
-  return { items, areas: areas.slice(0, 14), unitOf: (n) => unit[norm(n)] || '' };
+  return { items, areas: areas.slice(0, 14), unitOf: (n) => unit[norm(n)] || '', codesOf: (n) => codes[norm(n)] || { code: '', mat: '' } };
 }
 
 // =====================================================================
@@ -344,7 +345,8 @@ function newPr() {
   const today = myPrs().filter(x => x.date === isoOf(d)).length + 1;
   return { id: uid(), pid: APP.pid, no: 'PR-' + code + '-' + String(d.getFullYear() + 543).slice(2) + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + pad(today),
     date: isoOf(d), proj: projName(APP.proj), types, area: '', items: [], by: APP.me.full || APP.me.name, byEmail: APP.me.email, byTitle: APP.me.title,
-    pm: pmOf(APP.proj), status: 'draft', at: Date.now() };
+    pm: pmOf(APP.proj), status: 'draft', at: Date.now(),
+    deliverTo: projName(APP.proj), vendor: '', subName: '', note: '', buyType: 'Cost', system: 'Construction' };
 }
 let L = null;   // ผลการเรียนรู้ (คำนวณตอนเปิดหน้าแก้ไข)
 function renderEdit() {
@@ -352,7 +354,7 @@ function renderEdit() {
   $('edTitle').textContent = pr.status && pr.status !== 'draft' ? 'แก้ไข ' + pr.no : 'ใบขอซื้อใหม่';
   $('btnSend').textContent = pr.status === 'sent' ? '✓ บันทึกการแก้ไข' : pr.status === 'returned' ? '↻ ส่งใหม่ให้ QS' : '✓ ส่ง PR'; $('btnDraft').hidden = pr.status === 'sent';
   // กรอกอัตโนมัติ (แตะเพื่อแก้)
-  const F = [['proj', 'ชื่อโครงการ', pr.proj], ['date', 'วันที่', pr.date, 'date'], ['by', 'ผู้ขอซื้อ', pr.by], ['byTitle', 'ตำแหน่ง', pr.byTitle], ['pm', 'ผู้อนุมัติ (PM)', pr.pm]];
+  const F = [['proj', 'ชื่อโครงการ', pr.proj], ['date', 'วันที่', pr.date, 'date'], ['by', 'ผู้ขอซื้อ', pr.by], ['byTitle', 'ตำแหน่ง', pr.byTitle], ['pm', 'ผู้อนุมัติ (PM)', pr.pm], ['deliverTo', 'สถานที่ส่งของ', pr.deliverTo == null ? pr.proj : pr.deliverTo]];
   $('autoBox').innerHTML = F.map(([k, l, v, ty]) => `<label class="af"><small>${l} <span class="tag">อัตโนมัติ</span></small><input data-af="${k}" type="${ty || 'text'}" value="${esc(v || '')}"></label>`).join('');
   $('typeBox').innerHTML = TYPES.map(([k, l, e]) => `<button class="chip${pr.types.includes(k) ? ' on' : ''}" data-ty="${k}">${pr.types.includes(k) ? '✓ ' : ''}${l} <small>${e}</small></button>`).join('');
   renderArea(); renderFav(); renderItems(); renderSug(); preview();
@@ -375,7 +377,10 @@ function renderItems() {
       <div class="r2"><div class="qty"><button data-q="-1" aria-label="ลด">−</button><input data-f="qty" inputmode="decimal" value="${esc(it.qty)}"><button data-q="1" aria-label="เพิ่ม">＋</button></div>
         <select data-f="unit">${us.map(u => `<option${u === it.unit ? ' selected' : ''}>${esc(u)}</option>`).join('')}</select>
         <label>ต้องการของวันที่<input type="date" data-f="need" value="${esc(it.need)}"></label></div>
-      <input class="rm" data-f="remark" value="${esc(it.remark)}" placeholder="หมายเหตุ / ใช้กับงาน / พื้นที่"></div>`; }).join('');
+      <input class="rm" data-f="remark" value="${esc(it.remark)}" placeholder="หมายเหตุ / ใช้กับงาน / พื้นที่">
+      <details class="mg"${it.code || it.mat ? ' open' : ''}><summary>รหัส Mango ${it.code || it.mat ? '✓' : '(ไม่บังคับ — QS / จัดซื้อเติมได้)'}</summary><div class="r2">
+        <label>รหัสต้นทุน<input data-f="code" value="${esc(it.code || '')}" placeholder="เช่น G150011" autocomplete="off"></label>
+        <label>รหัสวัสดุ<input data-f="mat" value="${esc(it.mat || '')}" placeholder="เช่น P2103000100300" autocomplete="off"></label></div></details></div>`; }).join('');
 }
 function renderSug() {
   const q = norm($('q').value); const box = $('sug');
@@ -389,7 +394,7 @@ function addItem(name) {
   const n = String(name || '').trim(); if (!n) return;
   const pr = APP.pr; const ex = pr.items.find(i => norm(i.name) === norm(n));
   if (ex) { ex.qty = String((parseFloat(ex.qty) || 0) + 1); toast('มี “' + n + '” แล้ว — เพิ่มจำนวนเป็น ' + ex.qty); }
-  else pr.items.push({ name: n, qty: '1', unit: L.unitOf(n) || 'อัน', code: '', need: defNeed(), remark: pr.area || '' });
+  else { const c = L.codesOf(n); pr.items.push({ name: n, qty: '1', unit: L.unitOf(n) || 'อัน', code: c.code, mat: c.mat, need: defNeed(), remark: pr.area || '' }); }
   $('q').value = ''; renderSug(); renderFav(); renderItems(); preview(); draftSave();
   const last = document.querySelector('#items .it:last-child'); if (last && !ex) last.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
@@ -467,28 +472,39 @@ $('btnPv').addEventListener('click', () => { openView(); });
 // =====================================================================
 // ใบขอซื้อ (A4) — หน้าตาเหมือนฟอร์มกระดาษ
 // =====================================================================
+// ===== ใบขอซื้อ/ขอจ้าง — รูปแบบเดียวกับใบพิมพ์จาก Mango ERP (ส่งข้อมูลกลับเข้า Mango ได้ตรงช่อง) =====
+const ceDate = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; };   // Mango ใช้ ค.ศ. DD/MM/YYYY
+const qty2 = (q) => { const n = parseFloat(q); return isNaN(n) ? String(q || '') : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+const projLabel = (pr) => { const p = APP.projects.find(x => x.id === pr.pid) || APP.proj; const c = projCode(p); return (pr.proj || projName(p)) + (c ? ' (' + c + ')' : ''); };
+function mgNote(pr) {   // หมายเหตุหัวใบ: ประเภทงาน · ใช้กับงาน / พื้นที่ · หมายเหตุรายข้อที่ต่างจากพื้นที่หลัก
+  const its = (pr.items || []).filter(i => String(i.name || '').trim());
+  const ty = TYPES.filter(t => (pr.types || []).includes(t[0])).map(t => t[1]).join(', ');
+  const per = its.map((i, n) => i.remark && norm(i.remark) !== norm(pr.area) ? 'ข้อ ' + (n + 1) + ': ' + i.remark : '').filter(Boolean).join(' · ');
+  return [pr.note, ty, pr.area ? 'ใช้กับ: ' + pr.area : '', per].filter(Boolean).join(' · ');
+}
 function formHtml(pr) {
-  const its = pr.items.filter(i => String(i.name || '').trim()); const rows = Math.max(12, its.length);
-  const tr = []; for (let i = 0; i < rows; i++) { const it = its[i];
-    tr.push(it ? `<tr><td class="c">${i + 1}.</td><td>${esc(it.name)}</td><td class="c">${esc(it.qty)}</td><td class="c">${esc(it.unit)}</td><td class="c">${esc(it.code || '')}</td><td class="c">${esc(thDate(it.need))}</td><td>${esc(it.remark || '')}</td></tr>`
-      : '<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>'); }
-  const bx = (k) => `<span class="bx${pr.types.includes(k) ? ' on' : ''}"></span>`;
-  return `<div class="pr">
-    <div class="co">wellcon interior co., ltd. 36/38 โครงการเซนโทรพอร์ต ม.13 ต.บึงคำพร้อย อ.ลำลูกกา จ.ปทุมธานี 12150 โทร.02-1525430 · เลขผู้เสียภาษี 0105560007187</div>
-    <div class="ti">Purchase Requisition(PR)</div><div class="ti2">ใบขอซื้อ</div>
-    <div style="margin-top:14px;font-weight:700">ประเภทงาน :</div>
-    <div class="ty">${TYPES.map(([k, l, e]) => `<div>${bx(k)}${l} / ${e}</div>`).join('')}</div>
-    <div class="ln"><b>ชื่อโครงการ :</b><span class="ul">${esc(pr.proj)}</span><b style="margin-left:18px">วันที่ :</b><span class="ul" style="flex:0 0 190px">${esc(thDate(pr.date))}</span></div>
-    <table><thead><tr><th colspan="7">รายการที่ต้องการขอซื้อ</th></tr>
-      <tr><th style="width:50px">ลำดับ</th><th>รายการ</th><th style="width:62px">จำนวน</th><th style="width:62px">หน่วย</th><th style="width:76px">รหัสต้นทุน</th><th style="width:96px">ต้องการของวันที่</th><th style="width:170px">หมายเหตุ</th></tr></thead>
-      <tbody>${tr.join('')}</tbody></table>
-    <div class="red">หมายเหตุ : ระยะเวลาในการสั่งของ 3 วัน (ส่ง PR ก่อนเที่ยง) กรณีเร่งด่วน<br>โปรดระบุชื่อ / ยี่ห้อ / รุ่น / จำนวน / ประเภทสินค้า วัสดุ วัตถุดิบ และใช้กับงานอะไรให้ละเอียดชัดเจน<br>แนบแบบแปลน / ภาพประกอบ พร้อมระบุพื้นที่ในการใช้งานทุกครั้ง</div>
-    <div class="sig">
-      <div style="flex-direction:column;align-items:stretch;gap:10px;margin:0"><div><b>ผู้ขอซื้อ :</b><span class="ul">${esc(pr.by)}</span></div><div><b>ตำแหน่ง :</b><span class="ul">${esc(pr.byTitle)}</span></div><div><b>วันที่ :</b><span class="ul">${esc(thDate(pr.date))}</span></div></div>
-      <div style="flex-direction:column;align-items:stretch;gap:10px;margin:0"><div><b>ผู้ตรวจสอบ :</b><span class="ul">${esc(pr.qsAt && pr.status !== 'returned' ? pr.qsBy || '' : '')}</span></div><div><b>ตำแหน่ง :</b><span class="ul" style="color:#111">ฝ่าย QS ประเมินราคา</span></div><div><b>วันที่ :</b><span class="ul">${esc(pr.qsAt && pr.status !== 'returned' ? thDate(isoOf(new Date(pr.qsAt))) : '')}</span></div></div>
-      <div style="flex-direction:column;align-items:stretch;gap:10px;margin:0"><div><b>ผู้อนุมัติ :</b><span class="ul">${esc(pr.pm ? '(' + pr.pm + ')' : '')}</span></div><div><b>ตำแหน่ง :</b><span class="ul" style="color:#111">Project Manager</span></div><div><b>วันที่ :</b><span class="ul"></span></div></div>
-    </div>
-    <div class="doc"><span>${esc(pr.no)}</span><span>สร้างด้วย Auto PR · Wellcon PM</span></div></div>`;
+  const its = (pr.items || []).filter(i => String(i.name || '').trim());
+  const qsOk = pr.qsAt && pr.status !== 'returned';
+  const sig = (nm, role, dt) => `<div class="sg"><div class="sl"></div><div class="sn">${esc(nm || '')}</div><div class="sr">${role}</div><div class="sd">วันที่ <span>${esc(dt || '')}</span></div></div>`;
+  return `<div class="pr mg-f">
+    <div class="mh"><div class="lg"><svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><path d="M20 3 36 11v18L20 37 4 29V11z" fill="#3A3A3A"/><path d="M20 3 36 11 20 19 4 11z" fill="#6B6B6B"/><path d="M20 19v18L4 29V11z" fill="#262626"/></svg>
+      <div><b>wellcon</b><small>Interior contractor &amp; furniture maker</small></div></div>
+      <div class="co2"><div class="pg">Page 1/1</div><b>บริษัท เวลล์คอน อินทีเรีย จำกัด</b> (สำนักงานใหญ่)<br>36/38 โครงการเซนโทรพอร์ต ม.13 ต.บึงคำพร้อย<br>อ.ลำลูกกา จ.ปทุมธานี 12150 Tel : 02-1525430<br>Tax ID : 0105560007187 mail: service@wellcon.co.th</div></div>
+    <div class="mt">ใบขอซื้อ/ขอจ้าง</div>
+    <div class="mi"><div>
+      <div><b>โครงการ / แผนก</b><span>: ${esc(projLabel(pr))}</span></div>
+      <div><b>ผู้ขาย</b><span>: ${esc(pr.vendor || '')}</span></div>
+      <div><b>ชื่อแทนผู้รับเหมา</b><span>: ${esc(pr.subName || '')}</span></div>
+      <div><b>หมายเหตุ</b><span>: ${esc(mgNote(pr))}</span></div>
+      <div><b>สถานที่ส่งของ</b><span>: ${esc(pr.deliverTo == null ? pr.proj : pr.deliverTo)}</span></div></div>
+      <div class="r"><div><b>เลขที่</b><span>: ${esc(pr.mangoNo || pr.no)}</span></div><div><b>วันที่</b><span>: ${esc(ceDate(pr.date))}</span></div>
+      <div><b>ประเภทการซื้อ</b><span>: ${esc(pr.buyType || 'Cost')}</span></div><div><b>ระบบงาน</b><span>: ${esc(pr.system || 'Construction')}</span></div>
+      ${pr.mangoNo ? `<div><b>อ้างอิง</b><span>: ${esc(pr.no)}</span></div>` : ''}</div></div>
+    <table class="mtb"><thead><tr><th style="width:44px">ลำดับ</th><th style="width:86px">รหัสต้นทุน</th><th style="width:130px">รหัสวัสดุ</th><th>รายการ</th><th style="width:74px">จำนวน</th><th style="width:62px">หน่วย</th><th style="width:86px">วันที่ส่งของ</th></tr></thead>
+      <tbody>${its.map((it, i) => `<tr><td class="c">${i + 1}</td><td class="c">${esc(it.code || '')}</td><td class="c">${esc(it.mat || '')}</td><td>${esc(it.name)}</td><td class="n">${esc(qty2(it.qty))}</td><td class="c">${esc(it.unit)}</td><td class="c">${esc(ceDate(it.need))}</td></tr>`).join('')}
+      <tr class="fill" style="height:${Math.max(40, 560 - its.length * 27)}px"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody></table>
+    <div class="msg">${sig(pr.by, 'ผู้จัดทำ', ceDate(pr.date))}${sig(pr.pm, 'ผู้อนุมัติ', '')}${sig(qsOk ? pr.qsBy : '', 'ผู้ตรวจสอบ', qsOk ? ceDate(isoOf(new Date(pr.qsAt))) : '')}${sig('', 'ผู้อนุมัติ', '')}</div>
+    <div class="doc"><span>อ้างอิง Auto PR ${esc(pr.no)}</span><span>รูปแบบ Mango · ไม่มีราคา</span></div></div>`;
 }
 function fit(box) { const w = box.clientWidth; const pr = box.querySelector('.pr'); if (!pr || !w) return; const k = Math.min(1, w / 794); pr.style.transform = 'scale(' + k + ')'; box.style.height = Math.ceil(pr.offsetHeight * k) + 'px'; }
 let pvT = null;
@@ -510,7 +526,7 @@ function actionsHtml(pr) {
     <div class="b"><button class="btn ok" data-a="approve">✓ อนุมัติ → ส่งจัดซื้อ</button><button class="btn" data-a="return">↩ ส่งกลับแก้ไข</button></div></div>`);
     else out.push(wait('รอ QS อนุมัติ', names(qsOf(pr.pid)))); }
   else if (S === 'approved') { if (canProc()) out.push(`<div class="card act" style="border-color:#B7CBE3;background:#F4F8FD"><b>🛒 รอคุณสั่งของ</b><span class="s">เปิด PR / PO ใน Mango แล้วใส่เลขที่ + วันที่คาดว่าของถึง</span>
-    <div class="b" style="align-items:flex-end"><label class="fl">เลขที่ PR / PO ใน Mango<input id="aMango" placeholder="เช่น PR6911-0123" autocomplete="off"></label><label class="fl">คาดว่าของถึงวันที่<input id="aEta" type="date" value="${esc(minNeed(pr))}"></label>
+    <div class="b" style="align-items:flex-end"><label class="fl">เลขที่ PR / PO ใน Mango<input id="aMango" placeholder="เช่น PR24100014" autocomplete="off"></label><label class="fl">ผู้ขาย<input id="aVendor" value="${esc(pr.vendor || '')}" placeholder="เช่น บจก. พิมพ์ อิเล็คทริค" autocomplete="off"></label><label class="fl">คาดว่าของถึงวันที่<input id="aEta" type="date" value="${esc(minNeed(pr))}"></label>
     <button class="btn ok" data-a="order">✓ สั่งของแล้ว</button><a class="btn sm" href="${MANGO_URL}" target="_blank" rel="noopener" style="background:#F28C28;color:#fff;border:0">เปิด Mango ↗</a></div></div>`);
     else out.push(wait('รอจัดซื้อสั่งของ', names(procOf(pr.pid)))); }
   else if (S === 'ordered') { if (canReceive(pr)) out.push(`<div class="card act" style="border-color:#CFC2EA;background:#F8F5FD"><b>📦 ของถึงหน้างานแล้วหรือยัง?</b><span class="s">ตรวจจำนวน / สภาพของ แล้วกดยืนยัน — ระบบแจ้งจัดซื้อและ QS ให้</span>
@@ -530,7 +546,7 @@ function renderView() {
     ${pr.status !== 'cancelled' ? tracker(pr) : ''}${pr.status === 'returned' && pr.qsNote ? `<div class="note"><b>QS (${esc(pr.qsBy || '')}):</b> ${esc(pr.qsNote)}</div>` : ''}
     ${pr.mangoNo || pr.eta ? `<div class="s">🛒 ${pr.mangoNo ? 'เลขที่ Mango <b>' + esc(pr.mangoNo) + '</b>' : ''}${pr.eta ? ' · คาดว่าของถึง <b>' + esc(thDate(pr.eta)) + '</b>' : ''}${pr.procBy ? ' · ' + esc(pr.procBy) : ''}</div>` : ''}</div>`;
   $('vwAct').innerHTML = actionsHtml(pr); $('vwLog').innerHTML = logHtml(pr);
-  $('vwBtns').innerHTML = `<button class="btn sm" data-v="copy">📋 คัดลอกข้อความ (LINE / Mango)</button><a class="btn sm" href="${MANGO_URL}" target="_blank" rel="noopener" style="background:#F28C28;color:#fff;border:0">🛒 เปิด Mango ↗</a>`;
+  $('vwBtns').innerHTML = `<button class="btn sm" data-v="xls">⬇ Excel (คอลัมน์ Mango)</button><button class="btn sm" data-v="tsv">📋 คัดลอกตาราง (วางใน Mango / Excel)</button><button class="btn sm" data-v="copy">💬 ข้อความ LINE</button><a class="btn sm" href="${MANGO_URL}" target="_blank" rel="noopener" style="background:#F28C28;color:#fff;border:0">🛒 เปิด Mango ↗</a>`;
   $('btnEdit').hidden = !canEdit(pr);
   const b = $('pvMain'); b.innerHTML = formHtml(pr); requestAnimationFrame(() => fit(b));
 }
@@ -538,9 +554,22 @@ function openView(fromSave) {
   if (fromSave && APP.screen === 'edit') { history.replaceState({ apr: 'view' }, ''); show('view', false); } else show('view', true);
   renderView();
 }
-$('vwBtns').addEventListener('click', async (e) => { const b = e.target.closest('[data-v="copy"]'); if (!b) return;
-  const t = textOf(APP.pr); try { await navigator.clipboard.writeText(t); toast('คัดลอกแล้ว — วางใน LINE หรือช่องรายละเอียดใน Mango ได้เลย'); }
-  catch (x) { prompt('คัดลอกข้อความนี้', t); } });
+const MG_COLS = ['ลำดับ', 'รหัสต้นทุน', 'รหัสวัสดุ', 'รายการ', 'จำนวน', 'หน่วย', 'วันที่ส่งของ'];
+const mgRows = (pr) => (pr.items || []).filter(i => String(i.name || '').trim()).map((it, i) => [i + 1, it.code || '', it.mat || '', it.name, (parseFloat(it.qty) || 0).toFixed(2), it.unit || '', ceDate(it.need)]);
+function mgCsv(pr) {   // 1 แถว / 1 รายการ · หัวใบซ้ำทุกแถว (นำเข้า / กรองใน Excel ง่าย) · UTF-8 BOM ให้ Excel อ่านภาษาไทยถูก
+  const H = ['เลขที่', 'วันที่', 'โครงการ / แผนก', 'ผู้ขาย', 'ชื่อแทนผู้รับเหมา', 'สถานที่ส่งของ', 'ประเภทการซื้อ', 'ระบบงาน', 'หมายเหตุ', ...MG_COLS, 'ผู้จัดทำ', 'ผู้ตรวจสอบ', 'อ้างอิง Auto PR'];
+  const head = [pr.mangoNo || '', ceDate(pr.date), projLabel(pr), pr.vendor || '', pr.subName || '', pr.deliverTo == null ? pr.proj : pr.deliverTo, pr.buyType || 'Cost', pr.system || 'Construction', mgNote(pr)];
+  const q = (v) => { const t = String(v == null ? '' : v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+  return '﻿' + [H, ...mgRows(pr).map(r => [...head, ...r, pr.by || '', pr.qsAt && pr.status !== 'returned' ? pr.qsBy || '' : '', pr.no])].map(r => r.map(q).join(',')).join('\r\n');
+}
+$('vwBtns').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-v]'); if (!b) return; const pr = APP.pr, v = b.dataset.v;
+  if (v === 'xls') { const blob = new Blob([mgCsv(pr)], { type: 'text/csv;charset=utf-8' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = (pr.mangoNo || pr.no) + '-mango.csv';
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); toast('ดาวน์โหลดแล้ว — เปิดด้วย Excel ได้เลย (คอลัมน์ตรงกับ Mango)'); return; }
+  const t = v === 'tsv' ? mgRows(pr).map(r => r.join('\t')).join('\n') : textOf(pr);
+  try { await navigator.clipboard.writeText(t); toast(v === 'tsv' ? 'คัดลอกตารางแล้ว — วางในตาราง Mango หรือ Excel ได้เลย (ลำดับ · รหัสต้นทุน · รหัสวัสดุ · รายการ · จำนวน · หน่วย · วันที่ส่งของ)' : 'คัดลอกแล้ว — วางใน LINE ได้เลย', 3600); }
+  catch (x) { prompt('คัดลอกข้อความนี้', t); }
+});
 $('vwAct').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a, pr = APP.pr;
   if (a === 'edit') { renderEdit(); history.replaceState({ apr: 'edit' }, ''); show('edit', false); return; }
@@ -549,7 +578,7 @@ $('vwAct').addEventListener('click', async (e) => {
   if (a === 'return') { note = prompt('ส่งกลับให้แก้ไขอะไร? (ผู้ขอจะเห็นข้อความนี้)', ''); if (note === null) return; if (!note.trim()) { toast('ใส่เหตุผลที่ส่งกลับก่อน'); return; } }
   if (a === 'cancel' && !confirm('ยกเลิกใบขอซื้อ ' + pr.no + '?')) return;
   if (a === 'partial') { note = prompt('ได้รับไม่ครบ / มีปัญหาอะไร? เช่น เทป PU ได้ 6 จาก 10 ม้วน', ''); if (note === null) return; if (!note.trim()) { toast('ใส่รายละเอียดก่อน'); return; } }
-  const mango = a === 'order' ? String(($('aMango') || {}).value || '').trim() : '', eta = a === 'order' ? String(($('aEta') || {}).value || '') : '';
+  const mango = a === 'order' ? String(($('aMango') || {}).value || '').trim() : '', eta = a === 'order' ? String(($('aEta') || {}).value || '') : '', vendor = a === 'order' ? String(($('aVendor') || {}).value || '').trim() : '';
   if (a === 'order' && !mango && !confirm('ยังไม่ได้ใส่เลขที่ PR / PO ใน Mango — ยืนยัน “สั่งของแล้ว”?')) return;
   b.disabled = true; const me = APP.me.name;
   try {
@@ -560,7 +589,7 @@ $('vwAct').addEventListener('click', async (e) => {
     else if (a === 'return') { cur = await transition(pr.pid, pr.id, ['sent'], x => { x.status = 'returned'; x.qsAt = Date.now(); x.qsBy = me; x.qsNote = note.trim(); logIt(x, '↩ QS ส่งกลับแก้ไข', note.trim()); });
       await notify(cur, { title: '↩ QS ส่งกลับแก้ไข ' + cur.no + ' · ' + cur.proj, note: note.trim(), to: [norm(cur.byEmail)], close: 'approve', line: '↩ QS ส่งกลับแก้ไข (' + me + '): ' + note.trim() });
       toast('ส่งกลับแล้ว — แจ้งผู้ขอแล้ว'); }
-    else if (a === 'order') { cur = await transition(pr.pid, pr.id, ['approved'], x => { x.status = 'ordered'; x.orderedAt = Date.now(); x.procBy = me; x.procEmail = APP.me.email; x.mangoNo = mango; x.eta = eta; logIt(x, '🛒 สั่งของแล้ว', [mango && 'Mango ' + mango, eta && 'ของถึง ' + thDate(eta)].filter(Boolean).join(' · ')); });
+    else if (a === 'order') { cur = await transition(pr.pid, pr.id, ['approved'], x => { x.status = 'ordered'; x.orderedAt = Date.now(); x.procBy = me; x.procEmail = APP.me.email; x.mangoNo = mango; x.eta = eta; if (vendor) x.vendor = vendor; logIt(x, '🛒 สั่งของแล้ว', [mango && 'Mango ' + mango, eta && 'ของถึง ' + thDate(eta)].filter(Boolean).join(' · ')); });
       await notify(cur, { title: '🛒 สั่งของแล้ว ' + cur.no + (eta ? ' · คาดว่าของถึง ' + thDate(eta) : ''), note: mango ? 'เลขที่ Mango ' + mango : '', to: [norm(cur.byEmail), ...pmsOf(cur.pid)], close: 'approve', line: '🛒 สั่งของแล้ว (' + me + ')' + (mango ? ' · Mango ' + mango : '') + (eta ? ' · คาดว่าของถึง ' + thDate(eta) : '') });
       toast('บันทึกแล้ว — แจ้งหน้างานแล้ว'); }
     else if (a === 'recv') { cur = await transition(pr.pid, pr.id, ['ordered'], x => { x.status = 'received'; x.receivedAt = Date.now(); x.recvBy = me; logIt(x, '📦 ได้รับของครบแล้ว'); });

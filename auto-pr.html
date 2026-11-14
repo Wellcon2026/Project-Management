@@ -90,6 +90,38 @@ input,select,textarea{font:inherit;color:inherit;font-size:16px}
 @keyframes sp{to{transform:rotate(360deg)}}
 .ver{font-size:11px;color:var(--mut);text-align:center}
 
+/* v1.2.0 ใบขอซื้อ/ขอจ้าง รูปแบบ Mango */
+.mg-f{font-family:'IBM Plex Sans Thai',Tahoma,sans-serif;display:flex;flex-direction:column}
+.mg-f .mh{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.mg-f .lg{display:flex;align-items:center;gap:8px}
+.mg-f .lg b{display:block;font-size:34px;font-weight:600;letter-spacing:.5px;line-height:1;color:#333}
+.mg-f .lg small{display:block;font-size:9.5px;color:#555;margin-top:2px}
+.mg-f .co2{text-align:right;font-size:10.5px;line-height:1.6;color:#333}
+.mg-f .co2 b{font-size:12.5px}
+.mg-f .pg{font-size:10px;color:#555}
+.mg-f .mt{text-align:center;font-weight:700;font-size:16px;margin:18px 0 10px}
+.mg-f .mi{display:flex;justify-content:space-between;gap:20px;font-size:12px;margin-bottom:10px}
+.mg-f .mi>div{display:flex;flex-direction:column;gap:6px}
+.mg-f .mi div div{display:flex;gap:8px}
+.mg-f .mi b{font-weight:600;min-width:112px}
+.mg-f .mi .r b{min-width:92px;text-align:right}
+.mg-f .mi span{color:#333}
+.mg-f .mtb{width:100%;border-collapse:collapse;font-size:12px}
+.mg-f .mtb th{border:1px solid #111;padding:5px 4px;font-weight:600;text-align:center;background:#fff}
+.mg-f .mtb td{border-left:1px solid #111;border-right:1px solid #111;padding:5px 6px;height:auto;color:#222;vertical-align:top;font-size:12px}
+.mg-f .mtb td.c{text-align:center}.mg-f .mtb td.n{text-align:right;padding-right:10px}
+.mg-f .mtb td{border-top:0;border-bottom:0}
+.mg-f .mtb tr.fill td{border-bottom:1px solid #111}
+.mg-f .msg{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #111;border-top:0}
+.mg-f .sg{border-right:1px solid #111;padding:44px 8px 8px;text-align:center;font-size:11.5px}
+.mg-f .sg:last-child{border-right:0}
+.mg-f .sl{border-bottom:1px dotted #888;margin:0 10px 4px}
+.mg-f .sn{min-height:17px;color:#1B3A8A}
+.mg-f .sr{font-weight:600}
+.mg-f .sd{text-align:left;margin-top:6px}.mg-f .sd span{color:#1B3A8A}
+details.mg{font-size:13px;color:var(--ink2)}
+details.mg summary{cursor:pointer;color:var(--mut);font-size:12.5px;padding:2px 0}
+details.mg input{min-height:44px;border:1.5px solid var(--line);border-radius:12px;padding:0 10px;background:#fff;font-size:15px}
 /* v1.1.0 ติดตามสถานะ · งานที่รอคุณ · ปุ่มตามบทบาท */
 .vw{max-width:794px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:10px}
 .vw:empty{display:none}
@@ -248,7 +280,7 @@ input,select,textarea{font:inherit;color:inherit;font-size:16px}
 
 <script src="vendor/supabase.js"></script>
 <script src="wctag.js?v=1.1.0"></script>
-<script src="auto-pr.js?v=1.1.0"></script>
+<script src="auto-pr.js?v=1.2.0"></script>
 <script src="pm-nav.js?v=1.2.0"></script>
 </body>
 </html>

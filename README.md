@@ -244,3 +244,4 @@ node scripts/patch-auto-pr-menu.js
 - v1.1.0 ขั้นตอน: `draft` → `sent` (รอ QS) → `approved` (รอจัดซื้อ) / `returned` → `ordered` (เลข Mango · `eta`) → `received` · `cancelled` — `transition()` อ่านล่าสุดแล้วตรวจสถานะก่อนเขียน
 - ผู้รับผิดชอบ: QS = `qs`/`qs_mgr` ในทีมโครงการ (ไม่มี → QS Manager) · จัดซื้อ = `proc` ในทีมโครงการ (ไม่มี → ทุกคนฝ่ายจัดซื้อ) · แจ้งเตือนผ่าน `WCTag.send` (ref_type `apr`) + `/api/line` ไปกลุ่มใน app_state `autoPRCfg` { pid | `_all`: { line } }
 - SLA 24 ชม. (`escQs` / `escProc`) ตรวจฝั่งเครื่องผู้ใช้ตอนเปิดแอป (ยังไม่มีตัวตั้งเวลาฝั่งเซิร์ฟเวอร์)
+- v1.2.0 ใบ PR = รูปแบบ "ใบขอซื้อ/ขอจ้าง" ของ Mango (`formHtml`) · ช่องเพิ่ม: pr `vendor` · `subName` · `note` · `deliverTo` · `buyType` · `system` · item `code` (รหัสต้นทุน) · `mat` (รหัสวัสดุ) · ส่งออก `mgCsv()` (UTF-8 BOM) / `mgRows()` (TSV)
