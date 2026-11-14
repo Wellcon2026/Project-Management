@@ -245,3 +245,5 @@ node scripts/patch-auto-pr-menu.js
 - ผู้รับผิดชอบ: QS = `qs`/`qs_mgr` ในทีมโครงการ (ไม่มี → QS Manager) · จัดซื้อ = `proc` ในทีมโครงการ (ไม่มี → ทุกคนฝ่ายจัดซื้อ) · แจ้งเตือนผ่าน `WCTag.send` (ref_type `apr`) + `/api/line` ไปกลุ่มใน app_state `autoPRCfg` { pid | `_all`: { line } }
 - SLA 24 ชม. (`escQs` / `escProc`) ตรวจฝั่งเครื่องผู้ใช้ตอนเปิดแอป (ยังไม่มีตัวตั้งเวลาฝั่งเซิร์ฟเวอร์)
 - v1.2.0 ใบ PR = รูปแบบ "ใบขอซื้อ/ขอจ้าง" ของ Mango (`formHtml`) · ช่องเพิ่ม: pr `vendor` · `subName` · `note` · `deliverTo` · `buyType` · `system` · item `code` (รหัสต้นทุน) · `mat` (รหัสวัสดุ) · ส่งออก `mgCsv()` (UTF-8 BOM) / `mgRows()` (TSV)
+- v1.3.0 รายการวัสดุโครงการ: app_state `autoPRCat_<pid>` = `{ sources:[{ id, name, kind: file|gsheet, url, count, tabs, at, by }], items:[{ id, src, cat, name, spec, unit, qty, code, area }] }` · item ใน PR มี `catId` (นับ "ขอไปแล้ว" จากใบสถานะ sent / approved / ordered / received)
+- นำเข้า: `vendor/xlsx.full.min.js` (SheetJS 0.18.5 · Apache-2.0) โหลดตอนใช้ · Google Sheet ผ่าน `/api/sheet?url=` (Vercel function · ดึง export xlsx จาก docs.google.com เท่านั้น) · คอลัมน์ราคาไม่ถูกอ่าน (`RX_PRICE`)

@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const APR_VER = 'v1.2.0';   // 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
+const APR_VER = 'v1.3.0';   // 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -55,8 +55,8 @@ const pmUrl = () => '/' + (IS_STG ? '?env=staging' : '');
 let toastT = null;
 function toast(m, ms) { const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms || 2600); }
 
-const APP = { acc: null, me: null, accounts: [], projects: [], pid: '', proj: null, all: {}, cfg: {}, rooms: [], pr: null, screen: 'msg', pushed: 0, filt: 'all' };
-const SCR = ['msg', 'proj', 'list', 'edit', 'view'];
+const APP = { acc: null, me: null, accounts: [], projects: [], pid: '', proj: null, all: {}, cfg: {}, cat: { sources: [], items: [] }, imp: null, catPick: null, catQ: '', catTab: '', rooms: [], pr: null, screen: 'msg', pushed: 0, filt: 'all' };
+const SCR = ['msg', 'proj', 'list', 'edit', 'view', 'cat'];
 function show(s, push) {
   SCR.forEach(k => { $('scr' + k[0].toUpperCase() + k.slice(1)).hidden = k !== s; });
   if (push) { history.pushState({ apr: s }, ''); APP.pushed++; }
@@ -65,7 +65,7 @@ function show(s, push) {
 window.addEventListener('popstate', (e) => {
   const s = (e.state && e.state.apr) || (APP.pid ? 'list' : (APP.acc ? 'proj' : 'msg'));
   if (APP.pushed > 0) APP.pushed--;
-  show(s, false); if (s === 'list') renderList(); if (s === 'edit') renderEdit(); if (s === 'proj') renderProjects();
+  show(s, false); if (s === 'list') renderList(); if (s === 'edit') renderEdit(); if (s === 'proj') renderProjects(); if (s === 'cat') renderCat();
 });
 function toPm() { if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1 && !APP.pushed) history.back(); else location.href = pmUrl(); }
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (!b) return;
@@ -158,8 +158,9 @@ async function openProject(pid) {
   // ชื่อห้อง / โซนจาก Takeoff (ถ้ามี) — ใช้เป็นตัวเลือก "พื้นที่"
   try { const r = await sb.from('takeoff_field_measures').select('name').eq('pm_project_id', pid).is('deleted_at', null).limit(300);
     if (!r.error) APP.rooms = [...new Set((r.data || []).map(x => String(x.name || '').trim()).filter(Boolean))].slice(0, 20); } catch (e) {}
+  await loadCat(pid);
   const sub = [projName(APP.proj), projCode(APP.proj)].filter(Boolean).join(' · ');
-  $('listProj').textContent = sub; $('edProj').textContent = sub;
+  $('listProj').textContent = sub; $('edProj').textContent = sub; $('catProj').textContent = sub;
   show('list'); renderList();
 }
 
@@ -303,6 +304,7 @@ function renderList() {
   const all = myPrs(), f = APP.filt || 'all', L = all.filter(pr => inF(pr, f)); const h = [];
   h.push(inboxHtml(inboxOf([APP.pid]), false));
   h.push('<div class="chips">' + FILT.map(([k, l]) => `<button class="chip${k === f ? ' on' : ''}" data-filt="${k}">${l} <small>${all.filter(pr => inF(pr, k)).length}</small></button>`).join('')
+    + `<button class="chip" data-catv>📚 รายการวัสดุ ${(APP.cat.items || []).length ? '(' + APP.cat.items.length + ')' : (canCfg() ? '— นำเข้า' : '')}</button>`
     + '<button class="chip" data-reload title="โหลดใหม่">↻ โหลดใหม่</button>' + (canCfg() ? `<button class="chip add" data-cfg>🔔 LINE ${((APP.cfg || {})[APP.pid] || {}).line ? '✓' : '— ตั้งค่า'}</button>` : '') + '</div>');
   if (!all.length) h.push(`<div class="card" style="align-items:center;text-align:center;padding:26px 16px"><div style="font-size:40px">🧾</div><b style="font-size:17px">ยังไม่มีใบขอซื้อในโครงการนี้</b>
     <span style="color:var(--mut);font-size:14px">กด “＋ สร้างใบขอซื้อใหม่” — ระบบกรอกชื่อโครงการ วันที่ ชื่อผู้ขอ และผู้อนุมัติให้เอง</span></div>`);
@@ -321,6 +323,7 @@ $('listBody').addEventListener('click', (e) => {
   const find = (id) => myPrs().find(x => x.id === id);
   if (fl) { APP.filt = fl.dataset.filt; renderList(); return; }
   if (e.target.closest('[data-reload]')) { toast('กำลังโหลดใหม่…', 900); reload(); return; }
+  if (e.target.closest('[data-catv]')) { openCat(false); return; }
   if (e.target.closest('[data-cfg]')) { editCfg(); return; }
   if (ib) { openPr(ib.dataset.opid, ib.dataset.open); return; }
   if (v) { APP.pr = JSON.parse(JSON.stringify(find(v.dataset.view))); openView(); }
@@ -329,6 +332,185 @@ $('listBody').addEventListener('click', (e) => {
     APP.pr.items = (src.items || []).map(i => ({ ...i, need: defNeed() })); renderEdit(); show('edit', true); toast('คัดลอกรายการจากใบเดิมแล้ว — ตรวจจำนวนอีกครั้ง'); }
 });
 $('btnNew').addEventListener('click', () => { APP.pr = newPr(); renderEdit(); show('edit', true); });
+
+// =====================================================================
+// v1.3.0 Phase 2 — รายการวัสดุโครงการ: นำเข้า Material Log / ใบเสนอราคา (Excel · CSV · ลิงก์ Google Sheet)
+//   QS / PM / จัดซื้อ นำเข้า → ระบบหาแถวหัวตาราง + จับคู่คอลัมน์ให้เอง (แก้ได้) → หน้างานกดเลือกของจากรายการ
+//   ไม่อ่าน / ไม่เก็บคอลัมน์ราคา · เก็บที่ app_state 'autoPRCat_<pid>' (แยกแถวต่อโครงการ) · ไม่ต้องรัน SQL
+//   ปริมาณ: เทียบจำนวนใน Material Log กับที่ขอไปแล้ว (ใบที่ส่ง / อนุมัติ / สั่ง / รับแล้ว) → เตือนเมื่อขอเกิน · QS เห็นคำเตือน
+// =====================================================================
+const catKey = (pid) => 'autoPRCat_' + pid;
+async function loadCat(pid) { try { const r = await sb.from('app_state').select('data').eq('id', catKey(pid)).maybeSingle();
+  APP.cat = (!r.error && r.data && r.data.data && r.data.data.v) || { sources: [], items: [] }; } catch (e) { APP.cat = { sources: [], items: [] }; } }
+async function saveCat(pid, mut) {
+  const r = await sb.from('app_state').select('data').eq('id', catKey(pid)).maybeSingle(); if (r.error) throw r.error;
+  const v = (r.data && r.data.data && r.data.data.v) || { sources: [], items: [] }; mut(v);
+  const up = await sb.from('app_state').upsert([{ id: catKey(pid), data: { v }, updated_by: APP.me.email }], { onConflict: 'id' }); if (up.error) throw up.error; APP.cat = v;
+}
+async function xlsxLib() { if (window.XLSX) return window.XLSX;
+  await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'vendor/xlsx.full.min.js'; sc.onload = ok; sc.onerror = () => no(new Error('โหลดตัวอ่าน Excel ไม่สำเร็จ')); document.head.appendChild(sc); });
+  return window.XLSX; }
+const hashId = (t) => { let h = 5381; const x = String(t); for (let i = 0; i < x.length; i++) h = ((h << 5) + h + x.charCodeAt(i)) | 0; return 'c' + (h >>> 0).toString(36); };
+const numOf = (v) => { if (typeof v === 'number') return v; const n = parseFloat(String(v || '').replace(/,/g, '')); return isNaN(n) ? null : n; };
+// คอลัมน์ราคา / มูลค่า — ไม่อ่านเด็ดขาด
+const RX_PRICE = /(ราคา|price|amount|total|cost|rate|บาท|baht|มูลค่า|ค่าแรง|ค่าของ|ส่วนลด|discount|vat)/i;
+const RX = { name: /(material|description|รายการ|รายละเอียด|ชื่อสินค้า|ชื่อวัสดุ|^item$|^items?\s*name|spec)/i, qty: /^(qty|q'ty|q\.ty|quantity|จำนวน|ปริมาณ)/i,
+  unit: /^(unit|units|หน่วย|uom)$/i, area: /(location|area|zone|room|พื้นที่|ตำแหน่ง|ห้อง|floor|ชั้น)/i };
+const CODE_PRI = [/drawing\s*code/i, /item\s*(no|code)/i, /^code$/i, /รหัส/i, /code/i, /^ref/i];
+const MAP_KEYS = [['name', 'รายการ'], ['qty', 'จำนวน'], ['unit', 'หน่วย'], ['code', 'รหัส / Drawing code'], ['area', 'พื้นที่ / ตำแหน่ง']];
+function detectSheet(aoa) {
+  let best = null;
+  for (let r = 0; r < Math.min(40, aoa.length); r++) {
+    const row = (aoa[r] || []).map(c => String(c == null ? '' : c).replace(/\s+/g, ' ').trim());
+    const m = { name: -1, qty: -1, unit: -1, code: -1, area: -1 }; const price = [];
+    row.forEach((h, c) => { if (!h) return; if (RX_PRICE.test(h)) { price.push(c); return; }
+      ['name', 'qty', 'unit', 'area'].forEach(k => { if (m[k] < 0 && RX[k].test(h)) m[k] = c; }); });
+    for (const re of CODE_PRI) { const c = row.findIndex((h, i) => h && !price.includes(i) && i !== m.name && re.test(h)); if (c >= 0) { m.code = c; break; } }
+    const sc = (m.name >= 0 ? 3 : 0) + (m.qty >= 0 ? 2 : 0) + (m.unit >= 0 ? 2 : 0) + (m.code >= 0 ? 1 : 0);
+    if (m.name >= 0 && sc >= 5 && (!best || sc > best.sc)) best = { row: r, map: m, sc, cols: row, price };
+  }
+  return best;
+}
+// รายละเอียดหลายบรรทัด (Material Log) → ชื่อสั้น + สเปก (ยี่ห้อ · รหัส · ขนาด · วัสดุ · ผิว)
+function cleanName(t) {
+  const L = String(t == null ? '' : t).split(/\r?\n/).map(x => x.trim()).filter(Boolean); if (!L.length) return { name: '', spec: '' };
+  const kv = {}, free = [];
+  L.forEach(l => { const m = /^([A-Za-zก-๙ .\/&()]{2,30}?)\s*[:：]\s*(.+)$/.exec(l); if (m) kv[m[1].trim().toUpperCase()] = m[2].trim(); else free.push(l); });
+  const nm = kv['FITTING NAME'] || kv['NAME'] || kv['ITEM'] || kv['DESCRIPTION'] || kv['ชื่อ'] || '';
+  const name = [free[0] || '', nm].filter(Boolean).join(' — ') || L[0];
+  const spec = ['BRAND', 'ยี่ห้อ', 'MODEL', 'รุ่น', 'CODE', 'SIZE', 'ขนาด', 'MATERIAL', 'FINISHED', 'FINISH', 'COLOR', 'COLOUR', 'สี'].map(k => kv[k] || '').filter(Boolean).join(' · ');
+  return { name: name.replace(/\s+/g, ' ').slice(0, 160), spec: spec.replace(/\s+/g, ' ').slice(0, 200) };
+}
+function parseSheet(aoa, map, startRow, cat) {
+  const out = []; let section = '';
+  for (let r = startRow + 1; r < aoa.length; r++) {
+    const row = aoa[r] || []; const raw = row[map.name];
+    const filled = row.filter(c => String(c == null ? '' : c).trim()).length;
+    const q = map.qty >= 0 ? numOf(row[map.qty]) : null;
+    if (!String(raw == null ? '' : raw).trim()) {   // แถวหัวข้อ / กลุ่ม เช่น "D1/D (Corridor …)" → ใช้เป็นพื้นที่ของแถวถัดไป
+      if (filled === 1 && q == null) { const t = row.find(c => String(c == null ? '' : c).trim()); section = String(t).replace(/\s+/g, ' ').trim().slice(0, 80); }
+      continue; }
+    const { name, spec } = cleanName(raw); if (!name || /^(total|รวม|grand total|sub ?total)/i.test(name)) continue;
+    const unit = map.unit >= 0 ? String(row[map.unit] == null ? '' : row[map.unit]).trim().slice(0, 20) : '';
+    const code = map.code >= 0 ? String(row[map.code] == null ? '' : row[map.code]).replace(/\s+/g, ' ').trim().slice(0, 40) : '';
+    const area = (map.area >= 0 ? String(row[map.area] == null ? '' : row[map.area]).replace(/\s+/g, ' ').trim() : '') || section;
+    out.push({ cat, name, spec, unit, qty: q, code, area: area.slice(0, 80) });
+  }
+  return out;
+}
+async function readWorkbook(buf, label, kind, url) {
+  const X = await xlsxLib(); const wb = X.read(buf, { type: 'array' });
+  const sheets = wb.SheetNames.map(n => { const aoa = X.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }); const d = detectSheet(aoa);
+    return { n, aoa, det: d, map: d ? { ...d.map } : { name: -1, qty: -1, unit: -1, code: -1, area: -1 }, start: d ? d.row : 0, on: !!d, price: d ? d.price : [] }; });
+  APP.imp = { label, kind, url, sheets }; renderCat();
+  const n = sheets.filter(x => x.on).length;
+  toast(n ? 'อ่านไฟล์แล้ว — พบตารางวัสดุ ' + n + ' แท็บ · ตรวจคอลัมน์แล้วกด “นำเข้า”' : 'ไม่พบหัวตาราง (รายการ / จำนวน / หน่วย) — เลือกคอลัมน์เองด้านล่าง', 4200);
+}
+async function importFile(f) {
+  if (!f) return; if (f.size > 15 * 1024 * 1024) { toast('ไฟล์ใหญ่เกิน 15 MB'); return; }
+  try { toast('กำลังอ่านไฟล์…', 1500); await readWorkbook(new Uint8Array(await f.arrayBuffer()), f.name, 'file', ''); } catch (e) { toast('อ่านไฟล์ไม่ได้: ' + ((e && e.message) || e), 4200); }
+}
+async function importSheetUrl(url) {
+  url = String(url || '').trim(); if (!url) return;
+  if (!/docs\.google\.com\/spreadsheets\//.test(url)) { toast('ลิงก์ต้องเป็น Google Sheet (docs.google.com/spreadsheets/…)', 3600); return; }
+  try { toast('กำลังดึง Google Sheet…', 2000); const r = await fetch('/api/sheet?url=' + encodeURIComponent(url));
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || ('HTTP ' + r.status)); }
+    await readWorkbook(new Uint8Array(await r.arrayBuffer()), 'Google Sheet', 'gsheet', url);
+  } catch (e) { toast('ดึงชีตไม่ได้: ' + ((e && e.message) || e), 4800); }
+}
+async function commitImport() {
+  const im = APP.imp; if (!im) return; const srcId = hashId(im.kind + '|' + (im.url || im.label));
+  let items = [];
+  im.sheets.filter(x => x.on && x.map.name >= 0).forEach(x => { items = items.concat(parseSheet(x.aoa, x.map, x.start, x.n)); });
+  if (!items.length) { toast('ยังไม่มีรายการให้นำเข้า — เลือกแท็บ / คอลัมน์ “รายการ” ก่อน'); return; }
+  const seen = {}; items = items.map(it => { const base = hashId(srcId + '|' + it.cat + '|' + norm(it.name) + '|' + norm(it.spec) + '|' + norm(it.code) + '|' + norm(it.area)); seen[base] = (seen[base] || 0) + 1;
+    return { id: seen[base] > 1 ? base + '_' + seen[base] : base, src: srcId, ...it }; });
+  const name = prompt('ตั้งชื่อรายการนี้ (แสดงให้หน้างานเห็น)', im.kind === 'gsheet' ? 'Material Log' : String(im.label).replace(/\.(xlsx|xls|csv)$/i, ''));
+  if (name === null) return;
+  try { await saveCat(APP.pid, v => { v.sources = (v.sources || []).filter(s0 => s0.id !== srcId); v.items = (v.items || []).filter(i => i.src !== srcId).concat(items);
+      v.sources.push({ id: srcId, name: name.trim() || im.label, kind: im.kind, url: im.url || '', file: im.kind === 'file' ? im.label : '', count: items.length, tabs: [...new Set(items.map(i => i.cat))], at: Date.now(), by: APP.me.name }); });
+    APP.imp = null; renderCat(); toast('นำเข้า ' + items.length + ' รายการแล้ว — หน้างานเลือกจากรายการนี้ได้ทันที', 3600);
+  } catch (e) { toast('บันทึกไม่สำเร็จ: ' + ((e && e.message) || e), 4200); }
+}
+// ----- ปริมาณ: Material Log เทียบที่ขอไปแล้ว -----
+const COUNTED = ['sent', 'approved', 'ordered', 'received'];
+function usedOf(catId, exceptId) { let n = 0; myPrs().forEach(pr => { if (pr.id === exceptId || !COUNTED.includes(pr.status)) return; (pr.items || []).forEach(i => { if (i.catId === catId) n += parseFloat(i.qty) || 0; }); }); return n; }
+const catItem = (id) => (APP.cat.items || []).find(i => i.id === id);
+function boqInfo(it, prId) { if (!it.catId) return null; const c = catItem(it.catId); if (!c || c.qty == null) return null;
+  const used = usedOf(it.catId, prId), left = c.qty - used, want = parseFloat(it.qty) || 0; return { boq: c.qty, used, left, over: Math.max(0, want - left), unit: c.unit || it.unit }; }
+function overList(pr) { return (pr.items || []).map((it, i) => ({ it, i, b: boqInfo(it, pr.id) })).filter(x => x.b && x.b.over > 0); }
+const fmtN = (n) => (Math.round(n * 100) / 100).toLocaleString('en-US');
+const catLabel = (c) => c.name + (c.spec ? ' · ' + c.spec : '');
+function addFromCat(ids) {
+  const pr = APP.pr; let n = 0;
+  ids.forEach(id => { const c = catItem(id); if (!c) return; if (pr.items.some(i => i.catId === id)) return;
+    const left = c.qty != null ? c.qty - usedOf(id, pr.id) : null;
+    pr.items.push({ name: catLabel(c).slice(0, 200), qty: String(left != null && left > 0 && left < 1 ? left : 1), unit: c.unit || 'ชุด', code: '', mat: '', catId: id, ref: c.code || '', need: defNeed(),
+      remark: [c.area || pr.area || '', c.code ? 'อ้างอิง ' + c.code : ''].filter(Boolean).join(' · ') }); n++; });
+  return n;
+}
+// ----- หน้าจอ: รายการวัสดุโครงการ (ดู · นำเข้า · เลือกใส่ใบ PR) -----
+function renderCat() {
+  const C = APP.cat || { sources: [], items: [] }, pick = APP.catPick, h = [];
+  $('catTitle').textContent = pick ? 'เลือกของจากรายการวัสดุ' : 'รายการวัสดุโครงการ';
+  $('catFoot').hidden = !pick; if (pick) $('btnCatAdd').textContent = pick.size ? '✓ เพิ่ม ' + pick.size + ' รายการเข้าใบ PR' : 'แตะ ＋ เพื่อเลือกของ';
+  $('btnCatAdd').disabled = !pick || !pick.size;
+  if (canCfg() && !pick) {
+    h.push(`<div class="card"><div class="h"><span class="n">📥</span>นำเข้า Material Log / ใบเสนอราคา <small>QS · PM · จัดซื้อ</small></div>
+      <div class="b2"><label class="btn dk" style="cursor:pointer">📄 อัปโหลด Excel / CSV<input type="file" id="catFile" accept=".xlsx,.xls,.csv" hidden></label><button class="btn" data-c="url">🔗 วางลิงก์ Google Sheet</button></div>
+      <span class="s">ระบบหาหัวตาราง (รายการ · จำนวน · หน่วย · รหัส · พื้นที่) ให้เอง · <b>ไม่อ่านคอลัมน์ราคา / มูลค่า</b> · Google Sheet ต้องแชร์ “ทุกคนที่มีลิงก์ดูได้”</span></div>`);
+    if (APP.imp) h.push(impHtml(APP.imp));
+    if ((C.sources || []).length) h.push('<div class="card"><div class="h">แหล่งข้อมูลที่นำเข้าแล้ว</div>' + C.sources.map(s0 => `<div class="src"><span><b>${s0.kind === 'gsheet' ? '🔗' : '📄'} ${esc(s0.name)}</b><small>${s0.count} รายการ · ${esc((s0.tabs || []).slice(0, 6).join(', '))}${(s0.tabs || []).length > 6 ? ' …' : ''} · ${esc(when2(s0.at))} · ${esc(s0.by || '')}</small></span>
+      ${s0.kind === 'gsheet' ? `<button class="btn sm" data-c="refresh" data-id="${esc(s0.id)}">↻ ดึงใหม่</button>` : ''}<button class="btn sm" data-c="del" data-id="${esc(s0.id)}" style="color:#B4442E">🗑</button></div>`).join('') + '</div>');
+  }
+  const items = C.items || [];
+  if (!items.length) { h.push(`<div class="card" style="align-items:center;text-align:center;padding:24px 16px"><div style="font-size:38px">📚</div><b>ยังไม่มีรายการวัสดุของโครงการนี้</b><span class="s">${canCfg() ? 'นำเข้า Material Log หรือใบเสนอราคาด้านบน' : 'ให้ QS / PM / จัดซื้อ นำเข้า Material Log หรือใบเสนอราคาก่อน'}</span></div>`); $('catBody').innerHTML = h.join(''); return; }
+  const tabs = [...new Set(items.map(i => i.cat))], tab = tabs.includes(APP.catTab) ? APP.catTab : '', q = norm(APP.catQ);
+  const L = items.filter(i => (!tab || i.cat === tab) && (!q || norm(i.name + ' ' + i.spec + ' ' + i.code + ' ' + i.area).includes(q)));
+  h.push(`<div class="search"><input id="catQ" value="${esc(APP.catQ)}" placeholder="ค้นหา ชื่อ · ยี่ห้อ · รหัส · พื้นที่" autocomplete="off"></div>`);
+  h.push('<div class="chips"><button class="chip' + (!tab ? ' on' : '') + '" data-tab="">ทั้งหมด <small>' + items.length + '</small></button>' + tabs.map(t => `<button class="chip${t === tab ? ' on' : ''}" data-tab="${esc(t)}">${esc(t)} <small>${items.filter(i => i.cat === t).length}</small></button>`).join('') + '</div>');
+  h.push('<div class="cl">' + (L.length ? L.slice(0, 300).map(c => { const used = usedOf(c.id, pick ? APP.pr.id : ''), left = c.qty != null ? c.qty - used : null, on = pick && pick.has(c.id), inPr = pick && APP.pr.items.some(i => i.catId === c.id);
+    return `<div class="ci${on ? ' on' : ''}"><span class="t"><b>${esc(c.name)}</b>${c.spec ? `<small>${esc(c.spec)}</small>` : ''}<small>${esc([c.cat, c.area, c.code].filter(Boolean).join(' · '))}</small></span>
+      <span class="q">${c.qty != null ? `<b>${fmtN(c.qty)} ${esc(c.unit || '')}</b><small class="${left != null && left <= 0 ? 'bad' : ''}">${used ? 'ขอแล้ว ' + fmtN(used) + ' · ' : ''}เหลือ ${fmtN(left)}</small>` : `<small>${esc(c.unit || '')}</small>`}</span>
+      ${pick ? (inPr ? '<span class="tagin">อยู่ในใบแล้ว</span>' : `<button class="pk" data-pk="${esc(c.id)}">${on ? '✓' : '＋'}</button>`) : ''}</div>`; }).join('') + (L.length > 300 ? '<p class="empty">แสดง 300 รายการแรก — พิมพ์ค้นหาเพื่อหาเพิ่ม</p>' : '') : '<p class="empty">ไม่พบรายการ</p>') + '</div>');
+  $('catBody').innerHTML = h.join('');
+  const f = $('catFile'); if (f) f.onchange = (e) => { importFile(e.target.files[0]); e.target.value = ''; };
+}
+function impHtml(im) {
+  return `<div class="card imp"><div class="h"><span class="n">✓</span>ตรวจก่อนนำเข้า — ${esc(im.label)} <small>เลือกแท็บ · ตรวจคอลัมน์ · ดูตัวอย่าง</small></div>` + im.sheets.map((x, si) => {
+    const cols = (x.aoa[x.start] || []).map((c, i) => ({ i, t: String(c == null ? '' : c).replace(/\s+/g, ' ').trim() || ('คอลัมน์ ' + (i + 1)) }));
+    const sample = x.map.name >= 0 ? parseSheet(x.aoa, x.map, x.start, x.n).slice(0, 4) : [];
+    const total = x.map.name >= 0 ? parseSheet(x.aoa, x.map, x.start, x.n).length : 0;
+    return `<div class="sh${x.on ? ' on' : ''}"><label class="chk"><input type="checkbox" data-si="${si}" data-k="on"${x.on ? ' checked' : ''}> <b>${esc(x.n)}</b> <small>${x.det ? 'พบหัวตารางแถว ' + (x.start + 1) : 'ไม่พบหัวตาราง'} · ${total} รายการ</small></label>
+      ${x.on ? `<div class="mp">${MAP_KEYS.map(([k, l]) => `<label>${l}<select data-si="${si}" data-k="${k}"><option value="-1">— ไม่ใช้ —</option>${cols.filter(c => !x.price.includes(c.i)).map(c => `<option value="${c.i}"${x.map[k] === c.i ? ' selected' : ''}>${esc(c.t.slice(0, 40))}</option>`).join('')}</select></label>`).join('')}
+        <label>แถวหัวตาราง<input type="number" min="1" data-si="${si}" data-k="start" value="${x.start + 1}"></label></div>
+        ${x.price.length ? `<span class="s">🔒 ไม่อ่านคอลัมน์ราคา: ${esc(x.price.map(i => String((x.aoa[x.start] || [])[i] || '')).join(', '))}</span>` : ''}
+        <div class="smp">${sample.map(it => `<div><b>${esc(it.name)}</b>${it.spec ? ` <small>${esc(it.spec)}</small>` : ''}<span>${it.qty != null ? fmtN(it.qty) : '—'} ${esc(it.unit)}${it.area ? ' · ' + esc(it.area) : ''}${it.code ? ' · ' + esc(it.code) : ''}</span></div>`).join('') || '<small>เลือกคอลัมน์ “รายการ” ก่อน</small>'}</div>` : ''}</div>`; }).join('')
+    + `<div class="b2"><button class="btn ok" data-c="commit">✓ นำเข้า ${im.sheets.filter(x => x.on && x.map.name >= 0).reduce((n, x) => n + parseSheet(x.aoa, x.map, x.start, x.n).length, 0)} รายการ</button><button class="btn" data-c="cancel">ยกเลิก</button></div></div>`;
+}
+$('catBody').addEventListener('click', async (e) => {
+  const t = e.target.closest('[data-tab]'), pk = e.target.closest('[data-pk]'), c = e.target.closest('[data-c]');
+  if (t) { APP.catTab = t.dataset.tab; renderCat(); return; }
+  if (pk) { const id = pk.dataset.pk; APP.catPick.has(id) ? APP.catPick.delete(id) : APP.catPick.add(id); renderCat(); return; }
+  if (!c) return; const a = c.dataset.c;
+  if (a === 'url') { const u = prompt('วางลิงก์ Google Sheet (Material Log / ใบเสนอราคา)\nต้องแชร์ “ทุกคนที่มีลิงก์ดูได้”', ''); if (u) importSheetUrl(u); }
+  else if (a === 'commit') commitImport();
+  else if (a === 'cancel') { APP.imp = null; renderCat(); }
+  else if (a === 'refresh') { const s0 = (APP.cat.sources || []).find(x => x.id === c.dataset.id); if (s0) importSheetUrl(s0.url); }
+  else if (a === 'del') { const s0 = (APP.cat.sources || []).find(x => x.id === c.dataset.id); if (!s0 || !confirm('ลบรายการ “' + s0.name + '” (' + s0.count + ' รายการ)?\nใบ PR เดิมไม่เปลี่ยน')) return;
+    try { await saveCat(APP.pid, v => { v.sources = (v.sources || []).filter(x => x.id !== s0.id); v.items = (v.items || []).filter(i => i.src !== s0.id); }); renderCat(); toast('ลบแล้ว'); } catch (x) { toast('ลบไม่สำเร็จ: ' + ((x && x.message) || x)); } }
+});
+$('catBody').addEventListener('change', (e) => {
+  const si = e.target.dataset.si; if (si == null || !APP.imp) return; const x = APP.imp.sheets[+si], k = e.target.dataset.k;
+  if (k === 'on') x.on = e.target.checked; else if (k === 'start') { x.start = Math.max(0, (parseInt(e.target.value, 10) || 1) - 1); const d = detectSheet(x.aoa.slice(x.start)); if (d && d.row === 0) { x.map = { ...d.map }; x.price = d.price; } }
+  else x.map[k] = parseInt(e.target.value, 10);
+  renderCat();
+});
+$('catBody').addEventListener('input', (e) => { if (e.target.id !== 'catQ') return; APP.catQ = e.target.value; clearTimeout(APP._cqT); APP._cqT = setTimeout(() => { const pos = e.target.selectionStart; renderCat(); const q = $('catQ'); if (q) { q.focus(); try { q.setSelectionRange(pos, pos); } catch (x) {} } }, 250); });
+$('btnCatAdd').addEventListener('click', () => { const n = addFromCat([...APP.catPick]); APP.catPick = null; draftSave();
+  if (APP.pushed > 0) history.back(); else show('edit', false);
+  setTimeout(() => { renderEdit(); toast('เพิ่ม ' + n + ' รายการจาก Material Log แล้ว — ตรวจจำนวนอีกครั้ง', 3000); }, 60); });
+function openCat(pickMode) { APP.catPick = pickMode ? new Set() : null; APP.catQ = ''; renderCat(); show('cat', true); }
 
 // =====================================================================
 // สร้าง / แก้ไข
@@ -357,8 +539,10 @@ function renderEdit() {
   const F = [['proj', 'ชื่อโครงการ', pr.proj], ['date', 'วันที่', pr.date, 'date'], ['by', 'ผู้ขอซื้อ', pr.by], ['byTitle', 'ตำแหน่ง', pr.byTitle], ['pm', 'ผู้อนุมัติ (PM)', pr.pm], ['deliverTo', 'สถานที่ส่งของ', pr.deliverTo == null ? pr.proj : pr.deliverTo]];
   $('autoBox').innerHTML = F.map(([k, l, v, ty]) => `<label class="af"><small>${l} <span class="tag">อัตโนมัติ</span></small><input data-af="${k}" type="${ty || 'text'}" value="${esc(v || '')}"></label>`).join('');
   $('typeBox').innerHTML = TYPES.map(([k, l, e]) => `<button class="chip${pr.types.includes(k) ? ' on' : ''}" data-ty="${k}">${pr.types.includes(k) ? '✓ ' : ''}${l} <small>${e}</small></button>`).join('');
+  const nc = (APP.cat.items || []).length; $('catBtn').innerHTML = nc ? `<button class="btn dk" data-catpick style="width:100%">📚 เลือกจากรายการวัสดุโครงการ (${nc} รายการ)</button>` : '';
   renderArea(); renderFav(); renderItems(); renderSug(); preview();
 }
+$('catBtn').addEventListener('click', (e) => { if (e.target.closest('[data-catpick]')) openCat(true); });
 function renderArea() {
   const pr = APP.pr, A = L.areas.slice(); if (pr.area && !A.some(a => norm(a) === norm(pr.area))) A.unshift(pr.area);
   $('areaBox').innerHTML = A.map(a => `<button class="chip${norm(a) === norm(pr.area) ? ' on' : ''}" data-ar="${esc(a)}">${esc(a)}</button>`).join('') + '<button class="chip add" data-ar-new>＋ พิมพ์พื้นที่ / งาน</button>';
@@ -377,6 +561,7 @@ function renderItems() {
       <div class="r2"><div class="qty"><button data-q="-1" aria-label="ลด">−</button><input data-f="qty" inputmode="decimal" value="${esc(it.qty)}"><button data-q="1" aria-label="เพิ่ม">＋</button></div>
         <select data-f="unit">${us.map(u => `<option${u === it.unit ? ' selected' : ''}>${esc(u)}</option>`).join('')}</select>
         <label>ต้องการของวันที่<input type="date" data-f="need" value="${esc(it.need)}"></label></div>
+      ${(() => { const b = boqInfo(it, pr.id); return b ? `<div class="boq${b.over > 0 ? ' over' : ''}">📚 Material Log ${fmtN(b.boq)} ${esc(b.unit)} · ขอไปแล้ว ${fmtN(b.used)} · เหลือ ${fmtN(b.left)}${b.over > 0 ? ' — ⚠ เกิน ' + fmtN(b.over) + ' ' + esc(b.unit) + ' (QS จะเห็นคำเตือน)' : ''}</div>` : ''; })()}
       <input class="rm" data-f="remark" value="${esc(it.remark)}" placeholder="หมายเหตุ / ใช้กับงาน / พื้นที่">
       <details class="mg"${it.code || it.mat ? ' open' : ''}><summary>รหัส Mango ${it.code || it.mat ? '✓' : '(ไม่บังคับ — QS / จัดซื้อเติมได้)'}</summary><div class="r2">
         <label>รหัสต้นทุน<input data-f="code" value="${esc(it.code || '')}" placeholder="เช่น G150011" autocomplete="off"></label>
@@ -385,9 +570,10 @@ function renderItems() {
 function renderSug() {
   const q = norm($('q').value); const box = $('sug');
   if (!q) { box.innerHTML = ''; return; }
-  const hit = L.items.filter(i => norm(i.name).includes(q)).slice(0, 5);
+  const ch = (APP.cat.items || []).filter(c => norm(c.name + ' ' + c.spec + ' ' + c.code).includes(q) && !APP.pr.items.some(i => i.catId === c.id)).slice(0, 4);
+  const hit = L.items.filter(i => norm(i.name).includes(q)).slice(0, ch.length ? 3 : 5);
   const exact = hit.some(i => norm(i.name) === q);
-  box.innerHTML = hit.map(i => `<button data-pick="${esc(i.name)}"><b>${esc(i.name)}</b><small>${esc(i.unit || '')}</small><span style="color:var(--acc);font-weight:700">＋ เพิ่ม</span></button>`).join('')
+  box.innerHTML = ch.map(c => `<button data-cpick="${esc(c.id)}"><b>📚 ${esc(c.name)}</b><small>${esc([c.spec, c.cat, c.qty != null ? 'เหลือ ' + fmtN(c.qty - usedOf(c.id, APP.pr.id)) + ' ' + (c.unit || '') : ''].filter(Boolean).join(' · '))}</small><span style="color:var(--acc);font-weight:700">＋ เพิ่ม</span></button>`).join('') + hit.map(i => `<button data-pick="${esc(i.name)}"><b>${esc(i.name)}</b><small>${esc(i.unit || '')}</small><span style="color:var(--acc);font-weight:700">＋ เพิ่ม</span></button>`).join('')
     + (exact ? '' : `<button data-pick="${esc($('q').value.trim())}"><b>＋ เพิ่ม “${esc($('q').value.trim())}”</b><small>ของใหม่</small></button>`);
 }
 function addItem(name) {
@@ -411,16 +597,16 @@ $('areaBox').addEventListener('click', (e) => {
   renderArea(); renderItems(); preview(); draftSave();
 });
 $('favBox').addEventListener('click', (e) => { const b = e.target.closest('[data-fav]'); if (b) addItem(b.dataset.fav); });
-$('sug').addEventListener('click', (e) => { const b = e.target.closest('[data-pick]'); if (b) addItem(b.dataset.pick); });
+$('sug').addEventListener('click', (e) => { const cb = e.target.closest('[data-cpick]'); if (cb) { addFromCat([cb.dataset.cpick]); $('q').value = ''; renderSug(); renderFav(); renderItems(); preview(); draftSave(); return; } const b = e.target.closest('[data-pick]'); if (b) addItem(b.dataset.pick); });
 $('q').addEventListener('input', renderSug);
 $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); const f = document.querySelector('#sug [data-pick]'); if (f) addItem(f.dataset.pick); } });
 $('items').addEventListener('click', (e) => {
   const row = e.target.closest('[data-i]'); if (!row) return; const i = +row.dataset.i, it = APP.pr.items[i];
   if (e.target.closest('[data-del]')) { if (!confirm('ลบ “' + (it.name || 'รายการนี้') + '”?')) return; APP.pr.items.splice(i, 1); renderItems(); renderFav(); preview(); draftSave(); return; }
-  const q = e.target.closest('[data-q]'); if (q) { const v = Math.max(0, (parseFloat(it.qty) || 0) + Number(q.dataset.q)); it.qty = String(v); row.querySelector('[data-f="qty"]').value = it.qty; preview(); draftSave(); }
+  const q = e.target.closest('[data-q]'); if (q) { const v = Math.max(0, (parseFloat(it.qty) || 0) + Number(q.dataset.q)); it.qty = String(v); if (it.catId) renderItems(); else row.querySelector('[data-f="qty"]').value = it.qty; preview(); draftSave(); }
 });
 $('items').addEventListener('input', (e) => { const f = e.target.dataset.f; const row = e.target.closest('[data-i]'); if (!f || !row) return; APP.pr.items[+row.dataset.i][f] = e.target.value; preview(); draftSave(); });
-$('items').addEventListener('change', (e) => { const f = e.target.dataset.f; const row = e.target.closest('[data-i]'); if (!f || !row) return; APP.pr.items[+row.dataset.i][f] = e.target.value; preview(); draftSave(); });
+$('items').addEventListener('change', (e) => { const f = e.target.dataset.f; const row = e.target.closest('[data-i]'); if (!f || !row) return; APP.pr.items[+row.dataset.i][f] = e.target.value; if (f === 'qty' && APP.pr.items[+row.dataset.i].catId) renderItems(); preview(); draftSave(); });
 // 🎤 พูดชื่อของ (Chrome / Android / Safari ใหม่)
 (() => { const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return; const btn = $('mic'); btn.hidden = false; let rec = null;
   btn.addEventListener('click', () => {
@@ -447,6 +633,8 @@ async function doSave(mode) {   // mode: 'draft' | 'send'
   const pr = APP.pr; pr.items = pr.items.filter(i => String(i.name || '').trim());
   const err = check(pr); if (err) { toast(err, 3200); renderItems(); return false; }
   const was = pr.status || 'draft';
+  const ov = overList(pr); pr.overBoq = ov.length;
+  if (mode === 'send' && ov.length && was !== 'sent' && !confirm('มี ' + ov.length + ' รายการ ขอเกินปริมาณใน Material Log:\n' + ov.map(x => '• ' + x.it.name.slice(0, 40) + ' เกิน ' + fmtN(x.b.over) + ' ' + x.b.unit).join('\n') + '\n\nส่งให้ QS ตัดสินใจ?')) return false;
   if (mode === 'send' && ['draft', 'returned'].includes(was)) { pr.status = 'sent'; pr.sentAt = Date.now(); pr.qsAt = 0; pr.qsBy = ''; pr.escQs = 0; logIt(pr, was === 'returned' ? '↻ แก้ไขแล้วส่งใหม่' : '📨 ส่ง PR'); }
   else if (mode === 'send' && was === 'sent') logIt(pr, '✎ QS แก้ไขรายการ');
   else pr.status = was;
@@ -461,7 +649,7 @@ $('btnDraft').addEventListener('click', async () => { if (await doSave('draft'))
 $('btnSend').addEventListener('click', async () => {
   const r = await doSave('send'); if (!r) return; const pr = APP.pr;
   if (pr.status === 'sent' && r.was !== 'sent') {
-    await notify(pr, { title: '✍️ ขออนุมัติใบขอซื้อ ' + pr.no + ' · ' + pr.proj + ' (' + pr.items.length + ' รายการ)', note: 'โดย ' + pr.by + (minNeed(pr) ? ' · ต้องการของ ' + thDate(minNeed(pr)) : ''),
+    await notify(pr, { title: '✍️ ขออนุมัติใบขอซื้อ ' + pr.no + ' · ' + pr.proj + ' (' + pr.items.length + ' รายการ)', note: 'โดย ' + pr.by + (minNeed(pr) ? ' · ต้องการของ ' + thDate(minNeed(pr)) : '') + (pr.overBoq ? ' · ⚠ ขอเกิน Material Log ' + pr.overBoq + ' รายการ' : ''),
       approve: qsOf(pr.pid), to: pmsOf(pr.pid), close: 'all', line: (r.was === 'returned' ? '↻ แก้ไขแล้วส่งใหม่' : '📨 ส่ง PR') + ' โดย ' + pr.by + ' → รอ QS อนุมัติ (' + names(qsOf(pr.pid)) + ')' });
     toast('ส่งแล้ว — แจ้ง QS ของโครงการแล้ว (' + names(qsOf(pr.pid)) + ')', 3200);
   } else toast('บันทึกการแก้ไขแล้ว');
@@ -522,7 +710,8 @@ function actionsHtml(pr) {
   const wait = (t, who) => `<div class="card act"><b>⏳ ${t}</b><span class="s">ผู้รับผิดชอบ: ${esc(who)} · ระบบแจ้งเตือนแล้ว</span></div>`;
   if (S === 'draft' || S === 'returned') { if (canEdit(pr)) out.push(`<div class="card act"><b>${S === 'returned' ? '↩ QS ส่งกลับให้แก้ไข' : '📝 ใบนี้ยังเป็นร่าง'}</b><span class="s">${S === 'returned' ? 'แก้ตามหมายเหตุของ QS แล้วกด “↻ ส่งใหม่ให้ QS”' : 'ตรวจรายการ แล้วกด “✓ ส่ง PR” เพื่อส่งให้ QS อนุมัติ'}</span>
     <div class="b"><button class="btn pri" data-a="edit">✎ แก้ไข / ส่ง PR</button><button class="btn sm" data-a="cancel">ยกเลิกใบนี้</button></div></div>`); }
-  else if (S === 'sent') { if (canApprove()) out.push(`<div class="card act" style="border-color:#E2CB92;background:#FFFBF0"><b>✍️ รอคุณอนุมัติ</b><span class="s">ตรวจรายการ · จำนวน · สเปก — ถ้าต้องแก้จำนวนเล็กน้อย กด ✎ แก้ไข ได้เลย</span>
+  else if (S === 'sent') { const ov = overList(pr); if (ov.length) out.push(`<div class="card act" style="border-color:#EBC3B8;background:#FDF3F0"><b>⚠ ขอเกินปริมาณใน Material Log ${ov.length} รายการ</b>${ov.map(x => `<span class="s">${x.i + 1}. ${esc(x.it.name)} — ขอ ${fmtN(parseFloat(x.it.qty) || 0)} · เหลือ ${fmtN(x.b.left)} ${esc(x.b.unit)} (เกิน ${fmtN(x.b.over)})</span>`).join('')}</div>`);
+    if (canApprove()) out.push(`<div class="card act" style="border-color:#E2CB92;background:#FFFBF0"><b>✍️ รอคุณอนุมัติ</b><span class="s">ตรวจรายการ · จำนวน · สเปก — ถ้าต้องแก้จำนวนเล็กน้อย กด ✎ แก้ไข ได้เลย</span>
     <div class="b"><button class="btn ok" data-a="approve">✓ อนุมัติ → ส่งจัดซื้อ</button><button class="btn" data-a="return">↩ ส่งกลับแก้ไข</button></div></div>`);
     else out.push(wait('รอ QS อนุมัติ', names(qsOf(pr.pid)))); }
   else if (S === 'approved') { if (canProc()) out.push(`<div class="card act" style="border-color:#B7CBE3;background:#F4F8FD"><b>🛒 รอคุณสั่งของ</b><span class="s">เปิด PR / PO ใน Mango แล้วใส่เลขที่ + วันที่คาดว่าของถึง</span>
@@ -616,6 +805,6 @@ openProject = async function (pid) { await _open(pid);
   if (d && d.pid === pid && (d.items || []).length && !myPrs().some(x => x.id === d.id && x.upd >= (d.upd || 0)) && confirm('มีใบขอซื้อที่ยังไม่ได้บันทึก (' + d.items.length + ' รายการ) — เปิดทำต่อไหม?')) { APP.pr = d; renderEdit(); show('edit', true); }
   else if (d) draftClear(); };
 
-if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__apr = { APP, show, renderList, renderEdit, openView, renderView, renderProjects, formHtml, learn, newPr, addItem, defNeed, textOf, inboxOf, tracker, escalate: () => escalate() };
+if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__apr = { APP, show, renderList, renderEdit, renderCat, openCat, readWorkbook, commitImport, detectSheet, parseSheet, cleanName, overList, addFromCat, openView, renderView, renderProjects, formHtml, learn, newPr, addItem, defNeed, textOf, inboxOf, tracker, escalate: () => escalate() };
 boot();
 })();
