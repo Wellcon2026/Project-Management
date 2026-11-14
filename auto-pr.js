@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const APR_VER = 'v1.5.0';   // 1.5.0: ลบร่าง / ยกเลิกใบตามสถานะ (ต้องใส่เหตุผล · เก็บประวัติ) · เลือกเอกสาร ใบขอซื้อ / ใบขอจ้าง — เลขที่ PR- / WO- · หน้าจอภาษาไทย · หัวใบ · ประเภทงาน · ข้อความทุกขั้นตอนตามเอกสาร · 1.4.0: ② PM และ QS อนุมัติครบทั้งสองคนก่อนส่งจัดซื้อ (ลำดับไหนก่อนก็ได้ · ใครส่งกลับก็ได้ · ช่องลงนาม ผู้จัดการโครงการ = PM ที่อนุมัติ) · 1.3.2: ช่องผู้ขาย / ชื่อแทนผู้รับเหมา (ไม่บังคับ · เลือกจากที่เคยใช้) · 1.3.1: ใบ PR เหลือช่องลงนาม 3 ช่อง (ผู้ขอซื้อ · ผู้จัดการโครงการ · ผู้อนุมัติ QS) · 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
+const APR_VER = 'v1.7.0';   // 1.7.0: Phase 3 — คำนวณปริมาณจากพื้นที่ / ความยาว / Takeoff (แม่แบบ ยิปซัม · กระเบื้อง · สี · วอลเปเปอร์ · พื้น · บัว · กำหนดเอง) · 1.6.0: เก็บใบในตาราง apr_requests (1 ใบ = 1 แถว · กันอนุมัติพร้อมกันแล้วหาย · โหลดเฉพาะที่เปลี่ยน) — ยังไม่รัน SQL ใช้แบบเดิม · 1.5.0: ลบร่าง / ยกเลิกใบตามสถานะ (ต้องใส่เหตุผล · เก็บประวัติ) · เลือกเอกสาร ใบขอซื้อ / ใบขอจ้าง — เลขที่ PR- / WO- · หน้าจอภาษาไทย · หัวใบ · ประเภทงาน · ข้อความทุกขั้นตอนตามเอกสาร · 1.4.0: ② PM และ QS อนุมัติครบทั้งสองคนก่อนส่งจัดซื้อ (ลำดับไหนก่อนก็ได้ · ใครส่งกลับก็ได้ · ช่องลงนาม ผู้จัดการโครงการ = PM ที่อนุมัติ) · 1.3.2: ช่องผู้ขาย / ชื่อแทนผู้รับเหมา (ไม่บังคับ · เลือกจากที่เคยใช้) · 1.3.1: ใบ PR เหลือช่องลงนาม 3 ช่อง (ผู้ขอซื้อ · ผู้จัดการโครงการ · ผู้อนุมัติ QS) · 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -63,7 +63,7 @@ let toastT = null;
 function toast(m, ms) { const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms || 2600); }
 
 const APP = { acc: null, me: null, accounts: [], projects: [], pid: '', proj: null, all: {}, cfg: {}, cat: { sources: [], items: [] }, imp: null, catPick: null, catQ: '', catTab: '', rooms: [], pr: null, screen: 'msg', pushed: 0, filt: 'all' };
-const SCR = ['msg', 'proj', 'list', 'edit', 'view', 'cat'];
+const SCR = ['msg', 'proj', 'list', 'edit', 'view', 'cat', 'calc'];
 function show(s, push) {
   SCR.forEach(k => { $('scr' + k[0].toUpperCase() + k.slice(1)).hidden = k !== s; });
   if (push) { history.pushState({ apr: s }, ''); APP.pushed++; }
@@ -72,7 +72,7 @@ function show(s, push) {
 window.addEventListener('popstate', (e) => {
   const s = (e.state && e.state.apr) || (APP.pid ? 'list' : (APP.acc ? 'proj' : 'msg'));
   if (APP.pushed > 0) APP.pushed--;
-  show(s, false); if (s === 'list') renderList(); if (s === 'edit') renderEdit(); if (s === 'proj') renderProjects(); if (s === 'cat') renderCat();
+  show(s, false); if (s === 'list') renderList(); if (s === 'edit') renderEdit(); if (s === 'proj') renderProjects(); if (s === 'cat') renderCat(); if (s === 'calc') renderCalc();
 });
 function toPm() { if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1 && !APP.pushed) history.back(); else location.href = pmUrl(); }
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (!b) return;
@@ -82,15 +82,60 @@ const loginCard = (t) => `<div class="card" style="margin-top:20px"><b>${t}</b><
   <a class="btn pri" href="${pmUrl()}">ไปหน้า Wellcon PM</a></div>`;
 
 // =====================================================================
-// ข้อมูล: app_state 'autoPR' { pid: [pr] }
+// ข้อมูล: v1.6.0 apr-table — ตาราง apr_requests (1 ใบ = 1 แถว · ver = เลขเวอร์ชันกันเขียนทับ)
+//   ยังไม่ได้รัน SQL (supabase-apr-requests.sql) → ใช้ app_state 'autoPR' แบบเดิมอัตโนมัติ
+//   APP.all = { pid: [pr] } (แคชในเครื่อง) · pr._v = ver ของแถว (ไม่บันทึกลง data)
+//   โหลด: ใบที่ยังไม่ปิด + ใบที่ปิดภายใน 180 วัน ของทุกโครงการที่เห็น · โครงการที่เปิดอยู่ = โหลดครบทุกใบ (ใช้นับปริมาณเทียบ Material Log)
+//   ทุก 60 วินาที โหลดเฉพาะแถวที่เปลี่ยนหลังครั้งล่าสุด
 // =====================================================================
+const TBL = 'apr_requests', ACTIVE = ['draft', 'sent', 'returned', 'approved', 'ordered'];
+const noTable = (e) => !!e && (['42P01', 'PGRST205', 'PGRST106'].includes(e.code) || /apr_requests/.test(String(e.message || '')) && /(not exist|not find|schema cache)/i.test(String(e.message || '')));
+const strip = (pr) => { const o = { ...pr }; delete o._v; return o; };
+const rowPr = (r) => ({ ...(r.data || {}), _v: r.ver });
+const prRow = (pr, ver) => ({ id: pr.id, pid: pr.pid, no: pr.no || '', doc: docOf(pr), status: pr.status || 'draft', by_email: norm(pr.byEmail) || null, deleted: !!pr.deleted, data: strip(pr), ver, updated_at: new Date().toISOString(), updated_by: APP.me.email });
+function putLocal(pr) { const L = (APP.all[pr.pid] || []).slice(); const i = L.findIndex(x => x.id === pr.id); if (i >= 0) L[i] = pr; else L.unshift(pr); APP.all[pr.pid] = L; }
+const sortAll = () => Object.keys(APP.all).forEach(k => APP.all[k].sort((a, b) => (b.at || 0) - (a.at || 0)));
+async function pageAll(build) { const out = []; for (let f = 0; ; f += 1000) { const r = await build().range(f, f + 999); if (r.error) throw r.error; out.push(...(r.data || [])); if ((r.data || []).length < 1000) return out; } }
+const markSync = (rows) => rows.forEach(r => { if (r.updated_at && (!APP.sync || r.updated_at > APP.sync)) APP.sync = r.updated_at; });
 async function loadAll() {
+  {   // ลองตารางทุกครั้ง — รัน SQL แล้วทุกเครื่องย้ายมาใช้ตารางเองภายใน 1 นาที
+    const ids = (APP.projects || []).map(p => p.id); const since = new Date(Date.now() - 180 * 864e5).toISOString();
+    try {
+      const rows = ids.length ? await pageAll(() => sb.from(TBL).select('data,ver,updated_at').in('pid', ids).or('status.in.(' + ACTIVE.join(',') + '),updated_at.gte.' + since).order('updated_at', { ascending: true })) : [];
+      APP.tbl = true; APP.all = {}; APP.full = {}; APP.sync = ''; rows.forEach(r => putLocal(rowPr(r))); markSync(rows);
+      if (APP.pid) await loadProjectFull(APP.pid); sortAll(); return;
+    } catch (e) { if (!noTable(e)) throw e; APP.tbl = false; console.warn('apr_requests ยังไม่มี — ใช้ app_state แบบเดิม'); }
+  }
   const r = await sb.from('app_state').select('data').eq('id', KEY).maybeSingle();
   if (r.error) throw r.error;
   APP.all = (r.data && r.data.data && r.data.data.v) || {};
 }
-// บันทึก 1 ใบ: อ่านล่าสุด → แทน/เพิ่มใบนี้ → เขียน (ไม่ทับใบของคนอื่น)
+async function loadProjectFull(pid) {   // ทุกใบของโครงการที่เปิด (รวมใบเก่า / ลบ / ยกเลิก — เลขที่ไม่ซ้ำ · นับปริมาณครบ)
+  if (!APP.tbl || (APP.full || {})[pid]) return;
+  const rows = await pageAll(() => sb.from(TBL).select('data,ver,updated_at').eq('pid', pid).order('updated_at', { ascending: true }));
+  rows.forEach(r => putLocal(rowPr(r))); markSync(rows); APP.full = { ...(APP.full || {}), [pid]: true }; sortAll();
+}
+async function loadDelta() {   // ทุก 60 วินาที: เฉพาะแถวที่เปลี่ยนหลังครั้งล่าสุด
+  if (!APP.tbl) return loadAll();
+  const ids = (APP.projects || []).map(p => p.id); if (!ids.length) return;
+  let q = () => sb.from(TBL).select('data,ver,updated_at').in('pid', ids).order('updated_at', { ascending: true });
+  const rows = APP.sync ? await pageAll(() => q().gt('updated_at', APP.sync)) : await pageAll(q);
+  rows.forEach(r => putLocal(rowPr(r))); markSync(rows); sortAll();
+}
+// บันทึก 1 ใบ (หน้ากรอก): ใบใหม่ = เพิ่มแถว · ใบเดิม = แก้เฉพาะแถวนี้ ถ้าเลขเวอร์ชันยังตรง (มีคนแก้ก่อน → แจ้ง ไม่เขียนทับ)
 async function savePr(pr) {
+  if (APP.tbl) {
+    if (pr._v) {
+      const r = await sb.from(TBL).update(prRow(pr, pr._v + 1)).eq('id', pr.id).eq('ver', pr._v).select('ver');
+      if (r.error) throw r.error;
+      if (!(r.data || []).length) { await loadDelta().catch(() => {}); throw new Error('ใบนี้มีคนแก้ไข / ดำเนินการไปก่อนแล้ว — โหลดล่าสุดแล้ว กรุณาเปิดใหม่แล้วลองอีกครั้ง'); }
+      pr._v = pr._v + 1;
+    } else {
+      const r = await sb.from(TBL).insert([{ ...prRow(pr, 1), created_at: new Date(pr.at || Date.now()).toISOString() }]);
+      if (r.error) throw r.error; pr._v = 1;
+    }
+    putLocal(JSON.parse(JSON.stringify(pr))); return;
+  }
   const r = await sb.from('app_state').select('data').eq('id', KEY).maybeSingle();
   if (r.error) throw r.error;
   const v = { ...((r.data && r.data.data && r.data.data.v) || {}) };
@@ -162,8 +207,10 @@ $('projList').addEventListener('click', (e) => { const b = e.target.closest('[da
   const u = new URL(location.href); u.searchParams.set('pid', b.dataset.pid); history.replaceState(null, '', u); openProject(b.dataset.pid); });
 async function openProject(pid) {
   APP.pid = pid; APP.proj = APP.projects.find(x => x.id === pid);
+  try { await loadProjectFull(pid); } catch (e) { console.warn(e); }   // v1.6.0 ทุกใบของโครงการนี้
   // ชื่อห้อง / โซนจาก Takeoff (ถ้ามี) — ใช้เป็นตัวเลือก "พื้นที่"
-  try { const r = await sb.from('takeoff_field_measures').select('name').eq('pm_project_id', pid).is('deleted_at', null).limit(300);
+  try { const r = await sb.from('takeoff_field_measures').select('id,name,work,qty,unit,deduct,type,height_mm').eq('pm_project_id', pid).is('deleted_at', null).limit(500);
+    if (!r.error) APP.tko = (r.data || []).filter(x => x.qty != null && Number(x.qty) > 0);   // v1.7.0 calc: ใช้คำนวณปริมาณ
     if (!r.error) APP.rooms = [...new Set((r.data || []).map(x => String(x.name || '').trim()).filter(Boolean))].slice(0, 20); } catch (e) {}
   await loadCat(pid);
   const sub = [projName(APP.proj), projCode(APP.proj)].filter(Boolean).join(' · ');
@@ -274,6 +321,18 @@ function lineSend(pr, text) {
 // ----- เปลี่ยนสถานะ: อ่านล่าสุด → ตรวจสถานะยังตรง → แก้ → เขียน (กันกดซ้ำ / สองคนกดพร้อมกัน) -----
 const logIt = (pr, act, note) => { pr.log = [...(pr.log || []), { at: Date.now(), by: APP.me.name, email: APP.me.email, act, note: note || '' }]; };
 async function transition(pid, id, expect, mut) {
+  if (APP.tbl) {   // v1.6.0: อ่านแถวล่าสุด → ตรวจสถานะ → แก้ → เขียนเฉพาะถ้า ver ยังตรง · ชน (เช่น PM กับ QS กดพร้อมกัน) → อ่านใหม่แล้วทำซ้ำ (สูงสุด 4 ครั้ง)
+    for (let k = 0; k < 4; k++) {
+      const r = await sb.from(TBL).select('data,ver,updated_at').eq('id', id).maybeSingle(); if (r.error) throw r.error;
+      if (!r.data) throw new Error('ไม่พบใบขอซื้อนี้');
+      const cur = rowPr(r.data); const ver = cur._v;
+      if (expect && !expect.includes(cur.status)) { putLocal(cur); throw new Error('ใบนี้ถูกดำเนินการไปแล้ว (' + (STS[cur.status] || [''])[0] + ') — แสดงสถานะล่าสุดแล้ว'); }
+      mut(cur); cur.upd = Date.now(); cur.updBy = APP.me.name;
+      const up = await sb.from(TBL).update(prRow(cur, ver + 1)).eq('id', id).eq('ver', ver).select('ver'); if (up.error) throw up.error;
+      if ((up.data || []).length) { cur._v = ver + 1; putLocal(cur); return cur; }
+    }
+    throw new Error('มีคนดำเนินการใบนี้พร้อมกัน — ลองอีกครั้ง');
+  }
   const r = await sb.from('app_state').select('data').eq('id', KEY).maybeSingle(); if (r.error) throw r.error;
   const v = { ...((r.data && r.data.data && r.data.data.v) || {}) }; const L = (v[pid] || []).slice(); const i = L.findIndex(x => x.id === id);
   if (i < 0) throw new Error('ไม่พบใบขอซื้อนี้');
@@ -316,7 +375,7 @@ function openPr(pid, id) {
   if (pid === APP.pid) { go(); return; }
   const u = new URL(location.href); u.searchParams.set('pid', pid); u.searchParams.set('pr', id); history.replaceState(null, '', u); openProject(pid);
 }
-async function reload() { try { await loadAll(); } catch (e) { toast('โหลดไม่สำเร็จ'); return; } if (APP.screen === 'list') renderList(); else if (APP.screen === 'proj') renderProjects();
+async function reload() { try { await loadDelta(); } catch (e) { toast('โหลดไม่สำเร็จ'); return; } if (APP.screen === 'list') renderList(); else if (APP.screen === 'proj') renderProjects();
   else if (APP.screen === 'view' && APP.pr) { const f = myPrs().find(x => x.id === APP.pr.id); if (f) { APP.pr = JSON.parse(JSON.stringify(f)); renderView(); } } }
 setInterval(() => { if (document.visibilityState === 'visible' && APP.me && ['list', 'view', 'proj'].includes(APP.screen)) reload(); }, 60000);
 async function editCfg() {
@@ -590,10 +649,11 @@ function renderEdit() {
     fS = `<label class="af"><small>ชื่อแทนผู้รับเหมา</small><input data-af="subName" list="subList" value="${esc(pr.subName || '')}" placeholder="เว้นว่างได้" autocomplete="off"></label>`;
   $('optBox').innerHTML = isWo(pr) ? fS + fV : fV + fS;   // WO: ผู้รับเหมาขึ้นก่อน
   $('typeBox').innerHTML = TYPES.filter(([k]) => D.types.includes(k) || pr.types.includes(k)).map(([k, l]) => `<button class="chip${pr.types.includes(k) ? ' on' : ''}" data-ty="${k}">${pr.types.includes(k) ? '✓ ' : ''}${l}</button>`).join('');
-  const nc = (APP.cat.items || []).length; $('catBtn').innerHTML = nc ? `<button class="btn dk" data-catpick style="width:100%">📚 เลือกจากรายการวัสดุโครงการ (${nc} รายการ)</button>` : '';
+  const nc = (APP.cat.items || []).length; $('catBtn').innerHTML = (nc ? `<button class="btn dk" data-catpick style="width:100%">📚 เลือกจากรายการวัสดุโครงการ (${nc} รายการ)</button>` : '')
+    + `<button class="btn" data-calc style="width:100%;margin-top:${nc ? 8 : 0}px">📐 คำนวณปริมาณจากพื้นที่ / ความยาว${(APP.tko || []).length ? ' · Takeoff ' + APP.tko.length + ' รายการ' : ''}</button>`;
   renderArea(); renderFav(); renderItems(); renderSug(); preview();
 }
-$('catBtn').addEventListener('click', (e) => { if (e.target.closest('[data-catpick]')) openCat(true); });
+$('catBtn').addEventListener('click', (e) => { if (e.target.closest('[data-catpick]')) openCat(true); if (e.target.closest('[data-calc]')) openCalc(); });
 function renderArea() {
   const pr = APP.pr, A = L.areas.slice(); if (pr.area && !A.some(a => norm(a) === norm(pr.area))) A.unshift(pr.area);
   $('areaBox').innerHTML = A.map(a => `<button class="chip${norm(a) === norm(pr.area) ? ' on' : ''}" data-ar="${esc(a)}">${esc(a)}</button>`).join('') + '<button class="chip add" data-ar-new>＋ พิมพ์พื้นที่ / งาน</button>';
@@ -768,6 +828,8 @@ function actionsHtml(pr) {
   if (S === 'draft' || S === 'returned') { const rr = pr.retRole || 'QS'; if (canEdit(pr)) out.push(`<div class="card act"><b>${S === 'returned' ? '↩ ' + rr + ' ส่งกลับให้แก้ไข' : '📝 ใบนี้ยังเป็นร่าง'}</b><span class="s">${S === 'returned' ? 'แก้ตามหมายเหตุของ ' + rr + ' แล้วกด “↻ ส่งใหม่ให้ PM + QS”' : 'ตรวจรายการ แล้วกด “✓ ส่ง' + docTh(pr) + '” เพื่อส่งให้ PM และ QS อนุมัติ'}</span>
     <div class="b"><button class="btn pri" data-a="edit">✎ แก้ไข / ส่ง${docTh(pr)}</button></div></div>`); }
   else if (S === 'sent') { const ov = overList(pr); if (ov.length) out.push(`<div class="card act" style="border-color:#EBC3B8;background:#FDF3F0"><b>⚠ ขอเกินปริมาณใน Material Log ${ov.length} รายการ</b>${ov.map(x => `<span class="s">${x.i + 1}. ${esc(x.it.name)} — ขอ ${fmtN(parseFloat(x.it.qty) || 0)} · เหลือ ${fmtN(x.b.left)} ${esc(x.b.unit)} (เกิน ${fmtN(x.b.over)})</span>`).join('')}</div>`);
+    const cl = (pr.items || []).map((it, i) => it.calc ? `<span class="s">${i + 1}. ${esc(it.name)} ${fmtN(parseFloat(it.qty) || 0)} ${esc(it.unit)} ← ${esc(it.calc.th)} ${fmtN(it.calc.total)} ${esc(it.calc.base)} + เผื่อ ${fmtN(it.calc.waste)}% ÷ ${fmtN(it.calc.per)}${it.calc.mult > 1 ? ' × ' + fmtN(it.calc.mult) + ' เที่ยว' : ''}${(it.calc.parts || []).length ? ' (' + esc(it.calc.parts.join(' · ')) + ')' : ''}</span>` : '').filter(Boolean);
+    if (cl.length) out.push(`<div class="card act" style="background:#F6F8F3;border-color:#C9D8BE"><b>📐 รายการที่คำนวณจากปริมาณงาน ${cl.length} รายการ — ตรวจตัวเลขก่อนอนุมัติ</b>${cl.join('')}</div>`);   // v1.7.0 calc
     const ms = mySlots(pr), pend = pendSlots(pr), last = ms.length && pend.length === ms.length;
     const done2 = [pr.pmAt ? '✓ PM อนุมัติแล้ว — ' + (pr.pmBy || '') + ' · ' + when2(pr.pmAt) : '', pr.qsAt ? '✓ QS อนุมัติแล้ว — ' + (pr.qsBy || '') + ' · ' + when2(pr.qsAt) : ''].filter(Boolean);
     if (ms.length) out.push(`<div class="card act" style="border-color:#E2CB92;background:#FFFBF0"><b>✍️ รอคุณอนุมัติ (${ms.map(x => x.toUpperCase()).join(' + ')})${isBoss() && !PM_R.concat(QSO_R).includes(APP.me.role) ? ' — อนุมัติแทน' : ''}</b>${done2.map(x => `<span class="s">${esc(x)}</span>`).join('')}<span class="s">ตรวจรายการ · จำนวน · สเปก — ถ้าต้องแก้จำนวนเล็กน้อย กด ✎ แก้ไข ได้เลย</span>
@@ -873,6 +935,120 @@ async function delDraft(pr) {   // ลบร่าง (ยังไม่ส่�
     if (APP.pr && APP.pr.id === pr.id) draftClear(); toast('ลบร่างแล้ว'); if (APP.screen !== 'list') history.back(); setTimeout(renderList, 50); return true;
   } catch (x) { toast((x && x.message) || String(x), 3800); return false; }
 }
+// =====================================================================
+// v1.7.0 calc — Phase 3: คำนวณปริมาณจากขอบเขตงาน (พื้นที่ / ความยาว) → ใส่ใบขอซื้อ
+//   ① เลือกงาน (แม่แบบ) → ② ปริมาณงาน: ดึงจาก Takeoff ของโครงการ และ/หรือ กรอกขนาดเอง (หลายห้อง) → ③ % เผื่อ
+//   → ④ ระบบคำนวณจำนวนที่ต้องสั่ง (ปัดขึ้น) ต่อรายการ — แก้ชื่อ / อัตรา / จำนวนเที่ยว ได้ทุกช่อง → เพิ่มเข้าใบ
+//   จำนวน = ปริมาณงาน × (1 + เผื่อ%) ÷ (ปริมาณงานต่อ 1 หน่วย) × เที่ยว   → ปัดขึ้นเป็นจำนวนเต็ม
+//   อัตราเป็น "ค่าตั้งต้นทั่วไป" — ต้องตรวจกับแบบ / สเปก / ฉลากผู้ผลิตทุกครั้ง · เครื่องจำค่าที่แก้ล่าสุดต่อแม่แบบ
+//   บันทึกที่มาในรายการ (it.calc) ให้ PM / QS ตรวจตอนอนุมัติ
+// =====================================================================
+const CALC_T = [
+  { k: 'gyp', ic: '🧱', th: 'ฝ้า / ผนังยิปซัม', base: 'ตร.ม.', waste: 5, lines: [{ name: 'แผ่นยิปซัม 9 มม. 1.20 × 2.40 ม.', unit: 'แผ่น', per: 2.88, how: '1 แผ่น = 2.88 ตร.ม.' }] },
+  { k: 'tile', ic: '◻️', th: 'กระเบื้อง / หิน', base: 'ตร.ม.', waste: 10, tile: true, lines: [
+    { name: 'กระเบื้อง 60 × 60 ซม.', unit: 'แผ่น', per: 0.36, how: 'ตามขนาดแผ่น', sizeOf: 'pc' },
+    { name: 'กาวซีเมนต์ ถุง 20 กก.', unit: 'ถุง', per: 4, how: '1 ถุง ≈ 4 ตร.ม. (ตามฉลาก / ขนาดเกรียง)', off: true }] },
+  { k: 'paint', ic: '🎨', th: 'ทาสี', base: 'ตร.ม.', waste: 10, lines: [
+    { name: 'สีทับหน้า', unit: 'แกลลอน', per: 35, mult: 2, how: '1 แกลลอน ≈ 35 ตร.ม. / เที่ยว (ตามฉลาก)' },
+    { name: 'สีรองพื้น', unit: 'แกลลอน', per: 35, mult: 1, how: '1 แกลลอน ≈ 35 ตร.ม. / เที่ยว (ตามฉลาก)' }] },
+  { k: 'wall', ic: '🧻', th: 'วอลเปเปอร์', base: 'ตร.ม.', waste: 10, lines: [{ name: 'วอลเปเปอร์ ม้วน 0.53 × 10 ม.', unit: 'ม้วน', per: 5.3, how: '1 ม้วน = 5.3 ตร.ม.' }] },
+  { k: 'floor', ic: '🪵', th: 'พื้นไม้ / ลามิเนต / SPC', base: 'ตร.ม.', waste: 5, lines: [{ name: 'พื้นลามิเนต / SPC', unit: 'กล่อง', per: 2, how: '1 กล่อง ≈ 2 ตร.ม. (ดูข้างกล่อง)' }] },
+  { k: 'trim', ic: '📏', th: 'บัว / คิ้ว / ขอบ', base: 'ม.', waste: 10, lines: [{ name: 'บัวพื้น ยาว 2.40 ม.', unit: 'เส้น', per: 2.4, how: '1 เส้น = 2.40 ม.' }] },
+  { k: 'other', ic: '➕', th: 'งานอื่น ๆ (กำหนดเอง)', base: 'ตร.ม.', waste: 5, free: true, lines: [{ name: '', unit: 'ชุด', per: 1, how: 'กรอกเอง: 1 หน่วย ใช้กับงานได้เท่าไร' }] },
+];
+const BASES = ['ตร.ม.', 'ม.', 'จุด'];
+const calcKey = (k) => 'apr_calc_' + k;
+const num = (v) => { const n = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isNaN(n) ? 0 : n; };
+const unitBase = (u) => { const s = String(u || '').replace(/\s/g, ''); return /ตร\.?ม|m2|㎡|sq/i.test(s) ? 'ตร.ม.' : /^(ม\.?|เมตร|m)$/i.test(s) ? 'ม.' : /จุด|ชิ้น|ตัว|ea|pcs/i.test(s) ? 'จุด' : ''; };
+function calcTpl(k) {   // แม่แบบ + ค่าที่เครื่องนี้แก้ไว้ล่าสุด
+  const t = JSON.parse(JSON.stringify(CALC_T.find(x => x.k === k) || CALC_T[0]));
+  try { const s = JSON.parse(localStorage.getItem(calcKey(k)) || 'null'); if (s && Array.isArray(s.lines) && s.lines.length) { t.lines = s.lines; if (s.waste != null) t.waste = s.waste; if (s.base) t.base = s.base; if (s.tw) { t.tw = s.tw; t.th2 = s.th2; } } } catch (e) {}
+  return t;
+}
+function openCalc() {
+  const t = calcTpl(APP.calc && APP.calc.k || (isWo(APP.pr) ? 'other' : 'gyp'));
+  APP.calc = { k: t.k, base: t.base, waste: t.waste, lines: t.lines.map(l => ({ on: !l.off, ...l })), rows: [{ l: APP.pr.area || '', a: '', b: '' }], tko: new Set(), tw: t.tw || 60, th2: t.th2 || 60 };
+  renderCalc(); show('calc', true);
+}
+function setTpl(k) { const t = calcTpl(k); const C = APP.calc; C.k = k; C.base = t.base; C.waste = t.waste; C.lines = t.lines.map(l => ({ on: !l.off, ...l })); C.tw = t.tw || 60; C.th2 = t.th2 || 60; C.tko = new Set(); }
+function calcBase(C) {   // ปริมาณงานรวม = Takeoff ที่เลือก (หักส่วนที่ "หัก") + ขนาดที่กรอก
+  let tk = 0; (APP.tko || []).forEach(m => { if (C.tko.has(m.id)) tk += (m.deduct ? -1 : 1) * Number(m.qty || 0); });
+  const man = C.rows.reduce((s, r) => s + (C.base === 'ตร.ม.' ? num(r.a) * (r.b === '' ? 1 : num(r.b)) : num(r.a)), 0);
+  return { tk, man, total: Math.max(0, tk + man) };
+}
+const calcQty = (C, l, total) => { const per = num(l.per), mult = num(l.mult || 1) || 1; if (!(per > 0) || !(total > 0)) return 0; return Math.ceil(total * (1 + num(C.waste) / 100) / per * mult - 1e-9); };
+function renderCalc() {
+  const C = APP.calc; if (!C) return; const T = CALC_T.find(x => x.k === C.k) || {}; const B = calcBase(C); const h = [];
+  h.push(`<div class="card"><div class="h"><span class="n">1</span>งานอะไร <small>เลือกแม่แบบ — แก้ค่าได้ทุกช่อง</small></div><div class="chips">${CALC_T.map(t => `<button class="chip${t.k === C.k ? ' on' : ''}" data-ctpl="${t.k}">${t.ic} ${t.th}</button>`).join('')}</div>
+    ${T.free ? `<div class="chips" style="margin-top:4px"><small style="color:var(--mut);align-self:center">หน่วยของปริมาณงาน</small>${BASES.map(b => `<button class="chip${b === C.base ? ' on' : ''}" data-cbase="${b}">${b}</button>`).join('')}</div>` : ''}</div>`);
+  // ② ปริมาณงาน
+  const tk = (APP.tko || []).filter(m => unitBase(m.unit) === C.base);
+  h.push(`<div class="card"><div class="h"><span class="n">2</span>ปริมาณงาน <small>${C.base} · ดึงจาก Takeoff และ/หรือ กรอกขนาดเอง</small></div>`);
+  if (tk.length) h.push(`<div class="cl-tk">${tk.map(m => { const big = Number(m.qty) > 10000; return `<label class="cl-row${C.tko.has(m.id) ? ' on' : ''}"><input type="checkbox" data-ctko="${esc(m.id)}"${C.tko.has(m.id) ? ' checked' : ''}><span><b>${esc(m.name || m.work || 'ไม่มีชื่อ')}</b><small>${esc([m.work, m.deduct ? 'หักออก' : ''].filter(Boolean).join(' · '))}</small></span><em${big ? ' class="bad" title="ค่ามากผิดปกติ — ตรวจสเกลแบบใน Takeoff"' : ''}>${m.deduct ? '−' : ''}${fmtN(Number(m.qty))} ${esc(m.unit || '')}${big ? ' ⚠' : ''}</em></label>`; }).join('')}</div>`);
+  else h.push(`<p class="empty" style="margin:0">${(APP.tko || []).length ? 'Takeoff ของโครงการนี้ไม่มีรายการหน่วย ' + C.base : 'ยังไม่มี Takeoff ของโครงการนี้'} — กรอกขนาดด้านล่างได้เลย</p>`);
+  h.push(`<div class="cl-man">${C.rows.map((r, i) => `<div class="cl-mr" data-crow="${i}"><input data-cr="l" value="${esc(r.l)}" placeholder="ห้อง / พื้นที่ (ไม่บังคับ)"><input data-cr="a" inputmode="decimal" value="${esc(r.a)}" placeholder="${C.base === 'ตร.ม.' ? 'กว้าง ม.' : C.base === 'ม.' ? 'ยาว ม.' : 'จำนวนจุด'}">${C.base === 'ตร.ม.' ? `<span>×</span><input data-cr="b" inputmode="decimal" value="${esc(r.b)}" placeholder="ยาว / สูง ม.">` : ''}<em>${fmtN(C.base === 'ตร.ม.' ? num(r.a) * (r.b === '' ? 1 : num(r.b)) : num(r.a))}</em><button class="del" data-cdel="${i}" aria-label="ลบแถว">✕</button></div>`).join('')}
+    <button class="chip add" data-cadd>＋ เพิ่มห้อง / ช่วง</button><small style="color:var(--mut)">${C.base === 'ตร.ม.' ? 'ใส่ช่องเดียว = ตร.ม. ตรง ๆ · ใส่สองช่อง = กว้าง × ยาว' : ''}</small></div>`);
+  h.push(`<div class="cl-sum">ปริมาณงานรวม <b>${fmtN(B.total)} ${esc(C.base)}</b>${B.tk && B.man ? `<small>Takeoff ${fmtN(B.tk)} + กรอกเอง ${fmtN(B.man)}</small>` : ''}<label>เผื่อเศษ <input data-cw inputmode="decimal" value="${esc(C.waste)}"> %</label></div></div>`);
+  // ③ รายการที่ต้องสั่ง
+  h.push(`<div class="card"><div class="h"><span class="n">3</span>ต้องสั่ง <small>ปัดขึ้นเป็นจำนวนเต็ม · แตะแก้ชื่อ / อัตรา ได้</small></div>`);
+  if (T.tile) h.push(`<div class="cl-tile">ขนาดกระเบื้อง <input data-ctw inputmode="decimal" value="${esc(C.tw)}"> × <input data-cth inputmode="decimal" value="${esc(C.th2)}"> ซม. <small>= ${fmtN(num(C.tw) * num(C.th2) / 10000)} ตร.ม. / แผ่น</small></div>`);
+  h.push(C.lines.map((l, i) => { const q = calcQty(C, l, B.total); return `<div class="cl-ln${l.on ? ' on' : ''}" data-cl="${i}"><label class="ck"><input type="checkbox" data-clf="on"${l.on ? ' checked' : ''}></label>
+    <div class="cl-b"><input class="nm" data-clf="name" list="calcNames" value="${esc(l.name)}" placeholder="ชื่อวัสดุ / ขนาด">
+      <div class="cl-r">1 <input data-clf="unit" value="${esc(l.unit)}" class="u"> ใช้ได้ <input data-clf="per" inputmode="decimal" value="${esc(l.per)}" class="n"${l.sizeOf ? ' readonly title="คำนวณจากขนาดกระเบื้อง"' : ''}> ${esc(C.base)}${l.mult != null || C.k === 'paint' ? ` · <input data-clf="mult" inputmode="decimal" value="${esc(l.mult || 1)}" class="n"> เที่ยว` : ''}</div>
+      <small>${esc(l.how || '')}</small></div>
+    <div class="cl-q"><b>${fmtN(q)}</b><small>${esc(l.unit)}</small></div><button class="del" data-cldel="${i}" aria-label="ลบ">✕</button></div>`; }).join(''));
+  h.push(`<button class="chip add" data-cladd>＋ เพิ่มวัสดุอื่น</button><div class="note">อัตราเป็นค่าตั้งต้นทั่วไป — ตรวจกับแบบ สเปก และฉลากผู้ผลิตทุกครั้ง · PM / QS เห็นที่มาของตัวเลขตอนอนุมัติ</div></div>`);
+  h.push(`<datalist id="calcNames">${(APP.cat.items || []).slice(0, 300).map(c => `<option value="${esc(catLabel(c))}">`).join('')}</datalist>`);
+  $('calcBody').innerHTML = h.join('');
+  const n = C.lines.filter(l => l.on && calcQty(C, l, B.total) > 0 && String(l.name || '').trim()).length;
+  $('btnCalcAdd').textContent = n ? '✓ เพิ่ม ' + n + ' รายการเข้า' + docTh(APP.pr) : (B.total > 0 ? 'ใส่ชื่อวัสดุ / อัตรา ก่อน' : 'ใส่ปริมาณงานก่อน'); $('btnCalcAdd').disabled = !n;
+}
+function calcTileSync(C) { const l = C.lines.find(x => x.sizeOf === 'pc'); if (l) { l.per = Math.round(num(C.tw) * num(C.th2)) / 10000; l.name = String(l.name || '').replace(/\d+(\.\d+)?\s*×\s*\d+(\.\d+)?\s*ซม\./, '').trim() || 'กระเบื้อง'; l.name = (l.name.replace(/\s+$/, '') + ' ' + fmtN(num(C.tw)) + ' × ' + fmtN(num(C.th2)) + ' ซม.').trim(); } }
+function calcSave(C) { try { localStorage.setItem(calcKey(C.k), JSON.stringify({ lines: C.lines.map(l => { const o = { ...l }; delete o.on; return o; }), waste: num(C.waste), base: C.base, tw: C.tw, th2: C.th2 })); } catch (e) {} }
+$('calcBody').addEventListener('click', (e) => {
+  const C = APP.calc, t = e.target; let x;
+  if ((x = t.closest('[data-ctpl]'))) { setTpl(x.dataset.ctpl); renderCalc(); return; }
+  if ((x = t.closest('[data-cbase]'))) { C.base = x.dataset.cbase; C.tko = new Set(); renderCalc(); return; }
+  if (t.closest('[data-cadd]')) { C.rows.push({ l: '', a: '', b: '' }); renderCalc(); const q = $('calcBody').querySelectorAll('[data-cr="a"]'); if (q.length) q[q.length - 1].focus(); return; }
+  if ((x = t.closest('[data-cdel]'))) { C.rows.splice(+x.dataset.cdel, 1); if (!C.rows.length) C.rows.push({ l: '', a: '', b: '' }); renderCalc(); return; }
+  if (t.closest('[data-cladd]')) { C.lines.push({ on: true, name: '', unit: 'ชุด', per: 1, how: 'กรอกเอง: 1 หน่วย ใช้กับงานได้เท่าไร' }); renderCalc(); return; }
+  if ((x = t.closest('[data-cldel]'))) { C.lines.splice(+x.dataset.cldel, 1); calcSave(C); renderCalc(); return; }
+});
+function calcRefresh() {   // อัปเดตตัวเลขสด โดยไม่วาดช่องกรอกใหม่ (โฟกัส / ค่าที่กำลังพิมพ์ไม่หาย)
+  const C = APP.calc, root = $('calcBody'); if (!C) return; const B = calcBase(C);
+  const sb2 = root.querySelector('.cl-sum b'); if (sb2) sb2.textContent = fmtN(B.total) + ' ' + C.base;
+  root.querySelectorAll('[data-crow]').forEach(el => { const r = C.rows[+el.dataset.crow]; const em = el.querySelector('em'); if (r && em) em.textContent = fmtN(C.base === 'ตร.ม.' ? num(r.a) * (r.b === '' ? 1 : num(r.b)) : num(r.a)); });
+  const ts = root.querySelector('.cl-tile small'); if (ts) ts.textContent = '= ' + fmtN(num(C.tw) * num(C.th2) / 10000) + ' ตร.ม. / แผ่น';
+  root.querySelectorAll('[data-cl]').forEach(el => { const l = C.lines[+el.dataset.cl]; if (!l) return; el.classList.toggle('on', !!l.on);
+    const qb = el.querySelector('.cl-q b'), qs = el.querySelector('.cl-q small'); if (qb) qb.textContent = fmtN(calcQty(C, l, B.total)); if (qs) qs.textContent = l.unit || '';
+    if (l.sizeOf) { const pi = el.querySelector('[data-clf="per"]'), ni = el.querySelector('[data-clf="name"]'); if (pi && document.activeElement !== pi) pi.value = l.per; if (ni && document.activeElement !== ni) ni.value = l.name; } });
+  const n = C.lines.filter(l => l.on && calcQty(C, l, B.total) > 0 && String(l.name || '').trim()).length;
+  $('btnCalcAdd').textContent = n ? '✓ เพิ่ม ' + n + ' รายการเข้า' + docTh(APP.pr) : (B.total > 0 ? 'ใส่ชื่อวัสดุ / อัตรา ก่อน' : 'ใส่ปริมาณงานก่อน'); $('btnCalcAdd').disabled = !n;
+}
+function calcInput(e, final) {   // พิมพ์ = คำนวณสด · ออกจากช่อง = บันทึกค่าที่แก้ (จำต่อแม่แบบ)
+  const C = APP.calc, t = e.target; let x; if (!C) return;
+  if (t.dataset.ctko) { if (!final) return; if (t.checked) C.tko.add(t.dataset.ctko); else C.tko.delete(t.dataset.ctko); const row = t.closest('.cl-row'); if (row) row.classList.toggle('on', t.checked); calcRefresh(); return; }
+  if (t.dataset.cr) { const r = C.rows[+t.closest('[data-crow]').dataset.crow]; r[t.dataset.cr] = t.value.trim(); calcRefresh(); return; }
+  if (t.hasAttribute('data-cw')) { C.waste = num(t.value); if (final) calcSave(C); calcRefresh(); return; }
+  if (t.hasAttribute('data-ctw') || t.hasAttribute('data-cth')) { if (t.hasAttribute('data-ctw')) C.tw = num(t.value); else C.th2 = num(t.value); calcTileSync(C); if (final) calcSave(C); calcRefresh(); return; }
+  if (t.dataset.clf && (x = t.closest('[data-cl]'))) { const l = C.lines[+x.dataset.cl], f = t.dataset.clf; if (f === 'on' && !final) return;
+    l[f] = f === 'on' ? t.checked : ['per', 'mult'].includes(f) ? num(t.value) : t.value.trim(); if (final && f !== 'on') calcSave(C); calcRefresh(); }
+}
+$('calcBody').addEventListener('input', (e) => calcInput(e, false));
+$('calcBody').addEventListener('change', (e) => calcInput(e, true));
+$('btnCalcAdd').addEventListener('click', () => {
+  const C = APP.calc, pr = APP.pr, T = CALC_T.find(x => x.k === C.k) || {}, B = calcBase(C); let n = 0;
+  const parts = [...(APP.tko || []).filter(m => C.tko.has(m.id)).map(m => (m.deduct ? '−' : '') + (m.name || m.work || 'Takeoff') + ' ' + fmtN(Number(m.qty))), ...C.rows.filter(r => num(r.a) > 0).map(r => (r.l ? r.l + ' ' : '') + (C.base === 'ตร.ม.' && r.b !== '' ? fmtN(num(r.a)) + '×' + fmtN(num(r.b)) : fmtN(num(r.a))))];
+  const room = [...new Set(C.rows.map(r => r.l).filter(Boolean))].join(', ');
+  C.lines.forEach(l => { const q = calcQty(C, l, B.total); if (!l.on || !(q > 0) || !String(l.name || '').trim()) return;
+    const cat = (APP.cat.items || []).find(c => norm(catLabel(c)) === norm(l.name));
+    const why = '📐 ' + T.th + ' ' + fmtN(B.total) + ' ' + C.base + (num(C.waste) ? ' + เผื่อ ' + fmtN(num(C.waste)) + '%' : '') + ' ÷ ' + fmtN(num(l.per)) + (num(l.mult || 1) > 1 ? ' × ' + fmtN(num(l.mult)) + ' เที่ยว' : '');
+    pr.items.push({ name: l.name.trim().slice(0, 200), qty: String(q), unit: l.unit || 'ชุด', code: '', mat: '', need: defNeed(), ...(cat ? { catId: cat.id, ref: cat.code || '' } : {}),
+      remark: [room || pr.area || '', why].filter(Boolean).join(' · '),
+      calc: { tpl: C.k, th: T.th, total: Math.round(B.total * 100) / 100, base: C.base, waste: num(C.waste), per: num(l.per), mult: num(l.mult || 1) || 1, parts: parts.slice(0, 30) } }); n++; });
+  draftSave(); if (APP.pushed > 0) history.back(); else show('edit', false);
+  setTimeout(() => { renderEdit(); toast('เพิ่ม ' + n + ' รายการจากการคำนวณแล้ว — ตรวจจำนวนอีกครั้ง', 3000); }, 60);
+});
 $('btnEdit').addEventListener('click', () => { renderEdit(); if (APP.screen === 'view') { history.replaceState({ apr: 'edit' }, ''); show('edit', false); } });
 $('btnPrint').addEventListener('click', () => { $('printArea').innerHTML = formHtml(APP.pr); setTimeout(() => window.print(), 50); });
 
@@ -884,6 +1060,6 @@ openProject = async function (pid) { await _open(pid);
   if (d && d.pid === pid && (d.items || []).length && !myPrs().some(x => x.id === d.id && x.upd >= (d.upd || 0)) && confirm('มีใบขอซื้อที่ยังไม่ได้บันทึก (' + d.items.length + ' รายการ) — เปิดทำต่อไหม?')) { APP.pr = d; renderEdit(); show('edit', true); }
   else if (d) draftClear(); };
 
-if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__apr = { APP, show, renderList, renderEdit, renderCat, openCat, readWorkbook, commitImport, detectSheet, parseSheet, cleanName, overList, addFromCat, openView, renderView, renderProjects, formHtml, learn, newPr, addItem, defNeed, textOf, inboxOf, tracker, escalate: () => escalate() };
+if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__apr = { APP, show, openCalc, renderCalc, calcBase, calcQty, unitBase, loadAll, loadDelta, transition, savePr, renderList, renderEdit, renderCat, openCat, readWorkbook, commitImport, detectSheet, parseSheet, cleanName, overList, addFromCat, openView, renderView, renderProjects, formHtml, learn, newPr, addItem, defNeed, textOf, inboxOf, tracker, escalate: () => escalate() };
 boot();
 })();
