@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.7.2';   // 1.7.2: กลับ Wellcon PM (← / 🏠) = โครงการเดิม · 1.7.1: ปิดฟังก์ชันทั้งระบบแล้วเข้าหน้านี้ไม่ได้ · 1.7.0: เลเยอร์ (ซ่อน/แสดง · สีตามงาน · วาดในเลเยอร์) · ความยาวหลายช่วงรวมเป็นรายการเดียว (✂ เริ่มช่วงใหม่) · ความสูงผนังตอนวาด · 1.6.0: จอคอม — รายการเป็นตาราง + แผงสรุป · เลือกแบบ / ทีม เป็น grid · ปุ่มหลักอยู่ด้านบน · หน้าต่างกลางจอ · 1.5.3: ระบบแท็ก — ส่ง QS ตรวจ = แท็ก QS · QS รับ / ส่งกลับ = แท็กผู้วัด · 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
+const QM_VER = 'v1.7.3';   // 1.7.3: ชื่อเรียกเดียวกับเมนู (Takeoff · วัดหน้างาน / Site Work) · แถบบนสีเดียวกับแอปหลัก · 1.7.2: กลับ Wellcon PM (← / 🏠) = โครงการเดิม · 1.7.1: ปิดฟังก์ชันทั้งระบบแล้วเข้าหน้านี้ไม่ได้ · 1.7.0: เลเยอร์ (ซ่อน/แสดง · สีตามงาน · วาดในเลเยอร์) · ความยาวหลายช่วงรวมเป็นรายการเดียว (✂ เริ่มช่วงใหม่) · ความสูงผนังตอนวาด · 1.6.0: จอคอม — รายการเป็นตาราง + แผงสรุป · เลือกแบบ / ทีม เป็น grid · ปุ่มหลักอยู่ด้านบน · หน้าต่างกลางจอ · 1.5.3: ระบบแท็ก — ส่ง QS ตรวจ = แท็ก QS · QS รับ / ส่งกลับ = แท็กผู้วัด · 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -190,7 +190,7 @@ async function boot() {
 function renderProjects() {
   const L = APP.projects;
   $('projList').innerHTML = (L.length ? L.map(p => `<button class="card" data-pid="${esc(p.id)}"><div class="row1"><span class="nm">${esc(projName(p))}</span></div><div class="row2">${esc(projCode(p))}</div></button>`).join('')
-    : '<p class="empty">ยังไม่มีโครงการที่คุณถูก assign</p>') + `<p class="ver">Quick Measure ${QM_VER} · engine ${E.ENGINE_VERSION}</p>`;
+    : '<p class="empty">ยังไม่มีโครงการที่คุณถูก assign</p>') + `<p class="ver">Takeoff · วัดหน้างาน ${QM_VER} · engine ${E.ENGINE_VERSION}</p>`;
   show('proj');
 }
 $('projList').addEventListener('click', (e) => { const b = e.target.closest('[data-pid]'); if (!b) return;
@@ -251,7 +251,7 @@ async function loadTeams() {
   APP.noTeams = !!r.error; APP.teams = r.error ? [] : (r.data || []);
   let t = ''; try { t = localStorage.getItem(teamKey()) || ''; } catch (e) {}
   APP.team = APP.teams.some(x => x.id === t) ? t : '';
-  // รายชื่อผู้รับเหมาที่ตั้งไว้ในแอป Defect (อ่านอย่างเดียว · ใช้เติมชื่อเร็ว)
+  // รายชื่อผู้รับเหมาที่ตั้งไว้ในแอป Site Work (อ่านอย่างเดียว · ใช้เติมชื่อเร็ว)
   APP.dcCos = [];
   try { const c = await sb.from('app_state').select('data').eq('id', 'defectCos').limit(1);
     const L = c && !c.error && c.data && c.data[0] && c.data[0].data && c.data[0].data.v && c.data[0].data.v[APP.pid];
@@ -507,7 +507,7 @@ function renderList() {
   $('listTitle').textContent = APP.filter === 'all' ? 'ที่วัดในโครงการนี้ (ทุกคน)' : 'ที่ฉันวัดในโครงการนี้';
   const warn = [];
   if (APP.noTable) warn.push('<div class="note">ยังใช้งานไม่ได้: ผู้ดูแลระบบต้องรัน SQL <b>supabase-quick-measure.sql</b> ก่อน</div>');
-  if (!S.allow_quick_measure) warn.push('<div class="info">Admin ปิด Quick Measure ของโครงการนี้ไว้ — ดูรายการเดิมได้ แต่วัดเพิ่มไม่ได้</div>');
+  if (!S.allow_quick_measure) warn.push('<div class="info">Admin ปิด Takeoff · วัดหน้างาน ของโครงการนี้ไว้ — ดูรายการเดิมได้ แต่วัดเพิ่มไม่ได้</div>');
   const nSub = me.review ? APP.rows.filter(r => r.status === 'submitted').length : 0;
   const qsInfo = nSub ? `<div class="info" style="background:#E3ECF5;color:#2F5E8C">มี ${nSub} รายการรอ QS ตรวจ — ${dk ? 'คลิก' : 'แตะ'}รายการเพื่อ “รับ” หรือ “ส่งกลับ”</div>` : '';
   const chips = `<div class="chips" role="tablist"><button class="chip${APP.filter === 'mine' ? ' on' : ''}" data-f="mine">ของฉัน</button><button class="chip${APP.filter === 'all' ? ' on' : ''}" data-f="all">ทุกคน</button>
@@ -523,7 +523,7 @@ function renderList() {
   // ปริมาณ baseline จาก QS — แสดงเฉพาะเมื่อ Admin เปิด "แสดงปริมาณ BOQ" (ไม่มีราคา)
   const Q = (APP.feed && APP.feed.quantities) || [];
   const boq = S.show_qty && Q.length ? '<div class="sec">ปริมาณ BOQ จาก QS (baseline)</div><div class="card">' + Q.map(q => `<div class="row1" style="font-size:14px"><span class="nm" style="font-weight:400">${esc([q.catName || q.cat, q.desc].filter(Boolean).join(' · '))}</span><span class="q">${esc(f2(q.net))} ${esc(q.unit || q.u || '')}</span></div>`).join('') + '</div>' : '';
-  const ver = `<p class="ver">Quick Measure ${QM_VER} · engine ${E.ENGINE_VERSION}</p>`;
+  const ver = `<p class="ver">Takeoff · วัดหน้างาน ${QM_VER} · engine ${E.ENGINE_VERSION}</p>`;
   if (dk) {
     const tbl = rows.length ? `<div class="mt-w"><table class="mt"><thead><tr><th>ห้อง / โซน · งาน</th><th>ทีม</th><th class="n">ปริมาณ</th><th>สถานะ</th><th>แบบ</th><th>ผู้วัด</th><th>วันที่</th></tr></thead><tbody>` +
       rows.map(r => { const tm = teamOf(r);
@@ -935,7 +935,7 @@ const MV = (() => {
       $('mPer').textContent = m.perimeter ? 'รอบรูป ' + f2(m.perimeter) + ' ม.' : tool === 'length' ? [m.runs > 1 ? m.runs + ' ช่วง' : '', m.height ? 'ยาวรวม ' + f2(m.length) + ' ม. × สูง ' + f2(m.height / 1000) + ' ม.' : (m.runs > 1 ? 'ยาวรวม ' + f2(m.length) + ' ม.' : '')].filter(Boolean).join(' · ') : ''; }
     else { $('mQty').textContent = '—'; $('mUnit').textContent = ''; $('mPer').textContent = ''; }
     const needScale = tool !== 'count' && tool !== 'scale' && tool !== 'note' && tool !== 'assign' && !SRC.mm;
-    if (!APP.set.allow_quick_measure) hint('Admin ปิด Quick Measure — ดูแบบได้อย่างเดียว');
+    if (!APP.set.allow_quick_measure) hint('Admin ปิด Takeoff · วัดหน้างาน — ดูแบบได้อย่างเดียว');
     else if (tool === 'note') hint('แตะตำแหน่งบนแบบเพื่อปักโน้ต');
     else if (tool === 'assign') hint(curTeam() ? 'แตะพื้นที่ / เส้น / จุดที่วัดไว้ → มอบให้ “' + curTeam().name + '” · แตะซ้ำ = ยกเลิก' : 'เลือกทีมจากแถบสีด้านบนก่อน แล้วแตะพื้นที่ที่วัดไว้เพื่อมอบงาน');
     else if (tool === 'ruler' && !needScale) hint(pts.length === 2 ? 'ไม้บรรทัด: วัดชั่วคราว ไม่บันทึก · แตะใหม่เพื่อวัดอีกเส้น' : 'ไม้บรรทัด: แตะ 2 จุดเพื่อวัดระยะ (ไม่บันทึก)');

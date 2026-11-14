@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#3E3F32">
+<meta name="theme-color" content="#1C1B18">
 <title>Takeoff · วัดหน้างาน · Wellcon PM</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#F6F1E8; --card:#FFFDF8; --line:#E3DACB; --ink:#22231C; --ink2:#4A4840; --mut:#6B6758;
-  --dk:#3E3F32; --dk2:#4E4F40; --hd:#D9CFBD; --acc:#B8582A; --accT:#FBEDE3; --accD:#6E3416;
+  --bg:#F4EFE6; --card:#FFFDF8; --line:#E3DACB; --ink:#22231C; --ink2:#4A4840; --mut:#6B6758;
+  --dk:#1C1B18; --dk2:#33302A; --hd:#D9CFBD; --acc:#B8582A; --accT:#FBEDE3; --accD:#6E3416;
   --safe-b:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box}
@@ -363,7 +363,7 @@ label.f textarea{min-height:72px;resize:vertical}
 <!-- v1.5.0 เพิ่ม / แก้ไขทีม -->
 <dialog class="bs" id="dlgTeam"><form method="dialog" class="bs-in" id="frmTeam">
   <h3 id="tmTitle">เพิ่มทีม / ผู้รับเหมา</h3>
-  <div class="f" id="tmCosWrap"><span style="font-size:13px;color:var(--ink2)">เลือกจากรายชื่อผู้รับเหมาในแอป Defect</span><div class="chips" id="tmCos"></div></div>
+  <div class="f" id="tmCosWrap"><span style="font-size:13px;color:var(--ink2)">เลือกจากรายชื่อผู้รับเหมาในแอป Site Work</span><div class="chips" id="tmCos"></div></div>
   <label class="f">ชื่อทีม / บริษัท<input id="tmName" maxlength="60" autocomplete="off" placeholder="เช่น ฝ้า ทีม A"></label>
   <div class="f"><span style="font-size:13px;color:var(--ink2)">หมวดงาน</span><div class="chips" id="tmTrades"></div>
     <label class="f" style="margin-top:6px"><input id="tmTrade" maxlength="40" autocomplete="off" placeholder="หรือพิมพ์เอง เช่น งานไม้ / สี / หิน"></label></div>
@@ -377,8 +377,8 @@ label.f textarea{min-height:72px;resize:vertical}
 <script src="vendor/pdf.min.js"></script>
 <script src="wdraw.js?v=1.1.0"></script>
 <script src="takeoff-engine.js"></script>
-<script src="wctag.js?v=1.2.1"></script>
-<script src="quick-measure.js?v=1.7.2"></script>
+<script src="wctag.js?v=1.2.2"></script>
+<script src="quick-measure.js?v=1.7.3"></script>
 <script src="pm-nav.js?v=1.2.0"></script>
 </body>
 </html>
