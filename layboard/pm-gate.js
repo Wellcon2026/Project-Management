@@ -11,7 +11,7 @@
   const CFG = { url: 'https://botecmzshubflokkdant.supabase.co',
     key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo' };
   const h = location.hostname, q = location.search;
-  const schema = /[?&]env=prod/.test(q) ? 'public' : (/[?&]env=staging/.test(q) || /staging/i.test(h) || /^(localhost|127\.0\.0\.1)$/.test(h)) ? 'staging' : 'public';
+  const schema = /[?&]env=prod/.test(q) ? 'public' : (/[?&]env=staging/.test(q) || /staging/i.test(h) || (h !== '' && !/vercel\.app$/i.test(h))) ? 'staging' : 'public';
   const pid = new URLSearchParams(q).get('pid') || '';
   const SESS_KEY = 'wellcon_pm_session_v1', SESS_DAYS = 14;
   const ALL_SCOPE = ['superadmin', 'director', 'store', 'pm_mgr', 'design_mgr', 'qs_mgr', 'fin_mgr', 'hr_mgr'];
@@ -23,6 +23,11 @@
   const G = { pid, schema, url: CFG.url, key: CFG.key, sb, backUrl, email: '', table: 'layboard_kv', bucket: 'general-photo', prefix: 'layboard/' + pid + '/',
     token: async () => { try { const r = await sb.auth.getSession(); return (r && r.data && r.data.session && r.data.session.access_token) || CFG.key; } catch (e) { return CFG.key; } } };
   window.LB_PM_CFG = G;
+  // บันทึกบอร์ดขึ้นเซิร์ฟเวอร์ไม่สำเร็จ → แจ้งผู้ใช้ (เดิมเงียบ — บอร์ดค้างอยู่ในเครื่องเดียว)
+  window.addEventListener('layboard-cloud-error', () => { try { let el = document.getElementById('lbpm-err'); if (!el) { el = document.createElement('div'); el.id = 'lbpm-err'; document.body.appendChild(el);
+      el.setAttribute('style', 'position:fixed;left:50%;transform:translateX(-50%);top:10px;z-index:2147483001;max-width:92vw;background:#B4332A;color:#fff;border-radius:12px;padding:10px 14px;font:600 14px "IBM Plex Sans Thai",system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25)'); }
+    el.textContent = 'บันทึกขึ้นเซิร์ฟเวอร์ไม่สำเร็จ — งานล่าสุดอยู่ในเครื่องนี้เท่านั้น ตรวจอินเทอร์เน็ตแล้วแก้ไขอีกครั้งเพื่อบันทึกใหม่'; el.style.display = 'block';
+    clearTimeout(window.__lbErrT); window.__lbErrT = setTimeout(() => { el.style.display = 'none'; }, 9000); } catch (e) {} });
 
   const css = 'position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:#F4EFE6;font-family:"IBM Plex Sans Thai",system-ui,sans-serif;padding:16px';
   function block(title, sub) {

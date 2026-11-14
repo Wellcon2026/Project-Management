@@ -8,7 +8,7 @@ const US_VER = 'v1.0.0';
 const CFG = { url: 'https://botecmzshubflokkdant.supabase.co', anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo' };
 const SCHEMA = (() => { const h = location.hostname, q = location.search;
   if (/[?&]env=prod/.test(q)) return 'public';
-  if (/[?&]env=staging/.test(q) || /staging/i.test(h) || /^(localhost|127\.0\.0\.1)$/.test(h)) return 'staging';
+  if (/[?&]env=staging/.test(q) || /staging/i.test(h) || (h !== '' && !/vercel\.app$/i.test(h))   /* กติกาเดียวกับแอปหลัก: ข้อมูลจริง = เฉพาะ *.vercel.app · localhost / โดเมนอื่น = ข้อมูลทดสอบ (?env=prod บังคับของจริง) */) return 'staging';
   return 'public'; })();
 const IS_STG = SCHEMA === 'staging';
 const SESS_KEY = 'wellcon_pm_session_v1', SESS_DAYS = 14;
