@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.7.0';   // 1.7.0: เลเยอร์ (ซ่อน/แสดง · สีตามงาน · วาดในเลเยอร์) · ความยาวหลายช่วงรวมเป็นรายการเดียว (✂ เริ่มช่วงใหม่) · ความสูงผนังตอนวาด · 1.6.0: จอคอม — รายการเป็นตาราง + แผงสรุป · เลือกแบบ / ทีม เป็น grid · ปุ่มหลักอยู่ด้านบน · หน้าต่างกลางจอ · 1.5.3: ระบบแท็ก — ส่ง QS ตรวจ = แท็ก QS · QS รับ / ส่งกลับ = แท็กผู้วัด · 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
+const QM_VER = 'v1.7.2';   // 1.7.2: กลับ Wellcon PM (← / 🏠) = โครงการเดิม · 1.7.1: ปิดฟังก์ชันทั้งระบบแล้วเข้าหน้านี้ไม่ได้ · 1.7.0: เลเยอร์ (ซ่อน/แสดง · สีตามงาน · วาดในเลเยอร์) · ความยาวหลายช่วงรวมเป็นรายการเดียว (✂ เริ่มช่วงใหม่) · ความสูงผนังตอนวาด · 1.6.0: จอคอม — รายการเป็นตาราง + แผงสรุป · เลือกแบบ / ทีม เป็น grid · ปุ่มหลักอยู่ด้านบน · หน้าต่างกลางจอ · 1.5.3: ระบบแท็ก — ส่ง QS ตรวจ = แท็ก QS · QS รับ / ส่งกลับ = แท็กผู้วัด · 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -58,7 +58,7 @@ const nickOf = (a) => a ? (String(a.nick || '').trim() || a.name || a.username |
 let toastT = null;
 function toast(msg, ms) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms || 2600); }
 const pmUrl = () => '/' + (IS_STG ? '?env=staging' : '');
-function toPm() { if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1 && !APP.pushed) history.back(); else location.href = pmUrl(); }
+function toPm() { if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1 && !APP.pushed) history.back(); else location.href = pmUrl() + '#/work'; }   // เปิดจากลิงก์ / แจ้งเตือน (ไม่มีหน้าก่อน) → หน้าแรกของฉัน โครงการเดิม — ที่เดียวกับปุ่ม 🏠
 
 // ---------- state ----------
 const APP = { acc: null, me: null, projects: [], pid: null, proj: null, feed: null, set: null, rows: [], sheets: [], noTable: false, filter: 'mine', screen: 'msg', pushed: 0, bin: {},
@@ -163,6 +163,10 @@ async function boot() {
         <a class="btn pri" style="display:flex;align-items:center;justify-content:center;text-decoration:none;margin-top:8px" href="${pmUrl()}">ไปหน้า Wellcon PM</a></div>`);
       return;
     }
+    // v1.7.1 ปิดฟังก์ชันทั้งระบบ (ตั้งค่าระบบ → ฟังก์ชันทั้งระบบ) = เข้าหน้านี้ไม่ได้ แม้เปิดจากลิงก์เก่า / แจ้งเตือน
+    try { const fg = await sb.from('app_state').select('data').eq('id', 'featGlobal').maybeSingle();
+      if (!fg.error && fg.data && fg.data.data && (fg.data.data.v || {})['tab:qm'] === false) {
+        msg(`<div class="card" style="margin-top:20px"><b>ผู้ดูแลระบบปิด “Takeoff · วัดหน้างาน” ไว้</b><span style="color:var(--mut);font-size:14px">ถ้าต้องการใช้งาน แจ้ง Admin เปิดที่ ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน</span><a class="btn pri" style="display:flex;align-items:center;justify-content:center;text-decoration:none;margin-top:8px" href="${pmUrl()}">กลับ Wellcon PM</a></div>`); return; } } catch (e) {}
     APP.acc = acc;
     APP.me = { name: nickOf(acc), email: norm(acc.email), role: acc.roleKey || '', review: QS_REVIEW.includes(acc.roleKey) };
     try { sb.rpc('usage_touch', { p_email: APP.me.email, p_app: 'qm' }).then(() => {}, () => {}); } catch (e) {}   // นับการเปิดแอป (หน้าการใช้งานระบบ)
@@ -221,6 +225,7 @@ async function loadRows() {
 }
 async function openProject(pid) {
   APP.pid = pid; APP.proj = APP.projects.find(x => x.id === pid);
+  try { localStorage.setItem('wellcon_pm_workpid', pid); } catch (e) {}   // v1.7.2 กลับ Wellcon PM (← / 🏠) = โครงการเดิม
   msg('<div class="spin"></div><p class="empty">กำลังโหลดข้อมูลโครงการ…</p>');
   try { await Promise.all([loadSettings(), loadRows(), loadTeams()]); }
   catch (e) { console.error(e); msg(`<div class="card" style="margin-top:20px"><b>โหลดข้อมูลไม่สำเร็จ</b><span style="color:var(--mut);font-size:14px">${esc((e && e.message) || e)}</span><button class="btn pri" onclick="location.reload()">ลองใหม่</button></div>`); return; }

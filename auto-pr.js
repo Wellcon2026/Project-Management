@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const APR_VER = 'v1.7.0';   // 1.7.0: Phase 3 — คำนวณปริมาณจากพื้นที่ / ความยาว / Takeoff (แม่แบบ ยิปซัม · กระเบื้อง · สี · วอลเปเปอร์ · พื้น · บัว · กำหนดเอง) · 1.6.0: เก็บใบในตาราง apr_requests (1 ใบ = 1 แถว · กันอนุมัติพร้อมกันแล้วหาย · โหลดเฉพาะที่เปลี่ยน) — ยังไม่รัน SQL ใช้แบบเดิม · 1.5.0: ลบร่าง / ยกเลิกใบตามสถานะ (ต้องใส่เหตุผล · เก็บประวัติ) · เลือกเอกสาร ใบขอซื้อ / ใบขอจ้าง — เลขที่ PR- / WO- · หน้าจอภาษาไทย · หัวใบ · ประเภทงาน · ข้อความทุกขั้นตอนตามเอกสาร · 1.4.0: ② PM และ QS อนุมัติครบทั้งสองคนก่อนส่งจัดซื้อ (ลำดับไหนก่อนก็ได้ · ใครส่งกลับก็ได้ · ช่องลงนาม ผู้จัดการโครงการ = PM ที่อนุมัติ) · 1.3.2: ช่องผู้ขาย / ชื่อแทนผู้รับเหมา (ไม่บังคับ · เลือกจากที่เคยใช้) · 1.3.1: ใบ PR เหลือช่องลงนาม 3 ช่อง (ผู้ขอซื้อ · ผู้จัดการโครงการ · ผู้อนุมัติ QS) · 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
+const APR_VER = 'v1.8.0';   // 1.8.0: รายการวัสดุ — ดึงจาก Material Log ในระบบ / ใช้ลิงก์ Google Sheet ของโครงการ (ชุดเดียวกับแอปหลัก) · บอกวันที่อัปเดต · กลับ Wellcon PM = โครงการเดิม · 1.7.1: จัดซื้อเปิดใบของโครงการที่ยังไม่มีจัดซื้อในทีมได้ (เดิมได้รับแจ้งแต่เปิดไม่ได้) · ปิดฟังก์ชันทั้งระบบแล้วเข้าหน้านี้ไม่ได้ · 1.7.0: Phase 3 — คำนวณปริมาณจากพื้นที่ / ความยาว / Takeoff (แม่แบบ ยิปซัม · กระเบื้อง · สี · วอลเปเปอร์ · พื้น · บัว · กำหนดเอง) · 1.6.0: เก็บใบในตาราง apr_requests (1 ใบ = 1 แถว · กันอนุมัติพร้อมกันแล้วหาย · โหลดเฉพาะที่เปลี่ยน) — ยังไม่รัน SQL ใช้แบบเดิม · 1.5.0: ลบร่าง / ยกเลิกใบตามสถานะ (ต้องใส่เหตุผล · เก็บประวัติ) · เลือกเอกสาร ใบขอซื้อ / ใบขอจ้าง — เลขที่ PR- / WO- · หน้าจอภาษาไทย · หัวใบ · ประเภทงาน · ข้อความทุกขั้นตอนตามเอกสาร · 1.4.0: ② PM และ QS อนุมัติครบทั้งสองคนก่อนส่งจัดซื้อ (ลำดับไหนก่อนก็ได้ · ใครส่งกลับก็ได้ · ช่องลงนาม ผู้จัดการโครงการ = PM ที่อนุมัติ) · 1.3.2: ช่องผู้ขาย / ชื่อแทนผู้รับเหมา (ไม่บังคับ · เลือกจากที่เคยใช้) · 1.3.1: ใบ PR เหลือช่องลงนาม 3 ช่อง (ผู้ขอซื้อ · ผู้จัดการโครงการ · ผู้อนุมัติ QS) · 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -74,11 +74,11 @@ window.addEventListener('popstate', (e) => {
   if (APP.pushed > 0) APP.pushed--;
   show(s, false); if (s === 'list') renderList(); if (s === 'edit') renderEdit(); if (s === 'proj') renderProjects(); if (s === 'cat') renderCat(); if (s === 'calc') renderCalc();
 });
-function toPm() { if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1 && !APP.pushed) history.back(); else location.href = pmUrl(); }
+function toPm() { if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1 && !APP.pushed) history.back(); else location.href = pmUrl() + '#/work'; }   // เปิดจากลิงก์ / แจ้งเตือน (ไม่มีหน้าก่อน) → หน้าแรกของฉัน โครงการเดิม — ที่เดียวกับปุ่ม 🏠
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (!b) return;
   if (b.dataset.act === 'toPm') toPm(); else if (b.dataset.act === 'back') history.back(); });
 function msg(html) { $('msgBody').innerHTML = html; show('msg'); }
-const loginCard = (t) => `<div class="card" style="margin-top:20px"><b>${t}</b><span style="color:var(--mut);font-size:14px">เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิดเมนู “Auto PR · ใบขอซื้อ” จากหน้าโครงการ</span>
+const loginCard = (t) => `<div class="card" style="margin-top:20px"><b>${t}</b><span style="color:var(--mut);font-size:14px">เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิดเมนู “ใบขอซื้อ · ใบขอจ้าง” จากหน้าโครงการ</span>
   <a class="btn pri" href="${pmUrl()}">ไปหน้า Wellcon PM</a></div>`;
 
 // =====================================================================
@@ -182,7 +182,13 @@ async function boot() {
     APP.me = { name: nickOf(acc), full: acc.name || nickOf(acc), email: norm(acc.email), role: acc.roleKey || '', title: String(acc.title || '').trim() || ROLE_TH[acc.roleKey] || '' };
     try { sb.rpc('usage_touch', { p_email: APP.me.email, p_app: 'apr' }).then(() => {}, () => {}); } catch (e) {}
     if (window.WCTag) WCTag.setup({ sb, app: 'apr', me: APP.me, accounts: APP.accounts.filter(x => x.active !== false && !x.disabled), projects: live });
-    APP.projects = live.filter(x => seesAll(acc) || (acc.projects || []).includes(x.id));
+    // v1.7.1 ปิดฟังก์ชันทั้งระบบ (ตั้งค่าระบบ → ฟังก์ชันทั้งระบบ) = เข้าหน้านี้ไม่ได้ แม้เปิดจากลิงก์เก่า / แจ้งเตือน
+    try { const fg = await sb.from('app_state').select('data').eq('id', 'featGlobal').maybeSingle();
+      if (!fg.error && fg.data && fg.data.data && (fg.data.data.v || {})['tab:apr'] === false) {
+        msg(`<div class="card" style="margin-top:20px"><b>ผู้ดูแลระบบปิด “ใบขอซื้อ · ใบขอจ้าง” ไว้</b><span style="color:var(--mut);font-size:14px">ถ้าต้องการใช้งาน แจ้ง Admin เปิดที่ ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน</span><a class="btn pri" style="display:flex;align-items:center;justify-content:center;text-decoration:none;margin-top:8px" href="${pmUrl()}">กลับ Wellcon PM</a></div>`); return; } } catch (e) {}
+    // v1.7.1 จัดซื้อ: เห็นโครงการที่ได้รับมอบหมาย + โครงการที่ "ยังไม่มีจัดซื้อในทีม" (งานสั่งของของโครงการนั้นส่งถึงจัดซื้อทุกคน — ต้องเปิดใบได้)
+    const procIn = (pid) => APP.accounts.some(a => a && a.email && a.roleKey === 'proc' && a.active !== false && !a.disabled && (a.projects || []).includes(pid));
+    APP.projects = live.filter(x => seesAll(acc) || (acc.projects || []).includes(x.id) || (acc.roleKey === 'proc' && !procIn(x.id)));
     await Promise.all([loadAll(), loadCfg()]);
     escalate();   // SLA 24 ชม. (ทำครั้งเดียวต่อใบ)
     const pid = new URLSearchParams(location.search).get('pid');
@@ -207,6 +213,12 @@ $('projList').addEventListener('click', (e) => { const b = e.target.closest('[da
   const u = new URL(location.href); u.searchParams.set('pid', b.dataset.pid); history.replaceState(null, '', u); openProject(b.dataset.pid); });
 async function openProject(pid) {
   APP.pid = pid; APP.proj = APP.projects.find(x => x.id === pid);
+  try { localStorage.setItem('wellcon_pm_workpid', pid); } catch (e) {}   // v1.8.0 กลับ Wellcon PM (← / 🏠) = โครงการเดิม
+  // v1.8.0 แหล่งข้อมูลวัสดุของแอปหลัก: ลิงก์ Google Sheet ของโครงการ (หน้าจัดซื้อ / Material Log) + จำนวนรายการ Material Log ในระบบ
+  APP.pSheets = []; APP.mlN = 0;
+  try { const r = await sb.from('app_state').select('data').eq('id', 'projSheets').maybeSingle(); const L = (!r.error && r.data && r.data.data && (r.data.data.v || {})[pid]) || [];
+    APP.pSheets = (Array.isArray(L) ? L : []).filter(x => x && ['proc', 'procm', 'mat'].includes(x.tab) && /docs\.google\.com\/spreadsheets/.test(String(x.url || ''))).slice(0, 6); } catch (e) {}
+  try { const r = await sb.from('material_log').select('id', { count: 'exact', head: true }).eq('project', pid); if (!r.error) APP.mlN = r.count || 0; } catch (e) {}
   try { await loadProjectFull(pid); } catch (e) { console.warn(e); }   // v1.6.0 ทุกใบของโครงการนี้
   // ชื่อห้อง / โซนจาก Takeoff (ถ้ามี) — ใช้เป็นตัวเลือก "พื้นที่"
   try { const r = await sb.from('takeoff_field_measures').select('id,name,work,qty,unit,deduct,type,height_mm').eq('pm_project_id', pid).is('deleted_at', null).limit(500);
@@ -514,6 +526,19 @@ async function importSheetUrl(url) {
     await readWorkbook(new Uint8Array(await r.arrayBuffer()), 'Google Sheet', 'gsheet', url);
   } catch (e) { toast('ดึงชีตไม่ได้: ' + ((e && e.message) || e), 4800); }
 }
+// v1.8.0 ดึงจาก Material Log ในระบบ (ตาราง material_log ของแอปหลัก) — ชื่อ · รหัส · พื้นที่ · จำนวน · หน่วย เท่านั้น (ไม่อ่านผู้ขาย / ราคา)
+//   รหัสรายการ = รหัสแถวใน Material Log → ดึงใหม่แล้วใบที่ขอไปแล้วยังผูกกับรายการเดิม
+async function importMlog() {
+  try { toast('กำลังดึง Material Log …', 1500);
+    const rows = await pageAll(() => sb.from('material_log').select('id,data').eq('project', APP.pid).order('id', { ascending: true }));
+    const items = rows.map(r => { const d = r.data || {}; const cn = cleanName(String(d.name || '').trim()); if (!cn.name || d.deleted || d.del) return null;
+      return { id: 'm_' + r.id, src: 'mlog', cat: String(d.cat || '').trim() || 'Material Log', name: cn.name, spec: cn.spec || '', code: String(d.sku || '').trim(), area: [d.area, d.where].map(x => String(x || '').trim()).filter(Boolean).join(' · '), qty: numOf(d.qty), unit: String(d.unit || '').trim() }; }).filter(Boolean);
+    if (!items.length) { toast('Material Log ของโครงการนี้ยังไม่มีรายการ'); return; }
+    await saveCat(APP.pid, v => { v.sources = (v.sources || []).filter(s0 => s0.id !== 'mlog'); v.items = (v.items || []).filter(i => i.src !== 'mlog').concat(items);
+      v.sources.push({ id: 'mlog', name: 'Material Log ในระบบ', kind: 'mlog', url: '', file: '', count: items.length, tabs: [...new Set(items.map(i => i.cat))], at: Date.now(), by: APP.me.name }); });
+    APP.mlN = rows.length; renderCat(); toast('ดึง Material Log ' + items.length + ' รายการแล้ว — หน้างานเลือกจากรายการนี้ได้ทันที', 3600);
+  } catch (e) { toast('ดึง Material Log ไม่สำเร็จ: ' + ((e && e.message) || e), 4200); }
+}
 async function commitImport() {
   const im = APP.imp; if (!im) return; const srcId = hashId(im.kind + '|' + (im.url || im.label));
   let items = [];
@@ -553,16 +578,18 @@ function renderCat() {
   $('btnCatAdd').disabled = !pick || !pick.size;
   if (canCfg() && !pick) {
     h.push(`<div class="card"><div class="h"><span class="n">📥</span>นำเข้า Material Log / ใบเสนอราคา <small>QS · PM · จัดซื้อ</small></div>
+      ${APP.mlN || (APP.pSheets || []).length ? `<div class="b2">${APP.mlN ? `<button class="btn ok" data-c="mlog">📚 ดึงจาก Material Log ในระบบ (${APP.mlN} รายการ)</button>` : ''}${(APP.pSheets || []).map((x, i) => `<button class="btn" data-c="psheet" data-i="${i}">🔗 ลิงก์ของโครงการ: ${esc(String(x.name || 'Google Sheet').slice(0, 40))}</button>`).join('')}</div><span class="s">ใช้ข้อมูลชุดเดียวกับหน้า Material Log · จัดซื้อ ใน Wellcon PM — ไม่ต้องอัปโหลด / วางลิงก์ซ้ำ</span>` : ''}
       <div class="b2"><label class="btn dk" style="cursor:pointer">📄 อัปโหลด Excel / CSV<input type="file" id="catFile" accept=".xlsx,.xls,.csv" hidden></label><button class="btn" data-c="url">🔗 วางลิงก์ Google Sheet</button></div>
       <span class="s">ระบบหาหัวตาราง (รายการ · จำนวน · หน่วย · รหัส · พื้นที่) ให้เอง · <b>ไม่อ่านคอลัมน์ราคา / มูลค่า</b> · Google Sheet ต้องแชร์ “ทุกคนที่มีลิงก์ดูได้”</span></div>`);
     if (APP.imp) h.push(impHtml(APP.imp));
-    if ((C.sources || []).length) h.push('<div class="card"><div class="h">แหล่งข้อมูลที่นำเข้าแล้ว</div>' + C.sources.map(s0 => `<div class="src"><span><b>${s0.kind === 'gsheet' ? '🔗' : '📄'} ${esc(s0.name)}</b><small>${s0.count} รายการ · ${esc((s0.tabs || []).slice(0, 6).join(', '))}${(s0.tabs || []).length > 6 ? ' …' : ''} · ${esc(when2(s0.at))} · ${esc(s0.by || '')}</small></span>
-      ${s0.kind === 'gsheet' ? `<button class="btn sm" data-c="refresh" data-id="${esc(s0.id)}">↻ ดึงใหม่</button>` : ''}<button class="btn sm" data-c="del" data-id="${esc(s0.id)}" style="color:#B4442E">🗑</button></div>`).join('') + '</div>');
+    if ((C.sources || []).length) h.push('<div class="card"><div class="h">แหล่งข้อมูลที่นำเข้าแล้ว</div>' + C.sources.map(s0 => `<div class="src"><span><b>${s0.kind === 'gsheet' ? '🔗' : s0.kind === 'mlog' ? '📚' : '📄'} ${esc(s0.name)}</b><small>${s0.count} รายการ · ${esc((s0.tabs || []).slice(0, 6).join(', '))}${(s0.tabs || []).length > 6 ? ' …' : ''} · ${esc(when2(s0.at))} · ${esc(s0.by || '')}</small></span>
+      ${s0.kind === 'gsheet' || s0.kind === 'mlog' ? `<button class="btn sm" data-c="refresh" data-id="${esc(s0.id)}">↻ ดึงใหม่</button>` : ''}<button class="btn sm" data-c="del" data-id="${esc(s0.id)}" style="color:#B4442E">🗑</button></div>`).join('') + '</div>');
   }
   const items = C.items || [];
   if (!items.length) { h.push(`<div class="card" style="align-items:center;text-align:center;padding:24px 16px"><div style="font-size:38px">📚</div><b>ยังไม่มีรายการวัสดุของโครงการนี้</b><span class="s">${canCfg() ? 'นำเข้า Material Log หรือใบเสนอราคาด้านบน' : 'ให้ QS / PM / จัดซื้อ นำเข้า Material Log หรือใบเสนอราคาก่อน'}</span></div>`); $('catBody').innerHTML = h.join(''); return; }
   const tabs = [...new Set(items.map(i => i.cat))], tab = tabs.includes(APP.catTab) ? APP.catTab : '', q = norm(APP.catQ);
   const L = items.filter(i => (!tab || i.cat === tab) && (!q || norm(i.name + ' ' + i.spec + ' ' + i.code + ' ' + i.area).includes(q)));
+  { const SS = (C.sources || []).slice().sort((a, b) => (b.at || 0) - (a.at || 0)); if (SS.length) h.push(`<p class="s" style="margin:0">ข้อมูลจาก: ${SS.slice(0, 3).map(s0 => esc(s0.name) + ' (อัปเดต ' + esc(when2(s0.at)) + ')').join(' · ')}${SS.length > 3 ? ' …' : ''}</p>`); }
   h.push(`<div class="search"><input id="catQ" value="${esc(APP.catQ)}" placeholder="ค้นหา ชื่อ · ยี่ห้อ · รหัส · พื้นที่" autocomplete="off"></div>`);
   h.push('<div class="chips"><button class="chip' + (!tab ? ' on' : '') + '" data-tab="">ทั้งหมด <small>' + items.length + '</small></button>' + tabs.map(t => `<button class="chip${t === tab ? ' on' : ''}" data-tab="${esc(t)}">${esc(t)} <small>${items.filter(i => i.cat === t).length}</small></button>`).join('') + '</div>');
   h.push('<div class="cl">' + (L.length ? L.slice(0, 300).map(c => { const used = usedOf(c.id, pick ? APP.pr.id : ''), left = c.qty != null ? c.qty - used : null, on = pick && pick.has(c.id), inPr = pick && APP.pr.items.some(i => i.catId === c.id);
@@ -590,9 +617,11 @@ $('catBody').addEventListener('click', async (e) => {
   if (pk) { const id = pk.dataset.pk; APP.catPick.has(id) ? APP.catPick.delete(id) : APP.catPick.add(id); renderCat(); return; }
   if (!c) return; const a = c.dataset.c;
   if (a === 'url') { const u = prompt('วางลิงก์ Google Sheet (Material Log / ใบเสนอราคา)\nต้องแชร์ “ทุกคนที่มีลิงก์ดูได้”', ''); if (u) importSheetUrl(u); }
+  else if (a === 'psheet') { const x = (APP.pSheets || [])[+c.dataset.i]; if (x) importSheetUrl(x.url); }
+  else if (a === 'mlog') { c.disabled = true; await importMlog(); }
   else if (a === 'commit') commitImport();
   else if (a === 'cancel') { APP.imp = null; renderCat(); }
-  else if (a === 'refresh') { const s0 = (APP.cat.sources || []).find(x => x.id === c.dataset.id); if (s0) importSheetUrl(s0.url); }
+  else if (a === 'refresh') { const s0 = (APP.cat.sources || []).find(x => x.id === c.dataset.id); if (s0 && s0.kind === 'mlog') await importMlog(); else if (s0) importSheetUrl(s0.url); }
   else if (a === 'del') { const s0 = (APP.cat.sources || []).find(x => x.id === c.dataset.id); if (!s0 || !confirm('ลบรายการ “' + s0.name + '” (' + s0.count + ' รายการ)?\nใบขอซื้อ / ใบขอจ้างเดิมไม่เปลี่ยน')) return;
     try { await saveCat(APP.pid, v => { v.sources = (v.sources || []).filter(x => x.id !== s0.id); v.items = (v.items || []).filter(i => i.src !== s0.id); }); renderCat(); toast('ลบแล้ว'); } catch (x) { toast('ลบไม่สำเร็จ: ' + ((x && x.message) || x)); } }
 });
