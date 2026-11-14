@@ -13,7 +13,7 @@
 (function () {
   'use strict';
   if (window.WCTag) return;
-  const VER = '1.2.1';   // 1.2.1: ผู้บริหาร / ผู้จัดการฝ่าย (เห็นทุกโครงการตามตำแหน่ง) แท็กได้ในทุกโครงการ — เดิมต้องติ๊ก "เห็นทุกโครงการ" เอง · 1.2.0: แท็กในโครงการ = เลือกได้เฉพาะทีมที่ได้รับมอบหมายในโครงการนั้น (+ ผู้บริหารที่ตั้งให้เห็นทุกโครงการ) · 1.1.0: เข้าสู่ระบบครั้งเดียว ข้ามแอป (ตั๋วใช้ครั้งเดียว ?wsso=)
+  const VER = '1.2.2';   // 1.2.2: ปิดหน้าต่างเลือกคน (✕) แล้วผู้อนุมัติที่ระบบกำหนดยังได้รับแจ้ง · 1.2.1: ผู้บริหาร / ผู้จัดการฝ่าย (เห็นทุกโครงการตามตำแหน่ง) แท็กได้ในทุกโครงการ — เดิมต้องติ๊ก "เห็นทุกโครงการ" เอง · 1.2.0: แท็กในโครงการ = เลือกได้เฉพาะทีมที่ได้รับมอบหมายในโครงการนั้น (+ ผู้บริหารที่ตั้งให้เห็นทุกโครงการ) · 1.1.0: เข้าสู่ระบบครั้งเดียว ข้ามแอป (ตั๋วใช้ครั้งเดียว ?wsso=)
   const ROLE = { pm: 'PM', pm_mgr: 'PM Manager', qs: 'QS', qs_mgr: 'QS Manager', sitemgr: 'Site Manager', site: 'หัวหน้าช่าง', safety: 'Safety', designer: 'Designer',
     design_mgr: 'Design Manager', director: 'Director', superadmin: 'Admin', admin: 'Admin', proc: 'จัดซื้อ', proc_mgr: 'จัดซื้อ', store: 'Store', fin: 'การเงิน', fin_mgr: 'การเงิน',
     hr: 'HR', hr_mgr: 'HR', factory: 'โรงงาน', office: 'Office', driver: 'คนขับรถ' };
@@ -133,7 +133,7 @@
       }
       const done = (v) => { ov.remove(); res(v); };
       ov.addEventListener('click', (e) => {
-        if (e.target === ov || e.target.closest('[data-x]')) { done(null); return; }
+        if (e.target === ov || e.target.closest('[data-x]')) { done(ap.size ? { to: [...ap], note: '' } : null); return; }   // v1.2.2 ปิดหน้าต่าง = ไม่แท็กเพิ่ม แต่ผู้อนุมัติที่ระบบกำหนดยังได้รับแจ้งเสมอ
         if (e.target.closest('[data-skip]')) { done(ap.size ? { to: [...ap], note: '' } : null); return; }
         if (e.target.closest('[data-ok]')) { const n = $('[data-n]'); done({ to: [...sel], note: n ? n.value.trim() : '' }); return; }
         const r = e.target.closest('[data-rm]'); if (r) { if (!ap.has(r.dataset.rm)) sel.delete(r.dataset.rm); draw(); return; }

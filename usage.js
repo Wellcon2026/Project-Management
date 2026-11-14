@@ -17,9 +17,9 @@ const VIEW_ROLES = ['superadmin', 'director', 'admin', 'pm_mgr', 'qs_mgr', 'desi
 const ROLE_TH = { superadmin: 'Super Admin', director: 'ผู้บริหาร', admin: 'Admin', pm: 'PM', pm_mgr: 'PM Manager', site: 'Site · หน้างาน', sitemgr: 'Site Manager', safety: 'Safety', store: 'คลังสินค้า',
   designer: 'Designer', design_mgr: 'Design Manager', qs: 'QS', qs_mgr: 'QS Manager', proc: 'จัดซื้อ', factory: 'โรงงาน', office: 'ธุรการ', fin_mgr: 'การเงิน', finance: 'การเงิน', hr: 'HR', hr_mgr: 'HR' };
 const GROUPS = [['all', 'ทั้งหมด'], ['site', 'หน้างาน', ['site', 'sitemgr', 'safety', 'store']], ['pm', 'PM · QS · จัดซื้อ', ['pm', 'pm_mgr', 'qs', 'qs_mgr', 'proc']], ['design', 'ออกแบบ · โรงงาน', ['designer', 'design_mgr', 'factory']], ['office', 'ออฟฟิศ · ผู้บริหาร', ['office', 'fin_mgr', 'finance', 'hr', 'hr_mgr', 'director', 'superadmin', 'admin']]];
-const MOD_TH = [['daily', 'รายงานประจำวัน (Site)', 1], ['defect', 'Defect Check', 1], ['issues', 'Site Issues', 1], ['rfi', 'RFI / RFA', 1], ['submittal', 'Submittal · ส่งอนุมัติวัสดุ', 1], ['po', 'Site PO', 1],
+const MOD_TH = [['daily', 'รายงานประจำวัน (Site)', 1], ['defect', 'Site Work · Defect', 1], ['issues', 'Site Issues', 1], ['rfi', 'RFI / RFA', 1], ['submittal', 'Submittal · ส่งอนุมัติวัสดุ', 1], ['po', 'Site PO', 1],
   ['material', 'วัสดุ · Material Log', 0], ['drawings', 'แบบ · Drawing Log', 0], ['vo', 'VO / SI / EOT', 0], ['billing', 'วางบิล', 0], ['plan', 'แผนงาน', 0], ['boq', 'BOQ', 0], ['qs', 'QS Tracking', 0], ['survey', 'As-Built & Survey', 0], ['aw', 'งานเพิ่ม', 0], ['quote', 'ใบเสนอราคา', 0], ['memo', 'Memo', 0], ['log', 'บันทึกกิจกรรม (Level Gate)', 0]];
-const APP_TH = { pm: 'Wellcon PM', dc: 'Site Work · Defect', si: 'Site Issues (เดิม)', sv: 'Site Work · Survey', claim: 'Claim', qm: 'Quick Measure' };
+const APP_TH = { pm: 'Wellcon PM', dc: 'Site Work · Defect', si: 'Site Issues (เดิม)', sv: 'Site Work · Survey', claim: 'Claim', qm: 'Takeoff · วัดหน้างาน' };
 const sb = window.supabase.createClient(CFG.url, CFG.anonKey, { db: { schema: SCHEMA }, auth: { persistSession: true, autoRefreshToken: true } });
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -46,6 +46,7 @@ async function boot() {
     const acc = (ho && Date.now() - Number(ho.at || 0) < 12 * 36e5 && accs.find(x => match(x, ho))) || (sess && sess.email && Date.now() - Number(sess.at || 0) < SESS_DAYS * DAY && accs.find(x => match(x, { email: sess.email }))) || null;
     if (!acc) { msg('<b>ยังไม่ได้เข้าสู่ระบบ Wellcon PM ในเครื่องนี้</b><span class="sub">เข้าสู่ระบบที่ Wellcon PM ก่อน</span>' + goPm); return; }
     if (VIEW_ROLES.indexOf(acc.roleKey) < 0) { msg('<b>หน้านี้สำหรับผู้บริหาร / หัวหน้าฝ่าย / HR</b><span class="sub">ติดต่อผู้ดูแลระบบถ้าต้องการสิทธิ์</span>' + goPm); return; }
+    try { if (window.WCTag) WCTag.setup({ sb, app: 'pm', me: { email: norm(acc.email), name: String(acc.nick || '').trim() || acc.name || acc.email, role: acc.roleKey || '' }, accounts: accs.filter(x => x.active !== false && !x.disabled), projects: [] }); } catch (e) {}   // กระดิ่งแจ้งเตือนเหมือนทุกหน้า
     APP.me = acc; await load();
   } catch (e) { console.error(e); msg('<b>เชื่อมต่อเซิร์ฟเวอร์ไม่ได้</b><span class="sub">' + esc((e && e.message) || e) + '</span><button class="btn pri" onclick="location.reload()">ลองใหม่</button>'); }
 }

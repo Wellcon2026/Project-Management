@@ -72,7 +72,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           <span style="margin-left:6px;padding:4px 12px;border-radius:999px;background:rgba(245,234,216,0.14);font-size:12px;font-weight:600;letter-spacing:.06em;">by Wellcon Interior</span>
         </div>
         <div style="position:relative;z-index:2;max-width:520px;display:flex;flex-direction:column;gap:18px;">
-          <div style="font-family:var(--font-heading);font-size:clamp(38px,4.2vw,64px);line-height:1.02;letter-spacing:-0.01em;text-wrap:balance;">Lay it out.<br><span style="color:#f0b48a;">Win them over.</span></div>
+          <div style="font-family:var(--font-heading);font-size:clamp(38px,4.2vw,64px);line-height:1.02;letter-spacing:-0.01em;text-wrap:balance;">จัดวางให้สวย<br><span style="color:#f0b48a;">ชนะใจลูกค้า</span></div>
           <div style="font-size:17px;line-height:1.55;color:#e9dcc6;max-width:420px;text-wrap:pretty;">Concept boards, material palettes and client sheets — designed together with your team, live.</div>
         </div>
         <div ref="{{ collageRef }}" aria-hidden="true" style="position:relative;flex:1;min-height:0;">
@@ -94,7 +94,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
               </div>
             </div>
             <div style="height:1px;background:#c67139;opacity:.5;"></div>
-            <div style="display:flex;justify-content:space-between;font-size:8px;letter-spacing:.12em;text-transform:uppercase;font-style:italic;color:#7a7066;"><span>Project presentation</span><span style="font-family:var(--font-heading);font-style:normal;color:#8c491a;letter-spacing:0;">Wellcon</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:8px;letter-spacing:.12em;text-transform:uppercase;font-style:italic;color:#7a7066;"><span>งานนำเสนอโครงการ</span><span style="font-family:var(--font-heading);font-style:normal;color:#8c491a;letter-spacing:0;">Wellcon</span></div>
           </div>
           <div data-float="3" style="position:absolute;right:360px;top:150px;padding:7px 14px;border-radius:999px;background:#f4ea6b;color:#2b2724;font-size:13px;font-weight:700;border:1.5px solid #c0392b;transform:rotate(-6deg);box-shadow:0 10px 24px rgba(0,0,0,0.18);">Client loved it!</div>
           <div data-float="2" style="position:absolute;right:40px;top:480px;padding:7px 16px;border-radius:999px;background:#f5ead8;color:#2b2724;font-size:12px;font-weight:700;letter-spacing:.1em;transform:rotate(4deg);">OAK VENEER</div>
@@ -123,11 +123,11 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           <span style="align-self:flex-start;padding:6px 14px;border-radius:999px;background:var(--color-accent-2-100);color:var(--color-accent-2-800);font-size:13px;font-weight:600;">{{ loginGreet }}</span>
           <sc-if value="{{ lgEmail }}">
             <div style="display:flex;flex-direction:column;gap:8px;">
-              <div style="font-family:var(--font-heading);font-size:44px;line-height:1.05;">Welcome back</div>
+              <div style="font-family:var(--font-heading);font-size:44px;line-height:1.05;">ยินดีต้อนรับกลับ</div>
               <div style="font-size:16px;color:var(--color-neutral-800);">Sign in with your Wellcon email to see your projects.</div>
             </div>
             <div style="display:flex;flex-direction:column;gap:8px;">
-              <label style="font-size:13px;font-weight:700;">Work email</label>
+              <label style="font-size:13px;font-weight:700;">อีเมลที่ทำงาน</label>
               <input ref="{{ loginEmailRef }}" type="email" value="{{ lgEmailVal }}" onChange="{{ onLgEmail }}" onKeyDown="{{ onLgEmailKey }}" placeholder="yourname@wellcon.co.th" autoComplete="username" style="height:54px;padding:0 22px;border-radius:999px;border:2px solid {{ lgEmailBorder }};background:var(--color-neutral-100);font:inherit;font-size:16px;color:inherit;outline:none;" style-focus="border-color:var(--color-accent);background:#fff;"></input>
               <sc-if value="{{ lgMatch }}">
                 <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-accent-2-800);">
@@ -136,7 +136,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                 </div>
               </sc-if>
             </div>
-            <button class="btn btn-primary" onClick="{{ lgContinue }}" style="height:54px;font-size:16px;">Continue</button>
+            <button class="btn btn-primary" onClick="{{ lgContinue }}" style="height:54px;font-size:16px;">ดำเนินการต่อ</button>
           </sc-if>
           <sc-if value="{{ lgPinStep }}">
             <div style="display:flex;align-items:center;gap:14px;">
@@ -155,7 +155,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
             </div>
             <sc-if value="{{ lgIsSignIn }}">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-                <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;"><input type="checkbox" checked="{{ lgRemember }}" onChange="{{ onLgRemember }}" style="width:18px;height:18px;accent-color:var(--color-accent);"></input>Keep me signed in</label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;"><input type="checkbox" checked="{{ lgRemember }}" onChange="{{ onLgRemember }}" style="width:18px;height:18px;accent-color:var(--color-accent);"></input>จำการเข้าสู่ระบบ</label>
                 <a onClick="{{ lgForgot }}" style="cursor:pointer;font-size:14px;font-weight:600;">Forgot PIN?</a>
               </div>
             </sc-if>
@@ -183,7 +183,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
         </div>
         <button class="btn btn-primary btn-block" onClick="{{ newBoardBtn }}">+ New board</button>
         <button class="btn btn-ghost btn-block" onClick="{{ openCreate }}" style="padding:6px;white-space:nowrap;font-size:13px;">More…</button>
-        <button class="btn btn-secondary btn-block" onClick="{{ openImportHome }}" title="Import a PDF or PowerPoint file" style="margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.75;stroke-linecap:round;stroke-linejoin:round;flex:none;"><path d="{{ iconUpload }}"></path></svg>Import PDF / PPT</button>
+        <button class="btn btn-secondary btn-block" onClick="{{ openImportHome }}" title="Import a PDF or PowerPoint file" style="margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.75;stroke-linecap:round;stroke-linejoin:round;flex:none;"><path d="{{ iconUpload }}"></path></svg>นำเข้า PDF / PPT</button>
         <sc-for list="{{ homeNav }}" as="n" hint-placeholder-count="5">
           <div onClick="{{ n.go }}" onDragOver="{{ n.onDragOver }}" onDrop="{{ n.onDrop }}" style="display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:999px;cursor:pointer;background:{{ n.bg }};color:{{ n.fg }};font-weight:600;" style-hover="background:var(--color-surface);">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.75;stroke-linecap:round;stroke-linejoin:round;flex:none;"><path d="{{ n.icon }}"></path></svg>
@@ -192,7 +192,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           </div>
         </sc-for>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 12px 6px;">
-          <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-700);">Projects</span>
+          <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-700);">โครงการ</span>
           <sc-if value="{{ canCreateProject }}"><button class="btn btn-ghost" onClick="{{ newProjectBtn }}" title="New project" style="padding:2px 10px;white-space:nowrap;">+</button></sc-if>
         </div>
         <sc-for list="{{ sideProjects }}" as="p" hint-placeholder-count="3">
@@ -288,7 +288,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
               </sc-if>
               <sc-if value="{{ haHasMsg }}"><span style="font-size:13px;color:var(--color-neutral-800);">{{ haMsg }}</span></sc-if>
               <sc-if value="{{ haHasOut }}">
-                <div style="display:flex;flex-direction:column;gap:6px;"><div style="white-space:pre-wrap;padding:12px 14px;border-radius:12px;background:var(--color-bg);font-size:14px;line-height:1.5;max-height:320px;overflow:auto;">{{ haOut }}</div><button class="btn btn-secondary" onClick="{{ haCopy }}" style="align-self:flex-start;">Copy</button></div>
+                <div style="display:flex;flex-direction:column;gap:6px;"><div style="white-space:pre-wrap;padding:12px 14px;border-radius:12px;background:var(--color-bg);font-size:14px;line-height:1.5;max-height:320px;overflow:auto;">{{ haOut }}</div><button class="btn btn-secondary" onClick="{{ haCopy }}" style="align-self:flex-start;">คัดลอก</button></div>
               </sc-if>
               <sc-if value="{{ haHasHits }}">
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">
@@ -312,7 +312,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
             </div>
             <div style="display:flex;flex-direction:column;border-radius:var(--radius-lg);background:var(--color-surface);overflow:hidden;">
               <div class="lb-teamrow" style="display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.5fr) minmax(170px,1.2fr) minmax(0,1.8fr) 110px 44px;gap:14px;padding:12px 18px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-700);">
-                <span>Person</span><span>Position</span><span>Role &amp; access</span><span>Assigned projects</span><span>Status</span><span></span>
+                <span>บุคคล</span><span>ตำแหน่ง</span><span>Role &amp; access</span><span>โครงการที่ได้รับมอบหมาย</span><span>สถานะ</span><span></span>
               </div>
               <sc-for list="{{ teamRows }}" as="u" hint-placeholder-count="6">
                 <div class="lb-teamrow" onContextMenu="{{ u.onMenu }}" style="display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.5fr) minmax(170px,1.2fr) minmax(0,1.8fr) 110px 44px;gap:14px;align-items:center;padding:12px 18px;border-top:1px solid var(--color-divider);opacity:{{ u.op }};">
@@ -337,7 +337,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                   </div>
                   <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
                     <button onClick="{{ u.toggleActive }}" style="border:0;border-radius:999px;padding:4px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;background:{{ u.statusBg }};color:{{ u.statusFg }};white-space:nowrap;">{{ u.status }}</button>
-                    <span style="font-size:11px;color:var(--color-neutral-700);white-space:nowrap;display:flex;align-items:center;gap:6px;">{{ u.pinLabel }}<button onClick="{{ u.pinReset }}" title="Give this person a new temporary PIN" style="border:0;background:transparent;padding:0;font:inherit;font-size:11px;font-weight:700;color:var(--color-accent-700);cursor:pointer;">Reset</button></span>
+                    <span style="font-size:11px;color:var(--color-neutral-700);white-space:nowrap;display:flex;align-items:center;gap:6px;">{{ u.pinLabel }}<button onClick="{{ u.pinReset }}" title="Give this person a new temporary PIN" style="border:0;background:transparent;padding:0;font:inherit;font-size:11px;font-weight:700;color:var(--color-accent-700);cursor:pointer;">รีเซ็ต</button></span>
                   </div>
                   <button class="btn btn-ghost btn-icon" onClick="{{ u.onMenu }}" title="More">⋯</button>
                 </div>
@@ -375,7 +375,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           </sc-if>
           <sc-if value="{{ hasFolderCards }}">
             <section style="display:flex;flex-direction:column;gap:14px;">
-              <div style="font-family:var(--font-heading);font-size:20px;">Folders</div>
+              <div style="font-family:var(--font-heading);font-size:20px;">โฟลเดอร์</div>
               <div class="lb-g2" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">
                 <sc-for list="{{ folderCards }}" as="f" hint-placeholder-count="2">
                   <div draggable="true" onDragStart="{{ f.onDragStart }}" onClick="{{ f.go }}" onContextMenu="{{ f.onMenu }}" onDragOver="{{ f.onDragOver }}" onDragLeave="{{ f.onDragLeave }}" onDrop="{{ f.onDrop }}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius-md);background:{{ f.bg }};cursor:pointer;" style-hover="box-shadow:var(--shadow-sm);">
@@ -439,13 +439,13 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           <sc-if value="{{ hasMediaCards }}">
             <section style="display:flex;flex-direction:column;gap:14px;">
               <div style="display:flex;align-items:center;gap:12px;">
-                <div style="font-family:var(--font-heading);font-size:20px;">Uploads</div>
+                <div style="font-family:var(--font-heading);font-size:20px;">ไฟล์ที่อัปโหลด</div>
                 <span style="font-size:13px;color:var(--color-neutral-700);flex:1;">Shared picture library for everyone on this project</span>
-                <label class="btn btn-secondary" style="cursor:pointer;white-space:nowrap;">Upload pictures<input type="file" accept="image/*,.png,.webp,.svg,.gif,application/pdf,.ai" multiple="multiple" onChange="{{ homeLibFiles }}" style="display:none;"></input></label>
+                <label class="btn btn-secondary" style="cursor:pointer;white-space:nowrap;">อัปโหลดรูป<input type="file" accept="image/*,.png,.webp,.svg,.gif,application/pdf,.ai" multiple="multiple" onChange="{{ homeLibFiles }}" style="display:none;"></input></label>
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><sc-for list="{{ mfChips }}" as="c" hint-placeholder-count="0"><span onContextMenu="{{ c.menu }}" onDragOver="{{ c.onOver }}" onDragLeave="{{ c.onLeave }}" onDrop="{{ c.onDrop }}" style="display:inline-flex;align-items:center;border-radius:999px;background:{{ c.bg }};color:{{ c.fg }};"><button onClick="{{ c.pick }}" onDoubleClick="{{ c.rename }}" title="{{ c.tip }}" style="border:0;border-radius:999px;padding:5px 12px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;background:transparent;color:inherit;">{{ c.label }}</button><sc-if value="{{ c.hasMenu }}"><button onClick="{{ c.more }}" title="Rename or delete this folder" style="border:0;border-radius:999px;margin:0 3px 0 -6px;width:22px;height:22px;display:grid;place-items:center;font:inherit;font-size:13px;line-height:1;cursor:pointer;background:transparent;color:inherit;opacity:.8;">⋯</button></sc-if></span></sc-for><button onClick="{{ mfNew }}" style="border:1px dashed var(--color-divider);border-radius:999px;padding:4px 12px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--color-accent-700);">+ New folder</button></div>
               <span style="font-size:12px;color:var(--color-neutral-700);">{{ mfHint }} Click pictures to select several (Shift-click selects a range). Double-click a folder (or its ⋯) to rename it.</span>
-              <sc-if value="{{ mfSelOn }}"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border-radius:14px;background:#e3ebf1;color:#22324a;font-size:13px;position:sticky;top:0;z-index:5;"><button onClick="{{ mfSelClear }}" title="Clear selection" style="border:0;background:transparent;font-size:18px;line-height:1;cursor:pointer;color:inherit;padding:0 4px;">×</button><strong>{{ mfSelLabel }}</strong><span style="flex:1;font-size:11.5px;opacity:.8;min-width:120px;">{{ mfSelHint }}</span><button class="btn btn-ghost" onClick="{{ mfSelAll }}" style="padding:4px 10px;font-size:12px;">Select all</button><button class="btn btn-secondary" onClick="{{ mfSelMove }}" style="padding:4px 12px;font-size:12px;">Move to ▾</button><button class="btn btn-ghost" onClick="{{ mfSelDel }}" style="padding:4px 10px;font-size:12px;color:#c0392b;">Remove</button></div></sc-if>
+              <sc-if value="{{ mfSelOn }}"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border-radius:14px;background:#e3ebf1;color:#22324a;font-size:13px;position:sticky;top:0;z-index:5;"><button onClick="{{ mfSelClear }}" title="Clear selection" style="border:0;background:transparent;font-size:18px;line-height:1;cursor:pointer;color:inherit;padding:0 4px;">×</button><strong>{{ mfSelLabel }}</strong><span style="flex:1;font-size:11.5px;opacity:.8;min-width:120px;">{{ mfSelHint }}</span><button class="btn btn-ghost" onClick="{{ mfSelAll }}" style="padding:4px 10px;font-size:12px;">เลือกทั้งหมด</button><button class="btn btn-secondary" onClick="{{ mfSelMove }}" style="padding:4px 12px;font-size:12px;">Move to ▾</button><button class="btn btn-ghost" onClick="{{ mfSelDel }}" style="padding:4px 10px;font-size:12px;color:#c0392b;">เอาออก</button></div></sc-if>
               <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;">
                 <sc-for list="{{ mediaCards }}" as="m" hint-placeholder-count="0">
                   <div draggable="true" onDragStart="{{ m.onDragStart }}" onClick="{{ m.click }}" onContextMenu="{{ m.onMenu }}" title="{{ m.name }} · click to select · drag onto a folder to move · right-click for more" style="position:relative;aspect-ratio:1;border-radius:var(--radius-md);background:#dfe7ee;cursor:grab;padding:{{ m.pad }};box-sizing:border-box;transition:padding .12s;" style-hover="box-shadow:var(--shadow-md);">
@@ -459,7 +459,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
             <div style="padding:56px 32px;border-radius:var(--radius-lg);background:var(--color-surface);display:flex;flex-direction:column;align-items:flex-start;gap:14px;max-width:560px;">
               <div style="font-family:var(--font-heading);font-size:24px;">{{ emptyTitle }}</div>
               <div style="color:var(--color-neutral-800);line-height:1.5;">{{ emptyText }}</div>
-              <sc-if value="{{ emptyCanCreate }}"><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-primary" onClick="{{ emptyNewDesign }}">New board</button><button class="btn btn-secondary" onClick="{{ openImportHome }}">Import PDF / PowerPoint</button><button class="btn btn-secondary" onClick="{{ emptyNewFolder }}">New folder</button></div></sc-if>
+              <sc-if value="{{ emptyCanCreate }}"><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-primary" onClick="{{ emptyNewDesign }}">บอร์ดใหม่</button><button class="btn btn-secondary" onClick="{{ openImportHome }}">นำเข้า PDF / PowerPoint</button><button class="btn btn-secondary" onClick="{{ emptyNewFolder }}">โฟลเดอร์ใหม่</button></div></sc-if>
             </div>
           </sc-if>
         </div>
@@ -472,7 +472,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
     <div class="lb-ed" style="display:grid;grid-template-rows:56px 46px minmax(0,1fr) 132px;height:100vh;">
       <header class="lb-edhead" style="display:flex;align-items:center;gap:6px;padding:0 12px;background:var(--color-bg);border-bottom:1px solid var(--color-divider);min-width:0;">
         <button class="btn btn-ghost btn-icon" onClick="{{ goHome }}" title="Back to projects" style="flex:none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.75;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ iconHome }}"></path></svg></button>
-        <button class="btn btn-ghost" onClick="{{ openFileMenu }}" style="padding:6px 12px;white-space:nowrap;flex:none;">File</button>
+        <button class="btn btn-ghost" onClick="{{ openFileMenu }}" style="padding:6px 12px;white-space:nowrap;flex:none;">ไฟล์</button>
         <button class="btn btn-ghost lb-desk" onClick="{{ openResizeMenu }}" style="padding:6px 12px;white-space:nowrap;flex:none;">Resize · {{ sizeLabel }}</button>
         <span style="width:1px;height:24px;background:var(--color-divider);margin:0 4px;flex:none;"></span>
         <button class="btn btn-ghost" onClick="{{ undo }}" title="Undo (Ctrl+Z)" style="padding:6px 10px;font-size:18px;white-space:nowrap;flex:none;opacity:{{ undoOp }};">↶</button>
@@ -483,7 +483,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           <span style="color:var(--color-neutral-500);">›</span>
           <input value="{{ docName }}" onChange="{{ onDocName }}" readOnly="{{ viewOnly }}" style="flex:1 1 auto;width:auto;min-width:80px;max-width:260px;height:34px;padding:0 12px;border-radius:999px;border:1px solid transparent;background:transparent;font:inherit;font-weight:600;color:inherit;" style-hover="border-color:var(--color-divider);" style-focus="border-color:var(--color-accent);outline:none;background:var(--color-neutral-100);"></input>
           <span class="lb-desk" style="font-size:12px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto;">{{ saveLabel }}</span>
-          <sc-if value="{{ viewOnly }}"><span class="tag tag-accent" style="white-space:nowrap;">View only</span></sc-if>
+          <sc-if value="{{ viewOnly }}"><span class="tag tag-accent" style="white-space:nowrap;">ดูอย่างเดียว</span></sc-if>
         </div>
         <div class="lb-desk" style="display:flex;align-items:center;padding-left:8px;flex:none;">
           <sc-for list="{{ peersHere }}" as="a" hint-placeholder-count="0">
@@ -491,9 +491,9 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           </sc-for>
         </div>
         <button class="btn btn-ghost" onClick="{{ toggleCommentsFly }}" title="Comments" style="padding:6px 12px;display:flex;align-items:center;gap:6px;white-space:nowrap;flex:none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.75;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ iconComment }}"></path></svg>{{ commentCount }}</button>
-        <button class="btn btn-ghost lb-desk" onClick="{{ openCheckBtn }}" title="Check the board before printing or sending to the client" style="white-space:nowrap;flex:none;display:flex;align-items:center;gap:6px;"><span style="width:20px;height:20px;border-radius:999px;background:var(--color-accent-2);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;">✓</span>Check</button>
-        <button class="btn btn-secondary lb-desk" onClick="{{ printDoc }}" title="Print / save as PDF (Ctrl+P)" style="white-space:nowrap;flex:none;">Print</button>
-        <button class="btn btn-primary" onClick="{{ openShare }}" style="white-space:nowrap;flex:none;">Share</button>
+        <button class="btn btn-ghost lb-desk" onClick="{{ openCheckBtn }}" title="Check the board before printing or sending to the client" style="white-space:nowrap;flex:none;display:flex;align-items:center;gap:6px;"><span style="width:20px;height:20px;border-radius:999px;background:var(--color-accent-2);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;">✓</span>ตรวจ</button>
+        <button class="btn btn-secondary lb-desk" onClick="{{ printDoc }}" title="Print / save as PDF (Ctrl+P)" style="white-space:nowrap;flex:none;">พิมพ์</button>
+        <button class="btn btn-primary" onClick="{{ openShare }}" style="white-space:nowrap;flex:none;">แชร์</button>
       </header>
       <div style="display:flex;align-items:center;gap:2px;padding:0 12px;background:var(--color-bg);border-bottom:1px solid var(--color-divider);min-width:0;overflow-x:auto;overflow-y:hidden;white-space:nowrap;">
         <sc-if value="{{ tbCanEdit }}">
@@ -502,7 +502,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           <button onClick="{{ tbShapes }}" title="Shapes" style="border:0;border-radius:8px;height:34px;padding:0 6px 0 8px;display:inline-flex;align-items:center;gap:2px;cursor:pointer;background:transparent;color:inherit;flex:none;" style-hover="background:var(--color-surface);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linejoin:round;"><circle cx="9" cy="9" r="6"></circle><rect x="10" y="10" width="11" height="11" rx="1"></rect></svg><span style="font-size:10px;">▼</span></button>
           <button onClick="{{ tbLine }}" title="Line" style="border:0;border-radius:8px;height:34px;min-width:34px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;color:inherit;flex:none;" style-hover="background:var(--color-surface);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.5;stroke-linecap:round;"><path d="M4 4l16 16"></path></svg></button>
           <button onClick="{{ tbArrow }}" title="Arrow" style="border:0;border-radius:8px;height:34px;min-width:34px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;color:inherit;flex:none;" style-hover="background:var(--color-surface);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;"><path d="M4 20L20 4M10 4h10v10"></path></svg></button>
-          <button onClick="{{ tbPoly }}" title="Polygon — click points on the sheet, Enter to finish" style="border:0;border-radius:8px;height:34px;padding:0 8px;display:inline-flex;align-items:center;gap:4px;cursor:pointer;background:{{ tbPolyBg }};color:inherit;font:inherit;font-size:13px;flex:none;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linejoin:round;"><path d="M5 6l14-2-1 14-15 1z"></path></svg>Polygon</button>
+          <button onClick="{{ tbPoly }}" title="Polygon — click points on the sheet, Enter to finish" style="border:0;border-radius:8px;height:34px;padding:0 8px;display:inline-flex;align-items:center;gap:4px;cursor:pointer;background:{{ tbPolyBg }};color:inherit;font:inherit;font-size:13px;flex:none;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linejoin:round;"><path d="M5 6l14-2-1 14-15 1z"></path></svg>รูปหลายเหลี่ยม</button>
           <sc-if value="{{ tfOn }}">
             <span style="width:1px;height:22px;background:var(--color-divider);margin:0 4px;flex:none;"></span>
             <select value="{{ tfFont }}" onChange="{{ tfOnFont }}" title="Font" style="height:32px;max-width:150px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:13px;padding:0 6px;cursor:pointer;flex:none;"><sc-for list="{{ fonts }}" as="f" hint-placeholder-count="0"><option value="{{ f.value }}">{{ f.label }}</option></sc-for></select>
@@ -538,13 +538,13 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           <span style="width:1px;height:24px;background:var(--color-divider);margin:0 6px;flex:none;"></span>
           <button onClick="{{ tbLink }}" title="Insert link (Ctrl+K)" style="border:0;border-radius:8px;height:34px;min-width:34px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:{{ tbLinkBg }};color:inherit;flex:none;opacity:{{ tbLinkOp }};" style-hover="background:var(--color-surface);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round;"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1 M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"></path></svg></button>
           <span style="width:1px;height:24px;background:var(--color-divider);margin:0 6px;flex:none;"></span>
-          <button onClick="{{ tbAuto }}" title="Build a presentation automatically from your pictures" style="border:0;border-radius:999px;height:34px;padding:0 14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:var(--color-accent);color:#fff;font:inherit;font-size:13px;font-weight:600;flex:none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.2 6.3L20 10l-5.8 1.7L12 18l-2.2-6.3L4 10l5.8-1.7z M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"></path></svg>Auto presentation</button>
+          <button onClick="{{ tbAuto }}" title="Build a presentation automatically from your pictures" style="border:0;border-radius:999px;height:34px;padding:0 14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:var(--color-accent);color:#fff;font:inherit;font-size:13px;font-weight:600;flex:none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.2 6.3L20 10l-5.8 1.7L12 18l-2.2-6.3L4 10l5.8-1.7z M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"></path></svg>นำเสนออัตโนมัติ</button>
           <button onClick="{{ tbAiTools }}" title="Claude tools for this sheet and the whole board" style="border:1.5px solid var(--color-accent);border-radius:999px;height:34px;padding:0 14px;margin-left:6px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:transparent;color:var(--color-accent-700);font:inherit;font-size:13px;font-weight:600;flex:none;">✦ Claude tools ▾</button>
-          <sc-if value="{{ aiJobOn }}"><span style="margin-left:10px;display:inline-flex;align-items:center;gap:8px;padding:5px 6px 5px 14px;border-radius:999px;background:#2b2724;color:#fff;font-size:12.5px;font-weight:600;flex:none;"><span style="width:10px;height:10px;border-radius:999px;background:#f2b705;"></span>{{ aiJobText }}<button onClick="{{ aiJobStop }}" style="border:0;border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer;background:rgba(255,255,255,.18);color:#fff;">Stop</button></span></sc-if>
+          <sc-if value="{{ aiJobOn }}"><span style="margin-left:10px;display:inline-flex;align-items:center;gap:8px;padding:5px 6px 5px 14px;border-radius:999px;background:#2b2724;color:#fff;font-size:12.5px;font-weight:600;flex:none;"><span style="width:10px;height:10px;border-radius:999px;background:#f2b705;"></span>{{ aiJobText }}<button onClick="{{ aiJobStop }}" style="border:0;border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer;background:rgba(255,255,255,.18);color:#fff;">หยุด</button></span></sc-if>
           <sc-if value="{{ drawing }}">
             <span style="margin-left:10px;padding:5px 12px;border-radius:999px;background:var(--color-accent-100);font-size:12px;font-weight:600;flex:none;">{{ drawHint }}</span>
-            <button class="btn btn-primary" onClick="{{ drawDone }}" style="padding:4px 14px;margin-left:6px;flex:none;">Finish</button>
-            <button class="btn btn-ghost" onClick="{{ drawCancel }}" style="padding:4px 12px;flex:none;">Cancel</button>
+            <button class="btn btn-primary" onClick="{{ drawDone }}" style="padding:4px 14px;margin-left:6px;flex:none;">เสร็จ</button>
+            <button class="btn btn-ghost" onClick="{{ drawCancel }}" style="padding:4px 12px;flex:none;">ยกเลิก</button>
           </sc-if>
         </sc-if>
         <sc-if value="{{ viewOnly }}"><span style="font-size:13px;color:var(--color-neutral-700);">View only — drawing tools are off.</span></sc-if>
@@ -563,12 +563,12 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           <sc-if value="{{ propsOpen }}">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px;">
               <div style="font-family:var(--font-heading);font-size:20px;">{{ sel.kindLabel }}</div>
-              <button class="btn btn-secondary" onClick="{{ closeProps }}" title="Deselect (Esc)" style="padding:4px 14px;white-space:nowrap;">Done</button>
+              <button class="btn btn-secondary" onClick="{{ closeProps }}" title="Deselect (Esc)" style="padding:4px 14px;white-space:nowrap;">เสร็จ</button>
             </div>
             <div style="flex:1;overflow:auto;padding:6px 18px 24px;display:flex;flex-direction:column;gap:14px;min-height:0;">
               <sc-if value="{{ sel.isText }}">
-                <div class="field"><label>Text</label><textarea class="input" value="{{ sel.text }}" onChange="{{ setText }}" rows="3" style="border-radius:var(--radius-md);padding:10px 14px;font:inherit;resize:vertical;"></textarea></div>
-                <div class="field"><label>Font</label>
+                <div class="field"><label>ข้อความ</label><textarea class="input" value="{{ sel.text }}" onChange="{{ setText }}" rows="3" style="border-radius:var(--radius-md);padding:10px 14px;font:inherit;resize:vertical;"></textarea></div>
+                <div class="field"><label>แบบอักษร</label>
                   <select class="input" value="{{ sel.font }}" onChange="{{ setFont }}" style="font-family:{{ selFontCss }};font-size:16px;">
                     <sc-for list="{{ fonts }}" as="f" hint-placeholder-count="8"><option value="{{ f.value }}">{{ f.label }}</option></sc-for>
                   </select>
@@ -578,20 +578,20 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                 <div class="field"><label>Letter spacing · {{ sel.track }}em</label><input type="range" min="0" max="0.6" step="0.02" value="{{ sel.track }}" onChange="{{ setTrack }}"></input></div>
                 <div style="display:flex;gap:4px;">
                   <sc-for list="{{ aligns }}" as="a" hint-placeholder-count="3"><button onClick="{{ a.pick }}" style="flex:1;border:0;border-radius:999px;padding:6px;font:inherit;cursor:pointer;background:{{ a.bg }};color:{{ a.fg }};">{{ a.label }}</button></sc-for>
-                  <button onClick="{{ toggleItalic }}" style="flex:1;border:0;border-radius:999px;padding:6px;font:inherit;font-style:italic;cursor:pointer;background:{{ italicBg }};">Italic</button>
+                  <button onClick="{{ toggleItalic }}" style="flex:1;border:0;border-radius:999px;padding:6px;font:inherit;font-style:italic;cursor:pointer;background:{{ italicBg }};">ตัวเอียง</button>
                 </div>
-                <div class="field"><label>Text colour</label>
+                <div class="field"><label>สีข้อความ</label>
                   <div style="display:flex;gap:8px;flex-wrap:wrap;"><sc-for list="{{ textColors }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.pick }}" style="width:28px;height:28px;border-radius:999px;cursor:pointer;background:{{ c.v }};border:{{ c.ring }};"></button></sc-for></div>
                 </div>
               </sc-if>
               <sc-if value="{{ sel.isImage }}">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                   <button class="btn btn-primary" onClick="{{ toggleCrop }}">{{ cropLabel }}</button>
-                  <button class="btn btn-secondary" onClick="{{ replaceSel }}">Replace</button>
-                  <button class="btn btn-secondary" onClick="{{ resetImage }}">Reset</button>
-                  <button class="btn btn-secondary" onClick="{{ setAsBg }}">As background</button>
+                  <button class="btn btn-secondary" onClick="{{ replaceSel }}">แทนที่</button>
+                  <button class="btn btn-secondary" onClick="{{ resetImage }}">รีเซ็ต</button>
+                  <button class="btn btn-secondary" onClick="{{ setAsBg }}">ตั้งเป็นพื้นหลัง</button>
                 </div>
-                <sc-if value="{{ sel.isLinked }}"><div style="display:flex;flex-direction:column;gap:6px;padding:10px 14px;border-radius:12px;background:var(--color-accent-2-100);font-size:13px;"><strong>Live drawing · {{ sel.linkName }}</strong><span style="color:var(--color-neutral-800);">Updates automatically when the drawing is edited.</span><div style="display:flex;gap:10px;"><a onClick="{{ openLinked }}" style="cursor:pointer;font-weight:600;">Open drawing ↗</a><a onClick="{{ unlinkPlan }}" style="cursor:pointer;font-weight:600;">Unlink</a></div></div></sc-if>
+                <sc-if value="{{ sel.isLinked }}"><div style="display:flex;flex-direction:column;gap:6px;padding:10px 14px;border-radius:12px;background:var(--color-accent-2-100);font-size:13px;"><strong>Live drawing · {{ sel.linkName }}</strong><span style="color:var(--color-neutral-800);">Updates automatically when the drawing is edited.</span><div style="display:flex;gap:10px;"><a onClick="{{ openLinked }}" style="cursor:pointer;font-weight:600;">Open drawing ↗</a><a onClick="{{ unlinkPlan }}" style="cursor:pointer;font-weight:600;">ยกเลิกลิงก์</a></div></div></sc-if>
                 <div style="display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-radius:12px;background:{{ sel.dpiBg }};font-size:13px;"><strong>Print quality · {{ sel.dpiLabel }}</strong><span style="color:var(--color-neutral-800);">{{ sel.dpiNote }}</span></div>
                 <sc-if value="{{ sel.isModel }}"><div style="display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:14px;background:var(--color-accent-200);font-size:13px;">
                   <strong>3D model · {{ sel.mName }}</strong>
@@ -601,30 +601,30 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                 <sc-if value="{{ sel.isVec }}"><div class="lb-vecbox" style="display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:14px;background:var(--color-accent-2-100);font-size:13px;">
                   <strong>Vector drawing · {{ sel.vecN }} snap points</strong>
                   <span style="font-size:12px;color:var(--color-neutral-800);line-height:1.45;">Dimension ends snap to its line ends, mid-points, corners and circle centres. Hold Alt to place freely.</span>
-                  <div style="display:flex;gap:6px;align-items:center;"><span>Drawing scale 1:</span><input class="input" type="number" min="1" step="any" value="{{ sel.plotV }}" onChange="{{ onPlot }}" placeholder="50" style="flex:1;min-width:0;height:36px;"></input><button class="btn btn-primary" onClick="{{ applyPlot }}" style="padding:6px 14px;">Set</button></div>
+                  <div style="display:flex;gap:6px;align-items:center;"><span>Drawing scale 1:</span><input class="input" type="number" min="1" step="any" value="{{ sel.plotV }}" onChange="{{ onPlot }}" placeholder="50" style="flex:1;min-width:0;height:36px;"></input><button class="btn btn-primary" onClick="{{ applyPlot }}" style="padding:6px 14px;">ตั้งค่า</button></div>
                   <span style="font-size:12px;color:var(--color-neutral-700);line-height:1.45;">{{ sel.plotNote }}</span>
                 </div></sc-if>
                 <div class="field"><label>Picture zoom inside frame · {{ cropZoomPct }}%</label><input type="range" min="1" max="8" step="0.01" value="{{ cropZoom }}" onChange="{{ setCropZoom }}"></input></div>
-                <div class="field"><label>Fit</label>
+                <div class="field"><label>พอดีจอ</label>
                   <div style="display:flex;gap:4px;"><sc-for list="{{ fits }}" as="f" hint-placeholder-count="2"><button onClick="{{ f.pick }}" style="flex:1;border:0;border-radius:999px;padding:6px;font:inherit;cursor:pointer;background:{{ f.bg }};color:{{ f.fg }};">{{ f.label }}</button></sc-for></div>
                   <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:8px;"><input type="checkbox" checked="{{ lockOn }}" onChange="{{ toggleLock }}" style="width:17px;height:17px;accent-color:var(--color-accent);"></input>Keep proportions when dragging a corner (hold Shift to switch)</label>
-                  <sc-if value="{{ stretchOn }}"><button class="btn btn-ghost" onClick="{{ unStretch }}" style="padding:4px 10px;font-size:12px;align-self:flex-start;">Undo picture stretch</button></sc-if>
+                  <sc-if value="{{ stretchOn }}"><button class="btn btn-ghost" onClick="{{ unStretch }}" style="padding:4px 10px;font-size:12px;align-self:flex-start;">ยกเลิกการยืดรูป</button></sc-if>
                   <span style="font-size:11.5px;color:var(--color-neutral-700);line-height:1.4;">Stretch = picture fills the box exactly, so it follows any width / height. In Crop, hold Shift (or turn on Free stretch) while dragging the picture corners to stretch only the picture.</span>
                 </div>
               </sc-if>
               <sc-if value="{{ sel.takesPicture }}">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                  <button class="btn btn-primary" onClick="{{ replaceSel }}">Upload picture</button>
-                  <button class="btn btn-secondary" onClick="{{ pasteIntoSel }}">Paste picture</button>
+                  <button class="btn btn-primary" onClick="{{ replaceSel }}">อัปโหลดรูป</button>
+                  <button class="btn btn-secondary" onClick="{{ pasteIntoSel }}">วางรูป</button>
                 </div>
               </sc-if>
               <sc-if value="{{ sel.hasShape }}">
-                <div class="field"><label>Shape</label>
+                <div class="field"><label>รูปทรง</label>
                   <div style="display:flex;gap:4px;flex-wrap:wrap;"><sc-for list="{{ shapes }}" as="f" hint-placeholder-count="4"><button onClick="{{ f.pick }}" style="border:0;border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer;background:{{ f.bg }};color:{{ f.fg }};">{{ f.label }}</button></sc-for></div>
                 </div>
               </sc-if>
               <sc-if value="{{ sel.hasFill }}">
-                <div class="field"><label>Fill</label>
+                <div class="field"><label>สีพื้น</label>
                   <div style="display:flex;gap:8px;flex-wrap:wrap;"><sc-for list="{{ fillColors }}" as="c" hint-placeholder-count="8"><button onClick="{{ c.pick }}" style="width:28px;height:28px;border-radius:999px;cursor:pointer;background:{{ c.v }};border:{{ c.ring }};"></button></sc-for></div>
                 </div>
               </sc-if>
@@ -637,66 +637,66 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
               <sc-if value="{{ sel.isPoly }}">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                   <button class="btn btn-secondary" onClick="{{ polyAddPt }}">+ Add point</button>
-                  <button class="btn btn-secondary" onClick="{{ polyDelPt }}" style="opacity:{{ polyDelOp }};">Delete point</button>
+                  <button class="btn btn-secondary" onClick="{{ polyDelPt }}" style="opacity:{{ polyDelOp }};">ลบจุด</button>
                 </div>
                 <button onClick="{{ togglePolySmooth }}" style="border:0;border-radius:999px;padding:7px;font:inherit;cursor:pointer;background:var(--color-surface);">{{ polySmoothLabel }}</button>
                 <div style="font-size:12px;line-height:1.5;color:var(--color-neutral-700);">{{ polyPtInfo }}<br>• Drag a corner dot to move it<br>• Click or drag a small dot on an edge to add a point<br>• Click a corner dot, then press Delete (or right-click it) to remove it</div>
               </sc-if>
               <sc-if value="{{ sel.isDim }}">
-                <div class="field"><label>Text</label><input class="input" value="{{ sel.labelVal }}" placeholder="{{ sel.autoLabel }}" onChange="{{ setLabel }}"></input><span style="font-size:12px;color:var(--color-neutral-700);">Leave empty to measure automatically · now {{ sel.autoLabel }}</span></div>
-                <div class="field"><label>Units</label><div style="display:flex;gap:4px;flex-wrap:wrap;"><sc-for list="{{ dimUnits }}" as="f" hint-placeholder-count="3"><button onClick="{{ f.pick }}" style="border:0;border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer;background:{{ f.bg }};color:{{ f.fg }};">{{ f.label }}</button></sc-for></div></div>
-                <div class="field"><label>Ends</label><div style="display:flex;gap:4px;flex-wrap:wrap;"><sc-for list="{{ dimStyles }}" as="f" hint-placeholder-count="3"><button onClick="{{ f.pick }}" style="border:0;border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer;background:{{ f.bg }};color:{{ f.fg }};">{{ f.label }}</button></sc-for></div></div>
+                <div class="field"><label>ข้อความ</label><input class="input" value="{{ sel.labelVal }}" placeholder="{{ sel.autoLabel }}" onChange="{{ setLabel }}"></input><span style="font-size:12px;color:var(--color-neutral-700);">Leave empty to measure automatically · now {{ sel.autoLabel }}</span></div>
+                <div class="field"><label>หน่วย</label><div style="display:flex;gap:4px;flex-wrap:wrap;"><sc-for list="{{ dimUnits }}" as="f" hint-placeholder-count="3"><button onClick="{{ f.pick }}" style="border:0;border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer;background:{{ f.bg }};color:{{ f.fg }};">{{ f.label }}</button></sc-for></div></div>
+                <div class="field"><label>ปลายเส้น</label><div style="display:flex;gap:4px;flex-wrap:wrap;"><sc-for list="{{ dimStyles }}" as="f" hint-placeholder-count="3"><button onClick="{{ f.pick }}" style="border:0;border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer;background:{{ f.bg }};color:{{ f.fg }};">{{ f.label }}</button></sc-for></div></div>
                 <div class="field"><label>Offset from object · {{ sel.offV }}px</label><input type="range" min="-200" max="200" value="{{ sel.offV }}" onChange="{{ setDimOff }}"></input></div>
                 <div class="field"><label>Text size · {{ sel.fsV }}px</label><input type="range" min="8" max="72" value="{{ sel.fsV }}" onChange="{{ setDimFs }}"></input></div>
-                <div class="field"><label>Colour</label><div style="display:flex;gap:8px;flex-wrap:wrap;"><sc-for list="{{ lineColors }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.pick }}" style="width:28px;height:28px;border-radius:999px;cursor:pointer;background:{{ c.v }};border:{{ c.ring }};"></button></sc-for></div></div>
+                <div class="field"><label>สี</label><div style="display:flex;gap:8px;flex-wrap:wrap;"><sc-for list="{{ lineColors }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.pick }}" style="width:28px;height:28px;border-radius:999px;cursor:pointer;background:{{ c.v }};border:{{ c.ring }};"></button></sc-for></div></div>
                 <div style="padding:12px 14px;border-radius:14px;background:var(--color-surface);display:flex;flex-direction:column;gap:8px;">
-                  <strong style="font-size:13px;">Set the scale from this line</strong>
+                  <strong style="font-size:13px;">ตั้งสเกลจากเส้นนี้</strong>
                   <span style="font-size:12px;color:var(--color-neutral-800);line-height:1.45;">Stretch this dimension over something you know on the picture (e.g. a 1400 mm table) and type its real size.</span>
-                  <div style="display:flex;gap:6px;align-items:center;"><input class="input" type="number" min="1" value="{{ calibVal }}" onChange="{{ onCalib }}" placeholder="1400" style="flex:1;min-width:0;height:36px;"></input><span>mm</span><button class="btn btn-primary" onClick="{{ applyCalib }}" style="padding:6px 14px;">Set</button></div>
+                  <div style="display:flex;gap:6px;align-items:center;"><input class="input" type="number" min="1" value="{{ calibVal }}" onChange="{{ onCalib }}" placeholder="1400" style="flex:1;min-width:0;height:36px;"></input><span>mm</span><button class="btn btn-primary" onClick="{{ applyCalib }}" style="padding:6px 14px;">ตั้งค่า</button></div>
                   <span style="font-size:12px;color:var(--color-neutral-700);">Sheet scale is 1:{{ sheetScale }} — all dimensions on this sheet update.</span>
                 </div>
               </sc-if>
               <sc-if value="{{ sel.isShadowF }}">
                 <div class="field"><label>Softness · {{ sel.blurV }}</label><input type="range" min="0" max="80" value="{{ sel.blurV }}" onChange="{{ setShBlur }}"></input></div>
                 <div class="field"><label>Strength · {{ sel.opPctS }}%</label><input type="range" min="0.05" max="0.9" step="0.01" value="{{ sel.opS }}" onChange="{{ setShOp }}"></input></div>
-                <div class="field"><label>Colour</label><div style="display:flex;gap:8px;flex-wrap:wrap;"><sc-for list="{{ shadowColors }}" as="c" hint-placeholder-count="4"><button onClick="{{ c.pick }}" style="width:28px;height:28px;border-radius:999px;cursor:pointer;background:{{ c.v }};border:{{ c.ring }};"></button></sc-for></div></div>
+                <div class="field"><label>สี</label><div style="display:flex;gap:8px;flex-wrap:wrap;"><sc-for list="{{ shadowColors }}" as="c" hint-placeholder-count="4"><button onClick="{{ c.pick }}" style="width:28px;height:28px;border-radius:999px;cursor:pointer;background:{{ c.v }};border:{{ c.ring }};"></button></sc-for></div></div>
                 <button onClick="{{ toggleSharp }}" style="border:0;border-radius:999px;padding:7px;font:inherit;cursor:pointer;background:var(--color-surface);">{{ sharpLabel }}</button>
                 <div style="font-size:12px;line-height:1.5;color:var(--color-neutral-700);">Drag the dots to reshape · double-click the shadow to add a dot · right-click a dot to remove it. Send it behind the object with “Send back”.</div>
               </sc-if>
               <sc-if value="{{ archOn }}">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><sc-for list="{{ archFields }}" as="f" hint-placeholder-count="0"><div class="field"><label>{{ f.label }}</label><input class="input" value="{{ f.val }}" onChange="{{ f.on }}"></input></div></sc-for></div>
-                <sc-if value="{{ archHasSize }}"><label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;"><input type="checkbox" checked="{{ archSizeOn }}" onChange="{{ toggleArchSize }}" style="width:18px;height:18px;accent-color:var(--color-accent);"></input>Show width / height box</label></sc-if>
-                <sc-if value="{{ archHasDash }}"><label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;"><input type="checkbox" checked="{{ archDashOn }}" onChange="{{ toggleArchDash }}" style="width:18px;height:18px;accent-color:var(--color-accent);"></input>Dashed cut line</label></sc-if>
+                <sc-if value="{{ archHasSize }}"><label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;"><input type="checkbox" checked="{{ archSizeOn }}" onChange="{{ toggleArchSize }}" style="width:18px;height:18px;accent-color:var(--color-accent);"></input>แสดงกล่องกว้าง / สูง</label></sc-if>
+                <sc-if value="{{ archHasDash }}"><label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;"><input type="checkbox" checked="{{ archDashOn }}" onChange="{{ toggleArchDash }}" style="width:18px;height:18px;accent-color:var(--color-accent);"></input>เส้นตัดแบบประ</label></sc-if>
                 <sc-if value="{{ archHasSide }}"><div style="display:flex;gap:4px;"><sc-for list="{{ archSides }}" as="o" hint-placeholder-count="0"><button onClick="{{ o.pick }}" style="flex:1;border:0;border-radius:999px;padding:6px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};">{{ o.label }}</button></sc-for></div></sc-if>
-                <div class="field"><label>Symbol colour</label><div style="display:flex;gap:8px;flex-wrap:wrap;"><sc-for list="{{ archColors }}" as="c" hint-placeholder-count="0"><button onClick="{{ c.pick }}" style="width:28px;height:28px;border-radius:999px;cursor:pointer;background:{{ c.v }};border:{{ c.ring }};"></button></sc-for></div></div>
+                <div class="field"><label>สีสัญลักษณ์</label><div style="display:flex;gap:8px;flex-wrap:wrap;"><sc-for list="{{ archColors }}" as="c" hint-placeholder-count="0"><button onClick="{{ c.pick }}" style="width:28px;height:28px;border-radius:999px;cursor:pointer;background:{{ c.v }};border:{{ c.ring }};"></button></sc-for></div></div>
                 <div style="font-size:12px;line-height:1.5;color:var(--color-neutral-700);">Double-click the symbol (or press Edit text) to type straight into it — Tab jumps to the next label, Enter finishes. Drag the corners to resize; use the round handle to rotate it.</div>
               </sc-if>
               <sc-if value="{{ sel.isSecmark }}">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                  <div class="field"><label>Number</label><input class="input" value="{{ sel.num }}" onChange="{{ setNum }}"></input></div>
-                  <div class="field"><label>Sheet ref</label><input class="input" value="{{ sel.ref }}" onChange="{{ setRef }}"></input></div>
+                  <div class="field"><label>เลขที่</label><input class="input" value="{{ sel.num }}" onChange="{{ setNum }}"></input></div>
+                  <div class="field"><label>อ้างอิงแผ่น</label><input class="input" value="{{ sel.ref }}" onChange="{{ setRef }}"></input></div>
                 </div>
-                <div class="field"><label>Looking</label><div style="display:flex;gap:4px;"><sc-for list="{{ secDirs }}" as="f" hint-placeholder-count="4"><button onClick="{{ f.pick }}" style="flex:1;border:0;border-radius:999px;padding:6px;font:inherit;font-size:16px;cursor:pointer;background:{{ f.bg }};color:{{ f.fg }};">{{ f.label }}</button></sc-for></div></div>
+                <div class="field"><label>ทิศมอง</label><div style="display:flex;gap:4px;"><sc-for list="{{ secDirs }}" as="f" hint-placeholder-count="4"><button onClick="{{ f.pick }}" style="flex:1;border:0;border-radius:999px;padding:6px;font:inherit;font-size:16px;cursor:pointer;background:{{ f.bg }};color:{{ f.fg }};">{{ f.label }}</button></sc-for></div></div>
               </sc-if>
               <sc-if value="{{ sel.isDtitle }}">
                 <div style="display:grid;grid-template-columns:80px 1fr;gap:10px;">
                   <div class="field"><label>No.</label><input class="input" value="{{ sel.num }}" onChange="{{ setNum }}"></input></div>
-                  <div class="field"><label>Title</label><input class="input" value="{{ sel.title }}" onChange="{{ setTitle }}"></input></div>
+                  <div class="field"><label>ชื่อเรื่อง</label><input class="input" value="{{ sel.title }}" onChange="{{ setTitle }}"></input></div>
                 </div>
-                <div class="field"><label>Subtitle</label><input class="input" value="{{ sel.subVal }}" onChange="{{ setSub }}" disabled="{{ sel.autoScale }}"></input></div>
-                <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;"><input type="checkbox" checked="{{ sel.autoScale }}" onChange="{{ toggleAutoScale }}" style="width:18px;height:18px;accent-color:var(--color-accent);"></input>Show the sheet scale automatically</label>
+                <div class="field"><label>ชื่อรอง</label><input class="input" value="{{ sel.subVal }}" onChange="{{ setSub }}" disabled="{{ sel.autoScale }}"></input></div>
+                <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;"><input type="checkbox" checked="{{ sel.autoScale }}" onChange="{{ toggleAutoScale }}" style="width:18px;height:18px;accent-color:var(--color-accent);"></input>แสดงสเกลของแผ่นอัตโนมัติ</label>
               </sc-if>
               <sc-if value="{{ sel.isDetail }}">
-                <div class="field"><label>Label</label><input class="input" value="{{ sel.labelVal }}" onChange="{{ setLabel }}"></input></div>
+                <div class="field"><label>ป้ายชื่อ</label><input class="input" value="{{ sel.labelVal }}" onChange="{{ setLabel }}"></input></div>
               </sc-if>
               <sc-if value="{{ sel.isScalebar }}">
-                <div class="field"><label>Length</label><div style="display:flex;gap:4px;flex-wrap:wrap;"><sc-for list="{{ sbLens }}" as="f" hint-placeholder-count="4"><button onClick="{{ f.pick }}" style="border:0;border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer;background:{{ f.bg }};color:{{ f.fg }};">{{ f.label }}</button></sc-for></div></div>
+                <div class="field"><label>ความยาว</label><div style="display:flex;gap:4px;flex-wrap:wrap;"><sc-for list="{{ sbLens }}" as="f" hint-placeholder-count="4"><button onClick="{{ f.pick }}" style="border:0;border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer;background:{{ f.bg }};color:{{ f.fg }};">{{ f.label }}</button></sc-for></div></div>
               </sc-if>
               <sc-if value="{{ sel.isMarker }}">
-                <div class="field"><label>Colour</label><div style="display:flex;gap:8px;flex-wrap:wrap;"><sc-for list="{{ lineColors }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.pick }}" style="width:28px;height:28px;border-radius:999px;cursor:pointer;background:{{ c.v }};border:{{ c.ring }};"></button></sc-for></div></div>
+                <div class="field"><label>สี</label><div style="display:flex;gap:8px;flex-wrap:wrap;"><sc-for list="{{ lineColors }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.pick }}" style="width:28px;height:28px;border-radius:999px;cursor:pointer;background:{{ c.v }};border:{{ c.ring }};"></button></sc-for></div></div>
               </sc-if>
               <sc-if value="{{ sel.hasDs }}">
-                <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer;"><input type="checkbox" checked="{{ sel.dsOn }}" onChange="{{ toggleDs }}" style="width:18px;height:18px;accent-color:var(--color-accent);"></input>Drop shadow</label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer;"><input type="checkbox" checked="{{ sel.dsOn }}" onChange="{{ toggleDs }}" style="width:18px;height:18px;accent-color:var(--color-accent);"></input>เงา</label>
                 <sc-if value="{{ sel.dsOn }}">
                   <div class="field"><label>Softness · {{ sel.dsBlur }}</label><input type="range" min="0" max="60" value="{{ sel.dsBlur }}" onChange="{{ setDsBlur }}"></input></div>
                   <div class="field"><label>Distance · {{ sel.dsDist }}</label><input type="range" min="0" max="60" value="{{ sel.dsDist }}" onChange="{{ setDsDist }}"></input></div>
@@ -704,30 +704,30 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                 </sc-if>
               </sc-if>
               <sc-if value="{{ sel.isLine }}">
-                <div class="field"><label>Colour</label>
+                <div class="field"><label>สี</label>
                   <div style="display:flex;gap:8px;flex-wrap:wrap;"><sc-for list="{{ lineColors }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.pick }}" style="width:28px;height:28px;border-radius:999px;cursor:pointer;background:{{ c.v }};border:{{ c.ring }};"></button></sc-for></div>
                 </div>
                 <div class="field"><label>Thickness · {{ sel.lw }}px</label><input type="range" min="1" max="16" step="0.5" value="{{ sel.lw }}" onChange="{{ setLineW }}"></input></div>
-                <div class="field"><label>Arrowheads</label>
+                <div class="field"><label>หัวลูกศร</label>
                   <div style="display:flex;gap:4px;flex-wrap:wrap;"><sc-for list="{{ headOpts }}" as="f" hint-placeholder-count="4"><button onClick="{{ f.pick }}" style="border:0;border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer;background:{{ f.bg }};color:{{ f.fg }};">{{ f.label }}</button></sc-for></div>
                 </div>
                 <button onClick="{{ toggleDash }}" style="border:0;border-radius:999px;padding:7px;font:inherit;cursor:pointer;background:{{ dashBg }};">{{ dashLabel }}</button>
               </sc-if>
               <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 10px;border-radius:14px;background:var(--color-surface);">
-                <span style="font-size:13px;font-weight:700;margin-right:4px;">Snap</span>
+                <span style="font-size:13px;font-weight:700;margin-right:4px;">ดูดเข้าแนว</span>
                 <sc-for list="{{ snapChips }}" as="c" hint-placeholder-count="3"><button onClick="{{ c.pick }}" style="border:0;border-radius:999px;padding:5px 12px;font:inherit;font-size:13px;cursor:pointer;background:{{ c.bg }};color:{{ c.fg }};white-space:nowrap;">{{ c.label }}</button></sc-for>
-                <span style="font-size:11px;color:var(--color-neutral-700);width:100%;">Hold Alt while dragging to place freely.</span>
+                <span style="font-size:11px;color:var(--color-neutral-700);width:100%;">กด Alt ค้างขณะลาก เพื่อวางอิสระ</span>
               </div>
               <div class="field"><label>Opacity · {{ sel.opPct }}%</label><input type="range" min="0.1" max="1" step="0.05" value="{{ sel.opacity }}" onChange="{{ setOpacity }}"></input></div>
-              <div class="field"><label>Link</label><input class="input" value="{{ sel.linkVal }}" placeholder="https://… (opens from the link badge)" onChange="{{ setLinkIn }}"></input></div>
+              <div class="field"><label>ลิงก์</label><input class="input" value="{{ sel.linkVal }}" placeholder="https://… (opens from the link badge)" onChange="{{ setLinkIn }}"></input></div>
               <sc-if value="{{ sel.canRotate }}">
                 <div class="field"><label>Rotation · {{ sel.rotV }}°</label><input type="range" min="0" max="359" step="1" value="{{ sel.rotV }}" onChange="{{ setRot }}"></input></div>
               </sc-if>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <button class="btn btn-secondary" onClick="{{ bringFront }}">Bring front</button>
-                <button class="btn btn-secondary" onClick="{{ sendBack }}">Send back</button>
-                <button class="btn btn-secondary" onClick="{{ duplicate }}">Duplicate</button>
-                <button class="btn btn-secondary" onClick="{{ remove }}">Delete</button>
+                <button class="btn btn-secondary" onClick="{{ bringFront }}">นำมาหน้า</button>
+                <button class="btn btn-secondary" onClick="{{ sendBack }}">ส่งไปหลัง</button>
+                <button class="btn btn-secondary" onClick="{{ duplicate }}">ทำสำเนา</button>
+                <button class="btn btn-secondary" onClick="{{ remove }}">ลบ</button>
               </div>
             </div>
           </sc-if>
@@ -738,11 +738,11 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
             </div>
             <div style="flex:1;overflow:auto;padding:6px 18px 24px;display:flex;flex-direction:column;gap:12px;min-height:0;">
               <sc-if value="{{ flyElements }}">
-                <label class="btn btn-primary btn-block" style="cursor:pointer;">Import JPG / PNG / PDF / AI<input type="file" accept="image/*,.png,.webp,.svg,.gif,application/pdf,.ai" multiple="multiple" ref="{{ fileRef }}" onChange="{{ onFiles }}" style="display:none;"></input></label>
+                <label class="btn btn-primary btn-block" style="cursor:pointer;">นำเข้า JPG / PNG / PDF / AI<input type="file" accept="image/*,.png,.webp,.svg,.gif,application/pdf,.ai" multiple="multiple" ref="{{ fileRef }}" onChange="{{ onFiles }}" style="display:none;"></input></label>
                 <label class="btn btn-secondary btn-block" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding-top:10px;padding-bottom:10px;height:auto;"><span>3D model · SketchUp</span><span style="font-size:11px;font-weight:500;opacity:.75;">.glb · .obj · .dae · .fbx — rotate &amp; pick the view</span><input type="file" accept=".glb,.gltf,.obj,.mtl,.dae,.fbx,.skp,.bin,image/*" multiple="multiple" onChange="{{ onModelFiles }}" style="display:none;"></input></label>
-                <button class="btn btn-secondary btn-block" onClick="{{ openImportHere }}" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding-top:10px;padding-bottom:10px;height:auto;"><span>Import slides from PDF / PowerPoint</span><span style="font-size:11px;font-weight:500;opacity:.75;">Adds them as new sheets · big files OK</span></button>
-                <button class="btn btn-secondary btn-block" onClick="{{ addFrame }}">Image frame</button>
-                <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-700);padding-top:6px;">Shapes</div>
+                <button class="btn btn-secondary btn-block" onClick="{{ openImportHere }}" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding-top:10px;padding-bottom:10px;height:auto;"><span>นำเข้าสไลด์จาก PDF / PowerPoint</span><span style="font-size:11px;font-weight:500;opacity:.75;">Adds them as new sheets · big files OK</span></button>
+                <button class="btn btn-secondary btn-block" onClick="{{ addFrame }}">กรอบรูป</button>
+                <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-700);padding-top:6px;">รูปทรง</div>
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
                   <button onClick="{{ addRect }}" title="Box" style="aspect-ratio:1;border:0;border-radius:var(--radius-md);background:var(--color-surface);cursor:pointer;display:grid;place-items:center;"><span style="width:44px;height:34px;background:#d9cbb6;"></span></button>
                   <button onClick="{{ addRounded }}" title="Rounded box" style="aspect-ratio:1;border:0;border-radius:var(--radius-md);background:var(--color-surface);cursor:pointer;display:grid;place-items:center;"><span style="width:44px;height:34px;border-radius:10px;background:#d9cbb6;"></span></button>
@@ -751,7 +751,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                   <button onClick="{{ addArch }}" title="Arch" style="aspect-ratio:1;border:0;border-radius:var(--radius-md);background:var(--color-surface);cursor:pointer;display:grid;place-items:center;"><span style="width:34px;height:44px;border-radius:17px 17px 0 0;background:#e0d2bd;"></span></button>
                   <button onClick="{{ addLine }}" title="Line" style="aspect-ratio:1;border:0;border-radius:var(--radius-md);background:var(--color-surface);cursor:pointer;display:grid;place-items:center;"><span style="width:46px;height:3px;background:#2b2724;"></span></button>
                 </div>
-                <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-700);padding-top:6px;">Architecture tools</div>
+                <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-700);padding-top:6px;">เครื่องมืองานแบบ</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                   <sc-for list="{{ archTiles }}" as="a" hint-placeholder-count="0">
                     <button onClick="{{ a.add }}" title="Add {{ a.label }}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px 8px 8px;border:0;border-radius:14px;background:#fbf8f3;box-shadow:inset 0 0 0 1px var(--color-divider);cursor:pointer;font:inherit;color:inherit;min-height:86px;">
@@ -767,31 +767,31 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                   <span style="font-size:11px;color:var(--color-neutral-700);line-height:1.3;">dimensions measure at this scale</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                  <button class="btn btn-secondary" onClick="{{ addDim }}" style="white-space:nowrap;">Dimension</button>
-                  <button class="btn btn-secondary" onClick="{{ addScalebar }}" style="white-space:nowrap;">Scale bar</button>
+                  <button class="btn btn-secondary" onClick="{{ addDim }}" style="white-space:nowrap;">เส้นบอกระยะ</button>
+                  <button class="btn btn-secondary" onClick="{{ addScalebar }}" style="white-space:nowrap;">แถบสเกล</button>
                   <button class="btn btn-secondary" onClick="{{ addSecmark }}" style="white-space:nowrap;">Section mark (classic)</button>
-                  <button class="btn btn-secondary" onClick="{{ addCut }}" style="white-space:nowrap;">Section cut</button>
-                  <button class="btn btn-secondary" onClick="{{ addDtitle }}" style="white-space:nowrap;">Drawing title</button>
-                  <button class="btn btn-secondary" onClick="{{ addDetail }}" style="white-space:nowrap;">Detail circle</button>
-                  <button class="btn btn-secondary" onClick="{{ addLeader }}" style="white-space:nowrap;">Leader note</button>
+                  <button class="btn btn-secondary" onClick="{{ addCut }}" style="white-space:nowrap;">เส้นตัด Section</button>
+                  <button class="btn btn-secondary" onClick="{{ addDtitle }}" style="white-space:nowrap;">ชื่อแบบ</button>
+                  <button class="btn btn-secondary" onClick="{{ addDetail }}" style="white-space:nowrap;">วงกลม Detail</button>
+                  <button class="btn btn-secondary" onClick="{{ addLeader }}" style="white-space:nowrap;">หมายเหตุชี้เส้น</button>
                 </div>
-                <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-700);padding-top:6px;">Shadows</div>
+                <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-700);padding-top:6px;">เงา</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                  <button onClick="{{ addSoftShadow }}" style="height:64px;border:0;border-radius:var(--radius-md);background:var(--color-surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font:inherit;font-size:12px;font-weight:600;color:inherit;"><span style="width:60px;height:12px;border-radius:999px;background:#2b2724;opacity:.45;filter:blur(4px);"></span>Soft shadow</button>
-                  <button onClick="{{ addFreeShadow }}" style="height:64px;border:0;border-radius:var(--radius-md);background:var(--color-surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font:inherit;font-size:12px;font-weight:600;color:inherit;"><span style="width:56px;height:18px;border-radius:40% 60% 50% 30%;background:#2b2724;opacity:.45;filter:blur(4px);transform:skewX(-20deg);"></span>Draw shadow</button>
+                  <button onClick="{{ addSoftShadow }}" style="height:64px;border:0;border-radius:var(--radius-md);background:var(--color-surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font:inherit;font-size:12px;font-weight:600;color:inherit;"><span style="width:60px;height:12px;border-radius:999px;background:#2b2724;opacity:.45;filter:blur(4px);"></span>เงานุ่ม</button>
+                  <button onClick="{{ addFreeShadow }}" style="height:64px;border:0;border-radius:var(--radius-md);background:var(--color-surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font:inherit;font-size:12px;font-weight:600;color:inherit;"><span style="width:56px;height:18px;border-radius:40% 60% 50% 30%;background:#2b2724;opacity:.45;filter:blur(4px);transform:skewX(-20deg);"></span>วาดเงา</button>
                 </div>
-                <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-700);padding-top:6px;">Markup</div>
+                <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-700);padding-top:6px;">มาร์กอัป</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                  <button class="btn btn-secondary" onClick="{{ addArrow }}">Arrow</button>
-                  <button class="btn btn-secondary" onClick="{{ addCallout }}">Callout</button>
-                  <button class="btn btn-secondary" onClick="{{ addLabel }}">Label</button>
-                  <button class="btn btn-secondary" onClick="{{ addCommentHere }}">Comment</button>
+                  <button class="btn btn-secondary" onClick="{{ addArrow }}">ลูกศร</button>
+                  <button class="btn btn-secondary" onClick="{{ addCallout }}">กล่องข้อความชี้</button>
+                  <button class="btn btn-secondary" onClick="{{ addLabel }}">ป้ายชื่อ</button>
+                  <button class="btn btn-secondary" onClick="{{ addCommentHere }}">ความเห็น</button>
                 </div>
                 <div style="font-size:12px;line-height:1.5;color:var(--color-neutral-700);text-wrap:pretty;">Ctrl+V pastes a copied picture. Select a frame or box first to paste into it. Double-click a picture to crop.</div>
               </sc-if>
               <sc-if value="{{ flyAi }}">
                 <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
-                  <span style="font-size:12px;font-weight:700;color:var(--color-neutral-700);margin-right:2px;">Apply to</span>
+                  <span style="font-size:12px;font-weight:700;color:var(--color-neutral-700);margin-right:2px;">ใช้กับ</span>
                   <sc-for list="{{ aiScopes }}" as="c" hint-placeholder-count="2"><button onClick="{{ c.pick }}" style="border:0;border-radius:999px;padding:5px 12px;font:inherit;font-size:12px;cursor:pointer;background:{{ c.bg }};color:{{ c.fg }};">{{ c.label }}</button></sc-for>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:8px;">
@@ -805,7 +805,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                     <div style="align-self:{{ m.align }};max-width:92%;padding:9px 12px;border-radius:14px;background:{{ m.bg }};color:{{ m.fg }};font-size:13px;line-height:1.45;white-space:pre-wrap;overflow-wrap:break-word;">{{ m.text }}</div>
                   </sc-for>
                   <sc-if value="{{ aiBusy }}">
-                    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-neutral-700);"><span style="width:14px;height:14px;border-radius:999px 999px 999px 3px;background:var(--color-accent);"></span>{{ aiBusyText }}<button class="btn btn-ghost" onClick="{{ aiStop }}" style="padding:2px 10px;font-size:12px;">Stop</button></div>
+                    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-neutral-700);"><span style="width:14px;height:14px;border-radius:999px 999px 999px 3px;background:var(--color-accent);"></span>{{ aiBusyText }}<button class="btn btn-ghost" onClick="{{ aiStop }}" style="padding:2px 10px;font-size:12px;">หยุด</button></div>
                   </sc-if>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;position:sticky;bottom:0;background:var(--color-bg);padding-top:6px;">
@@ -816,8 +816,8 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                   <textarea class="input" rows="3" value="{{ aiDraft }}" onChange="{{ aiOnDraft }}" onKeyDown="{{ aiOnKey }}" placeholder="e.g. @5 ทำให้สั้นลง · พิมพ์ @ตามด้วยเลขหน้าเพื่อระบุหน้า" style="border-radius:var(--radius-md);padding:10px 12px;font:inherit;font-size:13px;resize:vertical;"></textarea>
                   <div style="display:flex;gap:6px;">
                     <button class="btn btn-primary" onClick="{{ aiSend }}" style="flex:1;opacity:{{ aiSendOp }};">Send (Ctrl+Enter)</button>
-                    <button class="btn btn-ghost" onClick="{{ aiUndo }}" title="Undo Claude's last change" style="opacity:{{ aiUndoOp }};">Undo</button>
-                    <button class="btn btn-ghost" onClick="{{ aiClear }}" title="Start a new conversation">New</button>
+                    <button class="btn btn-ghost" onClick="{{ aiUndo }}" title="Undo Claude's last change" style="opacity:{{ aiUndoOp }};">ย้อนกลับ</button>
+                    <button class="btn btn-ghost" onClick="{{ aiClear }}" title="Start a new conversation">ใหม่</button>
                   </div>
                 </div>
               </sc-if>
@@ -830,11 +830,11 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                 <div style="font-size:12px;line-height:1.5;color:var(--color-neutral-700);">Double-click any text on the sheet to type. Fonts, size and colour are in the panel on the right.</div>
               </sc-if>
               <sc-if value="{{ flyUploads }}">
-                <label class="btn btn-primary btn-block" style="cursor:pointer;">Upload files<input type="file" accept="image/*,.png,.webp,.svg,.gif,application/pdf,.ai" multiple="multiple" onChange="{{ onLibFiles }}" style="display:none;"></input></label>
+                <label class="btn btn-primary btn-block" style="cursor:pointer;">อัปโหลดไฟล์<input type="file" accept="image/*,.png,.webp,.svg,.gif,application/pdf,.ai" multiple="multiple" onChange="{{ onLibFiles }}" style="display:none;"></input></label>
                 <div style="font-size:12px;line-height:1.5;color:var(--color-neutral-700);">Pictures here are shared with everyone on <strong>{{ crumbProject }}</strong>. Click to add, or drag onto a frame.</div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><sc-for list="{{ mfChips }}" as="c" hint-placeholder-count="0"><span onContextMenu="{{ c.menu }}" onDragOver="{{ c.onOver }}" onDragLeave="{{ c.onLeave }}" onDrop="{{ c.onDrop }}" style="display:inline-flex;align-items:center;border-radius:999px;background:{{ c.bg }};color:{{ c.fg }};"><button onClick="{{ c.pick }}" onDoubleClick="{{ c.rename }}" title="{{ c.tip }}" style="border:0;border-radius:999px;padding:5px 12px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;background:transparent;color:inherit;">{{ c.label }}</button><sc-if value="{{ c.hasMenu }}"><button onClick="{{ c.more }}" title="Rename or delete this folder" style="border:0;border-radius:999px;margin:0 3px 0 -6px;width:22px;height:22px;display:grid;place-items:center;font:inherit;font-size:13px;line-height:1;cursor:pointer;background:transparent;color:inherit;opacity:.8;">⋯</button></sc-if></span></sc-for><button onClick="{{ mfNew }}" style="border:1px dashed var(--color-divider);border-radius:999px;padding:4px 12px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--color-accent-700);">+ New folder</button></div>
                 <span style="font-size:11.5px;color:var(--color-neutral-700);line-height:1.4;">{{ mfHint }}</span>
-                <sc-if value="{{ mfSelOn }}"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border-radius:14px;background:#e3ebf1;color:#22324a;font-size:13px;position:sticky;top:0;z-index:5;"><button onClick="{{ mfSelClear }}" title="Clear selection" style="border:0;background:transparent;font-size:18px;line-height:1;cursor:pointer;color:inherit;padding:0 4px;">×</button><strong>{{ mfSelLabel }}</strong><span style="flex:1;font-size:11.5px;opacity:.8;min-width:120px;">{{ mfSelHint }}</span><button class="btn btn-ghost" onClick="{{ mfSelAll }}" style="padding:4px 10px;font-size:12px;">Select all</button><button class="btn btn-secondary" onClick="{{ mfSelMove }}" style="padding:4px 12px;font-size:12px;">Move to ▾</button><button class="btn btn-ghost" onClick="{{ mfSelDel }}" style="padding:4px 10px;font-size:12px;color:#c0392b;">Remove</button></div></sc-if>
+                <sc-if value="{{ mfSelOn }}"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border-radius:14px;background:#e3ebf1;color:#22324a;font-size:13px;position:sticky;top:0;z-index:5;"><button onClick="{{ mfSelClear }}" title="Clear selection" style="border:0;background:transparent;font-size:18px;line-height:1;cursor:pointer;color:inherit;padding:0 4px;">×</button><strong>{{ mfSelLabel }}</strong><span style="flex:1;font-size:11.5px;opacity:.8;min-width:120px;">{{ mfSelHint }}</span><button class="btn btn-ghost" onClick="{{ mfSelAll }}" style="padding:4px 10px;font-size:12px;">เลือกทั้งหมด</button><button class="btn btn-secondary" onClick="{{ mfSelMove }}" style="padding:4px 12px;font-size:12px;">Move to ▾</button><button class="btn btn-ghost" onClick="{{ mfSelDel }}" style="padding:4px 10px;font-size:12px;color:#c0392b;">เอาออก</button></div></sc-if>
                 <sc-if value="{{ noMedia }}"><div style="padding:22px;border-radius:var(--radius-lg);background:var(--color-surface);color:var(--color-neutral-800);line-height:1.5;">No uploads yet. Pictures you import into this project also appear here.</div></sc-if>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                   <sc-for list="{{ mediaList }}" as="m" hint-placeholder-count="0">
@@ -896,42 +896,42 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
               </sc-if>
               <sc-if value="{{ flyTitleBlock }}">
                 <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:14px;background:var(--color-accent-2-100);">
-                  <span style="font-size:13px;font-weight:700;">Master</span>
-                  <select class="input" value="{{ masterSel }}" onChange="{{ onMasterSel }}" style="flex:1;min-width:0;height:34px;padding:0 10px;font-size:13px;"><option value="">None</option><sc-for list="{{ masterOpts }}" as="o" hint-placeholder-count="0"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select>
-                  <button class="btn btn-secondary" onClick="{{ masterPick }}" style="padding:4px 12px;white-space:nowrap;">Edit</button>
+                  <span style="font-size:13px;font-weight:700;">แม่แบบ</span>
+                  <select class="input" value="{{ masterSel }}" onChange="{{ onMasterSel }}" style="flex:1;min-width:0;height:34px;padding:0 10px;font-size:13px;"><option value="">ไม่มี</option><sc-for list="{{ masterOpts }}" as="o" hint-placeholder-count="0"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select>
+                  <button class="btn btn-secondary" onClick="{{ masterPick }}" style="padding:4px 12px;white-space:nowrap;">แก้ไข</button>
                 </div>
-                <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;"><span style="font-size:12px;font-weight:700;margin-right:2px;">Guide boxes</span><sc-for list="{{ guidePresets }}" as="g" hint-placeholder-count="5"><button onClick="{{ g.pick }}" title="{{ g.tip }}" style="border:0;border-radius:999px;padding:4px 10px;font:inherit;font-size:11px;font-weight:600;cursor:pointer;background:var(--color-surface);color:inherit;">{{ g.label }}</button></sc-for></div>
+                <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;"><span style="font-size:12px;font-weight:700;margin-right:2px;">กล่องไกด์</span><sc-for list="{{ guidePresets }}" as="g" hint-placeholder-count="5"><button onClick="{{ g.pick }}" title="{{ g.tip }}" style="border:0;border-radius:999px;padding:4px 10px;font:inherit;font-size:11px;font-weight:600;cursor:pointer;background:var(--color-surface);color:inherit;">{{ g.label }}</button></sc-for></div>
                 <a onClick="{{ toggleManage }}" style="cursor:pointer;font-size:12px;font-weight:600;align-self:flex-start;">{{ manageLabel }}</a>
                 <sc-if value="{{ showManage }}">
                   <div style="display:flex;flex-direction:column;gap:4px;">
                     <sc-for list="{{ masterRows }}" as="m" hint-placeholder-count="0">
                       <div style="display:flex;flex-direction:column;gap:4px;padding:8px 12px;border-radius:12px;background:var(--color-bg);">
                         <div style="display:flex;align-items:baseline;gap:8px;min-width:0;"><strong style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">{{ m.name }}</strong><span style="font-size:11px;color:var(--color-neutral-700);white-space:nowrap;">{{ m.meta }}</span></div>
-                        <div style="display:flex;gap:12px;font-size:12px;"><a onClick="{{ m.edit }}" style="cursor:pointer;font-weight:700;">Edit</a><a onClick="{{ m.rename }}" style="cursor:pointer;">Rename</a><a onClick="{{ m.dup }}" style="cursor:pointer;">Copy</a><a onClick="{{ m.del }}" style="cursor:pointer;">Delete</a></div>
+                        <div style="display:flex;gap:12px;font-size:12px;"><a onClick="{{ m.edit }}" style="cursor:pointer;font-weight:700;">แก้ไข</a><a onClick="{{ m.rename }}" style="cursor:pointer;">เปลี่ยนชื่อ</a><a onClick="{{ m.dup }}" style="cursor:pointer;">คัดลอก</a><a onClick="{{ m.del }}" style="cursor:pointer;">ลบ</a></div>
                       </div>
                     </sc-for>
                   </div>
                   <button class="btn btn-secondary" onClick="{{ addMaster }}" style="padding:5px 12px;align-self:flex-start;white-space:nowrap;">+ Master</button>
                 </sc-if>
                 <div style="padding:12px 14px;border-radius:14px;background:var(--color-surface);display:flex;flex-direction:column;gap:8px;">
-                  <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;cursor:pointer;"><input type="checkbox" checked="{{ pnOn }}" onChange="{{ togglePn }}" style="width:18px;height:18px;accent-color:var(--color-accent);flex:none;"></input>Page numbers</label>
+                  <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;cursor:pointer;"><input type="checkbox" checked="{{ pnOn }}" onChange="{{ togglePn }}" style="width:18px;height:18px;accent-color:var(--color-accent);flex:none;"></input>เลขหน้า</label>
                   <sc-if value="{{ pnOn }}">
-                    <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span>Start at</span><input class="input" type="number" min="1" value="{{ pnStart }}" onChange="{{ onPnStart }}" style="width:70px;height:32px;padding:0 10px;"></input></div>
+                    <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span>เริ่มที่</span><input class="input" type="number" min="1" value="{{ pnStart }}" onChange="{{ onPnStart }}" style="width:70px;height:32px;padding:0 10px;"></input></div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
                       <select class="input" value="{{ pnFmtVal }}" onChange="{{ onPnFmt }}" style="height:34px;font-size:12px;padding:0 8px;"><option value="7">7</option><option value="07">07</option><option value="page">Page 7</option><option value="of">07 / 24</option></select>
-                      <select class="input" value="{{ pnPosVal }}" onChange="{{ onPnPos }}" style="height:34px;font-size:12px;padding:0 8px;"><option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option></select>
+                      <select class="input" value="{{ pnPosVal }}" onChange="{{ onPnPos }}" style="height:34px;font-size:12px;padding:0 8px;"><option value="left">ซ้าย</option><option value="center">กลาง</option><option value="right">ขวา</option></select>
                     </div>
-                    <select class="input" value="{{ pnScopeVal }}" onChange="{{ onPnScope }}" style="height:34px;font-size:12px;padding:0 8px;"><option value="board">Count this board only</option><option value="project">Continue across project</option></select>
+                    <select class="input" value="{{ pnScopeVal }}" onChange="{{ onPnScope }}" style="height:34px;font-size:12px;padding:0 8px;"><option value="board">นับเฉพาะบอร์ดนี้</option><option value="project">นับต่อเนื่องทั้งโครงการ</option></select>
                     <span style="font-size:11px;color:var(--color-neutral-700);line-height:1.4;">{{ pnInfo }}</span>
                   </sc-if>
                 </div>
                 <div style="padding:12px 14px;border-radius:14px;background:var(--color-surface);display:flex;flex-direction:column;gap:8px;">
-                  <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;cursor:pointer;"><input type="checkbox" checked="{{ revOn }}" onChange="{{ toggleRev }}" style="width:18px;height:18px;accent-color:var(--color-accent);flex:none;"></input>Revision number</label>
+                  <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;cursor:pointer;"><input type="checkbox" checked="{{ revOn }}" onChange="{{ toggleRev }}" style="width:18px;height:18px;accent-color:var(--color-accent);flex:none;"></input>เลข Revision</label>
                   <div style="display:flex;align-items:center;gap:8px;"><strong style="flex:1;font-size:15px;">{{ revCur }}</strong><button class="btn btn-secondary" onClick="{{ newRev }}" style="padding:4px 12px;white-space:nowrap;">+ New revision</button></div>
                   <sc-if value="{{ revOn }}">
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
                       <select class="input" value="{{ revFmtVal }}" onChange="{{ onRevFmt }}" style="height:34px;font-size:12px;padding:0 8px;"><option value="rev">Rev 03 · date</option><option value="r">R03 · date</option><option value="v">V3 · date</option><option value="letter">Rev C · date</option></select>
-                      <select class="input" value="{{ revPosVal }}" onChange="{{ onRevPos }}" style="height:34px;font-size:12px;padding:0 8px;"><option value="br">Bottom right</option><option value="bl">Bottom left</option><option value="tr">Top right</option><option value="tl">Top left</option></select>
+                      <select class="input" value="{{ revPosVal }}" onChange="{{ onRevPos }}" style="height:34px;font-size:12px;padding:0 8px;"><option value="br">ล่างขวา</option><option value="bl">ล่างซ้าย</option><option value="tr">บนขวา</option><option value="tl">บนซ้าย</option></select>
                     </div>
                   </sc-if>
                   <div style="display:flex;flex-direction:column;gap:2px;max-height:140px;overflow:auto;"><sc-for list="{{ revList }}" as="r" hint-placeholder-count="0"><div style="display:flex;gap:8px;font-size:11px;padding:3px 0;border-bottom:1px solid var(--color-divider);"><strong style="flex:none;">{{ r.label }}</strong><span style="flex:none;color:var(--color-neutral-700);">{{ r.date }}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ r.note }}</span></div></sc-for></div>
@@ -940,10 +940,10 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                   <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;"><sc-for list="{{ bdColors }}" as="c" hint-placeholder-count="0"><button onClick="{{ c.pick }}" title="{{ c.label }}" style="width:28px;height:28px;border-radius:999px;cursor:pointer;background:{{ c.v }};border:{{ c.ring }};box-sizing:border-box;"></button></sc-for><button onClick="{{ bdCustom }}" title="Custom colour" style="height:28px;border-radius:999px;cursor:pointer;border:1px dashed var(--color-divider);background:transparent;font:inherit;font-size:11px;padding:0 10px;color:inherit;">Custom…</button></div>
                   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;"><sc-for list="{{ bdTex }}" as="t" hint-placeholder-count="0"><button onClick="{{ t.pick }}" style="display:flex;flex-direction:column;gap:4px;align-items:stretch;padding:4px;border-radius:12px;border:{{ t.ring }};background:var(--color-bg);cursor:pointer;font:inherit;color:inherit;"><span style="display:block;height:38px;border-radius:8px;background:{{ t.css }};box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);"></span><span style="font-size:11px;font-weight:600;">{{ t.label }}</span></button></sc-for></div>
                   <div style="display:flex;align-items:center;gap:10px;margin-top:8px;"><span style="font-size:12px;font-weight:600;white-space:nowrap;">Opacity · {{ bdOp }}%</span><input type="range" min="0.05" max="1" step="0.05" value="{{ bdOpV }}" onChange="{{ onBdOp }}" style="flex:1;min-width:0;"></input></div>
-                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;"><span style="font-size:11.5px;color:var(--color-neutral-700);">{{ bdScope }}</span><button class="btn btn-ghost" onClick="{{ bdAll }}" style="padding:4px 10px;font-size:12px;white-space:nowrap;">Use on all sheets</button></div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;"><span style="font-size:11.5px;color:var(--color-neutral-700);">{{ bdScope }}</span><button class="btn btn-ghost" onClick="{{ bdAll }}" style="padding:4px 10px;font-size:12px;white-space:nowrap;">ใช้กับทุกแผ่น</button></div>
                 </div>
-                <div class="field"><label>Template category</label>
-                  <select class="input" value="{{ tbCatSel }}" onChange="{{ onTbCat }}" style="height:40px;font-weight:700;margin-bottom:4px;"><optgroup label="Page frame (goes behind your content)"><option value="book">Photo book</option><option value="drawing">Drawing title block</option><option value="a4">A4 book · portrait (manual, handover report)</option></optgroup><optgroup label="Ready-made sheets · books &amp; presentations"><option value="interiorA">Interior Present A · landscape · 10</option><option value="interiorB">Interior Present B · landscape · 10</option><option value="archBook">Architecture book · landscape · 10</option><option value="portL">Portfolio · landscape (design presentation) · 14</option><option value="bookL">Book · landscape · 8</option><option value="bookP">Book · portrait (catalogue, manual) · 10</option></optgroup><optgroup label="Ready-made sheets · people &amp; team"><option value="resume">Resume / CV · 10</option><option value="org">Organization chart · 10</option></optgroup></select>
+                <div class="field"><label>หมวดแม่แบบ</label>
+                  <select class="input" value="{{ tbCatSel }}" onChange="{{ onTbCat }}" style="height:40px;font-weight:700;margin-bottom:4px;"><optgroup label="Page frame (goes behind your content)"><option value="book">สมุดภาพ</option><option value="drawing">กรอบชื่อแบบ</option><option value="a4">A4 book · portrait (manual, handover report)</option></optgroup><optgroup label="Ready-made sheets · books &amp; presentations"><option value="interiorA">Interior Present A · landscape · 10</option><option value="interiorB">Interior Present B · landscape · 10</option><option value="archBook">Architecture book · landscape · 10</option><option value="portL">Portfolio · landscape (design presentation) · 14</option><option value="bookL">Book · landscape · 8</option><option value="bookP">Book · portrait (catalogue, manual) · 10</option></optgroup><optgroup label="Ready-made sheets · people &amp; team"><option value="resume">Resume / CV · 10</option><option value="org">Organization chart · 10</option></optgroup></select>
                   <span style="font-size:12px;color:var(--color-neutral-700);line-height:1.4;">{{ tbCatHint }}{{ tbDragHint }}</span>
 <sc-if value="{{ slOn }}">
                     <div style="display:flex;flex-wrap:wrap;gap:6px;"><sc-for list="{{ slGroups }}" as="g" hint-placeholder-count="0"><button onClick="{{ g.pick }}" style="padding:4px 10px;border-radius:999px;border:1px solid var(--color-divider);background:{{ g.bg }};color:{{ g.fg }};font:inherit;font-size:12px;font-weight:600;cursor:pointer;">{{ g.label }}</button></sc-for></div>
@@ -963,13 +963,13 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                     <span style="font-size:11px;color:var(--color-neutral-700);line-height:1.4;">Tip: double-click a circle or frame to add a photo, double-click text to type. Made your own version? Save it under My templates so the team can reuse it.</span>
                   </sc-if>
                   <sc-if value="{{ slOff }}">
-                  <button class="btn btn-ghost" onClick="{{ tbApplyAll }}" style="padding:4px 10px;font-size:12px;align-self:flex-start;white-space:nowrap;">Use current template on all sheets</button>
+                  <button class="btn btn-ghost" onClick="{{ tbApplyAll }}" style="padding:4px 10px;font-size:12px;align-self:flex-start;white-space:nowrap;">ใช้แม่แบบนี้กับทุกแผ่น</button>
                   <sc-if value="{{ tbHasHidden }}"><button class="btn btn-ghost" onClick="{{ tbToggleHidden }}" style="padding:4px 10px;font-size:12px;align-self:flex-start;white-space:nowrap;">{{ tbHiddenLabel }}</button></sc-if>
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                     <sc-for list="{{ tbLayouts }}" as="l" hint-placeholder-count="6">
                       <div draggable="true" onDragStart="{{ l.onDragStart }}" onClick="{{ l.pick }}" onContextMenu="{{ l.menu }}" title="Click to use on this sheet · drag onto any sheet below · right-click for more" style="position:relative;border:{{ l.ring }};border-radius:14px;padding:6px;background:var(--color-bg);cursor:pointer;display:flex;flex-direction:column;gap:6px;font:inherit;color:inherit;text-align:left;opacity:{{ l.op }};">
                         <button onClick="{{ l.menu }}" title="Use on all sheets, hide…" style="position:absolute;right:10px;top:10px;z-index:2;width:26px;height:26px;border:0;border-radius:8px;background:rgba(251,248,243,.94);box-shadow:0 1px 3px rgba(0,0,0,.18);cursor:pointer;font-size:14px;line-height:1;">⋯</button>
-                        <sc-if value="{{ l.hidden }}"><span style="position:absolute;left:10px;top:10px;z-index:2;padding:2px 8px;border-radius:999px;background:#2b2724;color:#fff;font-size:10px;font-weight:700;">Hidden</span></sc-if>
+                        <sc-if value="{{ l.hidden }}"><span style="position:absolute;left:10px;top:10px;z-index:2;padding:2px 8px;border-radius:999px;background:#2b2724;color:#fff;font-size:10px;font-weight:700;">ซ่อน</span></sc-if>
                         <div style="position:relative;aspect-ratio:1.414;border-radius:8px;background:#fff;box-shadow:inset 0 0 0 1px var(--color-divider);overflow:hidden;">
                           <sc-if value="{{ l.pFrame }}"><div style="position:absolute;left:8%;right:8%;top:12%;height:1px;background:#2b2724;"></div><div style="position:absolute;left:8%;right:8%;bottom:12%;height:1px;background:#2b2724;"></div><div style="position:absolute;left:38%;right:38%;bottom:5%;height:3px;background:#b89a7a;border-radius:2px;"></div></sc-if>
                           <sc-if value="{{ l.pHeading }}"><div style="position:absolute;left:8%;right:8%;top:12%;height:16%;border-top:1px solid #2b2724;border-bottom:1px solid #2b2724;display:grid;place-items:center;"><div style="width:46%;height:4px;background:#2b2724;border-radius:2px;"></div></div><div style="position:absolute;left:8%;right:8%;bottom:12%;height:1px;background:#2b2724;"></div></sc-if>
@@ -997,7 +997,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                           <sc-if value="{{ l.pRibbon }}"><div style="position:absolute;left:0;top:10%;width:40%;height:13%;background:#c67139;clip-path:polygon(0 0,100% 0,88% 50%,100% 100%,0 100%);"></div><div style="position:absolute;right:7%;width:16%;top:15%;height:3px;background:#2b2724;border-radius:2px;"></div></sc-if>
                           <sc-if value="{{ l.pMinimal }}"><div style="position:absolute;left:7%;right:7%;bottom:12%;height:1px;background:#2b2724;"></div><div style="position:absolute;left:7%;width:14%;bottom:5%;height:3px;background:#2b2724;border-radius:2px;"></div><div style="position:absolute;right:7%;width:6%;bottom:5%;height:3px;background:#2b2724;border-radius:2px;"></div></sc-if>
                           <sc-if value="{{ l.pHotel }}"><div style="position:absolute;left:45%;width:10%;top:6%;aspect-ratio:1;border-radius:999px;border:1px solid #c9a96e;"></div><div style="position:absolute;left:30%;right:30%;top:27%;height:4px;background:#2b2724;border-radius:2px;"></div><div style="position:absolute;left:14%;width:13%;top:28%;height:1px;background:#c9a96e;"></div><div style="position:absolute;right:14%;width:13%;top:28%;height:1px;background:#c9a96e;"></div></sc-if>
-                          <sc-if value="{{ l.pNone }}"><div style="position:absolute;inset:0;display:grid;place-items:center;font-size:11px;color:var(--color-neutral-600);">No template</div></sc-if>
+                          <sc-if value="{{ l.pNone }}"><div style="position:absolute;inset:0;display:grid;place-items:center;font-size:11px;color:var(--color-neutral-600);">ไม่ใช้แม่แบบ</div></sc-if>
                         </div>
                         <span style="font-size:12px;font-weight:700;padding:0 4px;">{{ l.label }}</span>
                         <span style="font-size:11px;color:var(--color-neutral-700);padding:0 4px 4px;line-height:1.3;">{{ l.desc }}</span>
@@ -1006,19 +1006,19 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                   </div>
                   </sc-if>
                 </div>
-                <div class="field"><label>Accent</label>
+                <div class="field"><label>สีเน้น</label>
                   <div style="display:flex;gap:8px;"><sc-for list="{{ tbAccents }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.pick }}" style="width:28px;height:28px;border-radius:999px;cursor:pointer;background:{{ c.v }};border:{{ c.ring }};"></button></sc-for></div>
                 </div>
                 <sc-for list="{{ tbFields }}" as="f" hint-placeholder-count="6">
                   <div class="field"><label>{{ f.label }}</label><input class="input" value="{{ f.value }}" onChange="{{ f.onChange }}"></input></div>
                 </sc-for>
                 <div style="padding:16px;border-radius:var(--radius-lg);background:var(--color-surface);display:flex;flex-direction:column;gap:10px;">
-                  <div style="display:flex;align-items:center;gap:8px;"><div style="font-family:var(--font-heading);font-size:18px;flex:1;">My templates</div><span style="font-size:11px;color:var(--color-neutral-700);">shared with the team</span></div>
+                  <div style="display:flex;align-items:center;gap:8px;"><div style="font-family:var(--font-heading);font-size:18px;flex:1;">แม่แบบของฉัน</div><span style="font-size:11px;color:var(--color-neutral-700);">shared with the team</span></div>
                   <div style="font-size:12px;color:var(--color-neutral-700);line-height:1.45;">Design one sheet the way you like — template, colour, logo, lines, text — then save it here. Use it on any board.</div>
                   <input class="input" placeholder="Template name, e.g. Wellcon hotel report" value="{{ presetName }}" onChange="{{ onPresetName }}"></input>
                   <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;"><input type="checkbox" checked="{{ presetWithEls }}" onChange="{{ onPresetWithEls }}" style="width:16px;height:16px;accent-color:var(--color-accent);"></input>Include this sheet’s design items (logo, shapes, lines, text)</label>
                   <button class="btn btn-primary" onClick="{{ savePreset }}">＋ Save this sheet as a template</button>
-                  <sc-if value="{{ noPresets }}"><div style="font-size:12px;color:var(--color-neutral-700);">No saved templates yet.</div></sc-if>
+                  <sc-if value="{{ noPresets }}"><div style="font-size:12px;color:var(--color-neutral-700);">ยังไม่มีแม่แบบที่บันทึกไว้</div></sc-if>
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                     <sc-for list="{{ presets }}" as="p" hint-placeholder-count="0">
                       <div onClick="{{ p.apply }}" onContextMenu="{{ p.menu }}" title="Click to use on this sheet · right-click for more" style="position:relative;display:flex;flex-direction:column;gap:5px;padding:6px;border-radius:14px;background:var(--color-bg);cursor:pointer;border:1px solid var(--color-divider);">
@@ -1036,7 +1036,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                 </div>
               </sc-if>
               <sc-if value="{{ flyLayers }}">
-                <sc-if value="{{ noLayers }}"><div style="padding:22px;border-radius:var(--radius-lg);background:var(--color-surface);color:var(--color-neutral-800);">This sheet is empty.</div></sc-if>
+                <sc-if value="{{ noLayers }}"><div style="padding:22px;border-radius:var(--radius-lg);background:var(--color-surface);color:var(--color-neutral-800);">แผ่นนี้ยังว่าง</div></sc-if>
                 <sc-for list="{{ layerRows }}" as="l" hint-placeholder-count="0">
                   <div onClick="{{ l.pick }}" style="display:flex;align-items:center;gap:6px;padding:7px 8px 7px 12px;border-radius:12px;cursor:pointer;background:{{ l.bg }};opacity:{{ l.op }};" style-hover="background:var(--color-surface);">
                     <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600);width:52px;flex:none;">{{ l.kind }}</span>
@@ -1058,7 +1058,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                   <div style="padding:14px;border-radius:var(--radius-lg);background:var(--color-surface);display:flex;flex-direction:column;gap:8px;box-shadow:0 0 0 2px var(--color-accent);">
                     <div style="display:flex;align-items:center;gap:8px;"><span style="width:26px;height:26px;border-radius:999px;display:grid;place-items:center;background:{{ meColor }};color:#fff;font-weight:700;font-size:11px;">{{ meIni }}</span><span style="font-weight:600;">{{ meName }}</span></div>
                     <textarea class="input" ref="{{ draftRef }}" value="{{ draftText }}" onChange="{{ onDraftText }}" onKeyDown="{{ onDraftKey }}" rows="3" placeholder="Add a comment… (Ctrl+Enter to post)" style="border-radius:var(--radius-md);padding:10px 12px;font:inherit;resize:vertical;"></textarea>
-                    <div style="display:flex;gap:6px;justify-content:flex-end;"><button class="btn btn-ghost" onClick="{{ cancelDraft }}">Cancel</button><button class="btn btn-primary" onClick="{{ postDraft }}">Comment</button></div>
+                    <div style="display:flex;gap:6px;justify-content:flex-end;"><button class="btn btn-ghost" onClick="{{ cancelDraft }}">ยกเลิก</button><button class="btn btn-primary" onClick="{{ postDraft }}">ความเห็น</button></div>
                   </div>
                 </sc-if>
                 <sc-if value="{{ noThreads }}"><div style="padding:22px;border-radius:var(--radius-lg);background:var(--color-surface);color:var(--color-neutral-800);line-height:1.5;">No comments yet. Pin feedback for your team or the client right on the sheet.</div></sc-if>
@@ -1080,9 +1080,9 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                     <sc-if value="{{ t.active }}">
                       <div onClick="{{ stopEv }}" style="display:flex;gap:6px;">
                         <input class="input" value="{{ t.replyText }}" onChange="{{ t.onReply }}" onKeyDown="{{ t.onReplyKey }}" placeholder="Reply…" style="flex:1;min-width:0;"></input>
-                        <button class="btn btn-secondary" onClick="{{ t.sendReply }}">Send</button>
+                        <button class="btn btn-secondary" onClick="{{ t.sendReply }}">ส่ง</button>
                       </div>
-                      <sc-if value="{{ t.canDel }}"><button class="btn btn-ghost" onClick="{{ t.del }}" style="align-self:flex-start;padding:4px 10px;font-size:12px;">Delete thread</button></sc-if>
+                      <sc-if value="{{ t.canDel }}"><button class="btn btn-ghost" onClick="{{ t.del }}" style="align-self:flex-start;padding:4px 10px;font-size:12px;">ลบหัวข้อสนทนา</button></sc-if>
                     </sc-if>
                   </div>
                 </sc-for>
@@ -1121,7 +1121,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                   </sc-if>
                   <sc-if value="{{ el.isFrame }}">
                     <div data-ph="1" style="position:absolute;inset:0;border-radius:{{ el.radius }};border:{{ el.phBorder }};background:#efe6d8;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;color:#8b6a52;font-size:{{ el.phSize }}px;line-height:1.35;padding:10px;overflow:hidden;">
-                      <span style="font-weight:700;">Image frame</span>
+                      <span style="font-weight:700;">กรอบรูป</span>
                       <span>Double-click to upload · Ctrl+V to paste · or drop a file</span>
                     </div>
                   </sc-if>
@@ -1350,9 +1350,9 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
               <sc-if value="{{ tbStamp }}"><div style="position:absolute;inset:0;z-index:900;pointer-events:none;font-family:Figtree,sans-serif;color:#2b2724;">
                   <div style="position:absolute;right:28px;bottom:28px;width:300px;border:1.5px solid #2b2724;background:#fff;display:grid;grid-template-columns:1fr 1fr;font-size:11px;">
                     <div style="grid-column:span 2;padding:10px 12px;background:#2b2724;color:#fbf8f3;font-family:var(--font-heading);font-size:16px;">{{ tb.firm }}</div>
-                    <div style="grid-column:span 2;padding:8px 12px;border-bottom:1px solid #2b2724;"><div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#7a7066;">Project</div><div style="font-weight:700;font-size:13px;">{{ tb.project }}</div></div>
+                    <div style="grid-column:span 2;padding:8px 12px;border-bottom:1px solid #2b2724;"><div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#7a7066;">โครงการ</div><div style="font-weight:700;font-size:13px;">{{ tb.project }}</div></div>
                     <div style="grid-column:span 2;padding:8px 12px;border-bottom:1px solid #2b2724;"><div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#7a7066;">Drawing</div><div style="font-weight:700;font-size:13px;">{{ tb.sheet }}</div></div>
-                    <div style="padding:8px 12px;border-right:1px solid #2b2724;"><div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#7a7066;">Date</div><div style="font-weight:600;">{{ tb.date }}</div></div>
+                    <div style="padding:8px 12px;border-right:1px solid #2b2724;"><div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#7a7066;">วันที่</div><div style="font-weight:600;">{{ tb.date }}</div></div>
                     <div style="padding:8px 12px;"><div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#7a7066;">No.</div><div style="font-weight:700;font-size:15px;">{{ tbSheetNo }}</div></div>
                   </div>
                 </div></sc-if>
@@ -1379,7 +1379,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                 </div></sc-if>
               <sc-if value="{{ tbReport }}"><div style="position:absolute;inset:0;z-index:900;pointer-events:none;font-family:Figtree,sans-serif;color:#2b2724;">
                   <div style="position:absolute;left:0;right:0;top:0;height:58px;background:#2b2724;color:#fbf8f3;display:grid;grid-template-columns:1.6fr 1fr 1fr .6fr;align-items:center;font-size:11px;">
-                    <span style="padding:0 28px;font-size:18px;font-weight:700;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ tb.sheet }}</span><span style="padding:0 14px;border-left:1px solid rgba(255,255,255,.25);"><span style="display:block;font-size:8px;letter-spacing:.14em;text-transform:uppercase;opacity:.7;">Project</span>{{ tb.project }}</span><span style="padding:0 14px;border-left:1px solid rgba(255,255,255,.25);"><span style="display:block;font-size:8px;letter-spacing:.14em;text-transform:uppercase;opacity:.7;">Date</span>{{ tb.date }}</span><span style="padding:0 14px;height:100%;display:grid;place-items:center;background:{{ tb.accent }};font-size:16px;font-weight:700;">{{ tbSheetNo }}</span></div>
+                    <span style="padding:0 28px;font-size:18px;font-weight:700;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ tb.sheet }}</span><span style="padding:0 14px;border-left:1px solid rgba(255,255,255,.25);"><span style="display:block;font-size:8px;letter-spacing:.14em;text-transform:uppercase;opacity:.7;">โครงการ</span>{{ tb.project }}</span><span style="padding:0 14px;border-left:1px solid rgba(255,255,255,.25);"><span style="display:block;font-size:8px;letter-spacing:.14em;text-transform:uppercase;opacity:.7;">วันที่</span>{{ tb.date }}</span><span style="padding:0 14px;height:100%;display:grid;place-items:center;background:{{ tb.accent }};font-size:16px;font-weight:700;">{{ tbSheetNo }}</span></div>
                   <div style="position:absolute;left:28px;right:28px;bottom:14px;display:flex;justify-content:space-between;font-size:10px;color:#5c5650;border-top:1px solid rgba(43,39,36,.3);padding-top:6px;"><span>{{ tb.firm }}</span><span>{{ tb.client }}</span></div>
                 </div></sc-if>
               <sc-if value="{{ tbCorners }}"><div style="position:absolute;inset:0;z-index:900;pointer-events:none;font-family:Figtree,sans-serif;color:#2b2724;">
@@ -1492,8 +1492,8 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
             </sc-for>
             <sc-if value="{{ masterMode }}">
             <div onMouseDown="{{ stopEv }}" style="position:fixed;top:66px;left:50%;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:12px;padding:8px 8px 8px 18px;border-radius:999px;background:var(--color-accent-2-800);color:#fff;font-size:13px;box-shadow:var(--shadow-lg);white-space:nowrap;">
-              <span><strong>Editing project master</strong> · what you place here shows on every board in {{ masterProj }}</span>
-              <button class="btn btn-secondary" onClick="{{ exitMaster }}" style="padding:4px 14px;">Done</button>
+              <span><strong>กำลังแก้แม่แบบของโครงการ</strong> · what you place here shows on every board in {{ masterProj }}</span>
+              <button class="btn btn-secondary" onClick="{{ exitMaster }}" style="padding:4px 14px;">เสร็จ</button>
             </div>
           </sc-if>
           <sc-if value="{{ drawing }}">
@@ -1522,22 +1522,22 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           </div>
           <sc-if value="{{ masterMode }}">
             <div onMouseDown="{{ stopEv }}" style="position:fixed;top:66px;left:50%;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:12px;padding:8px 8px 8px 18px;border-radius:999px;background:var(--color-accent-2-800);color:#fff;font-size:13px;box-shadow:var(--shadow-lg);white-space:nowrap;">
-              <span><strong>Editing project master</strong> · what you place here shows on every board in {{ masterProj }}</span>
-              <button class="btn btn-secondary" onClick="{{ exitMaster }}" style="padding:4px 14px;">Done</button>
+              <span><strong>กำลังแก้แม่แบบของโครงการ</strong> · what you place here shows on every board in {{ masterProj }}</span>
+              <button class="btn btn-secondary" onClick="{{ exitMaster }}" style="padding:4px 14px;">เสร็จ</button>
             </div>
           </sc-if>
           <sc-if value="{{ drawing }}">
             <div onMouseDown="{{ stopEv }}" style="position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 18px;border-radius:999px;background:var(--color-text);color:var(--color-bg);font-size:13px;box-shadow:var(--shadow-lg);white-space:nowrap;">
               <span>{{ drawHint }}</span>
-              <button class="btn btn-secondary" onClick="{{ drawDone }}" style="padding:4px 14px;">Done</button>
-              <button onClick="{{ drawCancel }}" style="border:0;background:transparent;color:var(--color-bg);font:inherit;font-weight:600;cursor:pointer;padding:4px 10px;">Cancel</button>
+              <button class="btn btn-secondary" onClick="{{ drawDone }}" style="padding:4px 14px;">เสร็จ</button>
+              <button onClick="{{ drawCancel }}" style="border:0;background:transparent;color:var(--color-bg);font:inherit;font-weight:600;cursor:pointer;padding:4px 10px;">ยกเลิก</button>
             </div>
           </sc-if>
           <sc-if value="{{ gridOpen }}">
             <div onMouseDown="{{ stopEv }}" style="position:absolute;inset:0;z-index:70;background:var(--color-neutral-200);overflow:auto;padding:28px;">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
                 <div style="font-family:var(--font-heading);font-size:22px;">All sheets · drag to reorder</div>
-                <button class="btn btn-secondary" onClick="{{ toggleGrid }}">Close</button>
+                <button class="btn btn-secondary" onClick="{{ toggleGrid }}">ปิด</button>
               </div>
               <div class="lb-g2" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:22px;">
                 <sc-for list="{{ stripPages }}" as="p" hint-placeholder-count="0">
@@ -1561,7 +1561,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
         <button onClick="{{ paCrop.pick }}" style="border:0;border-radius:999px;padding:6px 12px;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap;background:{{ paCrop.bg }};color:{{ paCrop.fg }};">{{ paCrop.label }}</button>
         <button onClick="{{ paWhole.pick }}" style="border:0;border-radius:999px;padding:6px 12px;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap;background:{{ paWhole.bg }};color:{{ paWhole.fg }};">{{ paWhole.label }}</button>
         <sc-if value="{{ paHasFrames }}"><button onClick="{{ paFrames }}" style="border:1px solid var(--color-divider);border-radius:999px;padding:5px 12px;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap;background:transparent;color:inherit;">{{ paFramesLabel }}</button></sc-if>
-        <button class="btn btn-primary" onClick="{{ paDone }}" style="padding:6px 16px;">Done</button>
+        <button class="btn btn-primary" onClick="{{ paDone }}" style="padding:6px 16px;">เสร็จ</button>
       </div></sc-if>
       <sc-if value="{{ mobEditBtn }}"><button class="btn btn-primary lb-mob" onClick="{{ mobEdit }}" style="position:fixed;right:14px;bottom:192px;z-index:50;box-shadow:var(--shadow-lg);padding:10px 18px;">✎ Edit</button></sc-if>
       <footer class="lb-edfoot" style="display:grid;grid-template-rows:minmax(0,1fr) 40px;border-top:1px solid var(--color-divider);background:var(--color-bg);min-width:0;">
@@ -1585,7 +1585,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           <span class="lb-mob" style="flex:1;"></span>
           <input class="lb-desk" type="range" min="10" max="200" value="{{ zoomPct }}" onChange="{{ setZoomPct }}" style="width:160px;"></input>
           <span style="min-width:42px;font-weight:600;">{{ zoomLabel }}</span>
-          <button class="btn btn-ghost" onClick="{{ zoomFit }}" style="padding:4px 12px;">Fit</button>
+          <button class="btn btn-ghost" onClick="{{ zoomFit }}" style="padding:4px 12px;">พอดีจอ</button>
           <button class="lb-desk" onClick="{{ openSnapMenu }}" title="Snapping options (hold Alt to drag freely)" style="border:0;border-radius:999px;padding:5px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:{{ snapBg }};color:{{ snapFg }};white-space:nowrap;">{{ snapLabel }} ▾</button>
           <span style="font-weight:600;white-space:nowrap;">{{ pageLabel }}</span>
           <button class="lb-desk" onClick="{{ openAbout }}" title="What's new in Layboard" style="border:0;border-radius:999px;padding:4px 10px;font:inherit;font-size:11.5px;cursor:pointer;background:var(--color-surface);color:var(--color-neutral-800);white-space:nowrap;">{{ appVersion }}</button>
@@ -1663,8 +1663,8 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
             <span style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:360px;">{{ im.fileName }}</span>
             <span style="color:var(--color-neutral-700);">{{ im.fileSize }} · {{ im.total }}</span>
             <div style="flex:1;"></div>
-            <button class="btn btn-secondary" onClick="{{ im.all }}" style="padding:6px 14px;white-space:nowrap;">Select all</button>
-            <button class="btn btn-ghost" onClick="{{ im.none }}" style="padding:6px 14px;white-space:nowrap;">Clear</button>
+            <button class="btn btn-secondary" onClick="{{ im.all }}" style="padding:6px 14px;white-space:nowrap;">เลือกทั้งหมด</button>
+            <button class="btn btn-ghost" onClick="{{ im.none }}" style="padding:6px 14px;white-space:nowrap;">ล้าง</button>
             <input class="input" placeholder="e.g. 1-5, 8" value="{{ im.range }}" onChange="{{ im.onRange }}" style="width:140px;"></input>
           </div>
           <div style="flex:1;min-height:160px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;padding:4px;">
@@ -1684,7 +1684,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
               <div class="field"><label>Design name</label><input class="input" value="{{ im.name }}" onChange="{{ im.onName }}"></input></div>
               <div class="field"><label>Save in</label><select class="input" value="{{ im.projectId }}" onChange="{{ im.onProject }}"><sc-for list="{{ im.projOpts }}" as="o" hint-placeholder-count="1"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select></div>
             </sc-if>
-            <div class="field"><label>Paper</label>
+            <div class="field"><label>กระดาษ</label>
               <div style="display:flex;gap:4px;flex-wrap:wrap;">
                 <sc-for list="{{ im.sizes }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.pick }}" style="border:0;border-radius:999px;padding:6px 12px;font:inherit;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};">{{ o.label }}</button></sc-for>
                 <sc-for list="{{ im.orients }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="border:0;border-radius:999px;padding:6px 12px;font:inherit;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};">{{ o.label }}</button></sc-for>
@@ -1694,7 +1694,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           </div>
           <div class="dialog-actions" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="font-size:13px;color:var(--color-neutral-700);">{{ im.note }}</span>
-            <div style="display:flex;gap:8px;"><button class="btn btn-ghost" onClick="{{ closeDialog }}">Cancel</button><button class="btn btn-primary" onClick="{{ im.start }}">{{ im.startLabel }}</button></div>
+            <div style="display:flex;gap:8px;"><button class="btn btn-ghost" onClick="{{ closeDialog }}">ยกเลิก</button><button class="btn btn-primary" onClick="{{ im.start }}">{{ im.startLabel }}</button></div>
           </div>
         </sc-if>
         <sc-if value="{{ im.isWorking }}">
@@ -1712,7 +1712,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
               <div style="padding:12px 16px;border-radius:14px;background:var(--color-surface);font-size:13px;line-height:1.5;"><strong>Couldn’t bring in:</strong> {{ im.skipped }}. They’re left as empty frames — paste a picture of them if needed.</div>
             </sc-if>
           </div>
-          <div class="dialog-actions" style="display:flex;justify-content:flex-end;gap:8px;"><button class="btn btn-ghost" onClick="{{ closeDialog }}">Close</button><button class="btn btn-primary" onClick="{{ im.open }}">{{ im.openLabel }}</button></div>
+          <div class="dialog-actions" style="display:flex;justify-content:flex-end;gap:8px;"><button class="btn btn-ghost" onClick="{{ closeDialog }}">ปิด</button><button class="btn btn-primary" onClick="{{ im.open }}">{{ im.openLabel }}</button></div>
         </sc-if>
         <sc-if value="{{ im.hasError }}">
           <div style="padding:12px 16px;border-radius:14px;background:var(--color-accent-100);color:var(--color-accent-900);font-size:14px;line-height:1.45;">{{ im.error }}</div>
@@ -1724,14 +1724,14 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
     <div class="dialog-backdrop" onMouseDown="{{ closeDialog }}" style="position:fixed;inset:0;z-index:2500;display:grid;place-items:center;padding:24px;">
       <div class="dialog" onMouseDown="{{ stopEv }}" style="width:min(520px,100%);display:flex;flex-direction:column;gap:16px;">
         <div class="dialog-title" style="margin:0;">{{ pe.title }}</div>
-        <div class="field"><label>Work email</label><input class="input" value="{{ pe.email }}" onChange="{{ pe.onEmail }}" placeholder="name@wellcon.co.th"></input></div>
+        <div class="field"><label>อีเมลที่ทำงาน</label><input class="input" value="{{ pe.email }}" onChange="{{ pe.onEmail }}" placeholder="name@wellcon.co.th"></input></div>
         <div class="field"><label>Full name</label><input class="input" value="{{ pe.name }}" onChange="{{ pe.onName }}" placeholder="ชื่อ-สกุล"></input></div>
-        <div class="field"><label>Position</label><input class="input" value="{{ pe.position }}" onChange="{{ pe.onPosition }}" placeholder="e.g. Designer"></input></div>
-        <div class="field"><label>Role</label><select class="input" value="{{ pe.role }}" onChange="{{ pe.onRole }}"><sc-for list="{{ teamRoles }}" as="o" hint-placeholder-count="0"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select><span style="font-size:12px;color:var(--color-neutral-700);">{{ pe.hint }}</span></div>
+        <div class="field"><label>ตำแหน่ง</label><input class="input" value="{{ pe.position }}" onChange="{{ pe.onPosition }}" placeholder="e.g. Designer"></input></div>
+        <div class="field"><label>สิทธิ์</label><select class="input" value="{{ pe.role }}" onChange="{{ pe.onRole }}"><sc-for list="{{ teamRoles }}" as="o" hint-placeholder-count="0"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select><span style="font-size:12px;color:var(--color-neutral-700);">{{ pe.hint }}</span></div>
         <sc-if value="{{ pe.isNew }}"><div style="padding:10px 14px;border-radius:12px;background:var(--color-accent-2-100);font-size:13px;line-height:1.45;">They sign in with the temporary PIN <strong>1234</strong> and choose their own PIN the first time.</div></sc-if>
         <sc-if value="{{ pe.hasError }}"><div style="color:var(--color-accent-800);font-size:13px;">{{ pe.error }}</div></sc-if>
         <div class="dialog-actions" style="display:flex;justify-content:flex-end;gap:8px;">
-          <button class="btn btn-ghost" onClick="{{ closeDialog }}">Cancel</button>
+          <button class="btn btn-ghost" onClick="{{ closeDialog }}">ยกเลิก</button>
           <button class="btn btn-primary" onClick="{{ pe.save }}">{{ pe.btn }}</button>
         </div>
       </div>
@@ -1750,11 +1750,11 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
               <input type="checkbox" checked="{{ r.on }}" onChange="{{ r.toggle }}" disabled="{{ r.locked }}" style="width:18px;height:18px;accent-color:var(--color-accent);flex:none;"></input>
               <span style="width:10px;height:10px;border-radius:999px;background:{{ r.color }};flex:none;"></span>
               <span style="flex:1;min-width:0;display:flex;flex-direction:column;"><span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ r.name }}</span><span style="font-size:12px;color:var(--color-neutral-700);">{{ r.meta }}</span></span>
-              <sc-if value="{{ r.showRole }}"><select class="input" value="{{ r.role }}" onChange="{{ r.onRole }}" style="width:auto;height:34px;font-size:13px;"><option value="editor">Can edit</option><option value="viewer">Can view</option></select></sc-if>
+              <sc-if value="{{ r.showRole }}"><select class="input" value="{{ r.role }}" onChange="{{ r.onRole }}" style="width:auto;height:34px;font-size:13px;"><option value="editor">แก้ไขได้</option><option value="viewer">ดูได้อย่างเดียว</option></select></sc-if>
             </div>
           </sc-for>
         </div>
-        <div class="dialog-actions" style="display:flex;justify-content:flex-end;"><button class="btn btn-primary" onClick="{{ closeDialog }}">Done</button></div>
+        <div class="dialog-actions" style="display:flex;justify-content:flex-end;"><button class="btn btn-primary" onClick="{{ closeDialog }}">เสร็จ</button></div>
       </div>
     </div>
   </sc-if>
@@ -1775,7 +1775,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
         <sc-if value="{{ pf.hasMsg }}"><div style="font-size:13px;color:{{ pf.msgColor }};">{{ pf.msg }}</div></sc-if>
         <div class="dialog-actions" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-ghost" onClick="{{ pf.logout }}">Log out</button>
-          <div style="display:flex;gap:8px;"><button class="btn btn-secondary" onClick="{{ pf.changePin }}">Change PIN</button><button class="btn btn-primary" onClick="{{ closeDialog }}">Done</button></div>
+          <div style="display:flex;gap:8px;"><button class="btn btn-secondary" onClick="{{ pf.changePin }}">Change PIN</button><button class="btn btn-primary" onClick="{{ closeDialog }}">เสร็จ</button></div>
         </div>
       </div>
     </div>
@@ -1791,8 +1791,8 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           <sc-for list="{{ mp.targets }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="border:0;border-radius:999px;padding:7px 16px;font:inherit;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};">{{ o.label }}</button></sc-for>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <div class="field"><label>Project</label><select class="input" value="{{ mp.projectId }}" onChange="{{ mp.onProject }}"><sc-for list="{{ mp.projOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select></div>
-          <div class="field"><label>Folder</label><select class="input" value="{{ mp.folderId }}" onChange="{{ mp.onFolder }}"><sc-for list="{{ mp.folderOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select></div>
+          <div class="field"><label>โครงการ</label><select class="input" value="{{ mp.projectId }}" onChange="{{ mp.onProject }}"><sc-for list="{{ mp.projOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select></div>
+          <div class="field"><label>โฟลเดอร์</label><select class="input" value="{{ mp.folderId }}" onChange="{{ mp.onFolder }}"><sc-for list="{{ mp.folderOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select></div>
         </div>
         <sc-if value="{{ mp.newFolderOn }}"><div class="field"><label>New folder name</label><input class="input" value="{{ mp.newFolder }}" onChange="{{ mp.onNewFolder }}" placeholder="e.g. Reference pictures"></input></div></sc-if>
         <sc-if value="{{ mp.isNew }}"><div class="field"><label>New design name</label><input class="input" value="{{ mp.name }}" onChange="{{ mp.onName }}"></input></div></sc-if>
@@ -1800,7 +1800,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           <sc-if value="{{ mp.noFiles }}"><span style="font-size:12px;color:#c0392b;">No other design in this folder — pick another folder or choose New design.</span></sc-if></div></sc-if>
         <span style="font-size:12px;color:var(--color-neutral-700);line-height:1.45;">{{ mp.hint }}</span>
         <div class="dialog-actions" style="display:flex;justify-content:flex-end;gap:8px;">
-          <button class="btn btn-ghost" onClick="{{ closeDialog }}">Cancel</button>
+          <button class="btn btn-ghost" onClick="{{ closeDialog }}">ยกเลิก</button>
           <button class="btn btn-primary" onClick="{{ mp.go }}">{{ mp.goLabel }}</button>
         </div>
       </div>
@@ -1811,7 +1811,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
       <div class="dialog" onMouseDown="{{ stopEv }}" style="width:min(540px,100%);display:flex;flex-direction:column;gap:16px;">
         <div class="dialog-title" style="margin:0;">New design</div>
         <div class="field"><label>Name</label><input class="input" value="{{ nd.name }}" onChange="{{ nd.onName }}" placeholder="e.g. Lobby concept – option A"></input></div>
-        <div class="field"><label>Paper</label>
+        <div class="field"><label>กระดาษ</label>
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
             <sc-for list="{{ nd.sizes }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.pick }}" style="border:0;border-radius:999px;padding:7px 16px;font:inherit;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};">{{ o.label }}</button></sc-for>
             <span style="width:12px;"></span>
@@ -1819,11 +1819,11 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <div class="field"><label>Project</label><select class="input" value="{{ nd.projectId }}" onChange="{{ nd.onProject }}"><sc-for list="{{ nd.projOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select></div>
-          <div class="field"><label>Folder</label><select class="input" value="{{ nd.folderId }}" onChange="{{ nd.onFolder }}"><sc-for list="{{ nd.folderOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select></div>
+          <div class="field"><label>โครงการ</label><select class="input" value="{{ nd.projectId }}" onChange="{{ nd.onProject }}"><sc-for list="{{ nd.projOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select></div>
+          <div class="field"><label>โฟลเดอร์</label><select class="input" value="{{ nd.folderId }}" onChange="{{ nd.onFolder }}"><sc-for list="{{ nd.folderOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select></div>
         </div>
         <div class="dialog-actions" style="display:flex;justify-content:flex-end;gap:8px;">
-          <button class="btn btn-ghost" onClick="{{ closeDialog }}">Cancel</button>
+          <button class="btn btn-ghost" onClick="{{ closeDialog }}">ยกเลิก</button>
           <button class="btn btn-primary" onClick="{{ nd.create }}">Create design</button>
         </div>
       </div>
@@ -1836,14 +1836,14 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
         <div class="dialog-title" style="margin:0;">{{ np.title }}</div>
         <div class="field"><label>Project name</label><input class="input" value="{{ np.name }}" onChange="{{ np.onName }}" placeholder="e.g. The Ritz-Carlton @ One Bangkok"></input></div>
         <div class="field"><label>Client</label><input class="input" value="{{ np.client }}" onChange="{{ np.onClient }}" placeholder="Client or owner"></input></div>
-        <div class="field"><label>Colour</label>
+        <div class="field"><label>สี</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;"><sc-for list="{{ np.colors }}" as="c" hint-placeholder-count="8"><button onClick="{{ c.pick }}" style="width:30px;height:30px;border-radius:999px;cursor:pointer;background:{{ c.v }};border:{{ c.ring }};"></button></sc-for></div>
         </div>
         <div class="field"><label>Who can open it</label>
           <div style="display:flex;gap:4px;"><sc-for list="{{ np.access }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="flex:1;border:0;border-radius:999px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};">{{ o.label }}</button></sc-for></div>
         </div>
         <div class="dialog-actions" style="display:flex;justify-content:flex-end;gap:8px;">
-          <button class="btn btn-ghost" onClick="{{ closeDialog }}">Cancel</button>
+          <button class="btn btn-ghost" onClick="{{ closeDialog }}">ยกเลิก</button>
           <button class="btn btn-primary" onClick="{{ np.save }}">{{ np.btn }}</button>
         </div>
       </div>
@@ -1937,7 +1937,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
             <div style="width:40px;height:40px;border-radius:999px 999px 999px 6px;background:var(--color-accent);"></div>
             <strong style="font-size:16px;">{{ au.status }}</strong>
             <span style="font-size:13px;color:var(--color-neutral-700);max-width:520px;white-space:pre-wrap;">{{ au.statusSub }}</span>
-            <sc-if value="{{ au.canStop }}"><button class="btn btn-ghost" onClick="{{ au.stop }}">Stop</button></sc-if>
+            <sc-if value="{{ au.canStop }}"><button class="btn btn-ghost" onClick="{{ au.stop }}">หยุด</button></sc-if>
           </div>
         </sc-if>
 
@@ -1970,7 +1970,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
             </div>
           </sc-for>
         </div>
-        <div class="dialog-actions" style="display:flex;justify-content:flex-end;"><button class="btn btn-primary" onClick="{{ closeDialog }}">Close</button></div>
+        <div class="dialog-actions" style="display:flex;justify-content:flex-end;"><button class="btn btn-primary" onClick="{{ closeDialog }}">ปิด</button></div>
       </div>
     </div>
   </sc-if>
@@ -1984,7 +1984,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
         </div>
         <div style="padding:12px 16px;border-radius:14px;background:{{ ck.headBg }};display:flex;align-items:center;gap:12px;">
           <strong style="font-size:16px;flex:1;">{{ ck.headline }}</strong>
-          <sc-if value="{{ ck.busy }}"><span style="font-size:12px;">{{ ck.note }}</span><button class="btn btn-ghost" onClick="{{ ck.stop }}" style="padding:2px 10px;font-size:12px;">Stop</button></sc-if>
+          <sc-if value="{{ ck.busy }}"><span style="font-size:12px;">{{ ck.note }}</span><button class="btn btn-ghost" onClick="{{ ck.stop }}" style="padding:2px 10px;font-size:12px;">หยุด</button></sc-if>
         </div>
         <div style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px;">
           <sc-if value="{{ ck.empty }}"><div style="padding:24px;text-align:center;color:var(--color-neutral-700);">Nothing to fix. The board looks ready for the client.</div></sc-if>
@@ -2018,7 +2018,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
         <div style="display:flex;align-items:center;gap:12px;"><div class="dialog-title" style="margin:0;flex:1;">✦ {{ at.title }}</div><button class="btn btn-ghost btn-icon" onClick="{{ closeDialog }}" title="Close">×</button></div>
         <textarea class="input" rows="14" value="{{ at.text }}" onChange="{{ at.onText }}" style="border-radius:var(--radius-md);padding:12px 14px;font:inherit;font-size:14px;line-height:1.5;resize:vertical;"></textarea>
         <span style="font-size:12px;color:var(--color-neutral-700);">Written by Claude from the board — check names, dates and numbers before sending. You can edit the text here.</span>
-        <div class="dialog-actions" style="display:flex;justify-content:flex-end;gap:8px;"><button class="btn btn-ghost" onClick="{{ closeDialog }}">Close</button><button class="btn btn-primary" onClick="{{ at.copy }}">Copy</button></div>
+        <div class="dialog-actions" style="display:flex;justify-content:flex-end;gap:8px;"><button class="btn btn-ghost" onClick="{{ closeDialog }}">ปิด</button><button class="btn btn-primary" onClick="{{ at.copy }}">คัดลอก</button></div>
       </div>
     </div>
   </sc-if>
@@ -2029,7 +2029,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
         <div class="dialog-title" style="margin:0;">{{ pr.title }}</div>
         <input class="input" ref="{{ promptRef }}" value="{{ pr.value }}" onChange="{{ pr.onChange }}" onKeyDown="{{ pr.onKey }}"></input>
         <div class="dialog-actions" style="display:flex;justify-content:flex-end;gap:8px;">
-          <button class="btn btn-ghost" onClick="{{ closeDialog }}">Cancel</button>
+          <button class="btn btn-ghost" onClick="{{ closeDialog }}">ยกเลิก</button>
           <button class="btn btn-primary" onClick="{{ pr.ok }}">{{ pr.btn }}</button>
         </div>
       </div>
@@ -2048,7 +2048,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           </sc-for>
         </div>
         <div class="dialog-actions" style="display:flex;justify-content:flex-end;gap:8px;">
-          <button class="btn btn-ghost" onClick="{{ closeDialog }}">Cancel</button>
+          <button class="btn btn-ghost" onClick="{{ closeDialog }}">ยกเลิก</button>
           <button class="btn btn-primary" onClick="{{ mv.ok }}">Move here</button>
         </div>
       </div>
@@ -2065,7 +2065,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
         <sc-if value="{{ sh.canManage }}">
           <div style="display:flex;gap:8px;align-items:flex-end;">
             <div class="field" style="flex:1;"><label>Add people</label><select class="input" value="{{ sh.addId }}" onChange="{{ sh.onAddId }}"><option value="">Choose a teammate…</option><sc-for list="{{ sh.addOpts }}" as="o" hint-placeholder-count="0"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select></div>
-            <div class="field"><label>Role</label><select class="input" value="{{ sh.addRole }}" onChange="{{ sh.onAddRole }}"><option value="editor">Can edit</option><option value="viewer">Can view</option></select></div>
+            <div class="field"><label>สิทธิ์</label><select class="input" value="{{ sh.addRole }}" onChange="{{ sh.onAddRole }}"><option value="editor">แก้ไขได้</option><option value="viewer">ดูได้อย่างเดียว</option></select></div>
             <button class="btn btn-primary" onClick="{{ sh.add }}">Add</button>
           </div>
         </sc-if>
@@ -2076,7 +2076,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
               <span style="flex:1;display:flex;flex-direction:column;min-width:0;"><span style="font-weight:600;">{{ m.name }}</span><span style="font-size:12px;color:var(--color-neutral-700);">{{ m.status }}</span></span>
               <sc-if value="{{ m.isOwner }}"><span class="tag tag-accent">Owner</span></sc-if>
               <sc-if value="{{ m.editable }}">
-                <select class="input" value="{{ m.role }}" onChange="{{ m.onRole }}" style="width:auto;"><option value="editor">Can edit</option><option value="viewer">Can view</option></select>
+                <select class="input" value="{{ m.role }}" onChange="{{ m.onRole }}" style="width:auto;"><option value="editor">แก้ไขได้</option><option value="viewer">ดูได้อย่างเดียว</option></select>
                 <button class="btn btn-ghost" onClick="{{ m.remove }}" title="Remove" style="padding:4px 10px;">×</button>
               </sc-if>
               <sc-if value="{{ m.readonlyRole }}"><span style="font-size:13px;color:var(--color-neutral-700);">{{ m.roleLabel }}</span></sc-if>
@@ -2085,7 +2085,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
         </div>
         <div class="dialog-actions" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-secondary" onClick="{{ sh.copyLink }}">{{ sh.copyLabel }}</button>
-          <button class="btn btn-primary" onClick="{{ closeDialog }}">Done</button>
+          <button class="btn btn-primary" onClick="{{ closeDialog }}">เสร็จ</button>
         </div>
       </div>
     </div>
@@ -2108,7 +2108,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
             </div>
           </sc-for>
         </div>
-        <div class="dialog-actions" style="display:flex;justify-content:flex-end;"><button class="btn btn-primary" onClick="{{ closeDialog }}">Close</button></div>
+        <div class="dialog-actions" style="display:flex;justify-content:flex-end;"><button class="btn btn-primary" onClick="{{ closeDialog }}">ปิด</button></div>
       </div>
     </div>
   </sc-if>
@@ -2121,8 +2121,8 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           <span style="color:var(--color-neutral-700);overflow-wrap:anywhere;">{{ pdfName }}</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-secondary" onClick="{{ pdfAll }}" style="padding:6px 14px;white-space:nowrap;flex:none;">Select all</button>
-          <button class="btn btn-ghost" onClick="{{ pdfNone }}" style="padding:6px 14px;white-space:nowrap;flex:none;">Clear</button>
+          <button class="btn btn-secondary" onClick="{{ pdfAll }}" style="padding:6px 14px;white-space:nowrap;flex:none;">เลือกทั้งหมด</button>
+          <button class="btn btn-ghost" onClick="{{ pdfNone }}" style="padding:6px 14px;white-space:nowrap;flex:none;">ล้าง</button>
           <input class="input" placeholder="Pages e.g. 1-3, 5, 8" value="{{ pdfRange }}" onChange="{{ onPdfRange }}" style="width:200px;"></input>
           <div style="flex:1;"></div>
           <span style="font-weight:600;">{{ pdfCount }}</span>
@@ -2140,7 +2140,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
           </sc-for>
         </div>
         <div class="dialog-actions" style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
-          <button class="btn btn-ghost" onClick="{{ pdfCancel }}" style="white-space:nowrap;flex:none;">Cancel</button>
+          <button class="btn btn-ghost" onClick="{{ pdfCancel }}" style="white-space:nowrap;flex:none;">ยกเลิก</button>
           <sc-if value="{{ pdfShowSheets }}"><button class="btn btn-secondary" onClick="{{ pdfImportSheets }}" style="white-space:nowrap;flex:none;">Each page as new sheet</button></sc-if>
           <button class="btn btn-primary" onClick="{{ pdfImport }}" style="white-space:nowrap;flex:none;">{{ pdfImportLabel }}</button>
         </div>
