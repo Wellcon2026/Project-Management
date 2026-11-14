@@ -33,6 +33,7 @@ begin
       create index if not exists apr_requests_upd_idx on %1$I.apr_requests (updated_at desc);
     $f$, s);
     execute format('revoke all on %1$I.apr_requests from anon', s);
+    execute format('revoke delete, truncate on %1$I.apr_requests from authenticated', s);   -- ไม่มีสิทธิ์ลบแถว (schema public ให้สิทธิ์ทั้งหมดเป็นค่าเริ่มต้น)
     execute format('grant select, insert, update on %1$I.apr_requests to authenticated', s);
     execute format('alter table %1$I.apr_requests enable row level security', s);
     execute format('drop policy if exists apr_requests_rw on %1$I.apr_requests', s);
