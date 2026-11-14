@@ -173,7 +173,10 @@ node scripts/patch-pd-cockpit2.js
 ```bash
 node scripts/patch-progress-manual.js
 ```
-(เมนู Takeoff · วัดหน้างาน · QS Tracking บันทึกทีละแถว · ซ่อนแท็บ Takeoff เดิม — เปิดกลับด้วย `?legacyTakeoff=1` · ติดตั้งเป็นแอป + ไอคอน Wellcon PM · หน้าแรกของฉันตามตำแหน่ง · กันรูป/ข้อมูลหายจาก realtime · เมนู Claim · หน้า Home เลือกโครงการ · หน้าภาพรวมโครงการแบบสั้น · หน้าแรกตามบทบาททุกตำแหน่ง · ปุ่มหน้าแรก + ออกจากระบบทุกหน้า · รายงานประจำวัน คนเข้างานแยกตาม trade · คะแนน Level Gate เห็นเฉพาะ Admin / Director / HR · Site Issues ติดตามงาน · จัดเรียงการ์ดหน้าทำงาน · Super Admin เห็นทุกเมนู · เมนู Layboard · ล็อกอินกันรหัสถูกแต่ขึ้นผิด · เลือกภาษาก่อนพิมพ์ · เมนู As-Built & Survey · หน้าแรกแบบใหม่ (ตัวเลขหลัก · ต้องดูแล · รายการโครงการแถวเดียว) · หน้าภาพรวมโครงการแบบสั้น v2 (พับส่วนรอง) · นับการเปิดแอป + ปุ่มการใช้งานระบบ · ปิด Level Gate ทั้งระบบ · กันแอปพัง removeChild · เมนูลิงก์ Mango ใบขอซื้อ / ใบสั่งจ้าง · หน้าแรกทุกคน: การ์ด PR (Mango) แทน Project Management · แผนงาน: คอลัมน์ผู้สร้างกิจกรรม · การ์ดหน้าแรกรายคน · การ์ดตัวเลขสรุปแตะได้ · Defect Check รวม Survey (ตัด Site Issues) · Drawing Log: ผู้อัปเดต + วันที่ · Revision Note หลายรายการ · ตั้งค่าระบบ: การ์ดหน้าแรก & ฟังก์ชัน ตามตำแหน่ง / รายคน / ทั้งระบบ · เลือกขอบเขต คนเดียว / ทั้งตำแหน่ง · ลิงก์ Google Sheet หน้าจัดซื้อวัสดุ · ย่อ Google Sheet เต็มกรอบ · เอาแถบ Mango ออก · ชีตหลัก / ซูม / ความสูง ใช้ร่วมทั้งโครงการ · หน้า Project Management แบบใหม่ Project Cockpit · ความคืบหน้ากรอกเองเท่านั้น)
+```bash
+node scripts/patch-auto-pr-menu.js
+```
+(เมนู Takeoff · วัดหน้างาน · QS Tracking บันทึกทีละแถว · ซ่อนแท็บ Takeoff เดิม — เปิดกลับด้วย `?legacyTakeoff=1` · ติดตั้งเป็นแอป + ไอคอน Wellcon PM · หน้าแรกของฉันตามตำแหน่ง · กันรูป/ข้อมูลหายจาก realtime · เมนู Claim · หน้า Home เลือกโครงการ · หน้าภาพรวมโครงการแบบสั้น · หน้าแรกตามบทบาททุกตำแหน่ง · ปุ่มหน้าแรก + ออกจากระบบทุกหน้า · รายงานประจำวัน คนเข้างานแยกตาม trade · คะแนน Level Gate เห็นเฉพาะ Admin / Director / HR · Site Issues ติดตามงาน · จัดเรียงการ์ดหน้าทำงาน · Super Admin เห็นทุกเมนู · เมนู Layboard · ล็อกอินกันรหัสถูกแต่ขึ้นผิด · เลือกภาษาก่อนพิมพ์ · เมนู As-Built & Survey · หน้าแรกแบบใหม่ (ตัวเลขหลัก · ต้องดูแล · รายการโครงการแถวเดียว) · หน้าภาพรวมโครงการแบบสั้น v2 (พับส่วนรอง) · นับการเปิดแอป + ปุ่มการใช้งานระบบ · ปิด Level Gate ทั้งระบบ · กันแอปพัง removeChild · เมนูลิงก์ Mango ใบขอซื้อ / ใบสั่งจ้าง · หน้าแรกทุกคน: การ์ด PR (Mango) แทน Project Management · แผนงาน: คอลัมน์ผู้สร้างกิจกรรม · การ์ดหน้าแรกรายคน · การ์ดตัวเลขสรุปแตะได้ · Defect Check รวม Survey (ตัด Site Issues) · Drawing Log: ผู้อัปเดต + วันที่ · Revision Note หลายรายการ · ตั้งค่าระบบ: การ์ดหน้าแรก & ฟังก์ชัน ตามตำแหน่ง / รายคน / ทั้งระบบ · เลือกขอบเขต คนเดียว / ทั้งตำแหน่ง · ลิงก์ Google Sheet หน้าจัดซื้อวัสดุ · ย่อ Google Sheet เต็มกรอบ · เอาแถบ Mango ออก · ชีตหลัก / ซูม / ความสูง ใช้ร่วมทั้งโครงการ · หน้า Project Management แบบใหม่ Project Cockpit · ความคืบหน้ากรอกเองเท่านั้น · เมนู Auto PR)
 
 ## Layboard · Presentation (ตั้งแต่ 09/11/2026)
 - หน้าแยก `/layboard/index.html?pid=<project id>` — สำเนาแอป Layboard (repo Wellcon2026/layboard) สำหรับทำงานนำเสนอในโครงการ
@@ -232,3 +235,13 @@ node scripts/patch-progress-manual.js
 - ทีมติดตามงานใน Google Sheet (แถบ "ลิงก์ Google Sheet" ในหน้าโครงการ) — ตารางในแอปยังใช้ได้ แต่ **ไม่นับเป็นความคืบหน้า**
 - `projPct(p)` = `p.progress` (ช่อง "ความคืบหน้า %" ในตารางโครงการ) · `projPctKnown` / `projPctLabel` ("—" เมื่อยังไม่กรอก) · `planPct` = ค่าเดียวกัน
 - `physPct` / `_projAutoPct` ยังอยู่ในโค้ดแต่ไม่ถูกใช้คำนวณ % โครงการแล้ว
+
+## Auto PR · ใบขอซื้อ (ตั้งแต่ 14/11/2026 · v1.394.0)
+- หน้าแยก `auto-pr.html` + `auto-pr.js` (`&env=staging` = ข้อมูลทดสอบ) — เปิดจากเมนู "Auto PR · ใบขอซื้อ" ในหน้าโครงการ (`scripts/patch-auto-pr-menu.js`)
+- เข้าสู่ระบบด้วย session ของ Wellcon PM ในเครื่อง (แบบ Quick Measure) · เห็นเฉพาะโครงการที่ได้รับมอบหมาย
+- ข้อมูล: app_state `autoPR` = `{ <pid>: [ { id, no, date, proj, types[], area, items[{ name, qty, unit, code, need, remark }], by, byTitle, pm, status: draft|sent } ] }` — บันทึกแบบอ่าน-รวม-เขียนรายใบ · PM หลักไม่อ่าน/เขียนคีย์นี้
+- ใบ PR พิมพ์ / PDF ตามฟอร์มกระดาษ "Purchase Requisition (PR) ใบขอซื้อ" · ไม่มีราคา · ใบจริงยังต้องลงนาม ผู้ขอซื้อ → QS → PM
+- v1.1.0 ขั้นตอน: `draft` → `sent` (รอ QS) → `approved` (รอจัดซื้อ) / `returned` → `ordered` (เลข Mango · `eta`) → `received` · `cancelled` — `transition()` อ่านล่าสุดแล้วตรวจสถานะก่อนเขียน
+- ผู้รับผิดชอบ: QS = `qs`/`qs_mgr` ในทีมโครงการ (ไม่มี → QS Manager) · จัดซื้อ = `proc` ในทีมโครงการ (ไม่มี → ทุกคนฝ่ายจัดซื้อ) · แจ้งเตือนผ่าน `WCTag.send` (ref_type `apr`) + `/api/line` ไปกลุ่มใน app_state `autoPRCfg` { pid | `_all`: { line } }
+- SLA 24 ชม. (`escQs` / `escProc`) ตรวจฝั่งเครื่องผู้ใช้ตอนเปิดแอป (ยังไม่มีตัวตั้งเวลาฝั่งเซิร์ฟเวอร์)
+- v1.2.0 ใบ PR = รูปแบบ "ใบขอซื้อ/ขอจ้าง" ของ Mango (`formHtml`) · ช่องเพิ่ม: pr `vendor` · `subName` · `note` · `deliverTo` · `buyType` · `system` · item `code` (รหัสต้นทุน) · `mat` (รหัสวัสดุ) · ส่งออก `mgCsv()` (UTF-8 BOM) / `mgRows()` (TSV)
