@@ -176,6 +176,7 @@ node scripts/patch-progress-manual.js
 ```
 ```bash
 node scripts/patch-auto-pr-menu.js
+node scripts/patch-apr-label.js
 ```
 (เมนู Takeoff · วัดหน้างาน · QS Tracking บันทึกทีละแถว · ซ่อนแท็บ Takeoff เดิม — เปิดกลับด้วย `?legacyTakeoff=1` · ติดตั้งเป็นแอป + ไอคอน Wellcon PM · หน้าแรกของฉันตามตำแหน่ง · กันรูป/ข้อมูลหายจาก realtime · เมนู Claim · หน้า Home เลือกโครงการ · หน้าภาพรวมโครงการแบบสั้น · หน้าแรกตามบทบาททุกตำแหน่ง · ปุ่มหน้าแรก + ออกจากระบบทุกหน้า · รายงานประจำวัน คนเข้างานแยกตาม trade · คะแนน Level Gate เห็นเฉพาะ Admin / Director / HR · Site Issues ติดตามงาน · จัดเรียงการ์ดหน้าทำงาน · Super Admin เห็นทุกเมนู · เมนู Layboard · ล็อกอินกันรหัสถูกแต่ขึ้นผิด · เลือกภาษาก่อนพิมพ์ · เมนู As-Built & Survey · หน้าแรกแบบใหม่ (ตัวเลขหลัก · ต้องดูแล · รายการโครงการแถวเดียว) · หน้าภาพรวมโครงการแบบสั้น v2 (พับส่วนรอง) · นับการเปิดแอป + ปุ่มการใช้งานระบบ · ปิด Level Gate ทั้งระบบ · กันแอปพัง removeChild · เมนูลิงก์ Mango ใบขอซื้อ / ใบสั่งจ้าง · หน้าแรกทุกคน: การ์ด PR (Mango) แทน Project Management · แผนงาน: คอลัมน์ผู้สร้างกิจกรรม · การ์ดหน้าแรกรายคน · การ์ดตัวเลขสรุปแตะได้ · Defect Check รวม Survey (ตัด Site Issues) · Drawing Log: ผู้อัปเดต + วันที่ · Revision Note หลายรายการ · ตั้งค่าระบบ: การ์ดหน้าแรก & ฟังก์ชัน ตามตำแหน่ง / รายคน / ทั้งระบบ · เลือกขอบเขต คนเดียว / ทั้งตำแหน่ง · ลิงก์ Google Sheet หน้าจัดซื้อวัสดุ · ย่อ Google Sheet เต็มกรอบ · เอาแถบ Mango ออก · ชีตหลัก / ซูม / ความสูง ใช้ร่วมทั้งโครงการ · หน้า Project Management แบบใหม่ Project Cockpit · ความคืบหน้ากรอกเองเท่านั้น · เมนู Auto PR)
 
@@ -238,7 +239,7 @@ node scripts/patch-auto-pr-menu.js
 - `physPct` / `_projAutoPct` ยังอยู่ในโค้ดแต่ไม่ถูกใช้คำนวณ % โครงการแล้ว
 
 ## Auto PR · ใบขอซื้อ (ตั้งแต่ 14/11/2026 · v1.394.0)
-- หน้าแยก `auto-pr.html` + `auto-pr.js` (`&env=staging` = ข้อมูลทดสอบ) — เปิดจากเมนู "Auto PR · ใบขอซื้อ" ในหน้าโครงการ (`scripts/patch-auto-pr-menu.js`)
+- หน้าแยก `auto-pr.html` + `auto-pr.js` (`&env=staging` = ข้อมูลทดสอบ) — เปิดจากเมนู "ใบขอซื้อ · ใบขอจ้าง" ในหน้าโครงการ (`scripts/patch-auto-pr-menu.js` · ชื่อเมนู `scripts/patch-apr-label.js`)
 - เข้าสู่ระบบด้วย session ของ Wellcon PM ในเครื่อง (แบบ Quick Measure) · เห็นเฉพาะโครงการที่ได้รับมอบหมาย
 - ข้อมูล: app_state `autoPR` = `{ <pid>: [ { id, no, date, proj, types[], area, items[{ name, qty, unit, code, need, remark }], by, byTitle, pm, status: draft|sent } ] }` — บันทึกแบบอ่าน-รวม-เขียนรายใบ · PM หลักไม่อ่าน/เขียนคีย์นี้
 - ใบ PR พิมพ์ / PDF ตามฟอร์มกระดาษ "Purchase Requisition (PR) ใบขอซื้อ" · ไม่มีราคา · ใบจริงยังต้องลงนาม ผู้ขอซื้อ → QS → PM
