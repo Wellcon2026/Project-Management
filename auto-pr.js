@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const APR_VER = 'v1.3.2';   // 1.3.2: ช่องผู้ขาย / ชื่อแทนผู้รับเหมา (ไม่บังคับ · เลือกจากที่เคยใช้) · 1.3.1: ใบ PR เหลือช่องลงนาม 3 ช่อง (ผู้ขอซื้อ · ผู้จัดการโครงการ · ผู้อนุมัติ QS) · 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
+const APR_VER = 'v1.5.0';   // 1.5.0: ลบร่าง / ยกเลิกใบตามสถานะ (ต้องใส่เหตุผล · เก็บประวัติ) · เลือกเอกสาร ใบขอซื้อ / ใบขอจ้าง — เลขที่ PR- / WO- · หน้าจอภาษาไทย · หัวใบ · ประเภทงาน · ข้อความทุกขั้นตอนตามเอกสาร · 1.4.0: ② PM และ QS อนุมัติครบทั้งสองคนก่อนส่งจัดซื้อ (ลำดับไหนก่อนก็ได้ · ใครส่งกลับก็ได้ · ช่องลงนาม ผู้จัดการโครงการ = PM ที่อนุมัติ) · 1.3.2: ช่องผู้ขาย / ชื่อแทนผู้รับเหมา (ไม่บังคับ · เลือกจากที่เคยใช้) · 1.3.1: ใบ PR เหลือช่องลงนาม 3 ช่อง (ผู้ขอซื้อ · ผู้จัดการโครงการ · ผู้อนุมัติ QS) · 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -32,6 +32,13 @@ const ROLE_TH = { pm: 'Project Manager', pm_mgr: 'Project Manager', director: 'P
 const MANGO_URL = 'https://wellcon-interior.mangoanywhere.com/production.anywhere/page/transaction/of/';
 const TYPES = [['subcon', 'ขอจัดจ้าง ของ+แรง', 'Subcon'], ['mat', 'ขอซื้อวัสดุ', 'Material'], ['labour', 'ขอจ้างค่าแรง', 'Labour'],
   ['rent', 'ขอเช่าอุปกรณ์', 'General'], ['cons', 'วัสดุสิ้นเปลือง', 'General'], ['tool', 'ขอซื้อเครื่องมือเครื่องใช้', 'General']];
+// ===== v1.5.0 pr-wo: เลือกเอกสารให้ถูก — ใบขอซื้อ / ใบขอจ้าง (ผู้บริหารสั่ง: เรียก "ใบขอซื้อ" และ "ใบขอจ้าง" · หน้าจอใช้ภาษาไทย · k = อักษรนำหน้าเลขที่เท่านั้น) =====
+const DOCS = { pr: { k: 'PR', th: 'ใบขอซื้อ', tag: 'ขอซื้อ', ic: '🧾', sub: 'ซื้อวัสดุ · อุปกรณ์ · เครื่องมือ · เช่า', types: ['mat', 'cons', 'tool', 'rent'], def: ['mat'] },
+  wo: { k: 'WO', th: 'ใบขอจ้าง', tag: 'ขอจ้าง', ic: '🛠', sub: 'จ้างผู้รับเหมา · ค่าแรง · ของ+แรง', types: ['subcon', 'labour'], def: ['subcon'] } };
+const docOf = (pr) => (pr && (pr.doc || (/^WO-/.test(pr.no || '') ? 'wo' : (pr.types || []).length && (pr.types || []).every(t => DOCS.wo.types.includes(t)) ? 'wo' : 'pr'))) || 'pr';
+const isWo = (pr) => docOf(pr) === 'wo';
+const W = (pr, a, b) => isWo(pr) ? b : a;   // ข้อความตามเอกสาร: (PR, WO)
+const docTh = (pr) => DOCS[docOf(pr)].th;
 const UNITS = ['อัน', 'ชิ้น', 'ตัว', 'ม้วน', 'แผ่น', 'มัด', 'เส้น', 'กล่อง', 'ถุง', 'หลอด', 'กระป๋อง', 'แกลลอน', 'ก้อน', 'ชุด', 'คู่', 'ใบ', 'ดอก', 'แพ็ค', 'เมตร', 'ตร.ม.', 'กก.', 'ลิตร', 'วัน', 'งาน'];
 // ของใช้บ่อยหน้างาน (ตั้งต้น) — ระบบจะเรียนรู้เพิ่มจากใบขอซื้อจริง
 const COMMON = [['เทป PU', 'ม้วน'], ['PU Foam', 'กระป๋อง'], ['ไม้โครง', 'มัด'], ['ไม้อัด', 'แผ่น'], ['ซิลิโคน', 'หลอด'], ['กาวตะปู', 'หลอด'], ['สกรู', 'กล่อง'], ['พุกพลาสติก', 'ถุง'],
@@ -169,28 +176,52 @@ async function openProject(pid) {
 // =====================================================================
 const prNo = (pr) => pr.no || '';
 // =====================================================================
-// v1.1.0 ขั้นตอนอนุมัติ + ติดตาม + แจ้งเตือน
-//   ส่ง PR → QS ของโครงการ อนุมัติ / ส่งกลับแก้ไข → จัดซื้อของโครงการ สั่งของ (เลข PR/PO Mango · วันของถึง) → หน้างานยืนยันรับของ
+// v1.1.0 ขั้นตอนอนุมัติ + ติดตาม + แจ้งเตือน · v1.4.0 dual-approve
+//   v1.4.0 dual-approve: ① Site Manager / Designer ส่ง PR → ② PM และ QS อนุมัติ (ครบทั้งสองคนก่อน · ลำดับไหนก่อนก็ได้ · คนใดคนหนึ่งส่งกลับได้)
+//   → ③ จัดซื้อสั่งของ → ④ หน้างานยืนยันรับของ
+//   (เดิม) ส่ง PR → QS ของโครงการ อนุมัติ / ส่งกลับแก้ไข → จัดซื้อของโครงการ สั่งของ (เลข PR/PO Mango · วันของถึง) → หน้างานยืนยันรับของ
 //   แจ้งเตือน: ระบบแท็ก (popup + กระดิ่ง ทุกแอป) + กลุ่ม LINE ของโครงการ / กลุ่มจัดซื้อ (ถ้าตั้งไว้)
 //   SLA 24 ชม.: QS ยังไม่อนุมัติ → แจ้ง QS Manager + PM · จัดซื้อยังไม่สั่ง → แจ้งจัดซื้อ + PM (ครั้งเดียวต่อใบ · ตรวจตอนมีคนเปิดแอป)
 // =====================================================================
-const STS = { draft: ['ร่าง', '#F3EDE1', '#6B6758'], sent: ['รอ QS อนุมัติ', '#FAF1D6', '#8A6D10'], returned: ['QS ส่งกลับแก้ไข', '#F8E4DF', '#B4332A'],
+const STS = { draft: ['ร่าง', '#F3EDE1', '#6B6758'], sent: ['รอ PM + QS อนุมัติ', '#FAF1D6', '#8A6D10'], returned: ['ส่งกลับแก้ไข', '#F8E4DF', '#B4332A'],
   approved: ['รอจัดซื้อสั่งของ', '#E3ECF5', '#2F5E8C'], ordered: ['สั่งซื้อแล้ว · รอของ', '#EDE7F6', '#5B3F99'], received: ['ได้รับของแล้ว', '#E6EFE0', '#3F5A33'], cancelled: ['ยกเลิก', '#F2EDE3', '#8C877D'] };
 const SLA_H = 24;
 const QS_R = ['qs', 'qs_mgr', 'superadmin', 'director'], PROC_R = ['proc', 'superadmin'], SITE_R = ['site', 'sitemgr', 'pm', 'pm_mgr', 'store', 'superadmin', 'director'];
 const CFG_R = ['pm', 'pm_mgr', 'qs', 'qs_mgr', 'proc', 'superadmin', 'director'];
-const stTag = (s) => { const x = STS[s] || STS.draft; return `<span class="st" style="background:${x[1]};color:${x[2]}">${x[0]}</span>`; };
-const canApprove = () => QS_R.includes(APP.me.role);
+const STS_WO = { approved: 'รอจัดซื้อสั่งจ้าง', ordered: 'สั่งจ้างแล้ว · รอเข้างาน', received: 'ตรวจรับงานแล้ว' };
+const stTag = (s, pr) => { const x = STS[s] || STS.draft; if (pr && isWo(pr) && STS_WO[s]) return `<span class="st" style="background:${x[1]};color:${x[2]}">${STS_WO[s]}</span>`; return `<span class="st" style="background:${x[1]};color:${x[2]}">${x[0]}</span>`; };
+const PM_R = ['pm', 'pm_mgr'], QSO_R = ['qs', 'qs_mgr'], BOSS_R = ['superadmin', 'director'];
+const isBoss = () => BOSS_R.includes(APP.me.role);
+const canPm = () => PM_R.includes(APP.me.role) || isBoss();
+const canQs = () => QSO_R.includes(APP.me.role) || isBoss();
+const canApprove = () => canPm() || canQs();
+// ช่องที่คุณอนุมัติได้ในใบนี้ (ยังไม่มีใครอนุมัติช่องนั้น) · ผู้บริหาร = อนุมัติแทนได้ทุกช่องที่ค้าง
+const mySlots = (pr) => pr.status !== 'sent' ? [] : [PM_R.includes(APP.me.role) || isBoss() ? (pr.pmAt ? '' : 'pm') : '', QSO_R.includes(APP.me.role) || isBoss() ? (pr.qsAt ? '' : 'qs') : ''].filter(Boolean);
+const pendSlots = (pr) => [pr.pmAt ? '' : 'PM', pr.qsAt ? '' : 'QS'].filter(Boolean);
 const canProc = () => PROC_R.includes(APP.me.role);
 const canCfg = () => CFG_R.includes(APP.me.role);
 const isMine = (pr) => norm(pr.byEmail) === APP.me.email;
 const canReceive = (pr) => isMine(pr) || SITE_R.includes(APP.me.role);
 const canEdit = (pr) => !pr.status || (['draft', 'returned'].includes(pr.status) && (isMine(pr) || SITE_R.includes(APP.me.role))) || (pr.status === 'sent' && canApprove());
+// ===== v1.5.0 del-cancel: ลบ / ยกเลิกใบ — กติกาตามสถานะ (เก็บประวัติไว้ตรวจสอบ ไม่ลบข้อมูลจริง) =====
+//   ร่าง (ยังไม่ส่ง)        → ผู้สร้าง / ผู้บริหาร "ลบทิ้ง" ได้เลย (ซ่อนจากรายการ · ยังไม่มีใครเห็น)
+//   รออนุมัติ / ส่งกลับ     → ผู้ขอ · PM · QS · ผู้บริหาร "ยกเลิก" ได้ — ต้องใส่เหตุผล · แจ้ง PM + QS
+//   อนุมัติแล้ว (รอจัดซื้อ)  → PM · QS · จัดซื้อ · ผู้บริหาร ยกเลิกได้ (ผู้ขอแจ้ง PM) — ต้องใส่เหตุผล · แจ้งจัดซื้อ + ผู้ขอ
+//   สั่งของ / สั่งจ้างแล้ว   → จัดซื้อ · ผู้บริหาร เท่านั้น (ต้องยกเลิกใบสั่งใน Mango ด้วย) — ต้องใส่เหตุผล · แจ้งทุกคน
+//   รับของ / ตรวจรับแล้ว    → ยกเลิกไม่ได้ (ปิดงานแล้ว)
+function cancelOpt(pr) {
+  const S = pr.status || 'draft', boss = isBoss(), mine = isMine(pr);
+  if (S === 'draft') return mine || boss ? 'del' : '';
+  if (S === 'sent' || S === 'returned') return mine || PM_R.includes(APP.me.role) || QSO_R.includes(APP.me.role) || boss ? 'cancel' : '';
+  if (S === 'approved') return PM_R.includes(APP.me.role) || QSO_R.includes(APP.me.role) || canProc() || boss ? 'cancel' : '';
+  if (S === 'ordered') return canProc() || boss ? 'cancel' : '';
+  return '';
+}
 const hrs = (t) => t ? (Date.now() - t) / 36e5 : 0;
 const ageTxt = (t) => { const h = hrs(t); return h < 1 ? Math.max(1, Math.round(h * 60)) + ' นาที' : h < 48 ? Math.round(h) + ' ชม.' : Math.round(h / 24) + ' วัน'; };
 const when2 = (t) => { if (!t) return ''; const d = new Date(t); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
-const stAt = (pr) => ({ sent: pr.sentAt, approved: pr.qsAt, ordered: pr.orderedAt, returned: pr.qsAt, received: pr.receivedAt })[pr.status] || pr.upd || pr.at;
-const waitOf = (pr) => ({ sent: 'QS', approved: 'จัดซื้อ', returned: 'ผู้ขอแก้ไข' })[pr.status] || '';
+const stAt = (pr) => ({ sent: pr.sentAt, approved: Math.max(pr.qsAt || 0, pr.pmAt || 0), ordered: pr.orderedAt, returned: pr.retAt || pr.qsAt, received: pr.receivedAt })[pr.status] || pr.upd || pr.at;
+const waitOf = (pr) => ({ sent: pendSlots(pr).join(' + '), approved: 'จัดซื้อ', returned: 'ผู้ขอแก้ไข' })[pr.status] || '';
 const minNeed = (pr) => (pr.items || []).map(i => i.need).filter(Boolean).sort()[0] || '';
 const nameOf = (e) => { const a = APP.accounts.find(x => norm(x.email) === norm(e)); return a ? nickOf(a) : e; };
 const names = (L) => L.map(nameOf).join(', ') || '—';
@@ -202,9 +233,10 @@ function ageBadge(pr) {
 }
 function tracker(pr) {
   const S = pr.status || 'draft', idx = { draft: 0, sent: 1, returned: 1, approved: 2, ordered: 3, received: 4, cancelled: 0 }[S];
-  const steps = [['ส่ง PR', pr.sentAt, pr.by], ['QS อนุมัติ', S === 'returned' ? 0 : pr.qsAt, pr.qsBy], ['จัดซื้อสั่งของ', pr.orderedAt, pr.procBy], ['ของถึงหน้างาน', pr.receivedAt, pr.recvBy]];
+  const ap2 = S === 'returned' ? 0 : (pr.pmAt && pr.qsAt ? Math.max(pr.pmAt, pr.qsAt) : 0);
+  const steps = [['ส่ง' + docTh(pr), pr.sentAt, pr.by], ['PM + QS อนุมัติ', ap2, ['PM ' + (pr.pmBy || ''), 'QS ' + (pr.qsBy || '')].join(' · ')], [W(pr, 'จัดซื้อสั่งของ', 'จัดซื้อสั่งจ้าง'), pr.orderedAt, pr.procBy], [W(pr, 'ของถึงหน้างาน', 'ตรวจรับงาน'), pr.receivedAt, pr.recvBy]];
   return '<div class="trk">' + steps.map(([l, t, who], i) => { const done = i < idx, now = i === idx && S !== 'cancelled', bad = S === 'returned' && i === 1;
-    const sub = done && t ? when2(t) + (who ? ' · ' + who : '') : bad ? 'ส่งกลับแก้ไข' : now ? 'กำลังรอ' : '';
+    const sub = done && t ? when2(t) + (who ? ' · ' + who : '') : bad ? 'ส่งกลับแก้ไข' : now && i === 1 && S === 'sent' ? 'PM ' + (pr.pmAt ? '✓' : 'รอ') + ' · QS ' + (pr.qsAt ? '✓' : 'รอ') : now ? 'กำลังรอ' : '';
     return `<span class="${done ? 'done' : ''}${now ? ' now' : ''}${bad ? ' bad' : ''}">${l}<small>${esc(sub)}</small></span>`; }).join('') + '</div>';
 }
 // ----- คนรับผิดชอบแต่ละขั้น (ตามทีมโครงการ · ไม่มีในโครงการ → หัวหน้าฝ่าย / ทั้งฝ่าย) -----
@@ -214,6 +246,9 @@ function qsOf(pid) { const L = actv().filter(a => ['qs', 'qs_mgr'].includes(a.ro
 function procOf(pid) { const L = actv().filter(a => a.roleKey === 'proc'); const P = L.filter(a => inP(a, pid)); return (P.length ? P : L).map(a => norm(a.email)); }
 function pmsOf(pid) { return actv().filter(a => ['pm', 'pm_mgr'].includes(a.roleKey) && inP(a, pid)).map(a => norm(a.email)); }
 const qsMgr = () => actv().filter(a => a.roleKey === 'qs_mgr').map(a => norm(a.email));
+// PM ผู้อนุมัติ: PM ในทีมโครงการ · ไม่มี → PM Manager
+function pmApprovers(pid) { const P = pmsOf(pid); return P.length ? P : actv().filter(a => a.roleKey === 'pm_mgr').map(a => norm(a.email)); }
+const pmMgr = () => actv().filter(a => a.roleKey === 'pm_mgr').map(a => norm(a.email));
 // ----- แจ้งเตือน: ระบบแท็ก + LINE -----
 const prUrl = (pr) => location.origin + '/auto-pr.html?pid=' + encodeURIComponent(pr.pid) + '&pr=' + encodeURIComponent(pr.id) + (IS_STG ? '&env=staging' : '');
 async function notify(pr, o) {   // o: { title, note, to:[], approve:[], close:'approve'|'all', line }
@@ -252,7 +287,7 @@ async function escalate() {
   const vis = new Set(APP.projects.map(p => p.id));
   for (const pid of Object.keys(APP.all)) { if (!vis.has(pid)) continue;
     for (const pr of (APP.all[pid] || [])) { if (!pr || pr.deleted) continue;
-      if (pr.status === 'sent' && hrs(pr.sentAt) >= SLA_H && !pr.escQs) await esc1(pid, pr, 'sent', 'escQs', [...qsMgr(), ...pmsOf(pid)], 'เกิน 24 ชม. QS ยังไม่อนุมัติ');
+      if (pr.status === 'sent' && hrs(pr.sentAt) >= SLA_H && !pr.escQs) await esc1(pid, pr, 'sent', 'escQs', [...(pr.qsAt ? [] : qsMgr()), ...(pr.pmAt ? [] : pmMgr()), ...pmsOf(pid)], 'เกิน 24 ชม. ' + pendSlots(pr).join(' + ') + ' ยังไม่อนุมัติ');
       else if (pr.status === 'approved' && hrs(pr.qsAt) >= SLA_H && !pr.escProc) await esc1(pid, pr, 'approved', 'escProc', [...procOf(pid), ...pmsOf(pid)], 'เกิน 24 ชม. จัดซื้อยังไม่สั่งของ'); } }
 }
 async function esc1(pid, pr, st, flag, to, why) {
@@ -263,10 +298,10 @@ async function esc1(pid, pr, st, flag, to, why) {
 function inboxOf(pids) {
   const out = [];
   pids.forEach(pid => (APP.all[pid] || []).forEach(pr => { if (!pr || pr.deleted) return; let why = '';
-    if (pr.status === 'sent' && canApprove()) why = '✍️ รอคุณอนุมัติ';
-    else if (pr.status === 'approved' && canProc()) why = '🛒 รอคุณสั่งของ';
-    else if (pr.status === 'returned' && isMine(pr)) why = '↩ QS ส่งกลับ — แก้แล้วส่งใหม่';
-    else if (pr.status === 'ordered' && isMine(pr)) why = '📦 ของถึงแล้วหรือยัง? ยืนยันรับของ';
+    if (pr.status === 'sent' && mySlots(pr).length) why = '✍️ รอคุณอนุมัติ (' + mySlots(pr).map(x => x.toUpperCase()).join(' + ') + ')';
+    else if (pr.status === 'approved' && canProc()) why = W(pr, '🛒 รอคุณสั่งของ', '🛒 รอคุณสั่งจ้าง');
+    else if (pr.status === 'returned' && isMine(pr)) why = '↩ ' + (pr.retRole || 'QS') + ' ส่งกลับ — แก้แล้วส่งใหม่';
+    else if (pr.status === 'ordered' && isMine(pr)) why = W(pr, '📦 ของถึงแล้วหรือยัง? ยืนยันรับของ', '🛠 งานเสร็จแล้วหรือยัง? ตรวจรับงาน');
     else if (pr.status === 'draft' && isMine(pr)) why = '📝 ร่างที่ยังไม่ได้ส่ง';
     if (why) out.push({ pr, why, pid }); }));
   return out.sort((a, b) => (stAt(a.pr) || 0) - (stAt(b.pr) || 0));
@@ -274,7 +309,7 @@ function inboxOf(pids) {
 function inboxHtml(L, showProj) {
   if (!L.length) return '';
   return `<div class="card inbox"><div class="h"><span class="n" style="background:var(--acc)">${L.length}</span>งานที่รอคุณ <small>แตะเพื่อเปิด</small></div>` + L.slice(0, 20).map(x =>
-    `<button class="ib" data-open="${esc(x.pr.id)}" data-opid="${esc(x.pid)}"><span><b>${esc(x.why)}</b><small>${esc(x.pr.no)}${showProj ? ' · ' + esc(x.pr.proj) : ''} · ${(x.pr.items || []).length} รายการ · ${esc(x.pr.by || '')}</small></span>${ageBadge(x.pr)}</button>`).join('') + '</div>';
+    `<button class="ib" data-open="${esc(x.pr.id)}" data-opid="${esc(x.pid)}"><span><b>${esc(x.why)}</b><small>${docTh(x.pr)} · ${esc(x.pr.no)}${showProj ? ' · ' + esc(x.pr.proj) : ''} · ${(x.pr.items || []).length} รายการ · ${esc(x.pr.by || '')}</small></span>${ageBadge(x.pr)}</button>`).join('') + '</div>';
 }
 function openPr(pid, id) {
   const go = () => { const f = (APP.all[pid] || []).find(x => x.id === id); if (!f) { toast('ไม่พบใบขอซื้อนี้'); return; } APP.pr = JSON.parse(JSON.stringify(f)); openView(); };
@@ -298,24 +333,24 @@ async function editCfg() {
 // =====================================================================
 // รายการใบขอซื้อ
 // =====================================================================
-const FILT = [['all', 'ทั้งหมด'], ['sent', 'รอ QS'], ['approved', 'รอจัดซื้อ'], ['ordered', 'สั่งแล้ว'], ['received', 'ได้รับแล้ว'], ['draft', 'ร่าง / ส่งกลับ']];
-const inF = (pr, k) => k === 'all' ? pr.status !== 'cancelled' : k === 'draft' ? ['draft', 'returned'].includes(pr.status || 'draft') : pr.status === k;
+const FILT = [['all', 'ทั้งหมด'], ['d:pr', '🧾 ใบขอซื้อ'], ['d:wo', '🛠 ใบขอจ้าง'], ['sent', 'รออนุมัติ'], ['approved', 'รอจัดซื้อ'], ['ordered', 'สั่งแล้ว'], ['received', 'ได้รับแล้ว'], ['draft', 'ร่าง / ส่งกลับ'], ['cancelled', 'ยกเลิก']];
+const inF = (pr, k) => k === 'all' ? pr.status !== 'cancelled' : k === 'd:pr' || k === 'd:wo' ? pr.status !== 'cancelled' && docOf(pr) === k.slice(2) : k === 'draft' ? ['draft', 'returned'].includes(pr.status || 'draft') : pr.status === k;
 function renderList() {
   const all = myPrs(), f = APP.filt || 'all', L = all.filter(pr => inF(pr, f)); const h = [];
   h.push(inboxHtml(inboxOf([APP.pid]), false));
   h.push('<div class="chips">' + FILT.map(([k, l]) => `<button class="chip${k === f ? ' on' : ''}" data-filt="${k}">${l} <small>${all.filter(pr => inF(pr, k)).length}</small></button>`).join('')
     + `<button class="chip" data-catv>📚 รายการวัสดุ ${(APP.cat.items || []).length ? '(' + APP.cat.items.length + ')' : (canCfg() ? '— นำเข้า' : '')}</button>`
     + '<button class="chip" data-reload title="โหลดใหม่">↻ โหลดใหม่</button>' + (canCfg() ? `<button class="chip add" data-cfg>🔔 LINE ${((APP.cfg || {})[APP.pid] || {}).line ? '✓' : '— ตั้งค่า'}</button>` : '') + '</div>');
-  if (!all.length) h.push(`<div class="card" style="align-items:center;text-align:center;padding:26px 16px"><div style="font-size:40px">🧾</div><b style="font-size:17px">ยังไม่มีใบขอซื้อในโครงการนี้</b>
-    <span style="color:var(--mut);font-size:14px">กด “＋ สร้างใบขอซื้อใหม่” — ระบบกรอกชื่อโครงการ วันที่ ชื่อผู้ขอ และผู้อนุมัติให้เอง</span></div>`);
+  if (!all.length) h.push(`<div class="card" style="align-items:center;text-align:center;padding:26px 16px"><div style="font-size:40px">🧾</div><b style="font-size:17px">ยังไม่มีใบขอซื้อ / ใบขอจ้างในโครงการนี้</b>
+    <span style="color:var(--mut);font-size:14px">ซื้อของ กด “🧾 สร้างใบขอซื้อ” · จ้างผู้รับเหมา / ค่าแรง กด “🛠 สร้างใบขอจ้าง” — ระบบกรอกชื่อโครงการ วันที่ ชื่อผู้ขอ และผู้อนุมัติให้เอง</span></div>`);
   else if (!L.length) h.push('<p class="empty">ไม่มีใบขอซื้อในสถานะนี้</p>');
   else h.push('<div class="list">' + L.map(pr => {
     const n = (pr.items || []).length, first = (pr.items || []).slice(0, 3).map(i => i.name).join(' · ');
-    return `<div class="card pr-c"><div class="t"><b>${esc(prNo(pr))}</b>${stTag(pr.status)}</div>
+    return `<div class="card pr-c"><div class="t"><b>${esc(prNo(pr))}</b><span class="dk-${docOf(pr)}">${DOCS[docOf(pr)].tag}</span>${stTag(pr.status, pr)}</div>
       <div class="s">${esc(thDate(pr.date))} · ${n} รายการ · โดย ${esc(pr.by || '—')}${pr.mangoNo ? ' · Mango ' + esc(pr.mangoNo) : ''}</div><div style="font-size:14px">${esc(first)}${n > 3 ? ' …' : ''}</div>
       ${pr.status && pr.status !== 'cancelled' ? tracker(pr) : ''}<div>${ageBadge(pr)}</div>
-      <div class="b"><button class="btn sm dk" data-view="${esc(pr.id)}">👁 เปิด</button>${canEdit(pr) ? `<button class="btn sm" data-edit="${esc(pr.id)}">✎ แก้ไข</button>` : ''}<button class="btn sm" data-copy="${esc(pr.id)}">⧉ ขอซ้ำ</button></div></div>`; }).join('') + '</div>');
-  h.push(`<p class="ver">Auto PR ${APR_VER} · ไม่มีราคา · ขั้นตอน: ส่ง PR → QS อนุมัติ → จัดซื้อสั่งของ → หน้างานรับของ</p>`);
+      <div class="b"><button class="btn sm dk" data-view="${esc(pr.id)}">👁 เปิด</button>${canEdit(pr) ? `<button class="btn sm" data-edit="${esc(pr.id)}">✎ แก้ไข</button>` : ''}<button class="btn sm" data-copy="${esc(pr.id)}">⧉ ขอซ้ำ</button>${cancelOpt(pr) === 'del' ? `<button class="btn sm" data-del="${esc(pr.id)}" style="color:#B4332A">🗑 ลบ</button>` : ''}</div>${pr.status === 'cancelled' ? `<div class="s" style="color:#B4332A">ยกเลิกโดย ${esc(pr.cancelBy || '—')}${pr.cancelNote ? ' — ' + esc(pr.cancelNote) : ''}</div>` : ''}</div>`; }).join('') + '</div>');
+  h.push(`<p class="ver">ใบขอซื้อ / ใบขอจ้าง ${APR_VER} · ไม่มีราคา · ขั้นตอน: ① Site Manager / Designer ส่งใบขอซื้อ / ใบขอจ้าง → ② PM + QS อนุมัติ → ③ จัดซื้อสั่งของ / สั่งจ้าง → ④ หน้างานรับของ / ตรวจรับงาน</p>`);
   $('listBody').innerHTML = h.join('');
 }
 $('listBody').addEventListener('click', (e) => {
@@ -326,12 +361,14 @@ $('listBody').addEventListener('click', (e) => {
   if (e.target.closest('[data-catv]')) { openCat(false); return; }
   if (e.target.closest('[data-cfg]')) { editCfg(); return; }
   if (ib) { openPr(ib.dataset.opid, ib.dataset.open); return; }
+  const dl = e.target.closest('[data-del]'); if (dl) { const f = find(dl.dataset.del); if (f) delDraft(f); return; }
   if (v) { APP.pr = JSON.parse(JSON.stringify(find(v.dataset.view))); openView(); }
   else if (ed) { APP.pr = JSON.parse(JSON.stringify(find(ed.dataset.edit))); renderEdit(); show('edit', true); }
-  else if (cp) { const src = find(cp.dataset.copy); APP.pr = newPr(); APP.pr.types = (src.types || []).slice(); APP.pr.area = src.area || '';
+  else if (cp) { const src = find(cp.dataset.copy); APP.pr = newPr(docOf(src)); APP.pr.types = (src.types || []).slice(); APP.pr.area = src.area || '';
     APP.pr.items = (src.items || []).map(i => ({ ...i, need: defNeed() })); renderEdit(); show('edit', true); toast('คัดลอกรายการจากใบเดิมแล้ว — ตรวจจำนวนอีกครั้ง'); }
 });
-$('btnNew').addEventListener('click', () => { APP.pr = newPr(); renderEdit(); show('edit', true); });
+$('btnNew').addEventListener('click', () => { APP.pr = newPr('pr'); renderEdit(); show('edit', true); });
+$('btnNewWo').addEventListener('click', () => { APP.pr = newPr('wo'); renderEdit(); show('edit', true); });
 
 // =====================================================================
 // v1.3.0 Phase 2 — รายการวัสดุโครงการ: นำเข้า Material Log / ใบเสนอราคา (Excel · CSV · ลิงก์ Google Sheet)
@@ -453,7 +490,7 @@ function addFromCat(ids) {
 function renderCat() {
   const C = APP.cat || { sources: [], items: [] }, pick = APP.catPick, h = [];
   $('catTitle').textContent = pick ? 'เลือกของจากรายการวัสดุ' : 'รายการวัสดุโครงการ';
-  $('catFoot').hidden = !pick; if (pick) $('btnCatAdd').textContent = pick.size ? '✓ เพิ่ม ' + pick.size + ' รายการเข้าใบ PR' : 'แตะ ＋ เพื่อเลือกของ';
+  $('catFoot').hidden = !pick; if (pick) $('btnCatAdd').textContent = pick.size ? '✓ เพิ่ม ' + pick.size + ' รายการเข้า' + docTh(APP.pr) : 'แตะ ＋ เพื่อเลือกของ';
   $('btnCatAdd').disabled = !pick || !pick.size;
   if (canCfg() && !pick) {
     h.push(`<div class="card"><div class="h"><span class="n">📥</span>นำเข้า Material Log / ใบเสนอราคา <small>QS · PM · จัดซื้อ</small></div>
@@ -497,7 +534,7 @@ $('catBody').addEventListener('click', async (e) => {
   else if (a === 'commit') commitImport();
   else if (a === 'cancel') { APP.imp = null; renderCat(); }
   else if (a === 'refresh') { const s0 = (APP.cat.sources || []).find(x => x.id === c.dataset.id); if (s0) importSheetUrl(s0.url); }
-  else if (a === 'del') { const s0 = (APP.cat.sources || []).find(x => x.id === c.dataset.id); if (!s0 || !confirm('ลบรายการ “' + s0.name + '” (' + s0.count + ' รายการ)?\nใบ PR เดิมไม่เปลี่ยน')) return;
+  else if (a === 'del') { const s0 = (APP.cat.sources || []).find(x => x.id === c.dataset.id); if (!s0 || !confirm('ลบรายการ “' + s0.name + '” (' + s0.count + ' รายการ)?\nใบขอซื้อ / ใบขอจ้างเดิมไม่เปลี่ยน')) return;
     try { await saveCat(APP.pid, v => { v.sources = (v.sources || []).filter(x => x.id !== s0.id); v.items = (v.items || []).filter(i => i.src !== s0.id); }); renderCat(); toast('ลบแล้ว'); } catch (x) { toast('ลบไม่สำเร็จ: ' + ((x && x.message) || x)); } }
 });
 $('catBody').addEventListener('change', (e) => {
@@ -521,11 +558,14 @@ function pmOf(p) { // ผู้อนุมัติ = PM ของโครง�
   const t = String((p && (p.pm || p.pmName)) || '').split(/[,·/]/)[0].trim(); if (t) return t;
   const a = APP.accounts.find(x => ['pm', 'pm_mgr'].includes(x.roleKey) && (x.projects || []).includes(APP.pid)); return a ? nickOf(a) : '';
 }
-function newPr() {
-  const d = new Date(); let types = ['mat']; try { const s = JSON.parse(localStorage.getItem(lastTypesKey()) || 'null'); if (Array.isArray(s) && s.length) types = s; } catch (e) {}
+function newPr(doc) {
+  doc = doc === 'wo' ? 'wo' : 'pr'; const D = DOCS[doc];
+  const d = new Date(); let types = D.def.slice(); try { const s = JSON.parse(localStorage.getItem(lastTypesKey()) || 'null'); if (Array.isArray(s) && s.length && s.every(t => D.types.includes(t))) types = s; } catch (e) {}
   const code = String(projCode(APP.proj) || 'PR').replace(/[^\w-]/g, '').slice(0, 12) || 'PR';
-  const today = myPrs().filter(x => x.date === isoOf(d)).length + 1;
-  return { id: uid(), pid: APP.pid, no: 'PR-' + code + '-' + String(d.getFullYear() + 543).slice(2) + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + pad(today),
+  const allP = (APP.all[APP.pid] || []).filter(Boolean); let today = allP.filter(x => x.date === isoOf(d)).length + 1;   // นับใบที่ลบ / ยกเลิกด้วย — เลขที่ไม่ซ้ำ
+  const ymd = String(d.getFullYear() + 543).slice(2) + pad(d.getMonth() + 1) + pad(d.getDate());
+  while (allP.some(x => String(x.no || '').slice(3) === code + '-' + ymd + '-' + pad(today))) today++;
+  return { id: uid(), pid: APP.pid, doc, no: D.k + '-' + code + '-' + String(d.getFullYear() + 543).slice(2) + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + pad(today),
     date: isoOf(d), proj: projName(APP.proj), types, area: '', items: [], by: APP.me.full || APP.me.name, byEmail: APP.me.email, byTitle: APP.me.title,
     pm: pmOf(APP.proj), status: 'draft', at: Date.now(),
     deliverTo: projName(APP.proj), vendor: '', subName: '', note: '', buyType: 'Cost', system: 'Construction' };
@@ -533,17 +573,23 @@ function newPr() {
 let L = null;   // ผลการเรียนรู้ (คำนวณตอนเปิดหน้าแก้ไข)
 function renderEdit() {
   const pr = APP.pr; L = learn();
-  $('edTitle').textContent = pr.status && pr.status !== 'draft' ? 'แก้ไข ' + pr.no : 'ใบขอซื้อใหม่';
-  $('btnSend').textContent = pr.status === 'sent' ? '✓ บันทึกการแก้ไข' : pr.status === 'returned' ? '↻ ส่งใหม่ให้ QS' : '✓ ส่ง PR'; $('btnDraft').hidden = pr.status === 'sent';
+  const D = DOCS[docOf(pr)]; $('edTitle').textContent = pr.status && pr.status !== 'draft' ? 'แก้ไข ' + pr.no : D.th + 'ใหม่';
+  const lockDoc = pr.status && !['draft', 'returned'].includes(pr.status);
+  $('docBox').innerHTML = Object.entries(DOCS).map(([k, x]) => `<button class="dbtn d-${k}${docOf(pr) === k ? ' on' : ''}" data-doc="${k}"${lockDoc && docOf(pr) !== k ? ' disabled' : ''}><b>${x.ic} ${x.th}</b><small>${x.sub}</small></button>`).join('');
+  $('pvHead').textContent = 'ตัวอย่าง' + D.th;
+  $('itemHead').textContent = W(pr, 'ของที่ต้องการ', 'งานที่ต้องการจ้าง');
+  $('q').placeholder = W(pr, 'พิมพ์ชื่อของ เช่น เทป PU / ไม้อัด', 'พิมพ์ชื่องาน เช่น ติดตั้งฝ้า / ค่าแรงช่างไม้');
+  $('btnSend').textContent = pr.status === 'sent' ? '✓ บันทึกการแก้ไข' : pr.status === 'returned' ? '↻ ส่งใหม่ให้ PM + QS' : '✓ ส่ง' + D.th; $('btnDraft').hidden = pr.status === 'sent';
   // กรอกอัตโนมัติ (แตะเพื่อแก้)
-  const F = [['proj', 'ชื่อโครงการ', pr.proj], ['date', 'วันที่', pr.date, 'date'], ['by', 'ผู้ขอซื้อ', pr.by], ['byTitle', 'ตำแหน่ง', pr.byTitle], ['pm', 'ผู้อนุมัติ (PM)', pr.pm], ['deliverTo', 'สถานที่ส่งของ', pr.deliverTo == null ? pr.proj : pr.deliverTo]];
+  const F = [['proj', 'ชื่อโครงการ', pr.proj], ['date', 'วันที่', pr.date, 'date'], ['by', W(pr, 'ผู้ขอซื้อ', 'ผู้ขอจ้าง'), pr.by], ['byTitle', 'ตำแหน่ง', pr.byTitle], ['pm', 'ผู้อนุมัติ (PM)', pr.pm], ['deliverTo', W(pr, 'สถานที่ส่งของ', 'สถานที่ปฏิบัติงาน'), pr.deliverTo == null ? pr.proj : pr.deliverTo]];
   $('autoBox').innerHTML = F.map(([k, l, v, ty]) => `<label class="af"><small>${l} <span class="tag">อัตโนมัติ</span></small><input data-af="${k}" type="${ty || 'text'}" value="${esc(v || '')}"></label>`).join('');
   // ผู้ขาย / ชื่อแทนผู้รับเหมา — ไม่บังคับ · เว้นว่างได้ (จัดซื้อกรอกใน Mango) · รายชื่อที่เคยใช้ในทุกโครงการ
   const seen = (k) => [...new Set(Object.values(APP.all).flat().map(x => String((x && x[k]) || '').trim()).filter(Boolean))].slice(0, 60);
   $('vendList').innerHTML = seen('vendor').map(v => `<option value="${esc(v)}">`).join(''); $('subList').innerHTML = seen('subName').map(v => `<option value="${esc(v)}">`).join('');
-  $('optBox').innerHTML = `<label class="af"><small>ผู้ขาย</small><input data-af="vendor" list="vendList" value="${esc(pr.vendor || '')}" placeholder="เว้นว่างได้" autocomplete="off"></label>`
-    + `<label class="af"><small>ชื่อแทนผู้รับเหมา</small><input data-af="subName" list="subList" value="${esc(pr.subName || '')}" placeholder="เว้นว่างได้" autocomplete="off"></label>`;
-  $('typeBox').innerHTML = TYPES.map(([k, l, e]) => `<button class="chip${pr.types.includes(k) ? ' on' : ''}" data-ty="${k}">${pr.types.includes(k) ? '✓ ' : ''}${l} <small>${e}</small></button>`).join('');
+  const fV = `<label class="af"><small>ผู้ขาย</small><input data-af="vendor" list="vendList" value="${esc(pr.vendor || '')}" placeholder="เว้นว่างได้" autocomplete="off"></label>`,
+    fS = `<label class="af"><small>ชื่อแทนผู้รับเหมา</small><input data-af="subName" list="subList" value="${esc(pr.subName || '')}" placeholder="เว้นว่างได้" autocomplete="off"></label>`;
+  $('optBox').innerHTML = isWo(pr) ? fS + fV : fV + fS;   // WO: ผู้รับเหมาขึ้นก่อน
+  $('typeBox').innerHTML = TYPES.filter(([k]) => D.types.includes(k) || pr.types.includes(k)).map(([k, l]) => `<button class="chip${pr.types.includes(k) ? ' on' : ''}" data-ty="${k}">${pr.types.includes(k) ? '✓ ' : ''}${l}</button>`).join('');
   const nc = (APP.cat.items || []).length; $('catBtn').innerHTML = nc ? `<button class="btn dk" data-catpick style="width:100%">📚 เลือกจากรายการวัสดุโครงการ (${nc} รายการ)</button>` : '';
   renderArea(); renderFav(); renderItems(); renderSug(); preview();
 }
@@ -592,6 +638,10 @@ function addItem(name) {
 // ----- เหตุการณ์ -----
 $('autoBox').addEventListener('input', (e) => { const k = e.target.dataset.af; if (!k) return; APP.pr[k] = e.target.value; preview(); draftSave(); });
 $('optBox').addEventListener('input', (e) => { const k = e.target.dataset.af; if (!k) return; APP.pr[k] = e.target.value.trim(); preview(); draftSave(); });
+$('docBox').addEventListener('click', (e) => { const b = e.target.closest('[data-doc]'); if (!b || b.disabled) return; const pr = APP.pr, k = b.dataset.doc; if (docOf(pr) === k) return; const D = DOCS[k];
+  pr.doc = k; pr.types = pr.types.filter(t => D.types.includes(t)); if (!pr.types.length) pr.types = D.def.slice();
+  if (!pr.status || pr.status === 'draft') pr.no = String(pr.no || '').replace(/^(PR|WO)-/, D.k + '-');   // ยังไม่ส่ง → เปลี่ยนเลขที่ตามเอกสาร
+  renderEdit(); draftSave(); toast('เปลี่ยนเป็น' + D.th + 'แล้ว'); });
 $('typeBox').addEventListener('click', (e) => { const b = e.target.closest('[data-ty]'); if (!b) return; const T = APP.pr.types, k = b.dataset.ty;
   APP.pr.types = T.includes(k) ? T.filter(x => x !== k) : [...T, k]; renderEdit(); draftSave(); });
 $('areaBox').addEventListener('click', (e) => {
@@ -640,9 +690,10 @@ async function doSave(mode) {   // mode: 'draft' | 'send'
   const err = check(pr); if (err) { toast(err, 3200); renderItems(); return false; }
   const was = pr.status || 'draft';
   const ov = overList(pr); pr.overBoq = ov.length;
-  if (mode === 'send' && ov.length && was !== 'sent' && !confirm('มี ' + ov.length + ' รายการ ขอเกินปริมาณใน Material Log:\n' + ov.map(x => '• ' + x.it.name.slice(0, 40) + ' เกิน ' + fmtN(x.b.over) + ' ' + x.b.unit).join('\n') + '\n\nส่งให้ QS ตัดสินใจ?')) return false;
-  if (mode === 'send' && ['draft', 'returned'].includes(was)) { pr.status = 'sent'; pr.sentAt = Date.now(); pr.qsAt = 0; pr.qsBy = ''; pr.escQs = 0; logIt(pr, was === 'returned' ? '↻ แก้ไขแล้วส่งใหม่' : '📨 ส่ง PR'); }
-  else if (mode === 'send' && was === 'sent') logIt(pr, '✎ QS แก้ไขรายการ');
+  if (mode === 'send' && ov.length && was !== 'sent' && !confirm('มี ' + ov.length + ' รายการ ขอเกินปริมาณใน Material Log:\n' + ov.map(x => '• ' + x.it.name.slice(0, 40) + ' เกิน ' + fmtN(x.b.over) + ' ' + x.b.unit).join('\n') + '\n\nส่งให้ PM + QS ตัดสินใจ?')) return false;
+  if (mode === 'send' && ['draft', 'returned'].includes(was)) { pr.status = 'sent'; pr.sentAt = Date.now(); pr.qsAt = 0; pr.qsBy = ''; pr.qsEmail = ''; pr.pmAt = 0; pr.pmBy = ''; pr.pmEmail = ''; pr.escQs = 0;   // v1.4.0 dual-approve
+   logIt(pr, was === 'returned' ? '↻ แก้ไขแล้วส่งใหม่' : '📨 ส่ง' + docTh(pr)); }
+  else if (mode === 'send' && was === 'sent') logIt(pr, '✎ ' + (PM_R.includes(APP.me.role) ? 'PM' : QSO_R.includes(APP.me.role) ? 'QS' : 'ผู้อนุมัติ') + ' แก้ไขรายการ');
   else pr.status = was;
   pr.upd = Date.now(); pr.updBy = APP.me.name;
   const b1 = $('btnSend'), b2 = $('btnDraft'); b1.disabled = b2.disabled = true;
@@ -655,9 +706,9 @@ $('btnDraft').addEventListener('click', async () => { if (await doSave('draft'))
 $('btnSend').addEventListener('click', async () => {
   const r = await doSave('send'); if (!r) return; const pr = APP.pr;
   if (pr.status === 'sent' && r.was !== 'sent') {
-    await notify(pr, { title: '✍️ ขออนุมัติใบขอซื้อ ' + pr.no + ' · ' + pr.proj + ' (' + pr.items.length + ' รายการ)', note: 'โดย ' + pr.by + (minNeed(pr) ? ' · ต้องการของ ' + thDate(minNeed(pr)) : '') + (pr.overBoq ? ' · ⚠ ขอเกิน Material Log ' + pr.overBoq + ' รายการ' : ''),
-      approve: qsOf(pr.pid), to: pmsOf(pr.pid), close: 'all', line: (r.was === 'returned' ? '↻ แก้ไขแล้วส่งใหม่' : '📨 ส่ง PR') + ' โดย ' + pr.by + ' → รอ QS อนุมัติ (' + names(qsOf(pr.pid)) + ')' });
-    toast('ส่งแล้ว — แจ้ง QS ของโครงการแล้ว (' + names(qsOf(pr.pid)) + ')', 3200);
+    await notify(pr, { title: '✍️ ขออนุมัติ' + docTh(pr) + ' ' + pr.no + ' · ' + pr.proj + ' (' + pr.items.length + ' รายการ)', note: 'โดย ' + pr.by + (minNeed(pr) ? ' · ต้องการของ ' + thDate(minNeed(pr)) : '') + (pr.overBoq ? ' · ⚠ ขอเกิน Material Log ' + pr.overBoq + ' รายการ' : ''),
+      approve: [...pmApprovers(pr.pid), ...qsOf(pr.pid)], close: 'all', line: (r.was === 'returned' ? '↻ แก้ไขแล้วส่งใหม่' : '📨 ส่ง' + docTh(pr)) + ' โดย ' + pr.by + ' → รอ PM (' + names(pmApprovers(pr.pid)) + ') + QS (' + names(qsOf(pr.pid)) + ') อนุมัติ' });
+    toast('ส่งแล้ว — แจ้ง PM (' + names(pmApprovers(pr.pid)) + ') และ QS (' + names(qsOf(pr.pid)) + ') แล้ว', 3600);
   } else toast('บันทึกการแก้ไขแล้ว');
   openView(true);
 });
@@ -678,27 +729,27 @@ function mgNote(pr) {   // หมายเหตุหัวใบ: ประเ
 }
 function formHtml(pr) {
   const its = (pr.items || []).filter(i => String(i.name || '').trim());
-  const qsOk = pr.qsAt && pr.status !== 'returned';
+  const qsOk = pr.qsAt && pr.status !== 'returned', pmOk = pr.pmAt && pr.status !== 'returned';
   const sig = (nm, role, dt) => `<div class="sg"><div class="sl"></div><div class="sn">${esc(nm || '')}</div><div class="sr">${role}</div><div class="sd">วันที่ <span>${esc(dt || '')}</span></div></div>`;
   return `<div class="pr mg-f">
     <div class="mh"><div class="lg"><svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><path d="M20 3 36 11v18L20 37 4 29V11z" fill="#3A3A3A"/><path d="M20 3 36 11 20 19 4 11z" fill="#6B6B6B"/><path d="M20 19v18L4 29V11z" fill="#262626"/></svg>
       <div><b>wellcon</b><small>Interior contractor &amp; furniture maker</small></div></div>
       <div class="co2"><div class="pg">Page 1/1</div><b>บริษัท เวลล์คอน อินทีเรีย จำกัด</b> (สำนักงานใหญ่)<br>36/38 โครงการเซนโทรพอร์ต ม.13 ต.บึงคำพร้อย<br>อ.ลำลูกกา จ.ปทุมธานี 12150 Tel : 02-1525430<br>Tax ID : 0105560007187 mail: service@wellcon.co.th</div></div>
-    <div class="mt">ใบขอซื้อ/ขอจ้าง</div>
+    <div class="mt">${docTh(pr)}</div>
     <div class="mi"><div>
       <div><b>โครงการ / แผนก</b><span>: ${esc(projLabel(pr))}</span></div>
       <div><b>ผู้ขาย</b><span>: ${esc(pr.vendor || '')}</span></div>
       <div><b>ชื่อแทนผู้รับเหมา</b><span>: ${esc(pr.subName || '')}</span></div>
       <div><b>หมายเหตุ</b><span>: ${esc(mgNote(pr))}</span></div>
-      <div><b>สถานที่ส่งของ</b><span>: ${esc(pr.deliverTo == null ? pr.proj : pr.deliverTo)}</span></div></div>
+      <div><b>${W(pr, 'สถานที่ส่งของ', 'สถานที่ปฏิบัติงาน')}</b><span>: ${esc(pr.deliverTo == null ? pr.proj : pr.deliverTo)}</span></div></div>
       <div class="r"><div><b>เลขที่</b><span>: ${esc(pr.mangoNo || pr.no)}</span></div><div><b>วันที่</b><span>: ${esc(ceDate(pr.date))}</span></div>
-      <div><b>ประเภทการซื้อ</b><span>: ${esc(pr.buyType || 'Cost')}</span></div><div><b>ระบบงาน</b><span>: ${esc(pr.system || 'Construction')}</span></div>
+      <div><b>${W(pr, 'ประเภทการซื้อ', 'ประเภทการจ้าง')}</b><span>: ${esc(pr.buyType || 'Cost')}</span></div><div><b>ระบบงาน</b><span>: ${esc(pr.system || 'Construction')}</span></div>
       ${pr.mangoNo ? `<div><b>อ้างอิง</b><span>: ${esc(pr.no)}</span></div>` : ''}</div></div>
     <table class="mtb"><thead><tr><th style="width:44px">ลำดับ</th><th style="width:86px">รหัสต้นทุน</th><th style="width:130px">รหัสวัสดุ</th><th>รายการ</th><th style="width:74px">จำนวน</th><th style="width:62px">หน่วย</th><th style="width:86px">วันที่ส่งของ</th></tr></thead>
       <tbody>${its.map((it, i) => `<tr><td class="c">${i + 1}</td><td class="c">${esc(it.code || '')}</td><td class="c">${esc(it.mat || '')}</td><td>${esc(it.name)}</td><td class="n">${esc(qty2(it.qty))}</td><td class="c">${esc(it.unit)}</td><td class="c">${esc(ceDate(it.need))}</td></tr>`).join('')}
       <tr class="fill" style="height:${Math.max(40, 560 - its.length * 27)}px"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody></table>
-    <div class="msg">${sig(pr.by, 'ผู้ขอซื้อ', ceDate(pr.date))}${sig(pr.pm, 'ผู้จัดการโครงการ', '')}${sig(qsOk ? pr.qsBy : '', 'ผู้อนุมัติ', qsOk ? ceDate(isoOf(new Date(pr.qsAt))) : '')}</div>
-    <div class="doc"><span>อ้างอิง Auto PR ${esc(pr.no)}</span><span>รูปแบบ Mango · ไม่มีราคา</span></div></div>`;
+    <div class="msg">${sig(pr.by, W(pr, 'ผู้ขอซื้อ', 'ผู้ขอจ้าง'), ceDate(pr.date))}${sig(pmOk ? pr.pmBy : '', 'ผู้จัดการโครงการ', pmOk ? ceDate(isoOf(new Date(pr.pmAt))) : '')}${sig(qsOk ? pr.qsBy : '', 'ผู้อนุมัติ', qsOk ? ceDate(isoOf(new Date(pr.qsAt))) : '')}</div>
+    <div class="doc"><span>อ้างอิงในระบบ ${esc(pr.no)}</span><span>รูปแบบ Mango · ไม่มีราคา</span></div></div>`;
 }
 function fit(box) { const w = box.clientWidth; const pr = box.querySelector('.pr'); if (!pr || !w) return; const k = Math.min(1, w / 794); pr.style.transform = 'scale(' + k + ')'; box.style.height = Math.ceil(pr.offsetHeight * k) + 'px'; }
 let pvT = null;
@@ -707,28 +758,34 @@ window.addEventListener('resize', () => { ['pvSide', 'pvMain'].forEach(id => { c
 
 function textOf(pr) {
   const its = pr.items.filter(i => String(i.name || '').trim());
-  return ['ใบขอซื้อ ' + pr.no, 'โครงการ: ' + pr.proj, 'วันที่: ' + thDate(pr.date), 'ประเภท: ' + TYPES.filter(t => pr.types.includes(t[0])).map(t => t[1]).join(', '), '',
+  return [docTh(pr) + ' ' + pr.no, 'โครงการ: ' + pr.proj, 'วันที่: ' + thDate(pr.date), 'ประเภท: ' + TYPES.filter(t => pr.types.includes(t[0])).map(t => t[1]).join(', '), '',
     ...its.map((i, n) => (n + 1) + '. ' + i.name + ' — ' + i.qty + ' ' + i.unit + (i.need ? ' · ต้องการ ' + thDate(i.need) : '') + (i.remark ? ' · ' + i.remark : '')), '',
     'ผู้ขอซื้อ: ' + pr.by + (pr.byTitle ? ' (' + pr.byTitle + ')' : '') + (pr.pm ? ' · ผู้อนุมัติ: ' + pr.pm : '')].join('\n');
 }
 function actionsHtml(pr) {
   const S = pr.status || 'draft', out = [];
   const wait = (t, who) => `<div class="card act"><b>⏳ ${t}</b><span class="s">ผู้รับผิดชอบ: ${esc(who)} · ระบบแจ้งเตือนแล้ว</span></div>`;
-  if (S === 'draft' || S === 'returned') { if (canEdit(pr)) out.push(`<div class="card act"><b>${S === 'returned' ? '↩ QS ส่งกลับให้แก้ไข' : '📝 ใบนี้ยังเป็นร่าง'}</b><span class="s">${S === 'returned' ? 'แก้ตามหมายเหตุของ QS แล้วกด “↻ ส่งใหม่ให้ QS”' : 'ตรวจรายการ แล้วกด “✓ ส่ง PR” เพื่อส่งให้ QS อนุมัติ'}</span>
-    <div class="b"><button class="btn pri" data-a="edit">✎ แก้ไข / ส่ง PR</button><button class="btn sm" data-a="cancel">ยกเลิกใบนี้</button></div></div>`); }
+  if (S === 'draft' || S === 'returned') { const rr = pr.retRole || 'QS'; if (canEdit(pr)) out.push(`<div class="card act"><b>${S === 'returned' ? '↩ ' + rr + ' ส่งกลับให้แก้ไข' : '📝 ใบนี้ยังเป็นร่าง'}</b><span class="s">${S === 'returned' ? 'แก้ตามหมายเหตุของ ' + rr + ' แล้วกด “↻ ส่งใหม่ให้ PM + QS”' : 'ตรวจรายการ แล้วกด “✓ ส่ง' + docTh(pr) + '” เพื่อส่งให้ PM และ QS อนุมัติ'}</span>
+    <div class="b"><button class="btn pri" data-a="edit">✎ แก้ไข / ส่ง${docTh(pr)}</button></div></div>`); }
   else if (S === 'sent') { const ov = overList(pr); if (ov.length) out.push(`<div class="card act" style="border-color:#EBC3B8;background:#FDF3F0"><b>⚠ ขอเกินปริมาณใน Material Log ${ov.length} รายการ</b>${ov.map(x => `<span class="s">${x.i + 1}. ${esc(x.it.name)} — ขอ ${fmtN(parseFloat(x.it.qty) || 0)} · เหลือ ${fmtN(x.b.left)} ${esc(x.b.unit)} (เกิน ${fmtN(x.b.over)})</span>`).join('')}</div>`);
-    if (canApprove()) out.push(`<div class="card act" style="border-color:#E2CB92;background:#FFFBF0"><b>✍️ รอคุณอนุมัติ</b><span class="s">ตรวจรายการ · จำนวน · สเปก — ถ้าต้องแก้จำนวนเล็กน้อย กด ✎ แก้ไข ได้เลย</span>
-    <div class="b"><button class="btn ok" data-a="approve">✓ อนุมัติ → ส่งจัดซื้อ</button><button class="btn" data-a="return">↩ ส่งกลับแก้ไข</button></div></div>`);
-    else out.push(wait('รอ QS อนุมัติ', names(qsOf(pr.pid)))); }
-  else if (S === 'approved') { if (canProc()) out.push(`<div class="card act" style="border-color:#B7CBE3;background:#F4F8FD"><b>🛒 รอคุณสั่งของ</b><span class="s">เปิด PR / PO ใน Mango แล้วใส่เลขที่ + วันที่คาดว่าของถึง</span>
-    <div class="b" style="align-items:flex-end"><label class="fl">เลขที่ PR / PO ใน Mango<input id="aMango" placeholder="เช่น PR24100014" autocomplete="off"></label><label class="fl">ผู้ขาย<input id="aVendor" value="${esc(pr.vendor || '')}" placeholder="เช่น บจก. พิมพ์ อิเล็คทริค" autocomplete="off"></label><label class="fl">คาดว่าของถึงวันที่<input id="aEta" type="date" value="${esc(minNeed(pr))}"></label>
-    <button class="btn ok" data-a="order">✓ สั่งของแล้ว</button><a class="btn sm" href="${MANGO_URL}" target="_blank" rel="noopener" style="background:#F28C28;color:#fff;border:0">เปิด Mango ↗</a></div></div>`);
-    else out.push(wait('รอจัดซื้อสั่งของ', names(procOf(pr.pid)))); }
-  else if (S === 'ordered') { if (canReceive(pr)) out.push(`<div class="card act" style="border-color:#CFC2EA;background:#F8F5FD"><b>📦 ของถึงหน้างานแล้วหรือยัง?</b><span class="s">ตรวจจำนวน / สภาพของ แล้วกดยืนยัน — ระบบแจ้งจัดซื้อและ QS ให้</span>
-    <div class="b"><button class="btn ok" data-a="recv">✓ ได้รับของครบแล้ว</button><button class="btn" data-a="partial">⚠ ได้รับไม่ครบ / มีปัญหา</button></div></div>`);
-    else out.push(wait('รอหน้างานยืนยันรับของ', pr.by || '—')); }
-  else if (S === 'received') out.push(`<div class="card act" style="background:#EEF6EF;border-color:#B9D3C2"><b>✅ ปิดงานแล้ว — ได้รับของ ${esc(when2(pr.receivedAt))} · ${esc(pr.recvBy || '')}</b></div>`);
-  else if (S === 'cancelled') out.push('<div class="card act"><b>ใบนี้ถูกยกเลิกแล้ว</b></div>');
+    const ms = mySlots(pr), pend = pendSlots(pr), last = ms.length && pend.length === ms.length;
+    const done2 = [pr.pmAt ? '✓ PM อนุมัติแล้ว — ' + (pr.pmBy || '') + ' · ' + when2(pr.pmAt) : '', pr.qsAt ? '✓ QS อนุมัติแล้ว — ' + (pr.qsBy || '') + ' · ' + when2(pr.qsAt) : ''].filter(Boolean);
+    if (ms.length) out.push(`<div class="card act" style="border-color:#E2CB92;background:#FFFBF0"><b>✍️ รอคุณอนุมัติ (${ms.map(x => x.toUpperCase()).join(' + ')})${isBoss() && !PM_R.concat(QSO_R).includes(APP.me.role) ? ' — อนุมัติแทน' : ''}</b>${done2.map(x => `<span class="s">${esc(x)}</span>`).join('')}<span class="s">ตรวจรายการ · จำนวน · สเปก — ถ้าต้องแก้จำนวนเล็กน้อย กด ✎ แก้ไข ได้เลย</span>
+    <div class="b"><button class="btn ok" data-a="approve">${last ? '✓ อนุมัติ → ส่งจัดซื้อ' : '✓ อนุมัติ (รอ ' + pend.filter(x => !ms.includes(x.toLowerCase())).join(' + ') + ' อีกคน)'}</button><button class="btn" data-a="return">↩ ส่งกลับแก้ไข</button></div></div>`);
+    else out.push(`<div class="card act"><b>⏳ รอ ${esc(pend.join(' + '))} อนุมัติ</b>${done2.map(x => `<span class="s">${esc(x)}</span>`).join('')}<span class="s">ผู้รับผิดชอบ: ${esc([pr.pmAt ? '' : 'PM ' + names(pmApprovers(pr.pid)), pr.qsAt ? '' : 'QS ' + names(qsOf(pr.pid))].filter(Boolean).join(' · '))} · ระบบแจ้งเตือนแล้ว</span></div>`); }
+  else if (S === 'approved') { if (canProc()) out.push(`<div class="card act" style="border-color:#B7CBE3;background:#F4F8FD"><b>${W(pr, '🛒 รอคุณสั่งของ', '🛒 รอคุณสั่งจ้าง')}</b><span class="s">${W(pr, 'เปิด PR / PO ใน Mango แล้วใส่เลขที่ + วันที่คาดว่าของถึง', 'เปิดใบขอจ้าง / ใบสั่งจ้างใน Mango แล้วใส่เลขที่ + วันที่ผู้รับเหมาเข้างาน')}</span>
+    <div class="b" style="align-items:flex-end"><label class="fl">${W(pr, 'เลขที่ PR / PO ใน Mango', 'เลขที่ใบขอจ้าง / ใบสั่งจ้างใน Mango')}<input id="aMango" placeholder="${W(pr, 'เช่น PR24100014', 'เช่น WO24100014')}" autocomplete="off"></label><label class="fl">${W(pr, 'ผู้ขาย', 'ผู้ขาย / ผู้รับเหมา')}<input id="aVendor" value="${esc(pr.vendor || '')}" placeholder="เช่น บจก. พิมพ์ อิเล็คทริค" autocomplete="off"></label><label class="fl">${W(pr, 'คาดว่าของถึงวันที่', 'วันที่เข้างาน')}<input id="aEta" type="date" value="${esc(minNeed(pr))}"></label>
+    <button class="btn ok" data-a="order">${W(pr, '✓ สั่งของแล้ว', '✓ สั่งจ้างแล้ว')}</button><a class="btn sm" href="${MANGO_URL}" target="_blank" rel="noopener" style="background:#F28C28;color:#fff;border:0">เปิด Mango ↗</a></div></div>`);
+    else out.push(wait(W(pr, 'รอจัดซื้อสั่งของ', 'รอจัดซื้อสั่งจ้าง'), names(procOf(pr.pid)))); }
+  else if (S === 'ordered') { if (canReceive(pr)) out.push(`<div class="card act" style="border-color:#CFC2EA;background:#F8F5FD"><b>${W(pr, '📦 ของถึงหน้างานแล้วหรือยัง?', '🛠 ผู้รับเหมาทำงานเสร็จแล้วหรือยัง?')}</b><span class="s">${W(pr, 'ตรวจจำนวน / สภาพของ แล้วกดยืนยัน — ระบบแจ้งจัดซื้อ QS และ PM ให้', 'ตรวจปริมาณ / คุณภาพงาน แล้วกดยืนยัน — ระบบแจ้งจัดซื้อ QS และ PM ให้')}</span>
+    <div class="b"><button class="btn ok" data-a="recv">${W(pr, '✓ ได้รับของครบแล้ว', '✓ ตรวจรับงานแล้ว')}</button><button class="btn" data-a="partial">${W(pr, '⚠ ได้รับไม่ครบ / มีปัญหา', '⚠ งานไม่ครบ / มีปัญหา')}</button></div></div>`);
+    else out.push(wait(W(pr, 'รอหน้างานยืนยันรับของ', 'รอหน้างานตรวจรับงาน'), pr.by || '—')); }
+  else if (S === 'received') out.push(`<div class="card act" style="background:#EEF6EF;border-color:#B9D3C2"><b>✅ ปิดงานแล้ว — ${W(pr, 'ได้รับของ', 'ตรวจรับงาน')} ${esc(when2(pr.receivedAt))} · ${esc(pr.recvBy || '')}</b></div>`);
+  else if (S === 'cancelled') out.push(`<div class="card act" style="background:#FBF1EF;border-color:#EBC3B8"><b>🚫 ใบนี้ถูกยกเลิกแล้ว</b><span class="s">${esc([pr.cancelBy && 'โดย ' + pr.cancelBy, pr.cancelAt && when2(pr.cancelAt), pr.cancelFrom && 'ตอน' + (STS[pr.cancelFrom] || [''])[0]].filter(Boolean).join(' · '))}</span>${pr.cancelNote ? `<span class="s">เหตุผล: ${esc(pr.cancelNote)}</span>` : ''}</div>`);
+  const co = cancelOpt(pr);   // v1.5.0 del-cancel
+  if (co === 'del') out.push(`<div class="b" style="justify-content:flex-end"><button class="btn sm" data-a="del" style="color:#B4332A">🗑 ลบร่างนี้</button></div>`);
+  else if (co === 'cancel') out.push(`<div class="b" style="justify-content:flex-end;align-items:center"><small style="color:var(--mut);flex:1;min-width:180px">${S === 'ordered' ? '⚠ สั่งไปแล้ว — ต้องยกเลิกใบสั่งใน Mango / แจ้งผู้ขายด้วย' : 'ยกเลิกแล้วกู้คืนไม่ได้ · ต้องการใหม่ใช้ “⧉ ขอซ้ำ”'}</small><button class="btn sm" data-a="cancel" style="color:#B4332A">🚫 ยกเลิก${docTh(pr)}</button></div>`);
+  else if (S === 'approved' && isMine(pr)) out.push(`<div class="b"><small style="color:var(--mut)">อนุมัติแล้ว — ถ้าไม่ต้องการแล้ว แจ้ง PM / จัดซื้อ ให้ยกเลิก</small></div>`);
   return out.join('');
 }
 function logHtml(pr) {
@@ -737,8 +794,8 @@ function logHtml(pr) {
 }
 function renderView() {
   const pr = APP.pr; $('vwTitle').textContent = pr.no;
-  $('vwTrack').innerHTML = `<div class="card"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="flex:1;min-width:0">${esc(pr.proj)} · ${(pr.items || []).length} รายการ · โดย ${esc(pr.by || '—')}</b>${stTag(pr.status)}${ageBadge(pr)}</div>
-    ${pr.status !== 'cancelled' ? tracker(pr) : ''}${pr.status === 'returned' && pr.qsNote ? `<div class="note"><b>QS (${esc(pr.qsBy || '')}):</b> ${esc(pr.qsNote)}</div>` : ''}
+  $('vwTrack').innerHTML = `<div class="card"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="flex:1;min-width:0">${esc(pr.proj)} · ${(pr.items || []).length} รายการ · โดย ${esc(pr.by || '—')}</b>${stTag(pr.status, pr)}${ageBadge(pr)}</div>
+    ${pr.status !== 'cancelled' ? tracker(pr) : ''}${pr.status === 'returned' && (pr.retNote || pr.qsNote) ? `<div class="note"><b>${esc(pr.retRole || 'QS')} (${esc(pr.retBy || pr.qsBy || '')}):</b> ${esc(pr.retNote || pr.qsNote)}</div>` : ''}
     ${pr.mangoNo || pr.eta ? `<div class="s">🛒 ${pr.mangoNo ? 'เลขที่ Mango <b>' + esc(pr.mangoNo) + '</b>' : ''}${pr.eta ? ' · คาดว่าของถึง <b>' + esc(thDate(pr.eta)) + '</b>' : ''}${pr.procBy ? ' · ' + esc(pr.procBy) : ''}</div>` : ''}</div>`;
   $('vwAct').innerHTML = actionsHtml(pr); $('vwLog').innerHTML = logHtml(pr);
   $('vwBtns').innerHTML = `<button class="btn sm" data-v="xls">⬇ Excel (คอลัมน์ Mango)</button><button class="btn sm" data-v="tsv">📋 คัดลอกตาราง (วางใน Mango / Excel)</button><button class="btn sm" data-v="copy">💬 ข้อความ LINE</button><a class="btn sm" href="${MANGO_URL}" target="_blank" rel="noopener" style="background:#F28C28;color:#fff;border:0">🛒 เปิด Mango ↗</a>`;
@@ -752,10 +809,10 @@ function openView(fromSave) {
 const MG_COLS = ['ลำดับ', 'รหัสต้นทุน', 'รหัสวัสดุ', 'รายการ', 'จำนวน', 'หน่วย', 'วันที่ส่งของ'];
 const mgRows = (pr) => (pr.items || []).filter(i => String(i.name || '').trim()).map((it, i) => [i + 1, it.code || '', it.mat || '', it.name, (parseFloat(it.qty) || 0).toFixed(2), it.unit || '', ceDate(it.need)]);
 function mgCsv(pr) {   // 1 แถว / 1 รายการ · หัวใบซ้ำทุกแถว (นำเข้า / กรองใน Excel ง่าย) · UTF-8 BOM ให้ Excel อ่านภาษาไทยถูก
-  const H = ['เลขที่', 'วันที่', 'โครงการ / แผนก', 'ผู้ขาย', 'ชื่อแทนผู้รับเหมา', 'สถานที่ส่งของ', 'ประเภทการซื้อ', 'ระบบงาน', 'หมายเหตุ', ...MG_COLS, 'ผู้ขอซื้อ', 'ผู้อนุมัติ (QS)', 'อ้างอิง Auto PR'];
+  const H = ['เลขที่', 'วันที่', 'โครงการ / แผนก', 'ผู้ขาย', 'ชื่อแทนผู้รับเหมา', 'สถานที่ส่งของ', 'ประเภทการซื้อ', 'ระบบงาน', 'หมายเหตุ', ...MG_COLS, 'ผู้ขอซื้อ / ผู้ขอจ้าง', 'ผู้จัดการโครงการ', 'ผู้อนุมัติ (QS)', 'อ้างอิงในระบบ', 'เอกสาร'];
   const head = [pr.mangoNo || '', ceDate(pr.date), projLabel(pr), pr.vendor || '', pr.subName || '', pr.deliverTo == null ? pr.proj : pr.deliverTo, pr.buyType || 'Cost', pr.system || 'Construction', mgNote(pr)];
   const q = (v) => { const t = String(v == null ? '' : v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
-  return '﻿' + [H, ...mgRows(pr).map(r => [...head, ...r, pr.by || '', pr.qsAt && pr.status !== 'returned' ? pr.qsBy || '' : '', pr.no])].map(r => r.map(q).join(',')).join('\r\n');
+  return '﻿' + [H, ...mgRows(pr).map(r => [...head, ...r, pr.by || '', pr.pmAt && pr.status !== 'returned' ? pr.pmBy || '' : '', pr.qsAt && pr.status !== 'returned' ? pr.qsBy || '' : '', pr.no, docTh(pr)])].map(r => r.map(q).join(',')).join('\r\n');
 }
 $('vwBtns').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-v]'); if (!b) return; const pr = APP.pr, v = b.dataset.v;
@@ -769,37 +826,53 @@ $('vwAct').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a, pr = APP.pr;
   if (a === 'edit') { renderEdit(); history.replaceState({ apr: 'edit' }, ''); show('edit', false); return; }
   let note = '';
-  if (a === 'approve' && !confirm('อนุมัติใบขอซื้อ ' + pr.no + ' แล้วส่งให้จัดซื้อ?')) return;
+  if (a === 'approve' && !confirm('อนุมัติ' + docTh(pr) + ' ' + pr.no + (pendSlots(pr).length === mySlots(pr).length ? ' แล้วส่งให้จัดซื้อ?' : ' ? (ยังรอ ' + pendSlots(pr).filter(x => !mySlots(pr).includes(x.toLowerCase())).join(' + ') + ' อนุมัติอีกคน)'))) return;
   if (a === 'return') { note = prompt('ส่งกลับให้แก้ไขอะไร? (ผู้ขอจะเห็นข้อความนี้)', ''); if (note === null) return; if (!note.trim()) { toast('ใส่เหตุผลที่ส่งกลับก่อน'); return; } }
-  if (a === 'cancel' && !confirm('ยกเลิกใบขอซื้อ ' + pr.no + '?')) return;
-  if (a === 'partial') { note = prompt('ได้รับไม่ครบ / มีปัญหาอะไร? เช่น เทป PU ได้ 6 จาก 10 ม้วน', ''); if (note === null) return; if (!note.trim()) { toast('ใส่รายละเอียดก่อน'); return; } }
+  if (a === 'del') { await delDraft(pr); return; }
+  if (a === 'cancel') { note = prompt('ยกเลิก' + docTh(pr) + ' ' + pr.no + (pr.status === 'ordered' ? '\n⚠ สั่งไปแล้ว — ต้องยกเลิกใบสั่งใน Mango / แจ้งผู้ขายด้วย' : '') + '\n\nเหตุผลที่ยกเลิก (ทุกคนที่เกี่ยวข้องจะเห็น):', ''); if (note === null) return; if (!note.trim()) { toast('ใส่เหตุผลที่ยกเลิกก่อน'); return; } }
+  if (a === 'partial') { note = prompt(W(pr, 'ได้รับไม่ครบ / มีปัญหาอะไร? เช่น เทป PU ได้ 6 จาก 10 ม้วน', 'งานไม่ครบ / มีปัญหาอะไร? เช่น ฝ้าห้อง 201 ยังไม่เก็บรอยต่อ'), ''); if (note === null) return; if (!note.trim()) { toast('ใส่รายละเอียดก่อน'); return; } }
   const mango = a === 'order' ? String(($('aMango') || {}).value || '').trim() : '', eta = a === 'order' ? String(($('aEta') || {}).value || '') : '', vendor = a === 'order' ? String(($('aVendor') || {}).value || '').trim() : '';
-  if (a === 'order' && !mango && !confirm('ยังไม่ได้ใส่เลขที่ PR / PO ใน Mango — ยืนยัน “สั่งของแล้ว”?')) return;
+  if (a === 'order' && !mango && !confirm(W(pr, 'ยังไม่ได้ใส่เลขที่ PR / PO ใน Mango — ยืนยัน “สั่งของแล้ว”?', 'ยังไม่ได้ใส่เลขที่ใบสั่งจ้างใน Mango — ยืนยัน “สั่งจ้างแล้ว”?'))) return;
   b.disabled = true; const me = APP.me.name;
   try {
     let cur;
-    if (a === 'approve') { cur = await transition(pr.pid, pr.id, ['sent'], x => { x.status = 'approved'; x.qsAt = Date.now(); x.qsBy = me; x.qsEmail = APP.me.email; x.qsNote = ''; x.escProc = 0; logIt(x, '✓ QS อนุมัติ'); });
-      await notify(cur, { title: '🛒 สั่งของ: ' + cur.no + ' · ' + cur.proj + ' — QS อนุมัติแล้ว', note: (cur.items || []).length + ' รายการ · ต้องการของ ' + thDate(minNeed(cur)), approve: procOf(cur.pid), to: [norm(cur.byEmail)], close: 'approve', line: '✅ QS อนุมัติ (' + me + ') → รอจัดซื้อสั่งของ (' + names(procOf(cur.pid)) + ')' });
-      toast('อนุมัติแล้ว — แจ้งจัดซื้อแล้ว'); }
-    else if (a === 'return') { cur = await transition(pr.pid, pr.id, ['sent'], x => { x.status = 'returned'; x.qsAt = Date.now(); x.qsBy = me; x.qsNote = note.trim(); logIt(x, '↩ QS ส่งกลับแก้ไข', note.trim()); });
-      await notify(cur, { title: '↩ QS ส่งกลับแก้ไข ' + cur.no + ' · ' + cur.proj, note: note.trim(), to: [norm(cur.byEmail)], close: 'approve', line: '↩ QS ส่งกลับแก้ไข (' + me + '): ' + note.trim() });
+    if (a === 'approve') { let got = [];
+      cur = await transition(pr.pid, pr.id, ['sent'], x => { const sl = mySlots(x); if (!sl.length) throw new Error('ใบนี้คุณอนุมัติไปแล้ว / ไม่มีช่องที่รอคุณ'); got = sl.map(s => s.toUpperCase()); const t = Date.now();
+        if (sl.includes('pm')) { x.pmAt = t; x.pmBy = me; x.pmEmail = APP.me.email; } if (sl.includes('qs')) { x.qsAt = t; x.qsBy = me; x.qsEmail = APP.me.email; } x.qsNote = ''; x.retNote = '';
+        logIt(x, '✓ ' + got.join(' + ') + ' อนุมัติ' + (isBoss() && !PM_R.concat(QSO_R).includes(APP.me.role) ? ' (แทน)' : ''));
+        if (x.pmAt && x.qsAt) { x.status = 'approved'; x.escProc = 0; } });
+      if (cur.status === 'approved') { await notify(cur, { title: W(cur, '🛒 สั่งของ: ', '🛒 สั่งจ้าง: ') + cur.no + ' · ' + cur.proj + ' — PM + QS อนุมัติแล้ว', note: (cur.items || []).length + ' รายการ · ต้องการของ ' + thDate(minNeed(cur)), approve: procOf(cur.pid), to: [norm(cur.byEmail)], close: 'approve', line: '✅ ' + got.join(' + ') + ' อนุมัติ (' + me + ') · PM + QS ครบ → รอจัดซื้อ' + W(cur, 'สั่งของ', 'สั่งจ้าง') + ' (' + names(procOf(cur.pid)) + ')' });
+        toast('อนุมัติครบ PM + QS — แจ้งจัดซื้อแล้ว'); }
+      else { const rest = cur.pmAt ? qsOf(cur.pid) : pmApprovers(cur.pid), rl = cur.pmAt ? 'QS' : 'PM';
+        await notify(cur, { title: '✍️ ขออนุมัติ' + docTh(cur) + ' ' + cur.no + ' · ' + cur.proj + ' — ' + got.join(' + ') + ' อนุมัติแล้ว รอ ' + rl, note: (cur.items || []).length + ' รายการ · โดย ' + cur.by, approve: rest, to: [norm(cur.byEmail)], close: 'approve', line: '✓ ' + got.join(' + ') + ' อนุมัติ (' + me + ') → รอ ' + rl + ' อนุมัติ (' + names(rest) + ')' });
+        toast('อนุมัติแล้ว — รอ ' + rl + ' (' + names(rest) + ') อนุมัติอีกคน', 3200); } }
+    else if (a === 'return') { cur = await transition(pr.pid, pr.id, ['sent'], x => { const rr = PM_R.includes(APP.me.role) ? 'PM' : QSO_R.includes(APP.me.role) ? 'QS' : 'ผู้บริหาร'; x.status = 'returned'; x.retAt = Date.now(); x.retBy = me; x.retRole = rr; x.retNote = note.trim(); x.qsNote = ''; logIt(x, '↩ ' + rr + ' ส่งกลับแก้ไข', note.trim()); });
+      await notify(cur, { title: '↩ ' + cur.retRole + ' ส่งกลับแก้ไข ' + cur.no + ' · ' + cur.proj, note: note.trim(), to: [norm(cur.byEmail), cur.pmEmail, cur.qsEmail].filter(e => e && e !== APP.me.email), close: 'approve', line: '↩ ' + cur.retRole + ' ส่งกลับแก้ไข (' + me + '): ' + note.trim() });
       toast('ส่งกลับแล้ว — แจ้งผู้ขอแล้ว'); }
-    else if (a === 'order') { cur = await transition(pr.pid, pr.id, ['approved'], x => { x.status = 'ordered'; x.orderedAt = Date.now(); x.procBy = me; x.procEmail = APP.me.email; x.mangoNo = mango; x.eta = eta; if (vendor) x.vendor = vendor; logIt(x, '🛒 สั่งของแล้ว', [mango && 'Mango ' + mango, eta && 'ของถึง ' + thDate(eta)].filter(Boolean).join(' · ')); });
-      await notify(cur, { title: '🛒 สั่งของแล้ว ' + cur.no + (eta ? ' · คาดว่าของถึง ' + thDate(eta) : ''), note: mango ? 'เลขที่ Mango ' + mango : '', to: [norm(cur.byEmail), ...pmsOf(cur.pid)], close: 'approve', line: '🛒 สั่งของแล้ว (' + me + ')' + (mango ? ' · Mango ' + mango : '') + (eta ? ' · คาดว่าของถึง ' + thDate(eta) : '') });
+    else if (a === 'order') { cur = await transition(pr.pid, pr.id, ['approved'], x => { x.status = 'ordered'; x.orderedAt = Date.now(); x.procBy = me; x.procEmail = APP.me.email; x.mangoNo = mango; x.eta = eta; if (vendor) x.vendor = vendor; logIt(x, W(x, '🛒 สั่งของแล้ว', '🛒 สั่งจ้างแล้ว'), [mango && 'Mango ' + mango, eta && W(x, 'ของถึง ', 'เข้างาน ') + thDate(eta)].filter(Boolean).join(' · ')); });
+      await notify(cur, { title: W(cur, '🛒 สั่งของแล้ว ', '🛒 สั่งจ้างแล้ว ') + cur.no + (eta ? W(cur, ' · คาดว่าของถึง ', ' · เข้างาน ') + thDate(eta) : ''), note: mango ? 'เลขที่ Mango ' + mango : '', to: [norm(cur.byEmail), ...pmsOf(cur.pid)], close: 'approve', line: W(cur, '🛒 สั่งของแล้ว (', '🛒 สั่งจ้างแล้ว (') + me + ')' + (mango ? ' · Mango ' + mango : '') + (eta ? W(cur, ' · คาดว่าของถึง ', ' · เข้างาน ') + thDate(eta) : '') });
       toast('บันทึกแล้ว — แจ้งหน้างานแล้ว'); }
-    else if (a === 'recv') { cur = await transition(pr.pid, pr.id, ['ordered'], x => { x.status = 'received'; x.receivedAt = Date.now(); x.recvBy = me; logIt(x, '📦 ได้รับของครบแล้ว'); });
-      await notify(cur, { title: '📦 ของถึงหน้างานแล้ว ' + cur.no + ' · ' + cur.proj, to: [norm(cur.procEmail), ...procOf(cur.pid), norm(cur.qsEmail)].filter(Boolean), close: 'all', line: '📦 ได้รับของครบแล้ว (' + me + ') — ปิดงาน' });
+    else if (a === 'recv') { cur = await transition(pr.pid, pr.id, ['ordered'], x => { x.status = 'received'; x.receivedAt = Date.now(); x.recvBy = me; logIt(x, W(x, '📦 ได้รับของครบแล้ว', '🛠 ตรวจรับงานแล้ว')); });
+      await notify(cur, { title: W(cur, '📦 ของถึงหน้างานแล้ว ', '🛠 ตรวจรับงานแล้ว ') + cur.no + ' · ' + cur.proj, to: [norm(cur.procEmail), ...procOf(cur.pid), norm(cur.qsEmail), norm(cur.pmEmail)].filter(Boolean), close: 'all', line: W(cur, '📦 ได้รับของครบแล้ว (', '🛠 ตรวจรับงานแล้ว (') + me + ') — ปิดงาน' });
       toast('ปิดงานแล้ว — ขอบคุณครับ'); }
-    else if (a === 'partial') { cur = await transition(pr.pid, pr.id, ['ordered'], x => { x.partial = Date.now(); logIt(x, '⚠ ได้รับไม่ครบ / มีปัญหา', note.trim()); });
-      await notify(cur, { title: '⚠ ของมาไม่ครบ ' + cur.no + ' · ' + cur.proj, note: note.trim(), approve: [norm(cur.procEmail) || procOf(cur.pid)[0]].filter(Boolean), to: procOf(cur.pid), line: '⚠ ได้รับไม่ครบ (' + me + '): ' + note.trim() });
+    else if (a === 'partial') { cur = await transition(pr.pid, pr.id, ['ordered'], x => { x.partial = Date.now(); logIt(x, W(x, '⚠ ได้รับไม่ครบ / มีปัญหา', '⚠ งานไม่ครบ / มีปัญหา'), note.trim()); });
+      await notify(cur, { title: W(cur, '⚠ ของมาไม่ครบ ', '⚠ งานไม่ครบ / มีปัญหา ') + cur.no + ' · ' + cur.proj, note: note.trim(), approve: [norm(cur.procEmail) || procOf(cur.pid)[0]].filter(Boolean), to: procOf(cur.pid), line: '⚠ ได้รับไม่ครบ (' + me + '): ' + note.trim() });
       toast('แจ้งจัดซื้อแล้ว'); }
-    else if (a === 'cancel') { cur = await transition(pr.pid, pr.id, ['draft', 'returned', 'sent'], x => { x.status = 'cancelled'; logIt(x, 'ยกเลิก'); });
-      if (pr.status === 'sent' || pr.status === 'returned') await notify(cur, { title: 'ยกเลิกใบขอซื้อ ' + cur.no, to: qsOf(cur.pid), close: 'all', line: 'ยกเลิกใบขอซื้อ (' + me + ')' });
-      toast('ยกเลิกแล้ว'); }
+    else if (a === 'cancel') { const from = pr.status;
+      cur = await transition(pr.pid, pr.id, [from], x => { if (cancelOpt(x) !== 'cancel') throw new Error('คุณยกเลิกใบนี้ไม่ได้ในสถานะนี้'); x.status = 'cancelled'; x.cancelFrom = from; x.cancelAt = Date.now(); x.cancelBy = me; x.cancelEmail = APP.me.email; x.cancelNote = note.trim(); logIt(x, '🚫 ยกเลิก', note.trim()); });
+      const to = [norm(cur.byEmail), cur.pmEmail, cur.qsEmail, ...pmApprovers(cur.pid), ...qsOf(cur.pid), ...(['approved', 'ordered'].includes(from) ? [cur.procEmail, ...procOf(cur.pid)] : [])].map(norm).filter(e => e && e !== APP.me.email);
+      await notify(cur, { title: '🚫 ยกเลิก' + docTh(cur) + ' ' + cur.no + ' · ' + cur.proj, note: 'โดย ' + me + ' — ' + note.trim(), to, close: 'all', line: '🚫 ยกเลิก (' + me + '): ' + note.trim() });
+      toast('ยกเลิกแล้ว — แจ้งผู้เกี่ยวข้องแล้ว'); }
     if (cur) { APP.pr = JSON.parse(JSON.stringify(cur)); renderView(); }
   } catch (x) { toast((x && x.message) || String(x), 3800); const f = myPrs().find(y => y.id === pr.id); if (f) { APP.pr = JSON.parse(JSON.stringify(f)); renderView(); } }
   finally { b.disabled = false; }
 });
+async function delDraft(pr) {   // ลบร่าง (ยังไม่ส่ง) — ซ่อนจากรายการ เก็บไว้ในฐานข้อมูลพร้อมชื่อคนลบ
+  if (!confirm('ลบ' + docTh(pr) + 'ร่าง ' + pr.no + ' ?\n(ยังไม่ได้ส่ง — ไม่มีใครได้รับแจ้ง)')) return false;
+  try { await transition(pr.pid, pr.id, ['draft'], x => { x.deleted = true; x.deletedAt = Date.now(); x.deletedBy = APP.me.name; logIt(x, '🗑 ลบร่าง'); });
+    if (APP.pr && APP.pr.id === pr.id) draftClear(); toast('ลบร่างแล้ว'); if (APP.screen !== 'list') history.back(); setTimeout(renderList, 50); return true;
+  } catch (x) { toast((x && x.message) || String(x), 3800); return false; }
+}
 $('btnEdit').addEventListener('click', () => { renderEdit(); if (APP.screen === 'view') { history.replaceState({ apr: 'edit' }, ''); show('edit', false); } });
 $('btnPrint').addEventListener('click', () => { $('printArea').innerHTML = formHtml(APP.pr); setTimeout(() => window.print(), 50); });
 

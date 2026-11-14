@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#3E3F32">
-<title>Auto PR · ใบขอซื้อ · Wellcon PM</title>
+<title>ใบขอซื้อ · ใบขอจ้าง · Wellcon PM</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -113,6 +113,15 @@ input,select,textarea{font:inherit;color:inherit;font-size:16px}
 .imp .smp div{border-top:1px dashed #EFE8DB;padding-top:4px}.imp .smp span{display:block;color:var(--mut);font-size:12px}
 .boq{font-size:12.5px;background:#EEF4EA;color:#3F5A33;border-radius:10px;padding:5px 10px}
 .boq.over{background:#FDECE8;color:#B4332A;font-weight:600}
+/* v1.5.0 เลือกเอกสาร PR / WO */
+.doc2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dbtn{display:flex;flex-direction:column;gap:3px;text-align:left;padding:12px 14px;border:2px solid var(--line);border-radius:14px;background:#fff;color:inherit;font:inherit;cursor:pointer;min-height:64px}
+.dbtn b{font-size:16px}.dbtn small{font-size:12.5px;color:var(--mut)}
+.dbtn.on.d-pr{border-color:#B85A2B;background:#FDF4EE}.dbtn.on.d-wo{border-color:#2F5E8C;background:#F2F7FC}.dbtn.on.d-pr b{color:#B85A2B}.dbtn.on.d-wo b{color:#2F5E8C}
+.dbtn:disabled{opacity:.4;cursor:not-allowed}
+.foot .btn.wo{background:#2F5E8C;border-color:#2F5E8C}
+.dk-pr,.dk-wo{font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin-left:auto}.dk-pr{background:#FDF4EE;color:#B85A2B}.dk-wo{background:#E3ECF5;color:#2F5E8C}
+.mg-f .mt small{font-size:.6em;font-weight:500}
 /* v1.2.0 ใบขอซื้อ/ขอจ้าง รูปแบบ Mango */
 .mg-f{font-family:'IBM Plex Sans Thai',Tahoma,sans-serif;display:flex;flex-direction:column}
 .mg-f .mh{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
@@ -228,31 +237,35 @@ details.mg input{min-height:44px;border:1.5px solid var(--line);border-radius:12
 <!-- สถานะเริ่ม / ยังไม่ login -->
 <section id="scrMsg" class="scr">
   <div class="hdr"><button class="back" data-act="toPm" aria-label="กลับ Wellcon PM"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <span class="tt"><small>Wellcon PM</small><b>Auto PR · ใบขอซื้อ</b></span></div>
+    <span class="tt"><small>Wellcon PM</small><b>ใบขอซื้อ · ใบขอจ้าง</b></span></div>
   <div class="body"><div class="wrap" id="msgBody"><div class="spin"></div><p class="empty">กำลังเชื่อมต่อ…</p></div></div>
 </section>
 
 <!-- เลือกโครงการ -->
 <section id="scrProj" class="scr" hidden>
   <div class="hdr"><button class="back" data-act="toPm" aria-label="กลับ Wellcon PM"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <span class="tt"><small>Wellcon PM</small><b>Auto PR · ใบขอซื้อ</b><span>เลือกโครงการ</span></span></div>
+    <span class="tt"><small>Wellcon PM</small><b>ใบขอซื้อ · ใบขอจ้าง</b><span>เลือกโครงการ</span></span></div>
   <div class="body"><div class="wrap"><div id="projInbox"></div><div class="list" id="projList"></div></div></div>
 </section>
 
 <!-- รายการใบขอซื้อของโครงการ -->
 <section id="scrList" class="scr" hidden>
   <div class="hdr"><button class="back" data-act="toPm" aria-label="กลับ Wellcon PM"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <span class="tt"><small>Auto PR · ใบขอซื้อ</small><b id="listTitle">ใบขอซื้อของโครงการ</b><span id="listProj"></span></span></div>
+    <span class="tt"><small>Wellcon PM</small><b id="listTitle">ใบขอซื้อ · ใบขอจ้าง ของโครงการ</b><span id="listProj"></span></span></div>
   <div class="body"><div class="wrap" id="listBody"></div></div>
-  <div class="foot"><button class="btn pri" id="btnNew">＋ สร้างใบขอซื้อใหม่</button></div>
+  <div class="foot"><button class="btn pri" id="btnNew">🧾 สร้างใบขอซื้อ</button><button class="btn pri wo" id="btnNewWo">🛠 สร้างใบขอจ้าง</button></div>
 </section>
 
 <!-- สร้าง / แก้ไขใบขอซื้อ -->
 <section id="scrEdit" class="scr" hidden>
   <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <span class="tt"><small>Auto PR · ใบขอซื้อ</small><b id="edTitle">ใบขอซื้อใหม่</b><span id="edProj"></span></span></div>
+    <span class="tt"><small>ใบขอซื้อ / ใบขอจ้าง</small><b id="edTitle">ใบขอซื้อใหม่</b><span id="edProj"></span></span></div>
   <div class="body"><div class="wrap"><div class="edit-grid">
     <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="card">
+        <div class="h"><span class="n">📄</span>เอกสาร <small>ซื้อของ → ใบขอซื้อ · จ้างผู้รับเหมา / ค่าแรง → ใบขอจ้าง</small></div>
+        <div class="doc2" id="docBox"></div>
+      </div>
       <div class="card">
         <div class="h"><span class="n">✓</span>กรอกให้อัตโนมัติ <small>แตะเพื่อแก้ ถ้าไม่ถูก</small></div>
         <div class="auto" id="autoBox"></div>
@@ -271,7 +284,7 @@ details.mg input{min-height:44px;border:1.5px solid var(--line);border-radius:12
         <div class="chips" id="areaBox"></div>
       </div>
       <div class="card">
-        <div class="h"><span class="n">3</span>ของที่ต้องการ <small id="itemCount"></small></div>
+        <div class="h"><span class="n">3</span><span id="itemHead">ของที่ต้องการ</span> <small id="itemCount"></small></div>
         <div class="search"><input id="q" placeholder="พิมพ์ชื่อของ เช่น เทป PU / ไม้อัด" autocomplete="off" enterkeyhint="done"><button class="mic" id="mic" title="พูดชื่อของ" hidden>🎤</button></div>
         <div class="sug" id="sug"></div>
         <div id="catBtn"></div>
@@ -279,29 +292,29 @@ details.mg input{min-height:44px;border:1.5px solid var(--line);border-radius:12
         <div style="font-size:12.5px;color:var(--mut);font-weight:600">แตะเพื่อเพิ่ม — ของที่ใช้บ่อย</div>
         <div class="chips" id="favBox"></div>
       </div>
-      <div class="note">ระยะเวลาสั่งของ 3 วัน (ส่ง PR ก่อนเที่ยง) — ระบบตั้ง "ต้องการของวันที่" ให้แล้ว · โปรดระบุยี่ห้อ / รุ่น / ขนาด ให้ชัดเจน · แนบแบบ / รูป พร้อมระบุพื้นที่ใช้งาน</div>
+      <div class="note">ระยะเวลาสั่งของ 3 วัน (ส่งก่อนเที่ยง) — ระบบตั้ง "ต้องการของวันที่" ให้แล้ว · โปรดระบุยี่ห้อ / รุ่น / ขนาด ให้ชัดเจน · แนบแบบ / รูป พร้อมระบุพื้นที่ใช้งาน</div>
     </div>
-    <div class="pv-side"><div style="font-size:12.5px;font-weight:700;color:var(--ink2)">ตัวอย่างใบขอซื้อ (อัปเดตทันที)</div><div class="pr-scale" id="pvSide"></div></div>
+    <div class="pv-side"><div style="font-size:12.5px;font-weight:700;color:var(--ink2)"><span id="pvHead">ตัวอย่างใบขอซื้อ</span> (อัปเดตทันที)</div><div class="pr-scale" id="pvSide"></div></div>
   </div></div></div>
   <div class="foot">
     <button class="btn only-m" id="btnPv">👁 ดูใบ</button>
     <button class="btn" id="btnDraft">บันทึกร่าง</button>
-    <button class="btn pri" id="btnSend" style="flex:1.3">✓ ส่ง PR</button>
+    <button class="btn pri" id="btnSend" style="flex:1.3">✓ ส่งใบขอซื้อ</button>
   </div>
 </section>
 
 <!-- v1.3.0 รายการวัสดุโครงการ (Material Log / ใบเสนอราคา) -->
 <section id="scrCat" class="scr" hidden>
   <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <span class="tt"><small>Auto PR · Material Log</small><b id="catTitle">รายการวัสดุโครงการ</b><span id="catProj"></span></span></div>
+    <span class="tt"><small>Material Log</small><b id="catTitle">รายการวัสดุโครงการ</b><span id="catProj"></span></span></div>
   <div class="body"><div class="wrap" id="catBody"></div></div>
-  <div class="foot" id="catFoot" hidden><button class="btn pri" id="btnCatAdd">✓ เพิ่มเข้าใบ PR</button></div>
+  <div class="foot" id="catFoot" hidden><button class="btn pri" id="btnCatAdd">✓ เพิ่มเข้าใบขอซื้อ</button></div>
 </section>
 
 <!-- ดูใบขอซื้อ / พิมพ์ -->
 <section id="scrView" class="scr" hidden>
   <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <span class="tt"><small>Auto PR · ใบขอซื้อ</small><b id="vwTitle">ใบขอซื้อ</b><span>พิมพ์ · บันทึก PDF · ส่งต่อ</span></span></div>
+    <span class="tt"><small>ใบขอซื้อ · ใบขอจ้าง</small><b id="vwTitle">ใบขอซื้อ</b><span>พิมพ์ · บันทึก PDF · ส่งต่อ</span></span></div>
   <div class="body"><div class="wrap">
     <div id="vwTrack" class="vw"></div>
     <div id="vwAct" class="vw"></div>
@@ -317,7 +330,7 @@ details.mg input{min-height:44px;border:1.5px solid var(--line);border-radius:12
 
 <script src="vendor/supabase.js"></script>
 <script src="wctag.js?v=1.1.0"></script>
-<script src="auto-pr.js?v=1.3.2"></script>
+<script src="auto-pr.js?v=1.5.0"></script>
 <script src="pm-nav.js?v=1.2.0"></script>
 </body>
 </html>
