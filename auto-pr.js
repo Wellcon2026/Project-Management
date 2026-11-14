@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const APR_VER = 'v1.3.1';   // 1.3.1: ใบ PR เหลือช่องลงนาม 3 ช่อง (ผู้จัดทำ · ผู้อนุมัติ PM · ผู้อนุมัติ QS) · 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
+const APR_VER = 'v1.3.1';   // 1.3.1: ใบ PR เหลือช่องลงนาม 3 ช่อง (ผู้ขอซื้อ · ผู้จัดการโครงการ · ผู้อนุมัติ QS) · 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -691,7 +691,7 @@ function formHtml(pr) {
     <table class="mtb"><thead><tr><th style="width:44px">ลำดับ</th><th style="width:86px">รหัสต้นทุน</th><th style="width:130px">รหัสวัสดุ</th><th>รายการ</th><th style="width:74px">จำนวน</th><th style="width:62px">หน่วย</th><th style="width:86px">วันที่ส่งของ</th></tr></thead>
       <tbody>${its.map((it, i) => `<tr><td class="c">${i + 1}</td><td class="c">${esc(it.code || '')}</td><td class="c">${esc(it.mat || '')}</td><td>${esc(it.name)}</td><td class="n">${esc(qty2(it.qty))}</td><td class="c">${esc(it.unit)}</td><td class="c">${esc(ceDate(it.need))}</td></tr>`).join('')}
       <tr class="fill" style="height:${Math.max(40, 560 - its.length * 27)}px"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody></table>
-    <div class="msg">${sig(pr.by, 'ผู้จัดทำ', ceDate(pr.date))}${sig(pr.pm, 'ผู้อนุมัติ', '')}${sig(qsOk ? pr.qsBy : '', 'ผู้อนุมัติ', qsOk ? ceDate(isoOf(new Date(pr.qsAt))) : '')}</div>
+    <div class="msg">${sig(pr.by, 'ผู้ขอซื้อ', ceDate(pr.date))}${sig(pr.pm, 'ผู้จัดการโครงการ', '')}${sig(qsOk ? pr.qsBy : '', 'ผู้อนุมัติ', qsOk ? ceDate(isoOf(new Date(pr.qsAt))) : '')}</div>
     <div class="doc"><span>อ้างอิง Auto PR ${esc(pr.no)}</span><span>รูปแบบ Mango · ไม่มีราคา</span></div></div>`;
 }
 function fit(box) { const w = box.clientWidth; const pr = box.querySelector('.pr'); if (!pr || !w) return; const k = Math.min(1, w / 794); pr.style.transform = 'scale(' + k + ')'; box.style.height = Math.ceil(pr.offsetHeight * k) + 'px'; }
@@ -746,7 +746,7 @@ function openView(fromSave) {
 const MG_COLS = ['ลำดับ', 'รหัสต้นทุน', 'รหัสวัสดุ', 'รายการ', 'จำนวน', 'หน่วย', 'วันที่ส่งของ'];
 const mgRows = (pr) => (pr.items || []).filter(i => String(i.name || '').trim()).map((it, i) => [i + 1, it.code || '', it.mat || '', it.name, (parseFloat(it.qty) || 0).toFixed(2), it.unit || '', ceDate(it.need)]);
 function mgCsv(pr) {   // 1 แถว / 1 รายการ · หัวใบซ้ำทุกแถว (นำเข้า / กรองใน Excel ง่าย) · UTF-8 BOM ให้ Excel อ่านภาษาไทยถูก
-  const H = ['เลขที่', 'วันที่', 'โครงการ / แผนก', 'ผู้ขาย', 'ชื่อแทนผู้รับเหมา', 'สถานที่ส่งของ', 'ประเภทการซื้อ', 'ระบบงาน', 'หมายเหตุ', ...MG_COLS, 'ผู้จัดทำ', 'ผู้อนุมัติ (QS)', 'อ้างอิง Auto PR'];
+  const H = ['เลขที่', 'วันที่', 'โครงการ / แผนก', 'ผู้ขาย', 'ชื่อแทนผู้รับเหมา', 'สถานที่ส่งของ', 'ประเภทการซื้อ', 'ระบบงาน', 'หมายเหตุ', ...MG_COLS, 'ผู้ขอซื้อ', 'ผู้อนุมัติ (QS)', 'อ้างอิง Auto PR'];
   const head = [pr.mangoNo || '', ceDate(pr.date), projLabel(pr), pr.vendor || '', pr.subName || '', pr.deliverTo == null ? pr.proj : pr.deliverTo, pr.buyType || 'Cost', pr.system || 'Construction', mgNote(pr)];
   const q = (v) => { const t = String(v == null ? '' : v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
   return '﻿' + [H, ...mgRows(pr).map(r => [...head, ...r, pr.by || '', pr.qsAt && pr.status !== 'returned' ? pr.qsBy || '' : '', pr.no])].map(r => r.map(q).join(',')).join('\r\n');
