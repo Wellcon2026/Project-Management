@@ -13,7 +13,7 @@
 (function () {
   'use strict';
   if (window.WCTag) return;
-  const VER = '1.1.0';   // 1.1.0: เข้าสู่ระบบครั้งเดียว ข้ามแอป (ตั๋วใช้ครั้งเดียว ?wsso=)
+  const VER = '1.2.0';   // 1.2.0: แท็กในโครงการ = เลือกได้เฉพาะทีมที่ได้รับมอบหมายในโครงการนั้น (+ ผู้บริหารที่ตั้งให้เห็นทุกโครงการ) · 1.1.0: เข้าสู่ระบบครั้งเดียว ข้ามแอป (ตั๋วใช้ครั้งเดียว ?wsso=)
   const ROLE = { pm: 'PM', pm_mgr: 'PM Manager', qs: 'QS', qs_mgr: 'QS Manager', sitemgr: 'Site Manager', site: 'หัวหน้าช่าง', safety: 'Safety', designer: 'Designer',
     design_mgr: 'Design Manager', director: 'Director', superadmin: 'Admin', admin: 'Admin', proc: 'จัดซื้อ', proc_mgr: 'จัดซื้อ', store: 'Store', fin: 'การเงิน', fin_mgr: 'การเงิน',
     hr: 'HR', hr_mgr: 'HR', factory: 'โรงงาน', office: 'Office', driver: 'คนขับรถ' };
@@ -95,12 +95,15 @@
       .sort((a, b) => a.name.localeCompare(b.name, 'th'));
   }
   const inProj = (p, pid) => !!pid && (p.projects.includes(pid));
+  // v1.2.0 ผู้บริหารสั่ง 14/11/2026: แท็กในโครงการ เลือกได้เฉพาะคนที่ได้รับมอบหมายในโครงการนั้น (+ คนที่ Admin ตั้ง "เห็นทุกโครงการ")
+  //   ไม่มีโครงการ (หน้ารวมบริษัท) = เลือกได้ทุกคน · ผู้อนุมัติที่ระบบกำหนด (approve) ยังแท็กได้เสมอ
+  const canTag = (p, pid) => !pid || inProj(p, pid) || p.all;
 
   // ---------- เลือกคนที่จะแท็ก ----------
   // opts: { title, sub, project, preset:[email], approve:[email] (ขออนุมัติ — ล็อกไว้), roles:[rk] (ปุ่มลัดเลือกตามตำแหน่ง), note }
   function pick(opts) {
     opts = opts || {}; const pid = opts.project || '';
-    const sel = new Set((opts.preset || []).map(norm).filter(e => e && e !== (S.me && S.me.email)));
+    const sel = new Set((opts.preset || []).map(norm).filter(e => e && e !== (S.me && S.me.email) && (!pid || !person(e) || canTag(person(e), pid))));
     const ap = new Set((opts.approve || []).map(norm).filter(e => e && e !== (S.me && S.me.email))); ap.forEach(e => sel.add(e));
     let q = '';
     return new Promise((res) => {
@@ -112,17 +115,18 @@
           ${opts.note === false ? '' : '<div class="wct-lb">ข้อความถึงคนที่ถูกแท็ก (ไม่บังคับ)</div><textarea class="wct-in wct-ta" data-n maxlength="400" placeholder="เช่น รบกวนตรวจและอนุมัติภายในวันนี้"></textarea>'}</div>
         <div class="wct-ft"><button class="wct-b" data-skip>ไม่แท็ก</button><button class="wct-b p" data-ok>ส่งแท็ก</button></div>`);
       const $ = (s) => ov.querySelector(s);
-      const roleBtns = (opts.roles || [['qs', 'qs_mgr'], ['pm', 'pm_mgr']]).map(rs => { const L = S.people.filter(p => rs.includes(p.rk) && (!pid || inProj(p, pid) || p.all));
+      const roleBtns = (opts.roles || [['qs', 'qs_mgr'], ['pm', 'pm_mgr']]).map(rs => { const L = S.people.filter(p => rs.includes(p.rk) && (pid ? inProj(p, pid) : true));
         return { rs, L, label: (ROLE[rs[0]] || rs[0]) + (pid ? ' ของโครงการ' : '') }; }).filter(x => x.L.length);
       function draw() {
         $('[data-sel]').innerHTML = [...sel].map(e => { const p = person(e); return `<button class="wct-chip ${ap.has(e) ? 'ap' : 'on'}" data-rm="${esc(e)}">${ap.has(e) ? '✍️ ' : ''}${esc(p ? p.name : e)} ${ap.has(e) ? '' : '✕'}</button>`; }).join('')
           || '<span style="font-size:13px;color:#8A93A6">ยังไม่ได้เลือกใคร</span>';
         $('[data-roles]').innerHTML = roleBtns.map((r, i) => `<button class="wct-chip" data-role="${i}">+ ${esc(r.label)} (${r.L.length})</button>`).join('');
-        const qq = norm(q), L = S.people.filter(p => p.email !== (S.me && S.me.email) && (!qq || norm(p.name + ' ' + p.role + ' ' + p.email).includes(qq)));
-        const team = pid ? L.filter(p => inProj(p, pid)) : [], rest = L.filter(p => !team.includes(p));
+        const qq = norm(q), L = S.people.filter(p => p.email !== (S.me && S.me.email) && canTag(p, pid) && (!qq || norm(p.name + ' ' + p.role + ' ' + p.email).includes(qq)));
+        const team = pid ? L.filter(p => inProj(p, pid)) : [], rest = L.filter(p => !team.includes(p));   // มีโครงการ: rest = ผู้บริหารที่เห็นทุกโครงการเท่านั้น
         const row = (p) => `<button class="wct-p${sel.has(p.email) ? ' on' : ''}" data-e="${esc(p.email)}"><span class="wct-av">${esc((p.name || '?').slice(0, 1))}</span><span class="wct-tx"><b>${esc(p.name)}</b><small>${esc(p.role || p.email)}</small></span><i class="wct-ck">${sel.has(p.email) ? '✓' : ''}</i></button>`;
-        $('[data-list]').innerHTML = (team.length ? '<div class="wct-sec">ทีมโครงการนี้</div>' + team.map(row).join('') : '') + (rest.length ? '<div class="wct-sec">' + (team.length ? 'คนอื่นในบริษัท' : 'พนักงาน') + '</div>' + rest.slice(0, qq ? 80 : 40).map(row).join('') : '')
-          || '<p class="wct-em">ไม่พบชื่อนี้</p>';
+        $('[data-list]').innerHTML = (team.length ? '<div class="wct-sec">ทีมโครงการนี้</div>' + team.map(row).join('') : '') + (rest.length ? '<div class="wct-sec">' + (pid ? 'ผู้บริหาร (เห็นทุกโครงการ)' : 'พนักงาน') + '</div>' + rest.slice(0, qq ? 80 : 40).map(row).join('') : '')
+          || (pid && !qq ? '<p class="wct-em">โครงการนี้ยังไม่มีทีม — ให้ Admin เพิ่มคนในทีมโครงการก่อน</p>' : '<p class="wct-em">ไม่พบชื่อนี้ในทีมโครงการ</p>');
+        if (pid && !$('[data-pn]')) $('[data-list]').insertAdjacentHTML('beforebegin', '<div data-pn style="font-size:12px;color:#8A93A6">แท็กได้เฉพาะทีมที่ได้รับมอบหมายในโครงการ' + (S.projects[pid] ? ' ' + esc(S.projects[pid]) : '') + '</div>');
         const n = sel.size; $('[data-ok]').textContent = n ? 'ส่งแท็ก (' + n + ' คน)' : 'ส่งแท็ก'; $('[data-ok]').disabled = !n;
       }
       const done = (v) => { ov.remove(); res(v); };

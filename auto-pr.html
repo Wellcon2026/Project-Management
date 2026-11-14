@@ -113,6 +113,20 @@ input,select,textarea{font:inherit;color:inherit;font-size:16px}
 .imp .smp div{border-top:1px dashed #EFE8DB;padding-top:4px}.imp .smp span{display:block;color:var(--mut);font-size:12px}
 .boq{font-size:12.5px;background:#EEF4EA;color:#3F5A33;border-radius:10px;padding:5px 10px}
 .boq.over{background:#FDECE8;color:#B4332A;font-weight:600}
+/* v1.7.0 คำนวณปริมาณ */
+#calcBody{display:flex;flex-direction:column;gap:12px}
+.cl-tk{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow:auto}
+.cl-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1.5px solid var(--line);border-radius:12px;background:#fff;cursor:pointer}
+.cl-row.on{border-color:#3F5A33;background:#F3F8F0}.cl-row input{width:20px;height:20px;flex:none}.cl-row span{flex:1;min-width:0;display:flex;flex-direction:column}.cl-row small{color:var(--mut);font-size:12.5px}.cl-row em{font-style:normal;font-weight:700;white-space:nowrap}.cl-row em.bad{color:#B4332A}
+.cl-man{display:flex;flex-direction:column;gap:7px}
+.cl-mr{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.cl-mr input{min-height:44px;border:1.5px solid var(--line);border-radius:10px;padding:0 10px;background:#fff;font-size:15px;width:96px}.cl-mr input[data-cr="l"]{flex:1;min-width:140px;width:auto}.cl-mr em{font-style:normal;font-weight:700;min-width:64px;text-align:right}
+.cl-mr .del,.cl-ln .del{width:36px;height:36px;border-radius:10px;border:1px solid #EBC3B8;background:#fff;color:#B4442E;flex:none}
+.cl-sum{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#F3EDE1;border-radius:12px;padding:10px 12px}.cl-sum b{font-size:18px}.cl-sum small{color:var(--mut)}.cl-sum label{margin-left:auto;display:flex;align-items:center;gap:6px}.cl-sum input,.cl-tile input{width:64px;min-height:40px;border:1.5px solid var(--line);border-radius:10px;padding:0 8px;text-align:right;background:#fff}
+.cl-tile{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.cl-tile small{color:var(--mut)}
+.cl-ln{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-top:1px dashed var(--line);opacity:.55}.cl-ln.on{opacity:1}.cl-ln .ck input{width:22px;height:22px;margin-top:8px}
+.cl-b{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}.cl-b .nm{border:0;border-bottom:1.5px dashed var(--line);padding:5px 2px;font-weight:600;font-size:16px;background:transparent}.cl-b small{color:var(--mut);font-size:12px}
+.cl-r{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:14px}.cl-r input{min-height:36px;border:1.5px solid var(--line);border-radius:9px;padding:0 7px;background:#fff}.cl-r input.u{width:76px}.cl-r input.n{width:64px;text-align:right}.cl-r input[readonly]{background:#F3EDE1}
+.cl-q{display:flex;flex-direction:column;align-items:flex-end;min-width:70px}.cl-q b{font-size:22px;color:var(--acc)}.cl-q small{color:var(--mut)}
 /* v1.5.0 เลือกเอกสาร PR / WO */
 .doc2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .dbtn{display:flex;flex-direction:column;gap:3px;text-align:left;padding:12px 14px;border:2px solid var(--line);border-radius:14px;background:#fff;color:inherit;font:inherit;cursor:pointer;min-height:64px}
@@ -311,6 +325,14 @@ details.mg input{min-height:44px;border:1.5px solid var(--line);border-radius:12
   <div class="foot" id="catFoot" hidden><button class="btn pri" id="btnCatAdd">✓ เพิ่มเข้าใบขอซื้อ</button></div>
 </section>
 
+<!-- v1.7.0 คำนวณปริมาณจากขอบเขตงาน -->
+<section id="scrCalc" class="scr" hidden>
+  <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="tt"><small>ใบขอซื้อ · ใบขอจ้าง</small><b>คำนวณปริมาณที่ต้องสั่ง</b><span>จากพื้นที่ / ความยาว / Takeoff</span></span></div>
+  <div class="body"><div class="wrap" id="calcBody" style="max-width:860px"></div></div>
+  <div class="foot"><button class="btn pri" id="btnCalcAdd">✓ เพิ่มเข้าใบขอซื้อ</button></div>
+</section>
+
 <!-- ดูใบขอซื้อ / พิมพ์ -->
 <section id="scrView" class="scr" hidden>
   <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -329,8 +351,8 @@ details.mg input{min-height:44px;border:1.5px solid var(--line);border-radius:12
 <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
 
 <script src="vendor/supabase.js"></script>
-<script src="wctag.js?v=1.1.0"></script>
-<script src="auto-pr.js?v=1.5.0"></script>
+<script src="wctag.js?v=1.2.0"></script>
+<script src="auto-pr.js?v=1.7.0"></script>
 <script src="pm-nav.js?v=1.2.0"></script>
 </body>
 </html>
