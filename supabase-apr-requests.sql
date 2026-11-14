@@ -8,6 +8,12 @@
 --   ไม่มีสิทธิ์ลบแถว (ลบร่าง / ยกเลิก = ตั้งค่าในแถว เก็บประวัติไว้ตรวจสอบ)
 --   ข้อมูลเดิมใน app_state 'autoPR' คัดลอกเข้าตาราง และ "เก็บไว้เป็นสำรอง" ไม่ลบ
 -- =====================================================================
+create or replace function public.wc_touch() returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end $$ language plpgsql;
+
 do $$
 declare s text;
 begin
@@ -32,6 +38,10 @@ begin
       create index if not exists apr_requests_status_idx on %1$I.apr_requests (status);
       create index if not exists apr_requests_upd_idx on %1$I.apr_requests (updated_at desc);
     $f$, s);
+    -- v1.9.0: เลขที่ไม่ซ้ำในโครงการเดียวกัน (สองคนสร้างพร้อมกัน → แอปขยับเลขแล้วลองใหม่) · updated_at = เวลาเซิร์ฟเวอร์ (ไม่ขึ้นกับนาฬิกาเครื่อง)
+    execute format('create unique index if not exists apr_requests_pid_no_uq on %1$I.apr_requests (pid, no) where no <> ''''', s);
+    execute format('drop trigger if exists apr_requests_touch on %1$I.apr_requests', s);
+    execute format('create trigger apr_requests_touch before insert or update on %1$I.apr_requests for each row execute function public.wc_touch()', s);
     execute format('revoke all on %1$I.apr_requests from anon', s);
     execute format('revoke delete, truncate on %1$I.apr_requests from authenticated', s);   -- ไม่มีสิทธิ์ลบแถว (schema public ให้สิทธิ์ทั้งหมดเป็นค่าเริ่มต้น)
     execute format('grant select, insert, update on %1$I.apr_requests to authenticated', s);
