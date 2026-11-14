@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.6.0';   // 1.6.0: จอคอม — รายการเป็นตาราง + แผงสรุป · เลือกแบบ / ทีม เป็น grid · ปุ่มหลักอยู่ด้านบน · หน้าต่างกลางจอ · 1.5.3: ระบบแท็ก — ส่ง QS ตรวจ = แท็ก QS · QS รับ / ส่งกลับ = แท็กผู้วัด · 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
+const QM_VER = 'v1.7.0';   // 1.7.0: เลเยอร์ (ซ่อน/แสดง · สีตามงาน · วาดในเลเยอร์) · ความยาวหลายช่วงรวมเป็นรายการเดียว (✂ เริ่มช่วงใหม่) · ความสูงผนังตอนวาด · 1.6.0: จอคอม — รายการเป็นตาราง + แผงสรุป · เลือกแบบ / ทีม เป็น grid · ปุ่มหลักอยู่ด้านบน · หน้าต่างกลางจอ · 1.5.3: ระบบแท็ก — ส่ง QS ตรวจ = แท็ก QS · QS รับ / ส่งกลับ = แท็กผู้วัด · 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -44,6 +44,11 @@ const norm = (s) => String(s || '').trim().toLowerCase();
 const f2 = (n) => (n == null || isNaN(n)) ? '—' : Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fq = (q, u) => u === E.UNIT.COUNT ? String(Math.round(q)) : f2(q);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+// v1.7.0 ความยาวหลายช่วง: R = ตำแหน่งเริ่มของช่วงที่ 2, 3, … ใน pts (คอลัมน์ runs) → [[ช่วง 1], [ช่วง 2], …]
+const runsOf = (P, R) => { const S = [0, ...(Array.isArray(R) ? R : []).filter(i => i > 0 && i < P.length).sort((a, b) => a - b)]; return S.map((a, i) => P.slice(a, S[i + 1] || P.length)).filter(x => x.length); };
+// สีเลเยอร์ (งาน) — ใช้เมื่อรายการยังไม่ระบุทีม
+const LCOL = { 'พื้น': '#2E7D46', 'ฝ้า': '#2F6FB0', 'ผนัง': '#8E44AD', 'บัว': '#D2462E', 'Built-in': '#6D4C41', 'อื่น ๆ': '#5C6BC0' };
+const lcol = (w) => { if (LCOL[w]) return LCOL[w]; let h = 0; String(w || '').split('').forEach(c => { h = (h * 31 + c.charCodeAt(0)) | 0; }); return ['#0E9AA7', '#C2185B', '#E08E0B', '#7CB342', '#00897B', '#5C6BC0'][Math.abs(h) % 6]; };
 const pad = (n) => String(n).padStart(2, '0');
 const dmy = (d) => pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
 const when = (iso) => { if (!iso) return ''; const d = new Date(iso), t = new Date(); const hm = pad(d.getHours()) + ':' + pad(d.getMinutes());
@@ -431,18 +436,18 @@ async function sheetImage(src, rows, t, nums) {
   const c = document.createElement('canvas'); c.width = Math.round(L.W * k); c.height = Math.round(L.H * k); const g = c.getContext('2d');
   g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.imageSmoothingQuality = 'high'; g.drawImage(L.bmp, 0, 0, c.width, c.height);
   const s = (p) => [p[0] * k, p[1] * k], u = Math.max(1, Math.max(c.width, c.height) / 800);
-  const pth = (P, close) => { g.beginPath(); P.forEach((p, i) => { const q = s(p); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); }); if (close) g.closePath(); };
+  const pth = (P, close, R) => { g.beginPath(); (close ? [P] : runsOf(P, R)).forEach(Q => Q.forEach((p, i) => { const q = s(p); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); })); if (close) g.closePath(); };
   const mine = new Set(rows.map(r => r.id));
   const all = APP.rows.filter(r => r.type !== 'note' && (src.source === 'qs' ? (r.source === 'qs' && r.qs_file_id === src.fileId && r.page === src.page) : r.sheet_id === src.sheetId));
   all.filter(r => !mine.has(r.id)).forEach(r => { const P = r.pts || []; if (!P.length) return; g.strokeStyle = 'rgba(110,110,110,.6)'; g.lineWidth = 1.5 * u; g.setLineDash([5 * u, 4 * u]);
     if (r.type === 'count') P.forEach(p => { const q = s(p); g.beginPath(); g.arc(q[0], q[1], 4 * u, 0, 7); g.stroke(); });
-    else { pth(P, r.type === 'area'); if (r.type === 'area') { g.fillStyle = 'rgba(120,120,120,.10)'; g.fill(); } g.stroke(); } g.setLineDash([]); });
+    else { pth(P, r.type === 'area', r.runs); if (r.type === 'area') { g.fillStyle = 'rgba(120,120,120,.10)'; g.fill(); } g.stroke(); } g.setLineDash([]); });
   const col = t.color, rgba = (a) => { const n = parseInt(col.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; };
   const tag = (txt, x, y) => { g.font = `600 ${Math.round(13 * u)}px 'IBM Plex Sans Thai',sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
     const w = g.measureText(txt).width + 12 * u, h = 20 * u; g.fillStyle = col; g.beginPath(); g.roundRect ? g.roundRect(x - w / 2, y - h / 2, w, h, 6 * u) : g.rect(x - w / 2, y - h / 2, w, h); g.fill(); g.fillStyle = '#fff'; g.fillText(txt, x, y); };
   rows.forEach((r, i) => { const P = r.pts || []; if (!P.length) return;
     if (r.type === 'count') { P.forEach(p => { const q = s(p); g.beginPath(); g.arc(q[0], q[1], 7 * u, 0, 7); g.fillStyle = col; g.fill(); }); }
-    else { pth(P, r.type === 'area'); if (r.type === 'area') { g.fillStyle = rgba(.3); g.fill(); } g.lineWidth = (r.type === 'length' ? 4 : 2.5) * u; g.strokeStyle = col; g.stroke(); }
+    else { pth(P, r.type === 'area', r.runs); if (r.type === 'area') { g.fillStyle = rgba(.3); g.fill(); } g.lineWidth = (r.type === 'length' ? 4 : 2.5) * u; g.strokeStyle = col; g.stroke(); }
     const ctr = s(r.type === 'area' ? E.centroid(P) : P[Math.floor(P.length / 2)]); tag('#' + nums[i] + ' ' + (r.name || r.work || ''), ctr[0], ctr[1] - (r.type === 'area' ? 0 : 16 * u)); });
   return c.toDataURL('image/jpeg', 0.86);
 }
@@ -814,11 +819,24 @@ const MV = (() => {
   let PGO = null, PR = 1, HI = null, hiT = 0, hiG = 0;   // v1.4 แบบคมชัด: render ใหม่จาก PDF เฉพาะส่วนที่มองเห็นเมื่อซูมเกินความละเอียดภาพ
   let SRC = null, BMP = null, W = 0, H = 0, V = { k: 1, ox: 0, oy: 0 }, dpr = 1, fitV = null;
   let tool = 'area', pts = [], drag = -1, focusId = null, loupe = null, loading = false, scalePts = null;
+  let runs = [];   // v1.7.0 จุดเริ่มช่วงใหม่ของเส้นความยาวที่กำลังวาด
+  // v1.7.0 เลเยอร์ = งาน (พื้น · ฝ้า · ผนัง · บัว …) · ซ่อน/แสดง · เลเยอร์ที่วาดอยู่ · ความสูงผนัง — จำในเครื่องต่อโครงการ
+  const lkey = (k) => 'qm_' + k + '_' + SCHEMA + '_' + APP.pid;
+  const lget = (k, d) => { try { const v = JSON.parse(localStorage.getItem(lkey(k)) || 'null'); return v == null ? d : v; } catch (e) { return d; } };
+  const lset = (k, v) => { try { localStorage.setItem(lkey(k), JSON.stringify(v)); } catch (e) {} };
+  const hiddenL = () => new Set(lget('lhide', []));
+  const curL = () => lget('layer', '');
+  const wallMm = () => { const h = +lget('wallh', 0); return h > 0 ? Math.round(h * 1000) : 0; };
+  const liveH = () => (tool === 'length' && curL() === 'ผนัง' ? wallMm() : 0);
+  // ความยาวหลายช่วง: รวมผลสูตร engine (QS) ของแต่ละช่วง — ช่วงที่มีจุดเดียวยังไม่นับ
+  function lenMeasure(P, R, height) { const S = runsOf(P, R).filter(x => x.length >= 2); if (!S.length || !SRC || !SRC.mm) return null; let q = 0, L = 0, u = '';
+    S.forEach(x => { const m = E.measure({ type: 'length', pts: x, height }, SRC.mm); if (m) { q += m.q; L += m.length || 0; u = m.u; } });
+    return { q, u, length: L, height: height || 0, runs: S.length }; }
   const KIND = { area: 'พื้นที่', length: 'ความยาว', count: 'นับจุด', note: 'โน้ต', ruler: 'ไม้บรรทัด', assign: '🎨 ระบุทีม', scale: 'ตั้งสเกล' };
   const KEY = { area: 'A', length: 'L', count: 'C', note: 'N', ruler: 'R', assign: 'T', scale: 'S' };
   // v1.2.0 ประวัติการวาด (ย้อน/ทำซ้ำ) — เก็บสภาพก่อนแก้ทุกครั้ง
-  const snapD = () => ({ pts: pts.map(p => p.slice()), sp: scalePts ? scalePts.map(p => p.slice()) : null, tool });
-  function restoreD(st) { pts = st.pts.map(p => p.slice()); scalePts = st.sp ? st.sp.map(p => p.slice()) : null; drag = -1; loupe = null;
+  const snapD = () => ({ pts: pts.map(p => p.slice()), sp: scalePts ? scalePts.map(p => p.slice()) : null, tool, runs: runs.slice() });
+  function restoreD(st) { pts = st.pts.map(p => p.slice()); scalePts = st.sp ? st.sp.map(p => p.slice()) : null; runs = (st.runs || []).slice(); drag = -1; loupe = null;
     if (st.tool !== tool) { tool = st.tool; tools(); } draw(); upd(); }
   function rec(label) { if (!SRC) return; const key = SRC.key; const e = { kind: 'draw', key, label, quiet: true, before: snapD(), after: null,
       undo: () => { if (!SRC || SRC.key !== key || APP.screen !== 'measure') return false; e.after = snapD(); restoreD(e.before); },
@@ -841,7 +859,7 @@ const MV = (() => {
 
   async function open(src, focus) {
     hisDrop(e => e.kind === 'draw');
-    SRC = src; BMP = null; W = H = 0; PGO = null; HI = null; hiG++; pts = []; drag = -1; scalePts = null; focusId = focus || null; fitV = null; loading = true;
+    SRC = src; BMP = null; W = H = 0; PGO = null; HI = null; hiG++; pts = []; runs = []; drag = -1; scalePts = null; focusId = focus || null; fitV = null; loading = true;
     tool = src.mm ? 'area' : 'scale';
     header(); tools(); paint(); hint('กำลังเปิดแบบ…'); side(); left();
     try {
@@ -870,11 +888,31 @@ const MV = (() => {
     const T = ['area', 'length', 'count', 'note', 'ruler']; if (!APP.noTeams) T.push('assign'); if (!SRC || SRC.mmSrc !== 'qs') T.push('scale');
     $('mTools').innerHTML = T.map(k => `<button class="chip${tool === k ? ' on' : ''}" data-tool="${k}" aria-pressed="${tool === k}" title="${KIND[k]} (${KEY[k]})">${KIND[k]}</button>`).join('');
     $('btnSave').disabled = !APP.set.allow_quick_measure || APP.noTable;
+    layers();
   }
+  function layers() {
+    const el = $('mLayers'); if (!el) return; const hid = hiddenL(), cur = curL();
+    const here = rowsHere().filter(r => r.type !== 'note'); const names = [...new Set([...WORKS, ...here.map(r => r.work).filter(Boolean)])];
+    el.innerHTML = '<span class="lh">เลเยอร์</span>' + names.map(w => { const n = here.filter(r => r.work === w).length, off = hid.has(w);
+      return `<span class="lchip${w === cur ? ' on' : ''}${off ? ' off' : ''}" style="--c:${lcol(w)}"><button type="button" data-leye="${esc(w)}" title="${off ? 'แสดง' : 'ซ่อน'}เลเยอร์">${off ? '🚫' : '👁'}</button><button type="button" data-lsel="${esc(w)}" title="วาดในเลเยอร์นี้"><i></i>${esc(w)}${n ? ' <em>' + n + '</em>' : ''}</button></span>`; }).join('')
+      + (cur ? '<button type="button" class="lclr" data-lsel="">✕ เลิกเลือก</button>' : '');
+    const wh = $('mWallH'); if (wh) { wh.hidden = !(tool === 'length' && cur === 'ผนัง'); const i = wh.querySelector('input'); if (i && document.activeElement !== i) i.value = lget('wallh', '') || ''; }
+    const bk = $('btnBreak'); if (bk) bk.hidden = tool !== 'length';
+  }
+  $('mLayers').addEventListener('click', (e) => {
+    const ey = e.target.closest('[data-leye]'); if (ey) { const h = hiddenL(), w = ey.dataset.leye; h.has(w) ? h.delete(w) : h.add(w); lset('lhide', [...h]); layers(); draw(); return; }
+    const se = e.target.closest('[data-lsel]'); if (!se) return; const w = se.dataset.lsel, nw = curL() === w ? '' : w; lset('layer', nw);
+    if (nw) { const h = hiddenL(); if (h.has(nw)) { h.delete(nw); lset('lhide', [...h]); } const t = ['ผนัง', 'บัว'].includes(nw) ? 'length' : ['พื้น', 'ฝ้า'].includes(nw) ? 'area' : ''; if (t && t !== tool && !pts.length && SRC && SRC.mm) setTool(t); }
+    layers(); draw(); upd(); if (nw) toast('วาดในเลเยอร์ “' + nw + '”' + (nw === 'ผนัง' ? ' — ใส่ความสูงผนังด้านล่าง' : ''), 2200); });
+  $('mWallH').addEventListener('input', (e) => { const v = parseFloat(String(e.target.value).replace(',', '.')); lset('wallh', v > 0 ? v : 0); upd(); });
+  function breakRun() { if (tool !== 'length') return; const last = runs.length ? runs[runs.length - 1] : 0;
+    if (pts.length - last < 2) { toast('วาดช่วงนี้อย่างน้อย 2 จุดก่อน แล้วค่อยเริ่มช่วงใหม่'); return; }
+    rec('เริ่มช่วงใหม่'); runs.push(pts.length); draw(); upd(); toast('เริ่มช่วงใหม่ — แตะจุดแรกของผนังถัดไป · ระบบรวมความยาวให้ (' + (runs.length + 1) + ' ช่วง)', 2600); }
+  $('btnBreak').addEventListener('click', breakRun);
   function setTool(t) { if (!t || t === tool) return;
     if (pts.length && tool !== 'scale' && tool !== 'ruler' && !confirm('ล้างรูปที่วาดอยู่?')) return;
     if (pts.length || (scalePts && scalePts.length)) rec('เปลี่ยนเครื่องมือ');
-    tool = t; pts = []; scalePts = null; tools(); upd(); paint(); }
+    tool = t; pts = []; runs = []; scalePts = null; tools(); upd(); paint(); }
   $('mTools').addEventListener('click', (e) => { const b = e.target.closest('[data-tool]'); if (b) setTool(b.dataset.tool); });
 
   function hint(t) { const h = $('mHint'); h.textContent = t || ''; h.hidden = !t; }
@@ -882,12 +920,14 @@ const MV = (() => {
     if (tool === 'scale' || tool === 'note' || tool === 'assign' || !pts.length) return null;
     if (tool === 'area' && pts.length < 3) return null;
     if ((tool === 'length' || tool === 'ruler') && pts.length < 2) return null;
+    if (tool === 'length') return lenMeasure(pts, runs, liveH());
     return E.measure({ type: tool === 'ruler' ? 'length' : tool, pts }, SRC && SRC.mm);
   }
   function upd() {
     if (!SRC || loading) return;
     const m = curMeasure();
-    if (m) { $('mQty').textContent = fq(m.q, m.u); $('mUnit').textContent = m.u; $('mPer').textContent = m.perimeter ? 'รอบรูป ' + f2(m.perimeter) + ' ม.' : (tool === 'count' ? '' : ''); }
+    if (m) { $('mQty').textContent = fq(m.q, m.u); $('mUnit').textContent = m.u;
+      $('mPer').textContent = m.perimeter ? 'รอบรูป ' + f2(m.perimeter) + ' ม.' : tool === 'length' ? [m.runs > 1 ? m.runs + ' ช่วง' : '', m.height ? 'ยาวรวม ' + f2(m.length) + ' ม. × สูง ' + f2(m.height / 1000) + ' ม.' : (m.runs > 1 ? 'ยาวรวม ' + f2(m.length) + ' ม.' : '')].filter(Boolean).join(' · ') : ''; }
     else { $('mQty').textContent = '—'; $('mUnit').textContent = ''; $('mPer').textContent = ''; }
     const needScale = tool !== 'count' && tool !== 'scale' && tool !== 'note' && tool !== 'assign' && !SRC.mm;
     if (!APP.set.allow_quick_measure) hint('Admin ปิด Quick Measure — ดูแบบได้อย่างเดียว');
@@ -896,6 +936,7 @@ const MV = (() => {
     else if (tool === 'ruler' && !needScale) hint(pts.length === 2 ? 'ไม้บรรทัด: วัดชั่วคราว ไม่บันทึก · แตะใหม่เพื่อวัดอีกเส้น' : 'ไม้บรรทัด: แตะ 2 จุดเพื่อวัดระยะ (ไม่บันทึก)');
     else if (tool === 'scale') hint(scalePts && scalePts.length === 1 ? 'แตะปลายอีกด้านของระยะที่รู้ค่า' : 'ตั้งสเกล: แตะต้นและปลายของระยะที่รู้ค่า (เช่น ประตู 0.90 ม.)');
     else if (needScale) hint('ยังไม่ตั้งสเกล — เลือก “ตั้งสเกล” ก่อนวัดพื้นที่/ความยาว');
+    else if (tool === 'length' && pts.length >= 2) hint(curL() === 'ผนัง' && !wallMm() ? 'ใส่ความสูงผนังด้านล่าง เพื่อคิดเป็น ตร.ม.' : 'จบผนังนี้แล้ว? กด ✂ เริ่มช่วงใหม่ (B) เพื่อวัดผนังถัดไป — รวมเป็นรายการเดียว');
     else if (!pts.length) hint(tool === 'count' ? 'แตะเพื่อนับทีละจุด · สองนิ้วเพื่อซูม/เลื่อน' : 'แตะมุมห้องทีละจุด · ลากจุดเพื่อปรับ · สองนิ้วเพื่อซูม/เลื่อน');
     else hint('');
     hisBtns();
@@ -908,7 +949,7 @@ const MV = (() => {
   function label(t, x, y, size, col, bold) { ctx.font = (bold ? '600 ' : '') + size + "px 'IBM Plex Sans Thai',sans-serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y); }
   function hexA(h, a) { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return 'rgba(42,125,163,' + a + ')'; const n = parseInt(m[1], 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
-  function path(P, close) { ctx.beginPath(); P.forEach((p, i) => { const s = toScr(p); i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1]); }); if (close) ctx.closePath(); }
+  function path(P, close, R) { ctx.beginPath(); (close || !R || !R.length ? [P] : runsOf(P, R)).forEach(Q => Q.forEach((p, i) => { const s = toScr(p); i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1]); })); if (close) ctx.closePath(); }
   function hiQ() { clearTimeout(hiT); if (!PGO || !BMP) return; hiT = setTimeout(hiRun, 260); }
   async function hiRun() { const page = PGO, src = SRC; if (!page || !BMP) return; const w = cv.width / dpr, h = cv.height / dpr; const need = V.k * dpr;
     if (need <= (BMP.width / W) * 1.05) { if (HI) { HI = null; paint(); } return; }
@@ -936,13 +977,14 @@ const MV = (() => {
           label([m ? f2(m.q) + ' ตร.ม.' : '', codes].filter(Boolean).join(' · '), c[0], c[1] + 9, 11, '#4A4840'); } } });
     // รายการที่วัดไว้แล้วบนแบบนี้
     // v1.5.0 สีตามทีม · เลือกทีมอยู่ = ทีมอื่นจางลง
-    rowsHere().forEach(r => { const P = r.pts || []; if (!P.length) return; const on = r.id === focusId, tm = teamOf(r), dim = !!APP.team && r.type !== 'note' && (!tm || tm.id !== APP.team);
-      const col = on ? '#B8582A' : tm ? tm.color : (r.color || '#8A6D3B'); ctx.save(); if (dim) ctx.globalAlpha = 0.3; paintRow(r, P, on, tm, dim, col); ctx.restore(); });
+    const _hid = hiddenL();
+    rowsHere().forEach(r => { const P = r.pts || []; if (!P.length) return; if (r.type !== 'note' && _hid.has(r.work)) return; const on = r.id === focusId, tm = teamOf(r), dim = !!APP.team && r.type !== 'note' && (!tm || tm.id !== APP.team);
+      const col = on ? '#B8582A' : tm ? tm.color : (r.work ? lcol(r.work) : (r.color || '#8A6D3B')); ctx.save(); if (dim) ctx.globalAlpha = 0.3; paintRow(r, P, on, tm, dim, col); ctx.restore(); });
     function paintRow(r, P, on, tm, dim, col) {
       if (r.type === 'note') { const s = toScr(P[0]); ctx.beginPath(); ctx.moveTo(s[0], s[1]); ctx.lineTo(s[0] - 7, s[1] - 14); ctx.lineTo(s[0] + 7, s[1] - 14); ctx.closePath(); ctx.fillStyle = on ? '#B8582A' : '#C58A1C'; ctx.fill();
         ctx.beginPath(); ctx.arc(s[0], s[1] - 18, 8, 0, 7); ctx.fill(); label(String(r.note || 'โน้ต').split(' · ')[0].slice(0, 40), s[0], s[1] - 36, 12, '#5A3C08', on); return; }
       if (r.type === 'count') { P.forEach(p => { const s = toScr(p); ctx.beginPath(); ctx.arc(s[0], s[1], 6, 0, 7); ctx.fillStyle = hexA(col, .8); ctx.fill(); }); }
-      else { path(P, r.type === 'area'); if (r.type === 'area') { ctx.fillStyle = hexA(col, on ? .3 : tm ? .24 : .1); ctx.fill(); } ctx.lineWidth = on ? 3 : tm ? (r.type === 'length' ? 4 : 2.5) : 2; ctx.strokeStyle = col; ctx.stroke(); }
+      else { path(P, r.type === 'area', r.runs); if (r.type === 'area') { ctx.fillStyle = hexA(col, on ? .3 : tm ? .24 : .1); ctx.fill(); } ctx.lineWidth = on ? 3 : tm ? (r.type === 'length' ? 4 : 2.5) : 2; ctx.strokeStyle = col; ctx.stroke(); }
       if (dim) return;
       const c = toScr(r.type === 'length' ? P[Math.floor(P.length / 2)] : E.centroid(P));
       // v1.5.1 ป้ายยาวเกินรูป (ซูมออก) → ย่อเหลือชื่อห้อง / ซ่อน · ซูมเข้าแล้วเห็นครบ
@@ -965,11 +1007,11 @@ const MV = (() => {
       const col = tool === 'scale' ? '#2F5E8C' : '#B8582A';
       if (tool === 'count') D.forEach((p, i) => { const s = toScr(p); ctx.beginPath(); ctx.arc(s[0], s[1], 11, 0, 7); ctx.fillStyle = col; ctx.fill(); label(String(i + 1), s[0], s[1], 11, '#fff', true); });
       else {
-        path(D, tool === 'area' && D.length > 2); if (tool === 'area' && D.length > 2) { ctx.fillStyle = hexA(col, .22); ctx.fill(); }
+        path(D, tool === 'area' && D.length > 2, tool === 'length' ? runs : null); if (tool === 'area' && D.length > 2) { ctx.fillStyle = hexA(col, .22); ctx.fill(); }
         ctx.lineWidth = 3; ctx.strokeStyle = col; ctx.stroke();
         // ความยาวแต่ละด้าน
         if (SRC.mm && tool !== 'scale') { const E2 = tool === 'area' && D.length > 2 ? D.concat([D[0]]) : D;
-          for (let i = 1; i < E2.length; i++) { const a = toScr(E2[i - 1]), b = toScr(E2[i]); if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 46) continue;
+          for (let i = 1; i < E2.length; i++) { if (tool === 'length' && runs.includes(i)) continue; const a = toScr(E2[i - 1]), b = toScr(E2[i]); if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 46) continue;
             const L = Math.hypot(E2[i][0] - E2[i - 1][0], E2[i][1] - E2[i - 1][1]) * SRC.mm / 1000; label(f2(L) + ' ม.', (a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - 10, 12, '#4A4840'); } }
         D.forEach((p, i) => { const s = toScr(p); if (i === drag) { ctx.beginPath(); ctx.arc(s[0], s[1], 22, 0, 7); ctx.fillStyle = hexA(col, .18); ctx.fill(); }
           ctx.beginPath(); ctx.arc(s[0], s[1], 9, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = col; ctx.stroke(); });
@@ -1036,9 +1078,10 @@ const MV = (() => {
   const polyA = (P) => { let a = 0; for (let i = 0, j = P.length - 1; i < P.length; j = i++) a += (P[j][0] + P[i][0]) * (P[j][1] - P[i][1]); return Math.abs(a / 2); };
   function hitRow(d) {   // เส้น/จุดใกล้นิ้วมาก่อน · พื้นที่ซ้อนกัน → เลือกรูปที่เล็กที่สุด (ห้องในโซน)
     const tol = 16 / V.k; let best = null, bs = Infinity;
-    rowsHere().forEach(r => { const P = r.pts || []; if (!P.length || r.type === 'note') return; let sc = Infinity;
+    const hid = hiddenL();
+    rowsHere().forEach(r => { const P = r.pts || []; if (!P.length || r.type === 'note' || hid.has(r.work)) return; let sc = Infinity;
       if (r.type === 'count') { if (P.some(p => Math.hypot(p[0] - d[0], p[1] - d[1]) < tol * 1.3)) sc = 0; }
-      else if (r.type === 'length') { for (let i = 1; i < P.length; i++) if (segD(d, P[i - 1], P[i]) < tol) { sc = 0; break; } }
+      else if (r.type === 'length') { const RR = Array.isArray(r.runs) ? r.runs : []; for (let i = 1; i < P.length; i++) if (!RR.includes(i) && segD(d, P[i - 1], P[i]) < tol) { sc = 0; break; } }
       else if (P.length > 2) { let near = false; for (let i = 0; i < P.length; i++) if (segD(d, P[i], P[(i + 1) % P.length]) < tol) near = true;
         if (inPoly(d, P) || near) sc = 1 + polyA(P); }
       if (sc < bs) { bs = sc; best = r; } });
@@ -1112,15 +1155,16 @@ const MV = (() => {
     const c = E.centroid(pts); const inP = (p, Q) => { let k = false; for (let i = 0, j = Q.length - 1; i < Q.length; j = i++) if ((Q[i][1] > p[1]) !== (Q[j][1] > p[1]) && p[0] < (Q[j][0] - Q[i][0]) * (p[1] - Q[i][1]) / (Q[j][1] - Q[i][1]) + Q[i][0]) k = !k; return k; };
     const z = zonesHere().find(z => z.type === 'area' && !z.deduct && z.name && inP(c, z.pts || []));
     $('svName').value = z ? z.name : ''; $('svNote').value = ''; $('svH').value = ''; $('svDed').checked = false; $('svWorkTxt').value = '';
-    work = tool === 'area' ? 'พื้น' : tool === 'length' ? 'บัว' : '';
+    work = curL() || (tool === 'area' ? 'พื้น' : tool === 'length' ? 'บัว' : '');
     $('svWork').innerHTML = WORKS.map(w => `<button type="button" class="chip${w === work ? ' on' : ''}" data-w="${esc(w)}">${esc(w)}</button>`).join('');
     $('svHWrap').hidden = tool !== 'length'; $('svDedWrap').hidden = tool !== 'area';
+    if (tool === 'length' && work === 'ผนัง' && wallMm()) $('svH').value = String(wallMm() / 1000);
     $('svCntWrap').hidden = tool !== 'count'; $('svWasteWrap').hidden = tool === 'count'; $('svCnt').value = ''; $('svWaste').value = '';
     $('svTitle').textContent = 'บันทึก' + KIND[tool];
     steam = APP.team || ''; svTeams(); $('svTeamWrap').hidden = APP.noTeams;
     { const t0 = curTeam(); if (t0 && t0.trade) pickWork(t0.trade); }
     const sv = () => { const mm = curSave(); const w = wasteOf(); $('svQty').textContent = fq(mm.q, mm.u); $('svUnit').textContent = mm.u; const ex = [];
-      if (mm.perimeter) ex.push('รอบรูป ' + f2(mm.perimeter) + ' ม.'); if (mm.length && mm.height) ex.push('ยาว ' + f2(mm.length) + ' ม. × สูง ' + f2(mm.height / 1000) + ' ม.');
+      if (mm.perimeter) ex.push('รอบรูป ' + f2(mm.perimeter) + ' ม.'); if (mm.runs > 1) ex.push(mm.runs + ' ช่วงรวมกัน'); if (mm.length && mm.height) ex.push('ยาวรวม ' + f2(mm.length) + ' ม. × สูง ' + f2(mm.height / 1000) + ' ม.');
       if (tool === 'count' && perOf() !== 1) ex.push(pts.length + ' จุด × ' + perOf()); if (w) ex.push('รวมเผื่อ ' + w + '% = ' + f2(E.withWaste(mm.q, w)));
       $('svPer').textContent = ex.join(' · '); };
     $('svH').oninput = sv; $('svDed').onchange = sv; $('svCnt').oninput = sv; $('svWaste').oninput = sv; sv();
@@ -1143,6 +1187,7 @@ const MV = (() => {
     const t = APP.teams.find(x => x.id === steam); if (t && t.trade) pickWork(t.trade);
   });
   $('svWork').addEventListener('click', (e) => { const b = e.target.closest('[data-w]'); if (!b) return; work = b.dataset.w; $('svWorkTxt').value = '';
+    if (tool === 'length') { if (work === 'ผนัง' && !$('svH').value && wallMm()) $('svH').value = String(wallMm() / 1000); if (work === 'บัว') $('svH').value = ''; $('svH').dispatchEvent(new Event('input')); }
     $('svWork').querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === b)); });
   $('svWorkTxt').addEventListener('input', () => { if ($('svWorkTxt').value.trim()) { work = ''; $('svWork').querySelectorAll('.chip').forEach(x => x.classList.remove('on')); } });
   function shape() { const h = parseFloat(String($('svH').value).replace(',', '.')); return { type: tool, pts, deduct: tool === 'area' && $('svDed').checked, height: tool === 'length' && h > 0 ? Math.round(h * 1000) : 0 }; }
@@ -1150,7 +1195,7 @@ const MV = (() => {
   const perOf = () => (tool === 'count' && num0('svCnt')) || 1;          // ตัวคูณนับจุด (ฝั่ง PM — engine นับจุดตามจริง แล้วคูณภายนอก)
   const wasteOf = () => (tool === 'count' ? 0 : num0('svWaste'));
   // ปริมาณที่บันทึก = engine (สูตร QS) × ตัวคูณนับจุด
-  const curSave = () => { const m = E.measure(shape(), SRC.mm); return m && tool === 'count' ? { ...m, q: m.q * perOf() } : m; };
+  const curSave = () => { const sh = shape(); if (tool === 'length') return lenMeasure(pts, runs, sh.height); const m = E.measure(sh, SRC.mm); return m && tool === 'count' ? { ...m, q: m.q * perOf() } : m; };
   async function doSave() {
     const s = shape(), m = curSave(); if (!m) { toast('ยังไม่ตั้งสเกล'); return; }
     const row = { pm_project_id: APP.pid, source: SRC.source, qs_file_id: SRC.source === 'qs' ? SRC.fileId : null, sheet_id: SRC.source === 'upload' ? SRC.sheetId : null,
@@ -1160,10 +1205,13 @@ const MV = (() => {
       status: 'field', note: $('svNote').value.trim() || null, created_by: APP.me.name, created_email: APP.me.email, created_role: APP.me.role,
       count_per: perOf(), waste_pct: wasteOf() || null };
     if (!APP.noTeams) { row.team_id = steam || null; if ((steam || '') !== APP.team) setCurTeam(steam); }
-    const r = await sb.from('takeoff_field_measures').insert(row).select('*');
+    const R0 = runsOf(pts, runs).length > 1 ? runs.filter(i => i > 0 && i < pts.length) : null; if (R0) row.runs = R0;
+    if (tool === 'length' && row.work === 'ผนัง' && s.height) lset('wallh', s.height / 1000);
+    let r = await sb.from('takeoff_field_measures').insert(row).select('*');
+    if (r.error && R0 && /runs/.test(r.error.message || '')) { delete row.runs; r = await sb.from('takeoff_field_measures').insert(row).select('*'); if (!r.error) toast('บันทึกแล้ว (ปริมาณรวมถูกต้อง) — แต่ยังเก็บการแบ่งช่วงไม่ได้: ให้ Admin รัน supabase-takeoff-runs.sql', 5200); }
     if (r.error) { toast('บันทึกไม่สำเร็จ: ' + r.error.message, 5000); return; }
     const before = snapD(), key = SRC.key, saved = r.data[0];
-    APP.rows.unshift(saved); focusId = saved.id; pts = []; draw(); upd();
+    APP.rows.unshift(saved); focusId = saved.id; pts = []; runs = []; layers(); draw(); upd();
     hisPush({ kind: 'act', label: 'บันทึก ' + (saved.name || ''),
       undo: async () => { const c = APP.rows.find(x => x.id === saved.id); if (c && c.status !== 'field' && c.status !== 'returned') throw new Error('รายการนี้ส่ง QS แล้ว');
         await rowSet(saved.id, { deleted_at: new Date().toISOString() }); if (SRC && SRC.key === key && APP.screen === 'measure') { focusId = null; restoreD(before); } },
@@ -1217,9 +1265,9 @@ const MV = (() => {
     const L = rowsHere(), h = [], pk = packs();
     h.push(`<div class="side-h"><span>รายการบนแบบนี้ (${L.length})</span></div><div class="side-b">`);
     if (!L.length) h.push('<p class="empty" style="padding:8px">ยังไม่มี — เลือกเครื่องมือด้านบนแล้ววัดได้เลย</p>');
-    L.forEach(r => h.push(`<button class="ms-i${r.id === focusId ? ' on' : ''}" data-mrow="${esc(r.id)}"><span class="sw" style="background:${r.type === 'note' ? '#C58A1C' : esc((teamOf(r) || {}).color || r.color || '#8A6D3B')}"></span>
+    L.forEach(r => h.push(`<button class="ms-i${r.id === focusId ? ' on' : ''}" data-mrow="${esc(r.id)}"><span class="sw" style="background:${r.type === 'note' ? '#C58A1C' : esc((teamOf(r) || {}).color || (r.work ? lcol(r.work) : '') || r.color || '#8A6D3B')}"></span>
       <span>${esc(r.type === 'note' ? 'โน้ต · ' + String(r.note || '').split(' · ')[0] : rowLabel(r))}</span><span class="q">${r.qty == null ? '' : esc(fq(+r.qty, r.unit)) + ' ' + esc(r.unit || '')}</span>
-      <small><span class="tag t-${esc(r.status)}">${esc(ST[r.status] || r.status)}</span> ${r.waste_pct ? '+' + esc(r.waste_pct) + '% ' : ''}${+r.count_per > 1 ? '×' + esc(r.count_per) + ' ' : ''}${teamOf(r) ? '<b style="color:' + esc(teamOf(r).color) + '">' + esc(teamOf(r).name) + '</b> · ' : ''}${esc(r.created_by || '')}</small></button>`));
+      <small><span class="tag t-${esc(r.status)}">${esc(ST[r.status] || r.status)}</span> ${Array.isArray(r.runs) && r.runs.length ? (r.runs.length + 1) + ' ช่วง ' : ''}${r.waste_pct ? '+' + esc(r.waste_pct) + '% ' : ''}${+r.count_per > 1 ? '×' + esc(r.count_per) + ' ' : ''}${teamOf(r) ? '<b style="color:' + esc(teamOf(r).color) + '">' + esc(teamOf(r).name) + '</b> · ' : ''}${esc(r.created_by || '')}</small></button>`));
     if (!APP.noTeams && APP.teams.length) {   // v1.5.0 สรุปตามทีม (ทั้งโครงการ)
       h.push('</div><div class="side-h"><span>สรุปตามทีม</span><button class="chip" data-tsum style="min-height:30px;font-size:12px">ใบขอบเขตงาน</button></div><div class="side-b">');
       const R = APP.rows.filter(r => r.type !== 'note');
@@ -1269,8 +1317,9 @@ const MV = (() => {
     const k = String(e.key || '').toLowerCase(), map = { a: 'area', l: 'length', c: 'count', n: 'note', r: 'ruler', s: 'scale', t: 'assign' };
     if (map[k]) { if (map[k] === 'scale' && SRC && SRC.mmSrc === 'qs') return; if (map[k] === 'assign' && APP.noTeams) return; e.preventDefault(); setTool(map[k]); }
     else if (k === 'f') { e.preventDefault(); $('btnZoom').click(); }
+    else if (k === 'b') { e.preventDefault(); breakRun(); }
     else if (k === 'enter') { e.preventDefault(); $('btnSave').click(); }
-    else if (k === 'escape') { if (pts.length || (scalePts && scalePts.length)) { rec('ล้างจุด'); pts = []; scalePts = null; draw(); upd(); } }
+    else if (k === 'escape') { if (pts.length || (scalePts && scalePts.length)) { rec('ล้างจุด'); pts = []; runs = []; scalePts = null; draw(); upd(); } }
   });
   window.matchMedia('(min-width:1000px)').addEventListener('change', () => { if (APP.screen === 'measure') { side(); left(); } });
 
