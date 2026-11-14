@@ -125,6 +125,7 @@
       else { G.personId = ws.people[i].id; ws.people[i] = { ...ws.people[i], name: nm, position: pos, role, active: true, mustChange: false, pm: true }; }
       ws.projects = ws.projects.map((x, k) => ({ ...x, access: 'team', ownerId: x.ownerId || G.personId, ...(k === 0 && (!x.pmNamed) ? { name: pname, client: proj.client || x.client || 'Wellcon Interior', pmNamed: true } : {}) }));
       return ws; };
+    try { localStorage.setItem('wellcon_pm_workpid', pid); } catch (e) {}   // กลับ Wellcon PM (หน้าแรกของฉัน) = โครงการเดิม
     window.LB_PM = G;
     try { document.title = 'Layboard · ' + pname + ' — Wellcon PM'; } catch (e) {}
     G.projects = live.filter(x => seesAll || (acc.projects || []).includes(x.id))

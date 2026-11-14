@@ -4,6 +4,7 @@
      node scripts/patch-sync-a.js        (รันต่อจาก patch-vo-si-tag.js)
    1) "ตัวเลขเงินโครงการ" ดูได้ตามตำแหน่ง — สวิตช์ใหม่ 'money' (ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน · ปรับรายตำแหน่ง / รายคนได้)
       ค่าเริ่มต้นเปิด: Super Admin · Director · PM · PM Manager · QS · QS Manager · การเงิน · Finance Manager · จัดซื้อ · Design Manager
+      + คนที่ Admin ใส่การ์ดหน้าการเงินให้รายคนไว้แล้ว (งานเพิ่ม · VO Tracker / การเงิน / สัญญาช่าง) — คงสิทธิ์เดิม
       ค่าเริ่มต้นปิด: Site Manager · หัวหน้าช่าง · Designer · โรงงาน · Store · ธุรการ · จป. · ฝ่ายบุคคล · พนักงานขับรถ
       คนที่ไม่มีสิทธิ์:
         · ไม่เห็นเมนู "การเงิน · งวดเบิกเงิน" · "งานเพิ่ม · VO Tracker (QS)" · "สัญญาช่าง · จ่ายงวดช่าง" (เปิดลิงก์ตรงก็เด้งกลับ)
@@ -45,7 +46,7 @@ const R = [
   ['สวิตช์ในตั้งค่า', "    { key:'bank',  label:'ธนาคาร · วงเงิน',",
    "    { key:'money', label:'ตัวเลขเงินโครงการ', note:'การเงิน · งวดเบิกเงิน · VO Tracker · สัญญาช่าง · มูลค่างาน — ค่าเริ่มต้นเปิด: ผู้บริหาร · PM · QS · การเงิน · จัดซื้อ' },\n    { key:'bank',  label:'ธนาคาร · วงเงิน',"],
   ['ค่าเริ่มต้นตามตำแหน่ง', "    if(key==='lay') return this._LAY_DEF().indexOf(a.roleKey)>=0;   // v1.366.2 layboard-access",
-   "    if(key==='lay') return this._LAY_DEF().indexOf(a.roleKey)>=0;   // v1.366.2 layboard-access\n    if(key==='money') return this._MONEY_DEF().indexOf(a.roleKey)>=0;"],
+   "    if(key==='lay') return this._LAY_DEF().indexOf(a.roleKey)>=0;   // v1.366.2 layboard-access\n    if(key==='money'){ if(this._MONEY_DEF().indexOf(a.roleKey)>=0) return true;   // คนที่ Admin ใส่การ์ดหน้าการเงินให้รายคนไว้แล้ว (เช่น งานเพิ่ม · VO Tracker) = เห็นตัวเลขเงิน\n      const e=String(a.email||'').trim().toLowerCase(); if(!e) return false; return [...(this.WORK_USER(e)||[]), ...this.WORK_USER_ADD(e)].some(k=>k==='tab:aw'||k==='tab:fin'||k==='tab:subcon'); }"],
   ['ตัวช่วย', "  featDefault(key, a){", HELPERS + "  featDefault(key, a){"],
   ['ตัวจัดรูปแบบเงินกลาง', "  money(n){ const a=Math.abs(n);", "  money(n){ if(!this.moneyOk()) return '—'; return this._moneyRaw(n); }\n  _moneyRaw(n){ const a=Math.abs(n);"],
   // เงินเดือนในหน้าบุคลากร ไม่ใช่ตัวเลขเงินโครงการ — ใช้สิทธิ์ของหน้าบุคลากรตามเดิม
