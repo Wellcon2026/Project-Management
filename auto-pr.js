@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const APR_VER = 'v1.0.0';
+const APR_VER = 'v1.1.0';   // 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -55,7 +55,7 @@ const pmUrl = () => '/' + (IS_STG ? '?env=staging' : '');
 let toastT = null;
 function toast(m, ms) { const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms || 2600); }
 
-const APP = { acc: null, me: null, accounts: [], projects: [], pid: '', proj: null, all: {}, rooms: [], pr: null, screen: 'msg', pushed: 0 };
+const APP = { acc: null, me: null, accounts: [], projects: [], pid: '', proj: null, all: {}, cfg: {}, rooms: [], pr: null, screen: 'msg', pushed: 0, filt: 'all' };
 const SCR = ['msg', 'proj', 'list', 'edit', 'view'];
 function show(s, push) {
   SCR.forEach(k => { $('scr' + k[0].toUpperCase() + k.slice(1)).hidden = k !== s; });
@@ -65,7 +65,7 @@ function show(s, push) {
 window.addEventListener('popstate', (e) => {
   const s = (e.state && e.state.apr) || (APP.pid ? 'list' : (APP.acc ? 'proj' : 'msg'));
   if (APP.pushed > 0) APP.pushed--;
-  show(s, false); if (s === 'list') renderList(); if (s === 'edit') renderEdit();
+  show(s, false); if (s === 'list') renderList(); if (s === 'edit') renderEdit(); if (s === 'proj') renderProjects();
 });
 function toPm() { if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1 && !APP.pushed) history.back(); else location.href = pmUrl(); }
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (!b) return;
@@ -130,7 +130,8 @@ async function boot() {
     try { sb.rpc('usage_touch', { p_email: APP.me.email, p_app: 'apr' }).then(() => {}, () => {}); } catch (e) {}
     if (window.WCTag) WCTag.setup({ sb, app: 'apr', me: APP.me, accounts: APP.accounts.filter(x => x.active !== false && !x.disabled), projects: live });
     APP.projects = live.filter(x => seesAll(acc) || (acc.projects || []).includes(x.id));
-    await loadAll();
+    await Promise.all([loadAll(), loadCfg()]);
+    escalate();   // SLA 24 ชม. (ทำครั้งเดียวต่อใบ)
     const pid = new URLSearchParams(location.search).get('pid');
     if (pid) {
       if (!APP.projects.some(x => x.id === pid)) { msg('<div class="card" style="margin-top:20px"><b>คุณไม่ได้รับมอบหมายในโครงการนี้</b><span style="color:var(--mut);font-size:14px">ขอให้ PM เพิ่มคุณเข้าทีมโครงการก่อน</span></div>'); return; }
@@ -142,11 +143,13 @@ async function boot() {
   }
 }
 function renderProjects() {
-  const L = APP.projects;
-  $('projList').innerHTML = L.length ? L.map(p => `<button class="card" data-pid="${esc(p.id)}" style="text-align:left"><b>${esc(projName(p))}</b><span style="font-size:13px;color:var(--mut)">${esc(projCode(p))}</span></button>`).join('')
+  const L = APP.projects; $('projInbox').innerHTML = inboxHtml(inboxOf(L.map(p => p.id)), true);
+  const pend = (pid) => (APP.all[pid] || []).filter(pr => ['sent', 'approved', 'ordered', 'returned'].includes(pr.status)).length;
+  $('projList').innerHTML = L.length ? L.map(p => { const n = pend(p.id); return `<button class="card" data-pid="${esc(p.id)}" style="text-align:left"><b>${esc(projName(p))}</b><span style="font-size:13px;color:var(--mut)">${esc(projCode(p))}${n ? ' · กำลังดำเนินการ ' + n + ' ใบ' : ''}</span></button>`; }).join('')
     : '<p class="empty">ยังไม่มีโครงการที่คุณถูก assign</p>';
   show('proj');
 }
+$('projInbox').addEventListener('click', (e) => { const b = e.target.closest('[data-open]'); if (b) openPr(b.dataset.opid, b.dataset.open); });
 $('projList').addEventListener('click', (e) => { const b = e.target.closest('[data-pid]'); if (!b) return;
   const u = new URL(location.href); u.searchParams.set('pid', b.dataset.pid); history.replaceState(null, '', u); openProject(b.dataset.pid); });
 async function openProject(pid) {
@@ -163,21 +166,162 @@ async function openProject(pid) {
 // รายการใบขอซื้อ
 // =====================================================================
 const prNo = (pr) => pr.no || '';
+// =====================================================================
+// v1.1.0 ขั้นตอนอนุมัติ + ติดตาม + แจ้งเตือน
+//   ส่ง PR → QS ของโครงการ อนุมัติ / ส่งกลับแก้ไข → จัดซื้อของโครงการ สั่งของ (เลข PR/PO Mango · วันของถึง) → หน้างานยืนยันรับของ
+//   แจ้งเตือน: ระบบแท็ก (popup + กระดิ่ง ทุกแอป) + กลุ่ม LINE ของโครงการ / กลุ่มจัดซื้อ (ถ้าตั้งไว้)
+//   SLA 24 ชม.: QS ยังไม่อนุมัติ → แจ้ง QS Manager + PM · จัดซื้อยังไม่สั่ง → แจ้งจัดซื้อ + PM (ครั้งเดียวต่อใบ · ตรวจตอนมีคนเปิดแอป)
+// =====================================================================
+const STS = { draft: ['ร่าง', '#F3EDE1', '#6B6758'], sent: ['รอ QS อนุมัติ', '#FAF1D6', '#8A6D10'], returned: ['QS ส่งกลับแก้ไข', '#F8E4DF', '#B4332A'],
+  approved: ['รอจัดซื้อสั่งของ', '#E3ECF5', '#2F5E8C'], ordered: ['สั่งซื้อแล้ว · รอของ', '#EDE7F6', '#5B3F99'], received: ['ได้รับของแล้ว', '#E6EFE0', '#3F5A33'], cancelled: ['ยกเลิก', '#F2EDE3', '#8C877D'] };
+const SLA_H = 24;
+const QS_R = ['qs', 'qs_mgr', 'superadmin', 'director'], PROC_R = ['proc', 'superadmin'], SITE_R = ['site', 'sitemgr', 'pm', 'pm_mgr', 'store', 'superadmin', 'director'];
+const CFG_R = ['pm', 'pm_mgr', 'qs', 'qs_mgr', 'proc', 'superadmin', 'director'];
+const stTag = (s) => { const x = STS[s] || STS.draft; return `<span class="st" style="background:${x[1]};color:${x[2]}">${x[0]}</span>`; };
+const canApprove = () => QS_R.includes(APP.me.role);
+const canProc = () => PROC_R.includes(APP.me.role);
+const canCfg = () => CFG_R.includes(APP.me.role);
+const isMine = (pr) => norm(pr.byEmail) === APP.me.email;
+const canReceive = (pr) => isMine(pr) || SITE_R.includes(APP.me.role);
+const canEdit = (pr) => !pr.status || (['draft', 'returned'].includes(pr.status) && (isMine(pr) || SITE_R.includes(APP.me.role))) || (pr.status === 'sent' && canApprove());
+const hrs = (t) => t ? (Date.now() - t) / 36e5 : 0;
+const ageTxt = (t) => { const h = hrs(t); return h < 1 ? Math.max(1, Math.round(h * 60)) + ' นาที' : h < 48 ? Math.round(h) + ' ชม.' : Math.round(h / 24) + ' วัน'; };
+const when2 = (t) => { if (!t) return ''; const d = new Date(t); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const stAt = (pr) => ({ sent: pr.sentAt, approved: pr.qsAt, ordered: pr.orderedAt, returned: pr.qsAt, received: pr.receivedAt })[pr.status] || pr.upd || pr.at;
+const waitOf = (pr) => ({ sent: 'QS', approved: 'จัดซื้อ', returned: 'ผู้ขอแก้ไข' })[pr.status] || '';
+const minNeed = (pr) => (pr.items || []).map(i => i.need).filter(Boolean).sort()[0] || '';
+const nameOf = (e) => { const a = APP.accounts.find(x => norm(x.email) === norm(e)); return a ? nickOf(a) : e; };
+const names = (L) => L.map(nameOf).join(', ') || '—';
+function ageBadge(pr) {
+  if (pr.status === 'ordered') { const late = pr.eta && pr.eta < isoOf(new Date()); return pr.eta ? `<span class="age ${late ? 'late' : 'ok'}">${late ? 'เลยวันของถึง ' : 'ของถึง '}${esc(thDate(pr.eta))}</span>` : ''; }
+  if (!['sent', 'approved', 'returned'].includes(pr.status)) return '';
+  const h = hrs(stAt(pr)); const c = h >= SLA_H ? 'late' : h >= SLA_H / 2 ? 'warn' : 'ok';
+  return `<span class="age ${c}">รอ${esc(waitOf(pr))} ${ageTxt(stAt(pr))}</span>`;
+}
+function tracker(pr) {
+  const S = pr.status || 'draft', idx = { draft: 0, sent: 1, returned: 1, approved: 2, ordered: 3, received: 4, cancelled: 0 }[S];
+  const steps = [['ส่ง PR', pr.sentAt, pr.by], ['QS อนุมัติ', S === 'returned' ? 0 : pr.qsAt, pr.qsBy], ['จัดซื้อสั่งของ', pr.orderedAt, pr.procBy], ['ของถึงหน้างาน', pr.receivedAt, pr.recvBy]];
+  return '<div class="trk">' + steps.map(([l, t, who], i) => { const done = i < idx, now = i === idx && S !== 'cancelled', bad = S === 'returned' && i === 1;
+    const sub = done && t ? when2(t) + (who ? ' · ' + who : '') : bad ? 'ส่งกลับแก้ไข' : now ? 'กำลังรอ' : '';
+    return `<span class="${done ? 'done' : ''}${now ? ' now' : ''}${bad ? ' bad' : ''}">${l}<small>${esc(sub)}</small></span>`; }).join('') + '</div>';
+}
+// ----- คนรับผิดชอบแต่ละขั้น (ตามทีมโครงการ · ไม่มีในโครงการ → หัวหน้าฝ่าย / ทั้งฝ่าย) -----
+const actv = () => APP.accounts.filter(a => a && a.email && a.active !== false && !a.disabled);
+const inP = (a, pid) => (a.projects || []).includes(pid);
+function qsOf(pid) { const L = actv().filter(a => ['qs', 'qs_mgr'].includes(a.roleKey)); const P = L.filter(a => inP(a, pid)); return (P.length ? P : L.filter(a => a.roleKey === 'qs_mgr')).map(a => norm(a.email)); }
+function procOf(pid) { const L = actv().filter(a => a.roleKey === 'proc'); const P = L.filter(a => inP(a, pid)); return (P.length ? P : L).map(a => norm(a.email)); }
+function pmsOf(pid) { return actv().filter(a => ['pm', 'pm_mgr'].includes(a.roleKey) && inP(a, pid)).map(a => norm(a.email)); }
+const qsMgr = () => actv().filter(a => a.roleKey === 'qs_mgr').map(a => norm(a.email));
+// ----- แจ้งเตือน: ระบบแท็ก + LINE -----
+const prUrl = (pr) => location.origin + '/auto-pr.html?pid=' + encodeURIComponent(pr.pid) + '&pr=' + encodeURIComponent(pr.id) + (IS_STG ? '&env=staging' : '');
+async function notify(pr, o) {   // o: { title, note, to:[], approve:[], close:'approve'|'all', line }
+  if (window.WCTag) { try {
+    if (o.close) await WCTag.close({ app: 'apr', ref_type: 'apr', ref_id: pr.id, ...(o.close === 'approve' ? { kind: 'approve' } : {}) });
+    const ap = [...new Set(o.approve || [])], to = [...new Set(o.to || [])].filter(e => !ap.includes(e));
+    if (to.length || ap.length) await WCTag.send({ app: 'apr', project: pr.pid, ref_type: 'apr', ref_id: pr.id, title: o.title, note: o.note || '', url: prUrl(pr), to, approve: ap });
+  } catch (e) { console.warn(e); } }
+  lineSend(pr, o.line || o.title);
+}
+const CFG_KEY = 'autoPRCfg';
+async function loadCfg() { try { const r = await sb.from('app_state').select('data').eq('id', CFG_KEY).maybeSingle(); APP.cfg = (!r.error && r.data && r.data.data && r.data.data.v) || {}; } catch (e) { APP.cfg = {}; } }
+async function saveCfg(k, patch) {
+  const r = await sb.from('app_state').select('data').eq('id', CFG_KEY).maybeSingle(); if (r.error) throw r.error;
+  const v = { ...((r.data && r.data.data && r.data.data.v) || {}) }; v[k] = { ...(v[k] || {}), ...patch };
+  const up = await sb.from('app_state').upsert([{ id: CFG_KEY, data: { v }, updated_by: APP.me.email }], { onConflict: 'id' }); if (up.error) throw up.error; APP.cfg = v;
+}
+function lineSend(pr, text) {
+  const to = [...new Set([((APP.cfg || {})[pr.pid] || {}).line, ((APP.cfg || {})._all || {}).line].map(x => String(x || '').trim()).filter(Boolean))]; if (!to.length) return;
+  const msg = '🧾 ' + pr.no + ' · ' + pr.proj + '\n' + text + '\n' + (pr.items || []).length + ' รายการ' + (minNeed(pr) ? ' · ต้องการของ ' + thDate(minNeed(pr)) : '') + '\nเปิด: ' + prUrl(pr);
+  to.forEach(t => { try { fetch('/api/line', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: t, text: msg }) }).catch(() => {}); } catch (e) {} });
+}
+// ----- เปลี่ยนสถานะ: อ่านล่าสุด → ตรวจสถานะยังตรง → แก้ → เขียน (กันกดซ้ำ / สองคนกดพร้อมกัน) -----
+const logIt = (pr, act, note) => { pr.log = [...(pr.log || []), { at: Date.now(), by: APP.me.name, email: APP.me.email, act, note: note || '' }]; };
+async function transition(pid, id, expect, mut) {
+  const r = await sb.from('app_state').select('data').eq('id', KEY).maybeSingle(); if (r.error) throw r.error;
+  const v = { ...((r.data && r.data.data && r.data.data.v) || {}) }; const L = (v[pid] || []).slice(); const i = L.findIndex(x => x.id === id);
+  if (i < 0) throw new Error('ไม่พบใบขอซื้อนี้');
+  const cur = JSON.parse(JSON.stringify(L[i]));
+  if (expect && !expect.includes(cur.status)) { APP.all = v; throw new Error('ใบนี้ถูกดำเนินการไปแล้ว (' + (STS[cur.status] || [''])[0] + ') — แสดงสถานะล่าสุดแล้ว'); }
+  mut(cur); cur.upd = Date.now(); cur.updBy = APP.me.name; L[i] = cur; v[pid] = L;
+  const up = await sb.from('app_state').upsert([{ id: KEY, data: { v }, updated_by: APP.me.email }], { onConflict: 'id' }); if (up.error) throw up.error;
+  APP.all = v; return cur;
+}
+async function escalate() {
+  const vis = new Set(APP.projects.map(p => p.id));
+  for (const pid of Object.keys(APP.all)) { if (!vis.has(pid)) continue;
+    for (const pr of (APP.all[pid] || [])) { if (!pr || pr.deleted) continue;
+      if (pr.status === 'sent' && hrs(pr.sentAt) >= SLA_H && !pr.escQs) await esc1(pid, pr, 'sent', 'escQs', [...qsMgr(), ...pmsOf(pid)], 'เกิน 24 ชม. QS ยังไม่อนุมัติ');
+      else if (pr.status === 'approved' && hrs(pr.qsAt) >= SLA_H && !pr.escProc) await esc1(pid, pr, 'approved', 'escProc', [...procOf(pid), ...pmsOf(pid)], 'เกิน 24 ชม. จัดซื้อยังไม่สั่งของ'); } }
+}
+async function esc1(pid, pr, st, flag, to, why) {
+  try { const cur = await transition(pid, pr.id, [st], x => { if (x[flag]) throw new Error('done'); x[flag] = Date.now(); logIt(x, '⏰ แจ้งเตือนเกินเวลา', why); });
+    await notify(cur, { title: '⏰ ' + why + ' · ' + cur.no + ' · ' + cur.proj, to, line: '⏰ ' + why }); } catch (e) {}
+}
+// ----- งานที่รอคุณ -----
+function inboxOf(pids) {
+  const out = [];
+  pids.forEach(pid => (APP.all[pid] || []).forEach(pr => { if (!pr || pr.deleted) return; let why = '';
+    if (pr.status === 'sent' && canApprove()) why = '✍️ รอคุณอนุมัติ';
+    else if (pr.status === 'approved' && canProc()) why = '🛒 รอคุณสั่งของ';
+    else if (pr.status === 'returned' && isMine(pr)) why = '↩ QS ส่งกลับ — แก้แล้วส่งใหม่';
+    else if (pr.status === 'ordered' && isMine(pr)) why = '📦 ของถึงแล้วหรือยัง? ยืนยันรับของ';
+    else if (pr.status === 'draft' && isMine(pr)) why = '📝 ร่างที่ยังไม่ได้ส่ง';
+    if (why) out.push({ pr, why, pid }); }));
+  return out.sort((a, b) => (stAt(a.pr) || 0) - (stAt(b.pr) || 0));
+}
+function inboxHtml(L, showProj) {
+  if (!L.length) return '';
+  return `<div class="card inbox"><div class="h"><span class="n" style="background:var(--acc)">${L.length}</span>งานที่รอคุณ <small>แตะเพื่อเปิด</small></div>` + L.slice(0, 20).map(x =>
+    `<button class="ib" data-open="${esc(x.pr.id)}" data-opid="${esc(x.pid)}"><span><b>${esc(x.why)}</b><small>${esc(x.pr.no)}${showProj ? ' · ' + esc(x.pr.proj) : ''} · ${(x.pr.items || []).length} รายการ · ${esc(x.pr.by || '')}</small></span>${ageBadge(x.pr)}</button>`).join('') + '</div>';
+}
+function openPr(pid, id) {
+  const go = () => { const f = (APP.all[pid] || []).find(x => x.id === id); if (!f) { toast('ไม่พบใบขอซื้อนี้'); return; } APP.pr = JSON.parse(JSON.stringify(f)); openView(); };
+  if (pid === APP.pid) { go(); return; }
+  const u = new URL(location.href); u.searchParams.set('pid', pid); u.searchParams.set('pr', id); history.replaceState(null, '', u); openProject(pid);
+}
+async function reload() { try { await loadAll(); } catch (e) { toast('โหลดไม่สำเร็จ'); return; } if (APP.screen === 'list') renderList(); else if (APP.screen === 'proj') renderProjects();
+  else if (APP.screen === 'view' && APP.pr) { const f = myPrs().find(x => x.id === APP.pr.id); if (f) { APP.pr = JSON.parse(JSON.stringify(f)); renderView(); } } }
+setInterval(() => { if (document.visibilityState === 'visible' && APP.me && ['list', 'view', 'proj'].includes(APP.screen)) reload(); }, 60000);
+async function editCfg() {
+  const cur = ((APP.cfg || {})[APP.pid] || {}).line || '';
+  const v = prompt('รหัสกลุ่ม LINE ของโครงการนี้ — แจ้งทุกขั้นตอนของใบขอซื้อเข้ากลุ่ม\nวิธีหารหัส: เชิญบอท Wellcon PM เข้ากลุ่ม LINE แล้วพิมพ์ id ในกลุ่ม\nเว้นว่าง = ไม่ส่ง LINE', cur);
+  if (v === null) return;
+  try { await saveCfg(APP.pid, { line: v.trim() });
+    if (['proc', 'superadmin'].includes(APP.me.role)) { const c2 = ((APP.cfg || {})._all || {}).line || '';
+      const v2 = prompt('(ไม่บังคับ) รหัสกลุ่ม LINE ฝ่ายจัดซื้อ — รับแจ้งใบขอซื้อทุกโครงการ\nเว้นว่าง = ไม่ใช้', c2); if (v2 !== null) await saveCfg('_all', { line: v2.trim() }); }
+    toast(v.trim() ? 'บันทึกกลุ่ม LINE แล้ว — ขั้นตอนต่อไปจะแจ้งเข้ากลุ่ม' : 'ปิดการแจ้ง LINE ของโครงการนี้แล้ว'); renderList();
+  } catch (e) { toast('บันทึกไม่สำเร็จ: ' + ((e && e.message) || e), 4000); }
+}
+
+// =====================================================================
+// รายการใบขอซื้อ
+// =====================================================================
+const FILT = [['all', 'ทั้งหมด'], ['sent', 'รอ QS'], ['approved', 'รอจัดซื้อ'], ['ordered', 'สั่งแล้ว'], ['received', 'ได้รับแล้ว'], ['draft', 'ร่าง / ส่งกลับ']];
+const inF = (pr, k) => k === 'all' ? pr.status !== 'cancelled' : k === 'draft' ? ['draft', 'returned'].includes(pr.status || 'draft') : pr.status === k;
 function renderList() {
-  const L = myPrs(); const h = [];
-  if (!L.length) h.push(`<div class="card" style="align-items:center;text-align:center;padding:26px 16px"><div style="font-size:40px">🧾</div><b style="font-size:17px">ยังไม่มีใบขอซื้อในโครงการนี้</b>
+  const all = myPrs(), f = APP.filt || 'all', L = all.filter(pr => inF(pr, f)); const h = [];
+  h.push(inboxHtml(inboxOf([APP.pid]), false));
+  h.push('<div class="chips">' + FILT.map(([k, l]) => `<button class="chip${k === f ? ' on' : ''}" data-filt="${k}">${l} <small>${all.filter(pr => inF(pr, k)).length}</small></button>`).join('')
+    + '<button class="chip" data-reload title="โหลดใหม่">↻ โหลดใหม่</button>' + (canCfg() ? `<button class="chip add" data-cfg>🔔 LINE ${((APP.cfg || {})[APP.pid] || {}).line ? '✓' : '— ตั้งค่า'}</button>` : '') + '</div>');
+  if (!all.length) h.push(`<div class="card" style="align-items:center;text-align:center;padding:26px 16px"><div style="font-size:40px">🧾</div><b style="font-size:17px">ยังไม่มีใบขอซื้อในโครงการนี้</b>
     <span style="color:var(--mut);font-size:14px">กด “＋ สร้างใบขอซื้อใหม่” — ระบบกรอกชื่อโครงการ วันที่ ชื่อผู้ขอ และผู้อนุมัติให้เอง</span></div>`);
+  else if (!L.length) h.push('<p class="empty">ไม่มีใบขอซื้อในสถานะนี้</p>');
   else h.push('<div class="list">' + L.map(pr => {
     const n = (pr.items || []).length, first = (pr.items || []).slice(0, 3).map(i => i.name).join(' · ');
-    return `<div class="card pr-c"><div class="t"><b>${esc(prNo(pr))}</b><span class="st st-${pr.status === 'sent' ? 'sent' : 'draft'}">${pr.status === 'sent' ? 'ส่งแล้ว' : 'ร่าง'}</span></div>
-      <div class="s">${esc(thDate(pr.date))} · ${n} รายการ · โดย ${esc(pr.by || '—')}</div><div style="font-size:14px">${esc(first)}${n > 3 ? ' …' : ''}</div>
-      <div class="b"><button class="btn sm dk" data-view="${esc(pr.id)}">👁 ดู / พิมพ์</button><button class="btn sm" data-edit="${esc(pr.id)}">✎ แก้ไข</button><button class="btn sm" data-copy="${esc(pr.id)}">⧉ ขอซ้ำ (ใบใหม่)</button></div></div>`; }).join('') + '</div>');
-  h.push(`<p class="ver">Auto PR ${APR_VER} · ไม่มีราคา · ใบขอซื้อจริงยังต้องลงนามตามขั้นตอน (ผู้ขอซื้อ → QS → PM)</p>`);
+    return `<div class="card pr-c"><div class="t"><b>${esc(prNo(pr))}</b>${stTag(pr.status)}</div>
+      <div class="s">${esc(thDate(pr.date))} · ${n} รายการ · โดย ${esc(pr.by || '—')}${pr.mangoNo ? ' · Mango ' + esc(pr.mangoNo) : ''}</div><div style="font-size:14px">${esc(first)}${n > 3 ? ' …' : ''}</div>
+      ${pr.status && pr.status !== 'cancelled' ? tracker(pr) : ''}<div>${ageBadge(pr)}</div>
+      <div class="b"><button class="btn sm dk" data-view="${esc(pr.id)}">👁 เปิด</button>${canEdit(pr) ? `<button class="btn sm" data-edit="${esc(pr.id)}">✎ แก้ไข</button>` : ''}<button class="btn sm" data-copy="${esc(pr.id)}">⧉ ขอซ้ำ</button></div></div>`; }).join('') + '</div>');
+  h.push(`<p class="ver">Auto PR ${APR_VER} · ไม่มีราคา · ขั้นตอน: ส่ง PR → QS อนุมัติ → จัดซื้อสั่งของ → หน้างานรับของ</p>`);
   $('listBody').innerHTML = h.join('');
 }
 $('listBody').addEventListener('click', (e) => {
-  const v = e.target.closest('[data-view]'), ed = e.target.closest('[data-edit]'), cp = e.target.closest('[data-copy]');
+  const v = e.target.closest('[data-view]'), ed = e.target.closest('[data-edit]'), cp = e.target.closest('[data-copy]'), fl = e.target.closest('[data-filt]'), ib = e.target.closest('[data-open]');
   const find = (id) => myPrs().find(x => x.id === id);
+  if (fl) { APP.filt = fl.dataset.filt; renderList(); return; }
+  if (e.target.closest('[data-reload]')) { toast('กำลังโหลดใหม่…', 900); reload(); return; }
+  if (e.target.closest('[data-cfg]')) { editCfg(); return; }
+  if (ib) { openPr(ib.dataset.opid, ib.dataset.open); return; }
   if (v) { APP.pr = JSON.parse(JSON.stringify(find(v.dataset.view))); openView(); }
   else if (ed) { APP.pr = JSON.parse(JSON.stringify(find(ed.dataset.edit))); renderEdit(); show('edit', true); }
   else if (cp) { const src = find(cp.dataset.copy); APP.pr = newPr(); APP.pr.types = (src.types || []).slice(); APP.pr.area = src.area || '';
@@ -205,7 +349,8 @@ function newPr() {
 let L = null;   // ผลการเรียนรู้ (คำนวณตอนเปิดหน้าแก้ไข)
 function renderEdit() {
   const pr = APP.pr; L = learn();
-  $('edTitle').textContent = pr.status === 'sent' ? 'แก้ไข ' + pr.no : 'ใบขอซื้อใหม่';
+  $('edTitle').textContent = pr.status && pr.status !== 'draft' ? 'แก้ไข ' + pr.no : 'ใบขอซื้อใหม่';
+  $('btnSend').textContent = pr.status === 'sent' ? '✓ บันทึกการแก้ไข' : pr.status === 'returned' ? '↻ ส่งใหม่ให้ QS' : '✓ ส่ง PR'; $('btnDraft').hidden = pr.status === 'sent';
   // กรอกอัตโนมัติ (แตะเพื่อแก้)
   const F = [['proj', 'ชื่อโครงการ', pr.proj], ['date', 'วันที่', pr.date, 'date'], ['by', 'ผู้ขอซื้อ', pr.by], ['byTitle', 'ตำแหน่ง', pr.byTitle], ['pm', 'ผู้อนุมัติ (PM)', pr.pm]];
   $('autoBox').innerHTML = F.map(([k, l, v, ty]) => `<label class="af"><small>${l} <span class="tag">อัตโนมัติ</span></small><input data-af="${k}" type="${ty || 'text'}" value="${esc(v || '')}"></label>`).join('');
@@ -293,25 +438,29 @@ function check(pr) {
   const bad = its.find(i => !(parseFloat(i.qty) > 0)); if (bad) return 'ใส่จำนวนของ “' + bad.name + '”';
   return '';
 }
-async function doSave(status) {
+async function doSave(mode) {   // mode: 'draft' | 'send'
   const pr = APP.pr; pr.items = pr.items.filter(i => String(i.name || '').trim());
   const err = check(pr); if (err) { toast(err, 3200); renderItems(); return false; }
-  pr.status = status === 'sent' || pr.status === 'sent' ? 'sent' : 'draft'; pr.upd = Date.now(); pr.updBy = APP.me.name;
-  if (status === 'sent' && !pr.sentAt) pr.sentAt = Date.now();
+  const was = pr.status || 'draft';
+  if (mode === 'send' && ['draft', 'returned'].includes(was)) { pr.status = 'sent'; pr.sentAt = Date.now(); pr.qsAt = 0; pr.qsBy = ''; pr.escQs = 0; logIt(pr, was === 'returned' ? '↻ แก้ไขแล้วส่งใหม่' : '📨 ส่ง PR'); }
+  else if (mode === 'send' && was === 'sent') logIt(pr, '✎ QS แก้ไขรายการ');
+  else pr.status = was;
+  pr.upd = Date.now(); pr.updBy = APP.me.name;
   const b1 = $('btnSend'), b2 = $('btnDraft'); b1.disabled = b2.disabled = true;
   try { await savePr(pr); draftClear(); try { localStorage.setItem(lastTypesKey(), JSON.stringify(pr.types)); } catch (e) {} }
-  catch (e) { toast('บันทึกไม่สำเร็จ: ' + ((e && e.message) || e), 4000); return false; }
+  catch (e) { pr.status = was; toast('บันทึกไม่สำเร็จ: ' + ((e && e.message) || e), 4000); return false; }
   finally { b1.disabled = b2.disabled = false; }
-  return true;
+  return { was };
 }
 $('btnDraft').addEventListener('click', async () => { if (await doSave('draft')) { toast('บันทึกร่างแล้ว'); history.back(); setTimeout(renderList, 50); } });
 $('btnSend').addEventListener('click', async () => {
-  if (!(await doSave('sent'))) return;
-  openView(true); toast('บันทึกแล้ว — พิมพ์ / ส่งต่อ แล้วนำไปลงนาม');
-  // ระบบแท็ก: แจ้ง QS / PM ของโครงการ
-  if (window.WCTag) { try { WCTag.tag({ title: 'ใบขอซื้อ ' + APP.pr.no + ' · ' + projName(APP.proj) + ' (' + APP.pr.items.length + ' รายการ)', sub: 'ตรวจรายการ แล้วลงนาม / เปิด PR ใน Mango',
-    project: APP.pid, ref_type: 'apr', ref_id: APP.pr.id, url: location.origin + '/auto-pr.html?pid=' + encodeURIComponent(APP.pid) + (IS_STG ? '&env=staging' : ''),
-    roles: [['qs', 'qs_mgr'], ['pm', 'pm_mgr'], ['proc']] }); } catch (e) {} }
+  const r = await doSave('send'); if (!r) return; const pr = APP.pr;
+  if (pr.status === 'sent' && r.was !== 'sent') {
+    await notify(pr, { title: '✍️ ขออนุมัติใบขอซื้อ ' + pr.no + ' · ' + pr.proj + ' (' + pr.items.length + ' รายการ)', note: 'โดย ' + pr.by + (minNeed(pr) ? ' · ต้องการของ ' + thDate(minNeed(pr)) : ''),
+      approve: qsOf(pr.pid), to: pmsOf(pr.pid), close: 'all', line: (r.was === 'returned' ? '↻ แก้ไขแล้วส่งใหม่' : '📨 ส่ง PR') + ' โดย ' + pr.by + ' → รอ QS อนุมัติ (' + names(qsOf(pr.pid)) + ')' });
+    toast('ส่งแล้ว — แจ้ง QS ของโครงการแล้ว (' + names(qsOf(pr.pid)) + ')', 3200);
+  } else toast('บันทึกการแก้ไขแล้ว');
+  openView(true);
 });
 $('btnPv').addEventListener('click', () => { openView(); });
 
@@ -336,7 +485,7 @@ function formHtml(pr) {
     <div class="red">หมายเหตุ : ระยะเวลาในการสั่งของ 3 วัน (ส่ง PR ก่อนเที่ยง) กรณีเร่งด่วน<br>โปรดระบุชื่อ / ยี่ห้อ / รุ่น / จำนวน / ประเภทสินค้า วัสดุ วัตถุดิบ และใช้กับงานอะไรให้ละเอียดชัดเจน<br>แนบแบบแปลน / ภาพประกอบ พร้อมระบุพื้นที่ในการใช้งานทุกครั้ง</div>
     <div class="sig">
       <div style="flex-direction:column;align-items:stretch;gap:10px;margin:0"><div><b>ผู้ขอซื้อ :</b><span class="ul">${esc(pr.by)}</span></div><div><b>ตำแหน่ง :</b><span class="ul">${esc(pr.byTitle)}</span></div><div><b>วันที่ :</b><span class="ul">${esc(thDate(pr.date))}</span></div></div>
-      <div style="flex-direction:column;align-items:stretch;gap:10px;margin:0"><div><b>ผู้ตรวจสอบ :</b><span class="ul"></span></div><div><b>ตำแหน่ง :</b><span class="ul" style="color:#111">ฝ่าย QS ประเมินราคา</span></div><div><b>วันที่ :</b><span class="ul"></span></div></div>
+      <div style="flex-direction:column;align-items:stretch;gap:10px;margin:0"><div><b>ผู้ตรวจสอบ :</b><span class="ul">${esc(pr.qsAt && pr.status !== 'returned' ? pr.qsBy || '' : '')}</span></div><div><b>ตำแหน่ง :</b><span class="ul" style="color:#111">ฝ่าย QS ประเมินราคา</span></div><div><b>วันที่ :</b><span class="ul">${esc(pr.qsAt && pr.status !== 'returned' ? thDate(isoOf(new Date(pr.qsAt))) : '')}</span></div></div>
       <div style="flex-direction:column;align-items:stretch;gap:10px;margin:0"><div><b>ผู้อนุมัติ :</b><span class="ul">${esc(pr.pm ? '(' + pr.pm + ')' : '')}</span></div><div><b>ตำแหน่ง :</b><span class="ul" style="color:#111">Project Manager</span></div><div><b>วันที่ :</b><span class="ul"></span></div></div>
     </div>
     <div class="doc"><span>${esc(pr.no)}</span><span>สร้างด้วย Auto PR · Wellcon PM</span></div></div>`;
@@ -352,25 +501,92 @@ function textOf(pr) {
     ...its.map((i, n) => (n + 1) + '. ' + i.name + ' — ' + i.qty + ' ' + i.unit + (i.need ? ' · ต้องการ ' + thDate(i.need) : '') + (i.remark ? ' · ' + i.remark : '')), '',
     'ผู้ขอซื้อ: ' + pr.by + (pr.byTitle ? ' (' + pr.byTitle + ')' : '') + (pr.pm ? ' · ผู้อนุมัติ: ' + pr.pm : '')].join('\n');
 }
-function openView(fromSave) {
+function actionsHtml(pr) {
+  const S = pr.status || 'draft', out = [];
+  const wait = (t, who) => `<div class="card act"><b>⏳ ${t}</b><span class="s">ผู้รับผิดชอบ: ${esc(who)} · ระบบแจ้งเตือนแล้ว</span></div>`;
+  if (S === 'draft' || S === 'returned') { if (canEdit(pr)) out.push(`<div class="card act"><b>${S === 'returned' ? '↩ QS ส่งกลับให้แก้ไข' : '📝 ใบนี้ยังเป็นร่าง'}</b><span class="s">${S === 'returned' ? 'แก้ตามหมายเหตุของ QS แล้วกด “↻ ส่งใหม่ให้ QS”' : 'ตรวจรายการ แล้วกด “✓ ส่ง PR” เพื่อส่งให้ QS อนุมัติ'}</span>
+    <div class="b"><button class="btn pri" data-a="edit">✎ แก้ไข / ส่ง PR</button><button class="btn sm" data-a="cancel">ยกเลิกใบนี้</button></div></div>`); }
+  else if (S === 'sent') { if (canApprove()) out.push(`<div class="card act" style="border-color:#E2CB92;background:#FFFBF0"><b>✍️ รอคุณอนุมัติ</b><span class="s">ตรวจรายการ · จำนวน · สเปก — ถ้าต้องแก้จำนวนเล็กน้อย กด ✎ แก้ไข ได้เลย</span>
+    <div class="b"><button class="btn ok" data-a="approve">✓ อนุมัติ → ส่งจัดซื้อ</button><button class="btn" data-a="return">↩ ส่งกลับแก้ไข</button></div></div>`);
+    else out.push(wait('รอ QS อนุมัติ', names(qsOf(pr.pid)))); }
+  else if (S === 'approved') { if (canProc()) out.push(`<div class="card act" style="border-color:#B7CBE3;background:#F4F8FD"><b>🛒 รอคุณสั่งของ</b><span class="s">เปิด PR / PO ใน Mango แล้วใส่เลขที่ + วันที่คาดว่าของถึง</span>
+    <div class="b" style="align-items:flex-end"><label class="fl">เลขที่ PR / PO ใน Mango<input id="aMango" placeholder="เช่น PR6911-0123" autocomplete="off"></label><label class="fl">คาดว่าของถึงวันที่<input id="aEta" type="date" value="${esc(minNeed(pr))}"></label>
+    <button class="btn ok" data-a="order">✓ สั่งของแล้ว</button><a class="btn sm" href="${MANGO_URL}" target="_blank" rel="noopener" style="background:#F28C28;color:#fff;border:0">เปิด Mango ↗</a></div></div>`);
+    else out.push(wait('รอจัดซื้อสั่งของ', names(procOf(pr.pid)))); }
+  else if (S === 'ordered') { if (canReceive(pr)) out.push(`<div class="card act" style="border-color:#CFC2EA;background:#F8F5FD"><b>📦 ของถึงหน้างานแล้วหรือยัง?</b><span class="s">ตรวจจำนวน / สภาพของ แล้วกดยืนยัน — ระบบแจ้งจัดซื้อและ QS ให้</span>
+    <div class="b"><button class="btn ok" data-a="recv">✓ ได้รับของครบแล้ว</button><button class="btn" data-a="partial">⚠ ได้รับไม่ครบ / มีปัญหา</button></div></div>`);
+    else out.push(wait('รอหน้างานยืนยันรับของ', pr.by || '—')); }
+  else if (S === 'received') out.push(`<div class="card act" style="background:#EEF6EF;border-color:#B9D3C2"><b>✅ ปิดงานแล้ว — ได้รับของ ${esc(when2(pr.receivedAt))} · ${esc(pr.recvBy || '')}</b></div>`);
+  else if (S === 'cancelled') out.push('<div class="card act"><b>ใบนี้ถูกยกเลิกแล้ว</b></div>');
+  return out.join('');
+}
+function logHtml(pr) {
+  const L = (pr.log || []).slice().reverse(); if (!L.length) return '';
+  return '<div class="card"><div class="h">🕘 ประวัติ</div><div class="log">' + L.map(x => `<div><span>${esc(when2(x.at))}</span><b>${esc(x.act)}</b><small>${esc(x.by || '')}${x.note ? ' — ' + esc(x.note) : ''}</small></div>`).join('') + '</div></div>';
+}
+function renderView() {
   const pr = APP.pr; $('vwTitle').textContent = pr.no;
-  $('vwBtns').innerHTML = `<button class="btn sm" data-v="copy">📋 คัดลอกข้อความ (LINE / Mango)</button><a class="btn sm" href="${MANGO_URL}" target="_blank" rel="noopener" style="background:#F28C28;color:#fff;border:0">🛒 เปิด Mango ↗</a>`
-    + (pr.status === 'sent' ? '' : '<span class="st st-draft" style="align-self:center">ยังเป็นร่าง — กด ✎ แก้ไข แล้ว “บันทึก + ส่ง”</span>');
-  if (fromSave && APP.screen === 'edit') { history.replaceState({ apr: 'view' }, ''); show('view', false); } else show('view', true);
+  $('vwTrack').innerHTML = `<div class="card"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="flex:1;min-width:0">${esc(pr.proj)} · ${(pr.items || []).length} รายการ · โดย ${esc(pr.by || '—')}</b>${stTag(pr.status)}${ageBadge(pr)}</div>
+    ${pr.status !== 'cancelled' ? tracker(pr) : ''}${pr.status === 'returned' && pr.qsNote ? `<div class="note"><b>QS (${esc(pr.qsBy || '')}):</b> ${esc(pr.qsNote)}</div>` : ''}
+    ${pr.mangoNo || pr.eta ? `<div class="s">🛒 ${pr.mangoNo ? 'เลขที่ Mango <b>' + esc(pr.mangoNo) + '</b>' : ''}${pr.eta ? ' · คาดว่าของถึง <b>' + esc(thDate(pr.eta)) + '</b>' : ''}${pr.procBy ? ' · ' + esc(pr.procBy) : ''}</div>` : ''}</div>`;
+  $('vwAct').innerHTML = actionsHtml(pr); $('vwLog').innerHTML = logHtml(pr);
+  $('vwBtns').innerHTML = `<button class="btn sm" data-v="copy">📋 คัดลอกข้อความ (LINE / Mango)</button><a class="btn sm" href="${MANGO_URL}" target="_blank" rel="noopener" style="background:#F28C28;color:#fff;border:0">🛒 เปิด Mango ↗</a>`;
+  $('btnEdit').hidden = !canEdit(pr);
   const b = $('pvMain'); b.innerHTML = formHtml(pr); requestAnimationFrame(() => fit(b));
+}
+function openView(fromSave) {
+  if (fromSave && APP.screen === 'edit') { history.replaceState({ apr: 'view' }, ''); show('view', false); } else show('view', true);
+  renderView();
 }
 $('vwBtns').addEventListener('click', async (e) => { const b = e.target.closest('[data-v="copy"]'); if (!b) return;
   const t = textOf(APP.pr); try { await navigator.clipboard.writeText(t); toast('คัดลอกแล้ว — วางใน LINE หรือช่องรายละเอียดใน Mango ได้เลย'); }
   catch (x) { prompt('คัดลอกข้อความนี้', t); } });
+$('vwAct').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a, pr = APP.pr;
+  if (a === 'edit') { renderEdit(); history.replaceState({ apr: 'edit' }, ''); show('edit', false); return; }
+  let note = '';
+  if (a === 'approve' && !confirm('อนุมัติใบขอซื้อ ' + pr.no + ' แล้วส่งให้จัดซื้อ?')) return;
+  if (a === 'return') { note = prompt('ส่งกลับให้แก้ไขอะไร? (ผู้ขอจะเห็นข้อความนี้)', ''); if (note === null) return; if (!note.trim()) { toast('ใส่เหตุผลที่ส่งกลับก่อน'); return; } }
+  if (a === 'cancel' && !confirm('ยกเลิกใบขอซื้อ ' + pr.no + '?')) return;
+  if (a === 'partial') { note = prompt('ได้รับไม่ครบ / มีปัญหาอะไร? เช่น เทป PU ได้ 6 จาก 10 ม้วน', ''); if (note === null) return; if (!note.trim()) { toast('ใส่รายละเอียดก่อน'); return; } }
+  const mango = a === 'order' ? String(($('aMango') || {}).value || '').trim() : '', eta = a === 'order' ? String(($('aEta') || {}).value || '') : '';
+  if (a === 'order' && !mango && !confirm('ยังไม่ได้ใส่เลขที่ PR / PO ใน Mango — ยืนยัน “สั่งของแล้ว”?')) return;
+  b.disabled = true; const me = APP.me.name;
+  try {
+    let cur;
+    if (a === 'approve') { cur = await transition(pr.pid, pr.id, ['sent'], x => { x.status = 'approved'; x.qsAt = Date.now(); x.qsBy = me; x.qsEmail = APP.me.email; x.qsNote = ''; x.escProc = 0; logIt(x, '✓ QS อนุมัติ'); });
+      await notify(cur, { title: '🛒 สั่งของ: ' + cur.no + ' · ' + cur.proj + ' — QS อนุมัติแล้ว', note: (cur.items || []).length + ' รายการ · ต้องการของ ' + thDate(minNeed(cur)), approve: procOf(cur.pid), to: [norm(cur.byEmail)], close: 'approve', line: '✅ QS อนุมัติ (' + me + ') → รอจัดซื้อสั่งของ (' + names(procOf(cur.pid)) + ')' });
+      toast('อนุมัติแล้ว — แจ้งจัดซื้อแล้ว'); }
+    else if (a === 'return') { cur = await transition(pr.pid, pr.id, ['sent'], x => { x.status = 'returned'; x.qsAt = Date.now(); x.qsBy = me; x.qsNote = note.trim(); logIt(x, '↩ QS ส่งกลับแก้ไข', note.trim()); });
+      await notify(cur, { title: '↩ QS ส่งกลับแก้ไข ' + cur.no + ' · ' + cur.proj, note: note.trim(), to: [norm(cur.byEmail)], close: 'approve', line: '↩ QS ส่งกลับแก้ไข (' + me + '): ' + note.trim() });
+      toast('ส่งกลับแล้ว — แจ้งผู้ขอแล้ว'); }
+    else if (a === 'order') { cur = await transition(pr.pid, pr.id, ['approved'], x => { x.status = 'ordered'; x.orderedAt = Date.now(); x.procBy = me; x.procEmail = APP.me.email; x.mangoNo = mango; x.eta = eta; logIt(x, '🛒 สั่งของแล้ว', [mango && 'Mango ' + mango, eta && 'ของถึง ' + thDate(eta)].filter(Boolean).join(' · ')); });
+      await notify(cur, { title: '🛒 สั่งของแล้ว ' + cur.no + (eta ? ' · คาดว่าของถึง ' + thDate(eta) : ''), note: mango ? 'เลขที่ Mango ' + mango : '', to: [norm(cur.byEmail), ...pmsOf(cur.pid)], close: 'approve', line: '🛒 สั่งของแล้ว (' + me + ')' + (mango ? ' · Mango ' + mango : '') + (eta ? ' · คาดว่าของถึง ' + thDate(eta) : '') });
+      toast('บันทึกแล้ว — แจ้งหน้างานแล้ว'); }
+    else if (a === 'recv') { cur = await transition(pr.pid, pr.id, ['ordered'], x => { x.status = 'received'; x.receivedAt = Date.now(); x.recvBy = me; logIt(x, '📦 ได้รับของครบแล้ว'); });
+      await notify(cur, { title: '📦 ของถึงหน้างานแล้ว ' + cur.no + ' · ' + cur.proj, to: [norm(cur.procEmail), ...procOf(cur.pid), norm(cur.qsEmail)].filter(Boolean), close: 'all', line: '📦 ได้รับของครบแล้ว (' + me + ') — ปิดงาน' });
+      toast('ปิดงานแล้ว — ขอบคุณครับ'); }
+    else if (a === 'partial') { cur = await transition(pr.pid, pr.id, ['ordered'], x => { x.partial = Date.now(); logIt(x, '⚠ ได้รับไม่ครบ / มีปัญหา', note.trim()); });
+      await notify(cur, { title: '⚠ ของมาไม่ครบ ' + cur.no + ' · ' + cur.proj, note: note.trim(), approve: [norm(cur.procEmail) || procOf(cur.pid)[0]].filter(Boolean), to: procOf(cur.pid), line: '⚠ ได้รับไม่ครบ (' + me + '): ' + note.trim() });
+      toast('แจ้งจัดซื้อแล้ว'); }
+    else if (a === 'cancel') { cur = await transition(pr.pid, pr.id, ['draft', 'returned', 'sent'], x => { x.status = 'cancelled'; logIt(x, 'ยกเลิก'); });
+      if (pr.status === 'sent' || pr.status === 'returned') await notify(cur, { title: 'ยกเลิกใบขอซื้อ ' + cur.no, to: qsOf(cur.pid), close: 'all', line: 'ยกเลิกใบขอซื้อ (' + me + ')' });
+      toast('ยกเลิกแล้ว'); }
+    if (cur) { APP.pr = JSON.parse(JSON.stringify(cur)); renderView(); }
+  } catch (x) { toast((x && x.message) || String(x), 3800); const f = myPrs().find(y => y.id === pr.id); if (f) { APP.pr = JSON.parse(JSON.stringify(f)); renderView(); } }
+  finally { b.disabled = false; }
+});
 $('btnEdit').addEventListener('click', () => { renderEdit(); if (APP.screen === 'view') { history.replaceState({ apr: 'edit' }, ''); show('edit', false); } });
 $('btnPrint').addEventListener('click', () => { $('printArea').innerHTML = formHtml(APP.pr); setTimeout(() => window.print(), 50); });
 
 // คืนร่างที่ค้างในเครื่อง (ถ้าเคยกดออกโดยไม่บันทึก)
 const _open = openProject;
-openProject = async function (pid) { await _open(pid); let d = null; try { d = JSON.parse(localStorage.getItem(draftKey()) || 'null'); } catch (e) {}
+openProject = async function (pid) { await _open(pid);
+  const q = new URLSearchParams(location.search).get('pr'); if (q) { const f = myPrs().find(x => x.id === q); if (f) { APP.pr = JSON.parse(JSON.stringify(f)); openView(); return; } }
+  let d = null; try { d = JSON.parse(localStorage.getItem(draftKey()) || 'null'); } catch (e) {}
   if (d && d.pid === pid && (d.items || []).length && !myPrs().some(x => x.id === d.id && x.upd >= (d.upd || 0)) && confirm('มีใบขอซื้อที่ยังไม่ได้บันทึก (' + d.items.length + ' รายการ) — เปิดทำต่อไหม?')) { APP.pr = d; renderEdit(); show('edit', true); }
   else if (d) draftClear(); };
 
-if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__apr = { APP, show, renderList, renderEdit, openView, formHtml, learn, newPr, addItem, defNeed, textOf };
+if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__apr = { APP, show, renderList, renderEdit, openView, renderView, renderProjects, formHtml, learn, newPr, addItem, defNeed, textOf, inboxOf, tracker, escalate: () => escalate() };
 boot();
 })();

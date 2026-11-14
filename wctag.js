@@ -17,7 +17,7 @@
   const ROLE = { pm: 'PM', pm_mgr: 'PM Manager', qs: 'QS', qs_mgr: 'QS Manager', sitemgr: 'Site Manager', site: 'หัวหน้าช่าง', safety: 'Safety', designer: 'Designer',
     design_mgr: 'Design Manager', director: 'Director', superadmin: 'Admin', admin: 'Admin', proc: 'จัดซื้อ', proc_mgr: 'จัดซื้อ', store: 'Store', fin: 'การเงิน', fin_mgr: 'การเงิน',
     hr: 'HR', hr_mgr: 'HR', factory: 'โรงงาน', office: 'Office', driver: 'คนขับรถ' };
-  const APP = { pm: 'Wellcon PM', claim: 'Claim', qm: 'วัดหน้างาน', dc: 'Site Work · Defect', si: 'Site Work · Issues', sv: 'Site Work · Survey', lay: 'Layboard' };
+  const APP = { pm: 'Wellcon PM', claim: 'Claim', qm: 'วัดหน้างาน', dc: 'Site Work · Defect', si: 'Site Work · Issues', sv: 'Site Work · Survey', lay: 'Layboard', apr: 'Auto PR · ใบขอซื้อ' };
   const S = { sb: null, app: 'pm', me: null, people: [], projects: {}, open: [], sent: [], subs: [], shown: {}, timer: 0, ready: false, busy: false };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const norm = (s) => String(s || '').trim().toLowerCase();

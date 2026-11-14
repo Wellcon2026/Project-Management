@@ -89,6 +89,39 @@ input,select,textarea{font:inherit;color:inherit;font-size:16px}
 .spin{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--acc);border-radius:50%;animation:sp 1s linear infinite;margin:40px auto 8px}
 @keyframes sp{to{transform:rotate(360deg)}}
 .ver{font-size:11px;color:var(--mut);text-align:center}
+
+/* v1.1.0 ติดตามสถานะ · งานที่รอคุณ · ปุ่มตามบทบาท */
+.vw{max-width:794px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:10px}
+.vw:empty{display:none}
+.trk{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:2px}
+.trk span{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;font-size:12px;font-weight:600;color:var(--mut);padding-top:20px;line-height:1.25}
+.trk span::before{content:'';position:absolute;top:3px;left:calc(50% - 7px);width:14px;height:14px;border-radius:50%;background:#E3DACB;z-index:1}
+.trk span::after{content:'';position:absolute;top:9px;left:50%;width:100%;height:3px;background:#E3DACB}
+.trk span:last-child::after{display:none}
+.trk span.done::before,.trk span.done::after{background:var(--ok)}
+.trk span.done{color:#2E5E3B}
+.trk span.now::before{background:var(--acc);box-shadow:0 0 0 4px var(--accT)}
+.trk span.now{color:var(--acc)}
+.trk span.bad::before{background:#C4442E;box-shadow:0 0 0 4px #F8E4DF}
+.trk span.bad{color:#B4332A}
+.trk small{font-size:10.5px;font-weight:500;color:var(--mut);margin-top:2px}
+.age{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+.age.ok{background:#E6EFE0;color:#3F5A33}.age.warn{background:#FAF1D6;color:#8A6D10}.age.late{background:#F8E4DF;color:#B4332A}
+.inbox{border-color:#E9C7A9;background:#FFF8F1}
+.ib{display:flex;align-items:center;gap:10px;text-align:left;min-height:56px;border:1px solid #F0D9C8;background:#fff;border-radius:12px;padding:8px 12px;width:100%}
+.ib>span:first-child{flex:1;min-width:0;display:flex;flex-direction:column}
+.ib .age{flex:none}
+.ib b{font-size:15px}.ib small{font-size:12.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act b{font-size:16px}
+.act .s,.card .s{font-size:13.5px;color:var(--mut)}
+.act .b{display:flex;gap:8px;flex-wrap:wrap}
+.act .b .btn{flex:1 1 160px}
+.fl{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--ink2);flex:1 1 180px}
+.fl input{min-height:48px;border:1.5px solid var(--line);border-radius:12px;padding:0 12px;background:#fff}
+.log{display:flex;flex-direction:column;gap:6px}
+.log div{display:grid;grid-template-columns:92px 1fr;gap:0 10px;font-size:13.5px;border-bottom:1px dashed #EFE8DB;padding-bottom:6px}
+.log span{color:var(--mut);font-size:12.5px;grid-row:span 2}
+.log small{color:var(--mut)}
 #pvMain{max-width:794px;margin:0 auto;width:100%}
 #vwBtns{max-width:794px;margin:0 auto;width:100%}
 .edit-grid{display:grid;grid-template-columns:1fr;gap:12px}
@@ -148,7 +181,7 @@ input,select,textarea{font:inherit;color:inherit;font-size:16px}
 <section id="scrProj" class="scr" hidden>
   <div class="hdr"><button class="back" data-act="toPm" aria-label="กลับ Wellcon PM"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <span class="tt"><small>Wellcon PM</small><b>Auto PR · ใบขอซื้อ</b><span>เลือกโครงการ</span></span></div>
-  <div class="body"><div class="wrap"><div class="list" id="projList"></div></div></div>
+  <div class="body"><div class="wrap"><div id="projInbox"></div><div class="list" id="projList"></div></div></div>
 </section>
 
 <!-- รายการใบขอซื้อของโครงการ -->
@@ -201,8 +234,11 @@ input,select,textarea{font:inherit;color:inherit;font-size:16px}
   <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <span class="tt"><small>Auto PR · ใบขอซื้อ</small><b id="vwTitle">ใบขอซื้อ</b><span>พิมพ์ · บันทึก PDF · ส่งต่อ</span></span></div>
   <div class="body"><div class="wrap">
+    <div id="vwTrack" class="vw"></div>
+    <div id="vwAct" class="vw"></div>
     <div class="chips" id="vwBtns"></div>
     <div class="pr-scale" id="pvMain"></div>
+    <div id="vwLog" class="vw"></div>
   </div></div>
   <div class="foot"><button class="btn" id="btnEdit">✎ แก้ไข</button><button class="btn dk" id="btnPrint">🖨 พิมพ์ / PDF</button></div>
 </section>
@@ -212,7 +248,7 @@ input,select,textarea{font:inherit;color:inherit;font-size:16px}
 
 <script src="vendor/supabase.js"></script>
 <script src="wctag.js?v=1.1.0"></script>
-<script src="auto-pr.js?v=1.0.0"></script>
+<script src="auto-pr.js?v=1.1.0"></script>
 <script src="pm-nav.js?v=1.2.0"></script>
 </body>
 </html>

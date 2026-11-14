@@ -241,3 +241,6 @@ node scripts/patch-auto-pr-menu.js
 - เข้าสู่ระบบด้วย session ของ Wellcon PM ในเครื่อง (แบบ Quick Measure) · เห็นเฉพาะโครงการที่ได้รับมอบหมาย
 - ข้อมูล: app_state `autoPR` = `{ <pid>: [ { id, no, date, proj, types[], area, items[{ name, qty, unit, code, need, remark }], by, byTitle, pm, status: draft|sent } ] }` — บันทึกแบบอ่าน-รวม-เขียนรายใบ · PM หลักไม่อ่าน/เขียนคีย์นี้
 - ใบ PR พิมพ์ / PDF ตามฟอร์มกระดาษ "Purchase Requisition (PR) ใบขอซื้อ" · ไม่มีราคา · ใบจริงยังต้องลงนาม ผู้ขอซื้อ → QS → PM
+- v1.1.0 ขั้นตอน: `draft` → `sent` (รอ QS) → `approved` (รอจัดซื้อ) / `returned` → `ordered` (เลข Mango · `eta`) → `received` · `cancelled` — `transition()` อ่านล่าสุดแล้วตรวจสถานะก่อนเขียน
+- ผู้รับผิดชอบ: QS = `qs`/`qs_mgr` ในทีมโครงการ (ไม่มี → QS Manager) · จัดซื้อ = `proc` ในทีมโครงการ (ไม่มี → ทุกคนฝ่ายจัดซื้อ) · แจ้งเตือนผ่าน `WCTag.send` (ref_type `apr`) + `/api/line` ไปกลุ่มใน app_state `autoPRCfg` { pid | `_all`: { line } }
+- SLA 24 ชม. (`escQs` / `escProc`) ตรวจฝั่งเครื่องผู้ใช้ตอนเปิดแอป (ยังไม่มีตัวตั้งเวลาฝั่งเซิร์ฟเวอร์)
