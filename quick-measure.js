@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.5.3';   // 1.5.3: ระบบแท็ก — ส่ง QS ตรวจ = แท็ก QS · QS รับ / ส่งกลับ = แท็กผู้วัด · 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
+const QM_VER = 'v1.6.0';   // 1.6.0: จอคอม — รายการเป็นตาราง + แผงสรุป · เลือกแบบ / ทีม เป็น grid · ปุ่มหลักอยู่ด้านบน · หน้าต่างกลางจอ · 1.5.3: ระบบแท็ก — ส่ง QS ตรวจ = แท็ก QS · QS รับ / ส่งกลับ = แท็กผู้วัด · 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -488,45 +488,64 @@ async function loadBmp(src) {
 // =====================================================================
 const isMine = (r) => norm(r.created_email) === APP.me.email;
 function rowLabel(r) { return [r.name, r.work].filter(Boolean).join(' · ') || '(ไม่มีชื่อ)'; }
+// v1.6.0 จอคอม (กว้าง ≥ 1000px): รายการเป็นตาราง + แผงสรุปด้านขวา · มือถือแสดงแบบการ์ดเหมือนเดิม
+const DK = () => !!(window.matchMedia && window.matchMedia('(min-width:1000px)').matches);
 function renderList() {
   const S = APP.set || {}, me = APP.me;
   const rows = APP.rows.filter(r => APP.filter === 'all' || isMine(r));
-  const h = [];
+  const dk = DK();
   $('listTitle').textContent = APP.filter === 'all' ? 'ที่วัดในโครงการนี้ (ทุกคน)' : 'ที่ฉันวัดในโครงการนี้';
-  if (APP.noTable) h.push('<div class="note">ยังใช้งานไม่ได้: ผู้ดูแลระบบต้องรัน SQL <b>supabase-quick-measure.sql</b> ก่อน</div>');
-  if (!S.allow_quick_measure) h.push('<div class="info">Admin ปิด Quick Measure ของโครงการนี้ไว้ — ดูรายการเดิมได้ แต่วัดเพิ่มไม่ได้</div>');
-  h.push(`<div class="chips" role="tablist"><button class="chip${APP.filter === 'mine' ? ' on' : ''}" data-f="mine">ของฉัน</button><button class="chip${APP.filter === 'all' ? ' on' : ''}" data-f="all">ทุกคน</button>
-    <button class="chip" data-f="reload" aria-label="โหลดใหม่">↻ โหลดใหม่</button><button class="chip" data-his="u" title="ย้อน (Ctrl+Z)">↶ ย้อน</button><button class="chip" data-his="r" title="ทำซ้ำ (Ctrl+Y)">↷ ทำซ้ำ</button></div>`);
+  const warn = [];
+  if (APP.noTable) warn.push('<div class="note">ยังใช้งานไม่ได้: ผู้ดูแลระบบต้องรัน SQL <b>supabase-quick-measure.sql</b> ก่อน</div>');
+  if (!S.allow_quick_measure) warn.push('<div class="info">Admin ปิด Quick Measure ของโครงการนี้ไว้ — ดูรายการเดิมได้ แต่วัดเพิ่มไม่ได้</div>');
+  const nSub = me.review ? APP.rows.filter(r => r.status === 'submitted').length : 0;
+  const qsInfo = nSub ? `<div class="info" style="background:#E3ECF5;color:#2F5E8C">มี ${nSub} รายการรอ QS ตรวจ — ${dk ? 'คลิก' : 'แตะ'}รายการเพื่อ “รับ” หรือ “ส่งกลับ”</div>` : '';
+  const chips = `<div class="chips" role="tablist"><button class="chip${APP.filter === 'mine' ? ' on' : ''}" data-f="mine">ของฉัน</button><button class="chip${APP.filter === 'all' ? ' on' : ''}" data-f="all">ทุกคน</button>
+    <button class="chip" data-f="reload" aria-label="โหลดใหม่">↻ โหลดใหม่</button><button class="chip" data-his="u" title="ย้อน (Ctrl+Z)">↶ ย้อน</button><button class="chip" data-his="r" title="ทำซ้ำ (Ctrl+Y)">↷ ทำซ้ำ</button></div>`;
+  let team = '';
   if (!APP.noTeams) { const R = APP.rows.filter(r => r.type !== 'note'), un = R.filter(r => !teamOf(r)).length;   // v1.5.0 ทางเข้า "แบ่งงานตามทีม"
-    h.push(`<button class="card tentry" data-teams><div class="row1"><span class="nm">👥 แบ่งงานตามทีม / ผู้รับเหมา</span><span class="q">${APP.teams.length} ทีม ›</span></div>
-      <div class="row2">${APP.teams.slice(0, 6).map(t => `<span class="tdot" style="--c:${esc(t.color)}"></span>${esc(t.name)}`).join(' ')}${!APP.teams.length ? 'ไฮไลต์พื้นที่บนแบบ → มอบให้ทีม → สรุปปริมาณต่อทีม · ใบขอบเขตงาน' : ''}${un && APP.teams.length ? ` <b style="color:#8C2F2F">· ยังไม่ระบุทีม ${un}</b>` : ''}</div></button>`); }
-  if (!rows.length) h.push('<p class="empty">ยังไม่มีรายการ — กด “+ วัดเพิ่ม” เพื่อเริ่มวัด</p>');
-  rows.forEach(r => {
-    const role = ROLE_TH[r.created_role] || r.created_role || '';
-    const who = APP.filter === 'all' ? (r.created_by || '') + (role ? ' (' + role + ')' : '') : role || r.created_by || '';
-    const tm = teamOf(r);
-    h.push(`<button class="card" data-row="${esc(r.id)}"><div class="row1">${tm ? `<span class="tdot" style="--c:${esc(tm.color)}"></span>` : ''}<span class="nm">${esc(rowLabel(r))}</span><span class="q">${r.qty == null ? '—' : esc(fq(+r.qty, r.unit)) + ' ' + esc(r.unit || '')}</span></div>
-      <div class="row2"><span class="tag t-${esc(r.status)}">${esc(ST[r.status] || r.status)}</span>${tm ? `<b style="color:${esc(tm.color)}">${esc(tm.name)}</b>` : ''}<span>${esc(when(r.created_at))}${who ? ' · ' + esc(who) : ''}</span>${r.status === 'returned' && r.qs_note ? `<span style="color:#8C2F2F">QS: ${esc(r.qs_note)}</span>` : ''}</div></button>`);
-  });
-  h.push('<div class="note">ตัวเลขที่ PM วัด ใช้วางแผนหน้างานและตรวจของเข้า ไม่แทนที่ BOQ ของ QS จนกว่า QS ตรวจรับ</div>');
+    team = `<button class="card tentry" data-teams><div class="row1"><span class="nm">👥 แบ่งงานตามทีม / ผู้รับเหมา</span><span class="q">${APP.teams.length} ทีม ›</span></div>
+      <div class="row2">${APP.teams.slice(0, 6).map(t => `<span class="tdot" style="--c:${esc(t.color)}"></span>${esc(t.name)}`).join(' ')}${!APP.teams.length ? 'ไฮไลต์พื้นที่บนแบบ → มอบให้ทีม → สรุปปริมาณต่อทีม · ใบขอบเขตงาน' : ''}${un && APP.teams.length ? ` <b style="color:#8C2F2F">· ยังไม่ระบุทีม ${un}</b>` : ''}</div></button>`; }
+  const empty = '<p class="empty">ยังไม่มีรายการ — กด “+ วัดเพิ่ม” เพื่อเริ่มวัด</p>';
+  const whoOf = (r) => { const role = ROLE_TH[r.created_role] || r.created_role || ''; return APP.filter === 'all' ? (r.created_by || '') + (role ? ' (' + role + ')' : '') : role || r.created_by || ''; };
+  const qtyOf = (r) => r.qty == null ? '—' : esc(fq(+r.qty, r.unit)) + ' ' + esc(r.unit || '');
+  const note = '<div class="note">ตัวเลขที่ PM วัด ใช้วางแผนหน้างานและตรวจของเข้า ไม่แทนที่ BOQ ของ QS จนกว่า QS ตรวจรับ</div>';
   // ปริมาณ baseline จาก QS — แสดงเฉพาะเมื่อ Admin เปิด "แสดงปริมาณ BOQ" (ไม่มีราคา)
   const Q = (APP.feed && APP.feed.quantities) || [];
-  if (S.show_qty && Q.length) {
-    h.push('<div class="sec">ปริมาณ BOQ จาก QS (baseline)</div>');
-    h.push('<div class="card">' + Q.map(q => `<div class="row1" style="font-size:14px"><span class="nm" style="font-weight:400">${esc([q.catName || q.cat, q.desc].filter(Boolean).join(' · '))}</span><span class="q">${esc(f2(q.net))} ${esc(q.unit || q.u || '')}</span></div>`).join('') + '</div>');
+  const boq = S.show_qty && Q.length ? '<div class="sec">ปริมาณ BOQ จาก QS (baseline)</div><div class="card">' + Q.map(q => `<div class="row1" style="font-size:14px"><span class="nm" style="font-weight:400">${esc([q.catName || q.cat, q.desc].filter(Boolean).join(' · '))}</span><span class="q">${esc(f2(q.net))} ${esc(q.unit || q.u || '')}</span></div>`).join('') + '</div>' : '';
+  const ver = `<p class="ver">Quick Measure ${QM_VER} · engine ${E.ENGINE_VERSION}</p>`;
+  if (dk) {
+    const tbl = rows.length ? `<div class="mt-w"><table class="mt"><thead><tr><th>ห้อง / โซน · งาน</th><th>ทีม</th><th class="n">ปริมาณ</th><th>สถานะ</th><th>แบบ</th><th>ผู้วัด</th><th>วันที่</th></tr></thead><tbody>` +
+      rows.map(r => { const tm = teamOf(r);
+        return `<tr data-row="${esc(r.id)}" tabindex="0"><td><b>${esc(rowLabel(r))}</b>${r.status === 'returned' && r.qs_note ? `<small style="color:#8C2F2F">QS: ${esc(r.qs_note)}</small>` : (r.note ? `<small>${esc(r.note)}</small>` : '')}</td>
+          <td>${tm ? `<span class="tm"><span class="tdot" style="--c:${esc(tm.color)}"></span>${esc(tm.name)}</span>` : '<span style="color:var(--mut)">—</span>'}</td>
+          <td class="n"><b>${qtyOf(r)}</b></td><td><span class="tag t-${esc(r.status)}">${esc(ST[r.status] || r.status)}</span></td>
+          <td>${esc(sheetOfRow(r))}</td><td>${esc(whoOf(r))}</td><td style="white-space:nowrap">${esc(when(r.created_at))}</td></tr>`; }).join('') + '</tbody></table></div>' : empty;
+    const cnt = Object.keys(ST).map(k => [k, rows.filter(r => r.status === k).length]).filter(x => x[1]);
+    const stat = `<div class="card"><div class="row1"><span class="nm">สถานะ</span><span class="q">${rows.length} รายการ</span></div>${cnt.length ? `<div class="chips">${cnt.map(([k, n]) => `<span class="tag t-${k}">${esc(ST[k])} ${n}</span>`).join('')}</div>` : '<span style="font-size:12.5px;color:var(--mut)">ยังไม่มีรายการ</span>'}</div>`;
+    const sum = `<div class="card"><div class="row1"><span class="nm">สรุปปริมาณตามงาน</span></div>${sumTable(sumBy(rows))}</div>`;
+    $('listBody').innerHTML = `<div class="dk"><div class="dk-main">${warn.join('')}${chips}${tbl}</div><aside class="dk-side">${qsInfo}${team}${stat}${sum}${note}${boq}${ver}</aside></div>`;
+  } else {
+    const h = [...warn, chips, team];
+    if (!rows.length) h.push(empty);
+    rows.forEach(r => { const who = whoOf(r), tm = teamOf(r);
+      h.push(`<button class="card" data-row="${esc(r.id)}"><div class="row1">${tm ? `<span class="tdot" style="--c:${esc(tm.color)}"></span>` : ''}<span class="nm">${esc(rowLabel(r))}</span><span class="q">${qtyOf(r)}</span></div>
+      <div class="row2"><span class="tag t-${esc(r.status)}">${esc(ST[r.status] || r.status)}</span>${tm ? `<b style="color:${esc(tm.color)}">${esc(tm.name)}</b>` : ''}<span>${esc(when(r.created_at))}${who ? ' · ' + esc(who) : ''}</span>${r.status === 'returned' && r.qs_note ? `<span style="color:#8C2F2F">QS: ${esc(r.qs_note)}</span>` : ''}</div></button>`); });
+    h.push(note, boq);
+    if (qsInfo) h.unshift(qsInfo);
+    h.push(ver);
+    $('listBody').innerHTML = h.join('');
   }
-  if (me.review) {
-    const n = APP.rows.filter(r => r.status === 'submitted').length;
-    if (n) h.unshift(`<div class="info" style="background:#E3ECF5;color:#2F5E8C">มี ${n} รายการรอ QS ตรวจ — แตะรายการเพื่อ “รับ” หรือ “ส่งกลับ”</div>`);
-  }
-  h.push(`<p class="ver">Quick Measure ${QM_VER} · engine ${E.ENGINE_VERSION}</p>`);
-  $('listBody').innerHTML = h.join('');
   const pend = APP.rows.filter(r => isMine(r) && (r.status === 'field' || r.status === 'returned')).length;
   $('btnSubmit').textContent = 'ส่งให้ QS ตรวจ' + (pend ? ' (' + pend + ')' : '');
   $('btnSubmit').disabled = APP.noTable;
   $('btnNew').hidden = !S.allow_quick_measure || APP.noTable;
   hisBtns();
 }
+// จอคอม: Enter บนแถวตาราง = เปิดรายการ · ย่อ/ขยายหน้าต่างข้ามขนาดจอคอม ↔ มือถือ = จัดหน้าใหม่
+$('listBody').addEventListener('keydown', (e) => { if (e.key !== 'Enter') return; const tr = e.target.closest('tr[data-row]'); if (tr) { e.preventDefault(); openRow(tr.dataset.row); } });
+if (window.matchMedia) { const mq = window.matchMedia('(min-width:1000px)'); const f = () => { if (APP.screen === 'list') renderList(); };
+  if (mq.addEventListener) mq.addEventListener('change', f); else if (mq.addListener) mq.addListener(f); }
 $('listBody').addEventListener('click', async (e) => {
   const f = e.target.closest('[data-f]');
   if (f) { if (f.dataset.f === 'reload') { toast('กำลังโหลดใหม่…', 900); try { await Promise.all([loadSettings(), loadRows()]); } catch (x) { toast('โหลดไม่สำเร็จ'); } } else APP.filter = f.dataset.f; renderList(); return; }
@@ -1259,7 +1278,7 @@ const MV = (() => {
 })();
 
 // ทดสอบบนเครื่องผู้พัฒนาเท่านั้น (localhost)
-if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__qm = { APP, MV, show, renderList, renderPick };
+if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__qm = { APP, MV, show, renderList, renderPick, renderTeams };
 
 boot();
 })();

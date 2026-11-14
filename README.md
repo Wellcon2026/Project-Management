@@ -19,6 +19,7 @@ git push
 - เปิดจากเมนู **วัดพื้นที่ด่วน (มือถือ)** ในหน้าโครงการ → `/quick-measure.html?pid=<id>` (`&env=staging` = ข้อมูลทดสอบ)
 - ข้อมูล: ตาราง `takeoff_field_measures` + `takeoff_field_sheets` (SQL: `supabase-quick-measure.sql`) · อ่านแบบ/โซนจาก QS ผ่าน `takeoff_pm_feed` เท่านั้น · ไม่มีราคา
 - v1.5.0 แบ่งขอบเขตงานตามทีม: ตาราง `takeoff_scope_teams` (ชื่อ · หมวดงาน · สี) + คอลัมน์ `takeoff_field_measures.team_id` (SQL: `supabase-scope-teams.sql`) · หน้า "แบ่งงานตามทีม" + ใบขอบเขตงาน (พิมพ์ / PDF / ส่งรูป) · ไม่มีราคา
+- v1.6.0 จอคอม (กว้าง ≥ 1000px): รายการที่วัดเป็นตาราง + แผงสรุป · เลือกแบบ / ทีม เป็น grid · ปุ่มหลักอยู่แถบบน · มือถือแสดงแบบเดิม (`DK()` ใน quick-measure.js + `@media (min-width:1000px)` ใน quick-measure.html)
 
 ### อัปเดตสูตรคำนวณ (takeoff-engine.js) จาก QS
 ห้ามแก้ `takeoff-engine.js` ใน repo นี้ — แก้ที่ `wellcon-qs-takeoff` แล้วคัดลอกมา:

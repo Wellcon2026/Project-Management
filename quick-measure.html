@@ -170,6 +170,45 @@ label.f textarea{min-height:72px;resize:vertical}
   .pr-page{break-inside:avoid}
   .pr-page img{max-height:170mm;object-fit:contain}
 }
+/* v1.6.0 จอคอม (≥ 1000px) — ทุกหน้านอกจากหน้าวัด (ซึ่งมี 3 ส่วนอยู่แล้ว) ใช้เต็มจอ · เนื้อหากว้างสุด 1280px · มือถือไม่เปลี่ยน */
+@media (min-width:1000px){
+  .scr:not(.full){max-width:none;box-shadow:none}
+  .scr:not(.full) .hdr{padding:12px max(24px,calc((100% - 1280px)/2))}
+  .scr:not(.full) .mode{padding:4px max(24px,calc((100% - 1280px)/2))}
+  .scr:not(.full) .body{order:2;padding:18px max(24px,calc((100% - 1280px)/2)) 32px}
+  .scr:not(.full) .foot{order:1;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;padding:10px max(24px,calc((100% - 1280px)/2));border-top:0;border-bottom:1px solid var(--line)}
+  .scr:not(.full) .foot .btn{min-height:42px;border-radius:12px;padding:0 20px;font-size:14px}
+  .toast{bottom:28px}
+  dialog.bs{margin:auto;max-width:620px;max-height:88vh;border-radius:20px;box-shadow:0 20px 60px rgba(34,35,28,.25)}
+  .bs-in{max-height:88vh}
+  /* รายการที่วัด: ตาราง + แผงสรุป */
+  #listBody{display:block}
+  .dk{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
+  .dk-main,.dk-side{display:flex;flex-direction:column;gap:10px;min-width:0}
+  .mt-w{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:auto}
+  .mt{width:100%;border-collapse:collapse;font-size:13.5px}
+  .mt th{background:#F3ECDF;text-align:left;font-weight:600;color:var(--ink2);font-size:12px;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .mt td{padding:9px 12px;border-bottom:1px solid #EFE8DB;vertical-align:top}
+  .mt tbody tr:last-child td{border-bottom:0}
+  .mt .n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .mt b{font-weight:600}
+  .mt tbody tr{cursor:pointer}
+  .mt tbody tr:hover{background:#FBF5EA}
+  .mt tbody tr:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+  .mt td small{display:block;color:var(--mut);font-size:11.5px;margin-top:2px}
+  .mt .tm{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  /* เลือกโครงการ · เลือกแบบ · แบ่งงานตามทีม: การ์ดเป็น grid */
+  #projList,#pickBody{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;align-content:start;align-items:start}
+  #projList>.empty,#projList>.ver,#pickBody>.sec,#pickBody>.info,#pickBody>.empty,#pickBody>#btnUp{grid-column:1/-1}
+  #pickBody>#btnUp{justify-self:start;width:auto!important;padding:0 24px}
+  #teamsBody{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:12px;align-content:start;align-items:start}
+  #teamsBody>:not(.tcard){grid-column:1/-1}
+  #teamsBody .mgc .btn.mgb{align-self:flex-start;padding:0 28px}
+  #prBody{align-items:center}
+  #prBody>*{width:100%;max-width:900px}
+  #msgBody{align-items:center}
+  #msgBody>*{max-width:640px;width:100%}
+}
 @media (min-width:1000px){
   #scrMeasure .mside{display:flex;flex-direction:column;width:250px;flex:none;background:var(--card);border-right:1px solid var(--line);overflow:auto}
   #scrMeasure #mRight{width:330px;border-right:0;border-left:1px solid var(--line)}
@@ -321,7 +360,7 @@ label.f textarea{min-height:72px;resize:vertical}
 <script src="wdraw.js?v=1.1.0"></script>
 <script src="takeoff-engine.js"></script>
 <script src="wctag.js?v=1.1.0"></script>
-<script src="quick-measure.js?v=1.5.3"></script>
+<script src="quick-measure.js?v=1.6.0"></script>
 <script src="pm-nav.js?v=1.2.0"></script>
 </body>
 </html>
