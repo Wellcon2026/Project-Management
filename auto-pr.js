@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const APR_VER = 'v1.8.0';   // 1.8.0: รายการวัสดุ — ดึงจาก Material Log ในระบบ / ใช้ลิงก์ Google Sheet ของโครงการ (ชุดเดียวกับแอปหลัก) · บอกวันที่อัปเดต · กลับ Wellcon PM = โครงการเดิม · 1.7.1: จัดซื้อเปิดใบของโครงการที่ยังไม่มีจัดซื้อในทีมได้ (เดิมได้รับแจ้งแต่เปิดไม่ได้) · ปิดฟังก์ชันทั้งระบบแล้วเข้าหน้านี้ไม่ได้ · 1.7.0: Phase 3 — คำนวณปริมาณจากพื้นที่ / ความยาว / Takeoff (แม่แบบ ยิปซัม · กระเบื้อง · สี · วอลเปเปอร์ · พื้น · บัว · กำหนดเอง) · 1.6.0: เก็บใบในตาราง apr_requests (1 ใบ = 1 แถว · กันอนุมัติพร้อมกันแล้วหาย · โหลดเฉพาะที่เปลี่ยน) — ยังไม่รัน SQL ใช้แบบเดิม · 1.5.0: ลบร่าง / ยกเลิกใบตามสถานะ (ต้องใส่เหตุผล · เก็บประวัติ) · เลือกเอกสาร ใบขอซื้อ / ใบขอจ้าง — เลขที่ PR- / WO- · หน้าจอภาษาไทย · หัวใบ · ประเภทงาน · ข้อความทุกขั้นตอนตามเอกสาร · 1.4.0: ② PM และ QS อนุมัติครบทั้งสองคนก่อนส่งจัดซื้อ (ลำดับไหนก่อนก็ได้ · ใครส่งกลับก็ได้ · ช่องลงนาม ผู้จัดการโครงการ = PM ที่อนุมัติ) · 1.3.2: ช่องผู้ขาย / ชื่อแทนผู้รับเหมา (ไม่บังคับ · เลือกจากที่เคยใช้) · 1.3.1: ใบ PR เหลือช่องลงนาม 3 ช่อง (ผู้ขอซื้อ · ผู้จัดการโครงการ · ผู้อนุมัติ QS) · 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
+const APR_VER = 'v1.9.0';   // 1.9.0: ห้ามอนุมัติใบของตัวเอง · ผู้บริหารอนุมัติแทนต้องใส่เหตุผล + แจ้งผู้ถูกข้าม · เลขที่ไม่ซ้ำ (ฐานข้อมูลกัน) · ป้าย Takeoff ที่ QS ยังไม่ตรวจ · สั่งของ / รับของ → อัปเดต Material Log ในระบบ · 1.8.0: รายการวัสดุ — ดึงจาก Material Log ในระบบ / ใช้ลิงก์ Google Sheet ของโครงการ (ชุดเดียวกับแอปหลัก) · บอกวันที่อัปเดต · กลับ Wellcon PM = โครงการเดิม · 1.7.1: จัดซื้อเปิดใบของโครงการที่ยังไม่มีจัดซื้อในทีมได้ (เดิมได้รับแจ้งแต่เปิดไม่ได้) · ปิดฟังก์ชันทั้งระบบแล้วเข้าหน้านี้ไม่ได้ · 1.7.0: Phase 3 — คำนวณปริมาณจากพื้นที่ / ความยาว / Takeoff (แม่แบบ ยิปซัม · กระเบื้อง · สี · วอลเปเปอร์ · พื้น · บัว · กำหนดเอง) · 1.6.0: เก็บใบในตาราง apr_requests (1 ใบ = 1 แถว · กันอนุมัติพร้อมกันแล้วหาย · โหลดเฉพาะที่เปลี่ยน) — ยังไม่รัน SQL ใช้แบบเดิม · 1.5.0: ลบร่าง / ยกเลิกใบตามสถานะ (ต้องใส่เหตุผล · เก็บประวัติ) · เลือกเอกสาร ใบขอซื้อ / ใบขอจ้าง — เลขที่ PR- / WO- · หน้าจอภาษาไทย · หัวใบ · ประเภทงาน · ข้อความทุกขั้นตอนตามเอกสาร · 1.4.0: ② PM และ QS อนุมัติครบทั้งสองคนก่อนส่งจัดซื้อ (ลำดับไหนก่อนก็ได้ · ใครส่งกลับก็ได้ · ช่องลงนาม ผู้จัดการโครงการ = PM ที่อนุมัติ) · 1.3.2: ช่องผู้ขาย / ชื่อแทนผู้รับเหมา (ไม่บังคับ · เลือกจากที่เคยใช้) · 1.3.1: ใบ PR เหลือช่องลงนาม 3 ช่อง (ผู้ขอซื้อ · ผู้จัดการโครงการ · ผู้อนุมัติ QS) · 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -119,7 +119,8 @@ async function loadDelta() {   // ทุก 60 วินาที: เฉพา�
   if (!APP.tbl) return loadAll();
   const ids = (APP.projects || []).map(p => p.id); if (!ids.length) return;
   let q = () => sb.from(TBL).select('data,ver,updated_at').in('pid', ids).order('updated_at', { ascending: true });
-  const rows = APP.sync ? await pageAll(() => q().gt('updated_at', APP.sync)) : await pageAll(q);
+  const from = APP.sync ? new Date(Date.parse(APP.sync) - 120000).toISOString() : '';   // v1.9.0 ซ้อนเวลา 2 นาที กันพลาดรายการที่บันทึกไล่เลี่ยกัน (เวลา = เวลาเซิร์ฟเวอร์)
+  const rows = from ? await pageAll(() => q().gt('updated_at', from)) : await pageAll(q);
   rows.forEach(r => putLocal(rowPr(r))); markSync(rows); sortAll();
 }
 // บันทึก 1 ใบ (หน้ากรอก): ใบใหม่ = เพิ่มแถว · ใบเดิม = แก้เฉพาะแถวนี้ ถ้าเลขเวอร์ชันยังตรง (มีคนแก้ก่อน → แจ้ง ไม่เขียนทับ)
@@ -131,8 +132,12 @@ async function savePr(pr) {
       if (!(r.data || []).length) { await loadDelta().catch(() => {}); throw new Error('ใบนี้มีคนแก้ไข / ดำเนินการไปก่อนแล้ว — โหลดล่าสุดแล้ว กรุณาเปิดใหม่แล้วลองอีกครั้ง'); }
       pr._v = pr._v + 1;
     } else {
-      const r = await sb.from(TBL).insert([{ ...prRow(pr, 1), created_at: new Date(pr.at || Date.now()).toISOString() }]);
-      if (r.error) throw r.error; pr._v = 1;
+      // v1.9.0 เลขที่ซ้ำ (สองคนสร้างพร้อมกัน — ฐานข้อมูลไม่ยอมให้ซ้ำ) → ขยับเลขท้ายแล้วลองใหม่
+      for (let k = 0; ; k++) { const r = await sb.from(TBL).insert([{ ...prRow(pr, 1), created_at: new Date(pr.at || Date.now()).toISOString() }]);
+        if (!r.error) break;
+        if (k < 8 && r.error.code === '23505' && /pid_no/.test(String(r.error.message || '') + String(r.error.details || ''))) { pr.no = String(pr.no).replace(/-(\d+)$/, (m0, d) => '-' + pad(Number(d) + 1)); continue; }
+        throw r.error; }
+      pr._v = 1;
     }
     putLocal(JSON.parse(JSON.stringify(pr))); return;
   }
@@ -221,7 +226,7 @@ async function openProject(pid) {
   try { const r = await sb.from('material_log').select('id', { count: 'exact', head: true }).eq('project', pid); if (!r.error) APP.mlN = r.count || 0; } catch (e) {}
   try { await loadProjectFull(pid); } catch (e) { console.warn(e); }   // v1.6.0 ทุกใบของโครงการนี้
   // ชื่อห้อง / โซนจาก Takeoff (ถ้ามี) — ใช้เป็นตัวเลือก "พื้นที่"
-  try { const r = await sb.from('takeoff_field_measures').select('id,name,work,qty,unit,deduct,type,height_mm').eq('pm_project_id', pid).is('deleted_at', null).limit(500);
+  try { const r = await sb.from('takeoff_field_measures').select('id,name,work,qty,unit,deduct,type,height_mm,status').eq('pm_project_id', pid).is('deleted_at', null).limit(500);
     if (!r.error) APP.tko = (r.data || []).filter(x => x.qty != null && Number(x.qty) > 0);   // v1.7.0 calc: ใช้คำนวณปริมาณ
     if (!r.error) APP.rooms = [...new Set((r.data || []).map(x => String(x.name || '').trim()).filter(Boolean))].slice(0, 20); } catch (e) {}
   await loadCat(pid);
@@ -255,7 +260,8 @@ const canPm = () => PM_R.includes(APP.me.role) || isBoss();
 const canQs = () => QSO_R.includes(APP.me.role) || isBoss();
 const canApprove = () => canPm() || canQs();
 // ช่องที่คุณอนุมัติได้ในใบนี้ (ยังไม่มีใครอนุมัติช่องนั้น) · ผู้บริหาร = อนุมัติแทนได้ทุกช่องที่ค้าง
-const mySlots = (pr) => pr.status !== 'sent' ? [] : [PM_R.includes(APP.me.role) || isBoss() ? (pr.pmAt ? '' : 'pm') : '', QSO_R.includes(APP.me.role) || isBoss() ? (pr.qsAt ? '' : 'qs') : ''].filter(Boolean);
+// v1.9.0 self-approve: ผู้ขออนุมัติใบของตัวเองไม่ได้ (ทุกตำแหน่ง รวมผู้บริหาร) — ต้องเป็นอีกคน
+const mySlots = (pr) => pr.status !== 'sent' || isMine(pr) ? [] : [PM_R.includes(APP.me.role) || isBoss() ? (pr.pmAt ? '' : 'pm') : '', QSO_R.includes(APP.me.role) || isBoss() ? (pr.qsAt ? '' : 'qs') : ''].filter(Boolean);
 const pendSlots = (pr) => [pr.pmAt ? '' : 'PM', pr.qsAt ? '' : 'QS'].filter(Boolean);
 const canProc = () => PROC_R.includes(APP.me.role);
 const canCfg = () => CFG_R.includes(APP.me.role);
@@ -306,6 +312,31 @@ function procOf(pid) { const L = actv().filter(a => a.roleKey === 'proc'); const
 function pmsOf(pid) { return actv().filter(a => ['pm', 'pm_mgr'].includes(a.roleKey) && inP(a, pid)).map(a => norm(a.email)); }
 const qsMgr = () => actv().filter(a => a.roleKey === 'qs_mgr').map(a => norm(a.email));
 // PM ผู้อนุมัติ: PM ในทีมโครงการ · ไม่มี → PM Manager
+// v1.9.0 ผู้อนุมัติของใบนี้ — ไม่รวมผู้ขอ · ไม่เหลือใคร → หัวหน้าฝ่าย → ผู้บริหาร
+function approversFor(pr, slot) { const req = norm(pr.byEmail), not = (L) => L.filter(e => e && e !== req);
+  let L = not(slot === 'pm' ? pmsOf(pr.pid) : qsOf(pr.pid)); if (L.length) return L;
+  L = not(actv().filter(a => a.roleKey === (slot === 'pm' ? 'pm_mgr' : 'qs_mgr')).map(a => norm(a.email))); if (L.length) return L;
+  return not(actv().filter(a => BOSS_R.includes(a.roleKey)).map(a => norm(a.email))); }
+const bossOnly = () => isBoss() && !PM_R.concat(QSO_R).includes(APP.me.role);
+// v1.9.0 mlog-sync: รายการที่ผูกกับ Material Log ในระบบ (catId 'm_<id>') → อัปเดตแถวใน material_log ให้หน้า Material Log · จัดซื้อ ของแอปหลักเห็นความคืบหน้า
+//   อนุมัติครบ → เลขที่ใบขอซื้อ (prNo · prDate) · สั่งของ → เลขที่ Mango (poNo) · วันที่สั่ง · วันของถึง · สถานะ ordered · รับของครบตามจำนวนใน Material Log → สถานะ received
+//   ไม่แตะจำนวน / ชื่อ / ราคา · ไม่ย้อนสถานะ (received / installed คงเดิม)
+const recvOf = (catId) => { let n = 0; (APP.all[APP.pid] || []).forEach(p => { if (!p || p.deleted || p.status !== 'received') return; (p.items || []).forEach(i => { if (i.catId === catId) n += parseFloat(i.qty) || 0; }); }); return n; };
+async function syncMlog(pr, stage) {
+  const ids = [...new Set((pr.items || []).map(i => String(i.catId || '')).filter(c => c.indexOf('m_') === 0).map(c => c.slice(2)))]; if (!ids.length) return 0;
+  let n = 0; const today = isoOf(new Date());
+  for (const id of ids) { try {
+    const r = await sb.from('material_log').select('id,data').eq('id', id).maybeSingle(); if (r.error || !r.data) continue;
+    const d = { ...(r.data.data || {}) }, before = JSON.stringify(d);
+    const add = (k, v) => { v = String(v || '').trim(); if (!v) return; const c = String(d[k] || '').trim(); if (!c) d[k] = v; else if (!c.split(/\s*,\s*/).includes(v)) d[k] = c + ', ' + v; };
+    add('prNo', pr.no); if (!d.prDate) d.prDate = pr.date || today;
+    if (stage === 'ordered' || stage === 'received') { add('poNo', pr.mangoNo); if (!d.orderDate) d.orderDate = isoOf(new Date(pr.orderedAt || Date.now())); if (pr.eta) d.eta = pr.eta; if (!d.status || d.status === 'pending') d.status = 'ordered'; }
+    if (stage === 'received' && d.status !== 'installed') { const want = numOf(d.qty); if (want == null || recvOf('m_' + id) >= want - 1e-9) d.status = 'received'; }
+    if (JSON.stringify(d) === before) continue;
+    const up = await sb.from('material_log').update({ data: d, updated_by: APP.me.email }).eq('id', id); if (!up.error) n++; else console.warn(up.error);
+  } catch (e) { console.warn(e); } }
+  return n;
+}
 function pmApprovers(pid) { const P = pmsOf(pid); return P.length ? P : actv().filter(a => a.roleKey === 'pm_mgr').map(a => norm(a.email)); }
 const pmMgr = () => actv().filter(a => a.roleKey === 'pm_mgr').map(a => norm(a.email));
 // ----- แจ้งเตือน: ระบบแท็ก + LINE -----
@@ -796,8 +827,8 @@ $('btnSend').addEventListener('click', async () => {
   const r = await doSave('send'); if (!r) return; const pr = APP.pr;
   if (pr.status === 'sent' && r.was !== 'sent') {
     await notify(pr, { title: '✍️ ขออนุมัติ' + docTh(pr) + ' ' + pr.no + ' · ' + pr.proj + ' (' + pr.items.length + ' รายการ)', note: 'โดย ' + pr.by + (minNeed(pr) ? ' · ต้องการของ ' + thDate(minNeed(pr)) : '') + (pr.overBoq ? ' · ⚠ ขอเกิน Material Log ' + pr.overBoq + ' รายการ' : ''),
-      approve: [...pmApprovers(pr.pid), ...qsOf(pr.pid)], close: 'all', line: (r.was === 'returned' ? '↻ แก้ไขแล้วส่งใหม่' : '📨 ส่ง' + docTh(pr)) + ' โดย ' + pr.by + ' → รอ PM (' + names(pmApprovers(pr.pid)) + ') + QS (' + names(qsOf(pr.pid)) + ') อนุมัติ' });
-    toast('ส่งแล้ว — แจ้ง PM (' + names(pmApprovers(pr.pid)) + ') และ QS (' + names(qsOf(pr.pid)) + ') แล้ว', 3600);
+      approve: [...approversFor(pr, 'pm'), ...approversFor(pr, 'qs')], close: 'all', line: (r.was === 'returned' ? '↻ แก้ไขแล้วส่งใหม่' : '📨 ส่ง' + docTh(pr)) + ' โดย ' + pr.by + ' → รอ PM (' + names(approversFor(pr, 'pm')) + ') + QS (' + names(approversFor(pr, 'qs')) + ') อนุมัติ' });
+    toast('ส่งแล้ว — แจ้ง PM (' + names(approversFor(pr, 'pm')) + ') และ QS (' + names(approversFor(pr, 'qs')) + ') แล้ว', 3600);
   } else toast('บันทึกการแก้ไขแล้ว');
   openView(true);
 });
@@ -857,13 +888,14 @@ function actionsHtml(pr) {
   if (S === 'draft' || S === 'returned') { const rr = pr.retRole || 'QS'; if (canEdit(pr)) out.push(`<div class="card act"><b>${S === 'returned' ? '↩ ' + rr + ' ส่งกลับให้แก้ไข' : '📝 ใบนี้ยังเป็นร่าง'}</b><span class="s">${S === 'returned' ? 'แก้ตามหมายเหตุของ ' + rr + ' แล้วกด “↻ ส่งใหม่ให้ PM + QS”' : 'ตรวจรายการ แล้วกด “✓ ส่ง' + docTh(pr) + '” เพื่อส่งให้ PM และ QS อนุมัติ'}</span>
     <div class="b"><button class="btn pri" data-a="edit">✎ แก้ไข / ส่ง${docTh(pr)}</button></div></div>`); }
   else if (S === 'sent') { const ov = overList(pr); if (ov.length) out.push(`<div class="card act" style="border-color:#EBC3B8;background:#FDF3F0"><b>⚠ ขอเกินปริมาณใน Material Log ${ov.length} รายการ</b>${ov.map(x => `<span class="s">${x.i + 1}. ${esc(x.it.name)} — ขอ ${fmtN(parseFloat(x.it.qty) || 0)} · เหลือ ${fmtN(x.b.left)} ${esc(x.b.unit)} (เกิน ${fmtN(x.b.over)})</span>`).join('')}</div>`);
+    const unvN = (pr.items || []).filter(it => it.calc && it.calc.unv).length;
     const cl = (pr.items || []).map((it, i) => it.calc ? `<span class="s">${i + 1}. ${esc(it.name)} ${fmtN(parseFloat(it.qty) || 0)} ${esc(it.unit)} ← ${esc(it.calc.th)} ${fmtN(it.calc.total)} ${esc(it.calc.base)} + เผื่อ ${fmtN(it.calc.waste)}% ÷ ${fmtN(it.calc.per)}${it.calc.mult > 1 ? ' × ' + fmtN(it.calc.mult) + ' เที่ยว' : ''}${(it.calc.parts || []).length ? ' (' + esc(it.calc.parts.join(' · ')) + ')' : ''}</span>` : '').filter(Boolean);
-    if (cl.length) out.push(`<div class="card act" style="background:#F6F8F3;border-color:#C9D8BE"><b>📐 รายการที่คำนวณจากปริมาณงาน ${cl.length} รายการ — ตรวจตัวเลขก่อนอนุมัติ</b>${cl.join('')}</div>`);   // v1.7.0 calc
+    if (cl.length) out.push(`<div class="card act" style="background:#F6F8F3;border-color:#C9D8BE"><b>📐 รายการที่คำนวณจากปริมาณงาน ${cl.length} รายการ — ตรวจตัวเลขก่อนอนุมัติ</b>${unvN ? `<span class="s" style="color:#B4332A">⚠ ${unvN} รายการใช้ตัวเลข Takeoff ที่ QS ยังไม่ตรวจ</span>` : ''}${cl.join('')}</div>`);   // v1.7.0 calc
     const ms = mySlots(pr), pend = pendSlots(pr), last = ms.length && pend.length === ms.length;
     const done2 = [pr.pmAt ? '✓ PM อนุมัติแล้ว — ' + (pr.pmBy || '') + ' · ' + when2(pr.pmAt) : '', pr.qsAt ? '✓ QS อนุมัติแล้ว — ' + (pr.qsBy || '') + ' · ' + when2(pr.qsAt) : ''].filter(Boolean);
     if (ms.length) out.push(`<div class="card act" style="border-color:#E2CB92;background:#FFFBF0"><b>✍️ รอคุณอนุมัติ (${ms.map(x => x.toUpperCase()).join(' + ')})${isBoss() && !PM_R.concat(QSO_R).includes(APP.me.role) ? ' — อนุมัติแทน' : ''}</b>${done2.map(x => `<span class="s">${esc(x)}</span>`).join('')}<span class="s">ตรวจรายการ · จำนวน · สเปก — ถ้าต้องแก้จำนวนเล็กน้อย กด ✎ แก้ไข ได้เลย</span>
     <div class="b"><button class="btn ok" data-a="approve">${last ? '✓ อนุมัติ → ส่งจัดซื้อ' : '✓ อนุมัติ (รอ ' + pend.filter(x => !ms.includes(x.toLowerCase())).join(' + ') + ' อีกคน)'}</button><button class="btn" data-a="return">↩ ส่งกลับแก้ไข</button></div></div>`);
-    else out.push(`<div class="card act"><b>⏳ รอ ${esc(pend.join(' + '))} อนุมัติ</b>${done2.map(x => `<span class="s">${esc(x)}</span>`).join('')}<span class="s">ผู้รับผิดชอบ: ${esc([pr.pmAt ? '' : 'PM ' + names(pmApprovers(pr.pid)), pr.qsAt ? '' : 'QS ' + names(qsOf(pr.pid))].filter(Boolean).join(' · '))} · ระบบแจ้งเตือนแล้ว</span></div>`); }
+    else out.push(`<div class="card act"><b>⏳ รอ ${esc(pend.join(' + '))} อนุมัติ</b>${isMine(pr) && canApprove() ? '<span class="s">ผู้ขออนุมัติใบของตัวเองไม่ได้ — ต้องเป็นผู้อนุมัติอีกคน</span>' : ''}${done2.map(x => `<span class="s">${esc(x)}</span>`).join('')}<span class="s">ผู้รับผิดชอบ: ${esc([pr.pmAt ? '' : 'PM ' + names(approversFor(pr, 'pm')), pr.qsAt ? '' : 'QS ' + names(approversFor(pr, 'qs'))].filter(Boolean).join(' · '))} · ระบบแจ้งเตือนแล้ว</span></div>`); }
   else if (S === 'approved') { if (canProc()) out.push(`<div class="card act" style="border-color:#B7CBE3;background:#F4F8FD"><b>${W(pr, '🛒 รอคุณสั่งของ', '🛒 รอคุณสั่งจ้าง')}</b><span class="s">${W(pr, 'เปิด PR / PO ใน Mango แล้วใส่เลขที่ + วันที่คาดว่าของถึง', 'เปิดใบขอจ้าง / ใบสั่งจ้างใน Mango แล้วใส่เลขที่ + วันที่ผู้รับเหมาเข้างาน')}</span>
     <div class="b" style="align-items:flex-end"><label class="fl">${W(pr, 'เลขที่ PR / PO ใน Mango', 'เลขที่ใบขอจ้าง / ใบสั่งจ้างใน Mango')}<input id="aMango" placeholder="${W(pr, 'เช่น PR24100014', 'เช่น WO24100014')}" autocomplete="off"></label><label class="fl">${W(pr, 'ผู้ขาย', 'ผู้ขาย / ผู้รับเหมา')}<input id="aVendor" value="${esc(pr.vendor || '')}" placeholder="เช่น บจก. พิมพ์ อิเล็คทริค" autocomplete="off"></label><label class="fl">${W(pr, 'คาดว่าของถึงวันที่', 'วันที่เข้างาน')}<input id="aEta" type="date" value="${esc(minNeed(pr))}"></label>
     <button class="btn ok" data-a="order">${W(pr, '✓ สั่งของแล้ว', '✓ สั่งจ้างแล้ว')}</button><a class="btn sm" href="${MANGO_URL}" target="_blank" rel="noopener" style="background:#F28C28;color:#fff;border:0">เปิด Mango ↗</a></div></div>`);
@@ -917,7 +949,8 @@ $('vwAct').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a, pr = APP.pr;
   if (a === 'edit') { renderEdit(); history.replaceState({ apr: 'edit' }, ''); show('edit', false); return; }
   let note = '';
-  if (a === 'approve' && !confirm('อนุมัติ' + docTh(pr) + ' ' + pr.no + (pendSlots(pr).length === mySlots(pr).length ? ' แล้วส่งให้จัดซื้อ?' : ' ? (ยังรอ ' + pendSlots(pr).filter(x => !mySlots(pr).includes(x.toLowerCase())).join(' + ') + ' อนุมัติอีกคน)'))) return;
+  if (a === 'approve' && bossOnly()) { note = prompt('อนุมัติแทน ' + mySlots(pr).map(x => x.toUpperCase()).join(' + ') + ' — ' + docTh(pr) + ' ' + pr.no + '\n\nเหตุผลที่อนุมัติแทน (PM / QS ของโครงการจะได้รับแจ้ง):', ''); if (note === null) return; if (!note.trim()) { toast('ใส่เหตุผลที่อนุมัติแทนก่อน'); return; } }
+  else if (a === 'approve' && !confirm('อนุมัติ' + docTh(pr) + ' ' + pr.no + (pendSlots(pr).length === mySlots(pr).length ? ' แล้วส่งให้จัดซื้อ?' : ' ? (ยังรอ ' + pendSlots(pr).filter(x => !mySlots(pr).includes(x.toLowerCase())).join(' + ') + ' อนุมัติอีกคน)'))) return;
   if (a === 'return') { note = prompt('ส่งกลับให้แก้ไขอะไร? (ผู้ขอจะเห็นข้อความนี้)', ''); if (note === null) return; if (!note.trim()) { toast('ใส่เหตุผลที่ส่งกลับก่อน'); return; } }
   if (a === 'del') { await delDraft(pr); return; }
   if (a === 'cancel') { note = prompt('ยกเลิก' + docTh(pr) + ' ' + pr.no + (pr.status === 'ordered' ? '\n⚠ สั่งไปแล้ว — ต้องยกเลิกใบสั่งใน Mango / แจ้งผู้ขายด้วย' : '') + '\n\nเหตุผลที่ยกเลิก (ทุกคนที่เกี่ยวข้องจะเห็น):', ''); if (note === null) return; if (!note.trim()) { toast('ใส่เหตุผลที่ยกเลิกก่อน'); return; } }
@@ -927,31 +960,33 @@ $('vwAct').addEventListener('click', async (e) => {
   b.disabled = true; const me = APP.me.name;
   try {
     let cur;
-    if (a === 'approve') { let got = [];
+    if (a === 'approve') { let got = [], skipped = [];
       cur = await transition(pr.pid, pr.id, ['sent'], x => { const sl = mySlots(x); if (!sl.length) throw new Error('ใบนี้คุณอนุมัติไปแล้ว / ไม่มีช่องที่รอคุณ'); got = sl.map(s => s.toUpperCase()); const t = Date.now();
         if (sl.includes('pm')) { x.pmAt = t; x.pmBy = me; x.pmEmail = APP.me.email; } if (sl.includes('qs')) { x.qsAt = t; x.qsBy = me; x.qsEmail = APP.me.email; } x.qsNote = ''; x.retNote = '';
-        logIt(x, '✓ ' + got.join(' + ') + ' อนุมัติ' + (isBoss() && !PM_R.concat(QSO_R).includes(APP.me.role) ? ' (แทน)' : ''));
+        if (bossOnly()) { skipped = [...(sl.includes('pm') ? approversFor(x, 'pm') : []), ...(sl.includes('qs') ? approversFor(x, 'qs') : [])].filter(e => e !== APP.me.email); x.overBy = me; x.overNote = note.trim(); }
+        logIt(x, '✓ ' + got.join(' + ') + ' อนุมัติ' + (bossOnly() ? ' (แทน)' : ''), bossOnly() ? note.trim() : '');
         if (x.pmAt && x.qsAt) { x.status = 'approved'; x.escProc = 0; } });
-      if (cur.status === 'approved') { await notify(cur, { title: W(cur, '🛒 สั่งของ: ', '🛒 สั่งจ้าง: ') + cur.no + ' · ' + cur.proj + ' — PM + QS อนุมัติแล้ว', note: (cur.items || []).length + ' รายการ · ต้องการของ ' + thDate(minNeed(cur)), approve: procOf(cur.pid), to: [norm(cur.byEmail)], close: 'approve', line: '✅ ' + got.join(' + ') + ' อนุมัติ (' + me + ') · PM + QS ครบ → รอจัดซื้อ' + W(cur, 'สั่งของ', 'สั่งจ้าง') + ' (' + names(procOf(cur.pid)) + ')' });
+      if (cur.status === 'approved') { await notify(cur, { title: W(cur, '🛒 สั่งของ: ', '🛒 สั่งจ้าง: ') + cur.no + ' · ' + cur.proj + ' — PM + QS อนุมัติแล้ว', note: (cur.items || []).length + ' รายการ · ต้องการของ ' + thDate(minNeed(cur)) + (skipped.length ? ' · ผู้บริหารอนุมัติแทน: ' + note.trim() : ''), approve: procOf(cur.pid), to: [norm(cur.byEmail), ...skipped], close: 'approve', line: '✅ ' + got.join(' + ') + ' อนุมัติ (' + me + ') · PM + QS ครบ → รอจัดซื้อ' + W(cur, 'สั่งของ', 'สั่งจ้าง') + ' (' + names(procOf(cur.pid)) + ')' });
+        syncMlog(cur, 'approved').catch(() => {});
         toast('อนุมัติครบ PM + QS — แจ้งจัดซื้อแล้ว'); }
-      else { const rest = cur.pmAt ? qsOf(cur.pid) : pmApprovers(cur.pid), rl = cur.pmAt ? 'QS' : 'PM';
-        await notify(cur, { title: '✍️ ขออนุมัติ' + docTh(cur) + ' ' + cur.no + ' · ' + cur.proj + ' — ' + got.join(' + ') + ' อนุมัติแล้ว รอ ' + rl, note: (cur.items || []).length + ' รายการ · โดย ' + cur.by, approve: rest, to: [norm(cur.byEmail)], close: 'approve', line: '✓ ' + got.join(' + ') + ' อนุมัติ (' + me + ') → รอ ' + rl + ' อนุมัติ (' + names(rest) + ')' });
+      else { const rest = cur.pmAt ? approversFor(cur, 'qs') : approversFor(cur, 'pm'), rl = cur.pmAt ? 'QS' : 'PM';
+        await notify(cur, { title: '✍️ ขออนุมัติ' + docTh(cur) + ' ' + cur.no + ' · ' + cur.proj + ' — ' + got.join(' + ') + ' อนุมัติแล้ว รอ ' + rl, note: (cur.items || []).length + ' รายการ · โดย ' + cur.by + (skipped.length ? ' · ผู้บริหารอนุมัติแทน: ' + note.trim() : ''), approve: rest, to: [norm(cur.byEmail), ...skipped], close: 'approve', line: '✓ ' + got.join(' + ') + ' อนุมัติ (' + me + ') → รอ ' + rl + ' อนุมัติ (' + names(rest) + ')' });
         toast('อนุมัติแล้ว — รอ ' + rl + ' (' + names(rest) + ') อนุมัติอีกคน', 3200); } }
     else if (a === 'return') { cur = await transition(pr.pid, pr.id, ['sent'], x => { const rr = PM_R.includes(APP.me.role) ? 'PM' : QSO_R.includes(APP.me.role) ? 'QS' : 'ผู้บริหาร'; x.status = 'returned'; x.retAt = Date.now(); x.retBy = me; x.retRole = rr; x.retNote = note.trim(); x.qsNote = ''; logIt(x, '↩ ' + rr + ' ส่งกลับแก้ไข', note.trim()); });
       await notify(cur, { title: '↩ ' + cur.retRole + ' ส่งกลับแก้ไข ' + cur.no + ' · ' + cur.proj, note: note.trim(), to: [norm(cur.byEmail), cur.pmEmail, cur.qsEmail].filter(e => e && e !== APP.me.email), close: 'approve', line: '↩ ' + cur.retRole + ' ส่งกลับแก้ไข (' + me + '): ' + note.trim() });
       toast('ส่งกลับแล้ว — แจ้งผู้ขอแล้ว'); }
     else if (a === 'order') { cur = await transition(pr.pid, pr.id, ['approved'], x => { x.status = 'ordered'; x.orderedAt = Date.now(); x.procBy = me; x.procEmail = APP.me.email; x.mangoNo = mango; x.eta = eta; if (vendor) x.vendor = vendor; logIt(x, W(x, '🛒 สั่งของแล้ว', '🛒 สั่งจ้างแล้ว'), [mango && 'Mango ' + mango, eta && W(x, 'ของถึง ', 'เข้างาน ') + thDate(eta)].filter(Boolean).join(' · ')); });
       await notify(cur, { title: W(cur, '🛒 สั่งของแล้ว ', '🛒 สั่งจ้างแล้ว ') + cur.no + (eta ? W(cur, ' · คาดว่าของถึง ', ' · เข้างาน ') + thDate(eta) : ''), note: mango ? 'เลขที่ Mango ' + mango : '', to: [norm(cur.byEmail), ...pmsOf(cur.pid)], close: 'approve', line: W(cur, '🛒 สั่งของแล้ว (', '🛒 สั่งจ้างแล้ว (') + me + ')' + (mango ? ' · Mango ' + mango : '') + (eta ? W(cur, ' · คาดว่าของถึง ', ' · เข้างาน ') + thDate(eta) : '') });
-      toast('บันทึกแล้ว — แจ้งหน้างานแล้ว'); }
+      { const k = await syncMlog(cur, 'ordered').catch(() => 0); toast('บันทึกแล้ว — แจ้งหน้างานแล้ว' + (k ? ' · อัปเดต Material Log ' + k + ' รายการ' : ''), 3200); } }
     else if (a === 'recv') { cur = await transition(pr.pid, pr.id, ['ordered'], x => { x.status = 'received'; x.receivedAt = Date.now(); x.recvBy = me; logIt(x, W(x, '📦 ได้รับของครบแล้ว', '🛠 ตรวจรับงานแล้ว')); });
       await notify(cur, { title: W(cur, '📦 ของถึงหน้างานแล้ว ', '🛠 ตรวจรับงานแล้ว ') + cur.no + ' · ' + cur.proj, to: [norm(cur.procEmail), ...procOf(cur.pid), norm(cur.qsEmail), norm(cur.pmEmail)].filter(Boolean), close: 'all', line: W(cur, '📦 ได้รับของครบแล้ว (', '🛠 ตรวจรับงานแล้ว (') + me + ') — ปิดงาน' });
-      toast('ปิดงานแล้ว — ขอบคุณครับ'); }
+      { const k = await syncMlog(cur, 'received').catch(() => 0); toast('ปิดงานแล้ว — ขอบคุณครับ' + (k ? ' · อัปเดต Material Log ' + k + ' รายการ' : ''), 3200); } }
     else if (a === 'partial') { cur = await transition(pr.pid, pr.id, ['ordered'], x => { x.partial = Date.now(); logIt(x, W(x, '⚠ ได้รับไม่ครบ / มีปัญหา', '⚠ งานไม่ครบ / มีปัญหา'), note.trim()); });
       await notify(cur, { title: W(cur, '⚠ ของมาไม่ครบ ', '⚠ งานไม่ครบ / มีปัญหา ') + cur.no + ' · ' + cur.proj, note: note.trim(), approve: [norm(cur.procEmail) || procOf(cur.pid)[0]].filter(Boolean), to: procOf(cur.pid), line: '⚠ ได้รับไม่ครบ (' + me + '): ' + note.trim() });
       toast('แจ้งจัดซื้อแล้ว'); }
     else if (a === 'cancel') { const from = pr.status;
       cur = await transition(pr.pid, pr.id, [from], x => { if (cancelOpt(x) !== 'cancel') throw new Error('คุณยกเลิกใบนี้ไม่ได้ในสถานะนี้'); x.status = 'cancelled'; x.cancelFrom = from; x.cancelAt = Date.now(); x.cancelBy = me; x.cancelEmail = APP.me.email; x.cancelNote = note.trim(); logIt(x, '🚫 ยกเลิก', note.trim()); });
-      const to = [norm(cur.byEmail), cur.pmEmail, cur.qsEmail, ...pmApprovers(cur.pid), ...qsOf(cur.pid), ...(['approved', 'ordered'].includes(from) ? [cur.procEmail, ...procOf(cur.pid)] : [])].map(norm).filter(e => e && e !== APP.me.email);
+      const to = [norm(cur.byEmail), cur.pmEmail, cur.qsEmail, ...approversFor(cur, 'pm'), ...approversFor(cur, 'qs'), ...(['approved', 'ordered'].includes(from) ? [cur.procEmail, ...procOf(cur.pid)] : [])].map(norm).filter(e => e && e !== APP.me.email);
       await notify(cur, { title: '🚫 ยกเลิก' + docTh(cur) + ' ' + cur.no + ' · ' + cur.proj, note: 'โดย ' + me + ' — ' + note.trim(), to, close: 'all', line: '🚫 ยกเลิก (' + me + '): ' + note.trim() });
       toast('ยกเลิกแล้ว — แจ้งผู้เกี่ยวข้องแล้ว'); }
     if (cur) { APP.pr = JSON.parse(JSON.stringify(cur)); renderView(); }
@@ -1013,7 +1048,7 @@ function renderCalc() {
   // ② ปริมาณงาน
   const tk = (APP.tko || []).filter(m => unitBase(m.unit) === C.base);
   h.push(`<div class="card"><div class="h"><span class="n">2</span>ปริมาณงาน <small>${C.base} · ดึงจาก Takeoff และ/หรือ กรอกขนาดเอง</small></div>`);
-  if (tk.length) h.push(`<div class="cl-tk">${tk.map(m => { const big = Number(m.qty) > 10000; return `<label class="cl-row${C.tko.has(m.id) ? ' on' : ''}"><input type="checkbox" data-ctko="${esc(m.id)}"${C.tko.has(m.id) ? ' checked' : ''}><span><b>${esc(m.name || m.work || 'ไม่มีชื่อ')}</b><small>${esc([m.work, m.deduct ? 'หักออก' : ''].filter(Boolean).join(' · '))}</small></span><em${big ? ' class="bad" title="ค่ามากผิดปกติ — ตรวจสเกลแบบใน Takeoff"' : ''}>${m.deduct ? '−' : ''}${fmtN(Number(m.qty))} ${esc(m.unit || '')}${big ? ' ⚠' : ''}</em></label>`; }).join('')}</div>`);
+  if (tk.length) h.push(`<div class="cl-tk">${tk.map(m => { const big = Number(m.qty) > 10000; return `<label class="cl-row${C.tko.has(m.id) ? ' on' : ''}"><input type="checkbox" data-ctko="${esc(m.id)}"${C.tko.has(m.id) ? ' checked' : ''}><span><b>${esc(m.name || m.work || 'ไม่มีชื่อ')}</b><small>${esc([m.work, m.deduct ? 'หักออก' : ''].filter(Boolean).join(' · '))}${m.status === 'accepted' ? ' <i class="tq ok">QS รับแล้ว</i>' : ' <i class="tq">QS ยังไม่ตรวจ</i>'}</small></span><em${big ? ' class="bad" title="ค่ามากผิดปกติ — ตรวจสเกลแบบใน Takeoff"' : ''}>${m.deduct ? '−' : ''}${fmtN(Number(m.qty))} ${esc(m.unit || '')}${big ? ' ⚠' : ''}</em></label>`; }).join('')}</div>`);
   else h.push(`<p class="empty" style="margin:0">${(APP.tko || []).length ? 'Takeoff ของโครงการนี้ไม่มีรายการหน่วย ' + C.base : 'ยังไม่มี Takeoff ของโครงการนี้'} — กรอกขนาดด้านล่างได้เลย</p>`);
   h.push(`<div class="cl-man">${C.rows.map((r, i) => `<div class="cl-mr" data-crow="${i}"><input data-cr="l" value="${esc(r.l)}" placeholder="ห้อง / พื้นที่ (ไม่บังคับ)"><input data-cr="a" inputmode="decimal" value="${esc(r.a)}" placeholder="${C.base === 'ตร.ม.' ? 'กว้าง ม.' : C.base === 'ม.' ? 'ยาว ม.' : 'จำนวนจุด'}">${C.base === 'ตร.ม.' ? `<span>×</span><input data-cr="b" inputmode="decimal" value="${esc(r.b)}" placeholder="ยาว / สูง ม.">` : ''}<em>${fmtN(C.base === 'ตร.ม.' ? num(r.a) * (r.b === '' ? 1 : num(r.b)) : num(r.a))}</em><button class="del" data-cdel="${i}" aria-label="ลบแถว">✕</button></div>`).join('')}
     <button class="chip add" data-cadd>＋ เพิ่มห้อง / ช่วง</button><small style="color:var(--mut)">${C.base === 'ตร.ม.' ? 'ใส่ช่องเดียว = ตร.ม. ตรง ๆ · ใส่สองช่อง = กว้าง × ยาว' : ''}</small></div>`);
@@ -1067,14 +1102,15 @@ $('calcBody').addEventListener('input', (e) => calcInput(e, false));
 $('calcBody').addEventListener('change', (e) => calcInput(e, true));
 $('btnCalcAdd').addEventListener('click', () => {
   const C = APP.calc, pr = APP.pr, T = CALC_T.find(x => x.k === C.k) || {}, B = calcBase(C); let n = 0;
-  const parts = [...(APP.tko || []).filter(m => C.tko.has(m.id)).map(m => (m.deduct ? '−' : '') + (m.name || m.work || 'Takeoff') + ' ' + fmtN(Number(m.qty))), ...C.rows.filter(r => num(r.a) > 0).map(r => (r.l ? r.l + ' ' : '') + (C.base === 'ตร.ม.' && r.b !== '' ? fmtN(num(r.a)) + '×' + fmtN(num(r.b)) : fmtN(num(r.a))))];
+  const unv = (APP.tko || []).filter(m => C.tko.has(m.id) && m.status !== 'accepted').length;   // v1.9.0 Takeoff ที่ QS ยังไม่ตรวจ — บอกผู้อนุมัติ
+  const parts = [...(APP.tko || []).filter(m => C.tko.has(m.id)).map(m => (m.deduct ? '−' : '') + (m.name || m.work || 'Takeoff') + ' ' + fmtN(Number(m.qty)) + (m.status === 'accepted' ? '' : ' (QS ยังไม่ตรวจ)')), ...C.rows.filter(r => num(r.a) > 0).map(r => (r.l ? r.l + ' ' : '') + (C.base === 'ตร.ม.' && r.b !== '' ? fmtN(num(r.a)) + '×' + fmtN(num(r.b)) : fmtN(num(r.a))))];
   const room = [...new Set(C.rows.map(r => r.l).filter(Boolean))].join(', ');
   C.lines.forEach(l => { const q = calcQty(C, l, B.total); if (!l.on || !(q > 0) || !String(l.name || '').trim()) return;
     const cat = (APP.cat.items || []).find(c => norm(catLabel(c)) === norm(l.name));
     const why = '📐 ' + T.th + ' ' + fmtN(B.total) + ' ' + C.base + (num(C.waste) ? ' + เผื่อ ' + fmtN(num(C.waste)) + '%' : '') + ' ÷ ' + fmtN(num(l.per)) + (num(l.mult || 1) > 1 ? ' × ' + fmtN(num(l.mult)) + ' เที่ยว' : '');
     pr.items.push({ name: l.name.trim().slice(0, 200), qty: String(q), unit: l.unit || 'ชุด', code: '', mat: '', need: defNeed(), ...(cat ? { catId: cat.id, ref: cat.code || '' } : {}),
       remark: [room || pr.area || '', why].filter(Boolean).join(' · '),
-      calc: { tpl: C.k, th: T.th, total: Math.round(B.total * 100) / 100, base: C.base, waste: num(C.waste), per: num(l.per), mult: num(l.mult || 1) || 1, parts: parts.slice(0, 30) } }); n++; });
+      calc: { tpl: C.k, th: T.th, total: Math.round(B.total * 100) / 100, base: C.base, waste: num(C.waste), per: num(l.per), mult: num(l.mult || 1) || 1, parts: parts.slice(0, 30), unv } }); n++; });
   draftSave(); if (APP.pushed > 0) history.back(); else show('edit', false);
   setTimeout(() => { renderEdit(); toast('เพิ่ม ' + n + ' รายการจากการคำนวณแล้ว — ตรวจจำนวนอีกครั้ง', 3000); }, 60);
 });
