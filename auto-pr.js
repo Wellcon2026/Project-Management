@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const APR_VER = 'v1.9.1';   // 1.9.1: แถบบน / พื้นหลังสีเดียวกับแอปหลัก · 1.9.0: ห้ามอนุมัติใบของตัวเอง · ผู้บริหารอนุมัติแทนต้องใส่เหตุผล + แจ้งผู้ถูกข้าม · เลขที่ไม่ซ้ำ (ฐานข้อมูลกัน) · ป้าย Takeoff ที่ QS ยังไม่ตรวจ · สั่งของ / รับของ → อัปเดต Material Log ในระบบ · 1.8.0: รายการวัสดุ — ดึงจาก Material Log ในระบบ / ใช้ลิงก์ Google Sheet ของโครงการ (ชุดเดียวกับแอปหลัก) · บอกวันที่อัปเดต · กลับ Wellcon PM = โครงการเดิม · 1.7.1: จัดซื้อเปิดใบของโครงการที่ยังไม่มีจัดซื้อในทีมได้ (เดิมได้รับแจ้งแต่เปิดไม่ได้) · ปิดฟังก์ชันทั้งระบบแล้วเข้าหน้านี้ไม่ได้ · 1.7.0: Phase 3 — คำนวณปริมาณจากพื้นที่ / ความยาว / Takeoff (แม่แบบ ยิปซัม · กระเบื้อง · สี · วอลเปเปอร์ · พื้น · บัว · กำหนดเอง) · 1.6.0: เก็บใบในตาราง apr_requests (1 ใบ = 1 แถว · กันอนุมัติพร้อมกันแล้วหาย · โหลดเฉพาะที่เปลี่ยน) — ยังไม่รัน SQL ใช้แบบเดิม · 1.5.0: ลบร่าง / ยกเลิกใบตามสถานะ (ต้องใส่เหตุผล · เก็บประวัติ) · เลือกเอกสาร ใบขอซื้อ / ใบขอจ้าง — เลขที่ PR- / WO- · หน้าจอภาษาไทย · หัวใบ · ประเภทงาน · ข้อความทุกขั้นตอนตามเอกสาร · 1.4.0: ② PM และ QS อนุมัติครบทั้งสองคนก่อนส่งจัดซื้อ (ลำดับไหนก่อนก็ได้ · ใครส่งกลับก็ได้ · ช่องลงนาม ผู้จัดการโครงการ = PM ที่อนุมัติ) · 1.3.2: ช่องผู้ขาย / ชื่อแทนผู้รับเหมา (ไม่บังคับ · เลือกจากที่เคยใช้) · 1.3.1: ใบ PR เหลือช่องลงนาม 3 ช่อง (ผู้ขอซื้อ · ผู้จัดการโครงการ · ผู้อนุมัติ QS) · 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
+const APR_VER = 'v1.9.2';   // 1.9.2: ตัวเลือกหลายข้อเป็นเมนูดรอปดาวน์ (พื้นที่ / งาน เมื่อเกิน 5 ข้อ · งานในตัวคำนวณปริมาณ) · 1.9.1: แถบบน / พื้นหลังสีเดียวกับแอปหลัก · 1.9.0: ห้ามอนุมัติใบของตัวเอง · ผู้บริหารอนุมัติแทนต้องใส่เหตุผล + แจ้งผู้ถูกข้าม · เลขที่ไม่ซ้ำ (ฐานข้อมูลกัน) · ป้าย Takeoff ที่ QS ยังไม่ตรวจ · สั่งของ / รับของ → อัปเดต Material Log ในระบบ · 1.8.0: รายการวัสดุ — ดึงจาก Material Log ในระบบ / ใช้ลิงก์ Google Sheet ของโครงการ (ชุดเดียวกับแอปหลัก) · บอกวันที่อัปเดต · กลับ Wellcon PM = โครงการเดิม · 1.7.1: จัดซื้อเปิดใบของโครงการที่ยังไม่มีจัดซื้อในทีมได้ (เดิมได้รับแจ้งแต่เปิดไม่ได้) · ปิดฟังก์ชันทั้งระบบแล้วเข้าหน้านี้ไม่ได้ · 1.7.0: Phase 3 — คำนวณปริมาณจากพื้นที่ / ความยาว / Takeoff (แม่แบบ ยิปซัม · กระเบื้อง · สี · วอลเปเปอร์ · พื้น · บัว · กำหนดเอง) · 1.6.0: เก็บใบในตาราง apr_requests (1 ใบ = 1 แถว · กันอนุมัติพร้อมกันแล้วหาย · โหลดเฉพาะที่เปลี่ยน) — ยังไม่รัน SQL ใช้แบบเดิม · 1.5.0: ลบร่าง / ยกเลิกใบตามสถานะ (ต้องใส่เหตุผล · เก็บประวัติ) · เลือกเอกสาร ใบขอซื้อ / ใบขอจ้าง — เลขที่ PR- / WO- · หน้าจอภาษาไทย · หัวใบ · ประเภทงาน · ข้อความทุกขั้นตอนตามเอกสาร · 1.4.0: ② PM และ QS อนุมัติครบทั้งสองคนก่อนส่งจัดซื้อ (ลำดับไหนก่อนก็ได้ · ใครส่งกลับก็ได้ · ช่องลงนาม ผู้จัดการโครงการ = PM ที่อนุมัติ) · 1.3.2: ช่องผู้ขาย / ชื่อแทนผู้รับเหมา (ไม่บังคับ · เลือกจากที่เคยใช้) · 1.3.1: ใบ PR เหลือช่องลงนาม 3 ช่อง (ผู้ขอซื้อ · ผู้จัดการโครงการ · ผู้อนุมัติ QS) · 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -716,6 +716,9 @@ function renderEdit() {
 $('catBtn').addEventListener('click', (e) => { if (e.target.closest('[data-catpick]')) openCat(true); if (e.target.closest('[data-calc]')) openCalc(); });
 function renderArea() {
   const pr = APP.pr, A = L.areas.slice(); if (pr.area && !A.some(a => norm(a) === norm(pr.area))) A.unshift(pr.area);
+  // v1.9.2 ตัวเลือกเกิน 5 ข้อ → เมนูดรอปดาวน์ (ผู้บริหารสั่ง 14/11/2026: ตัวเลือกหลายข้อใช้ดรอปดาวน์ ประหยัดพื้นที่จอมือถือ)
+  if (A.length > 5) { const cur = A.find(a => norm(a) === norm(pr.area)) || '';
+    $('areaBox').innerHTML = `<select class="dsel" id="areaSel"><option value="">— เลือกพื้นที่ / งาน —</option>${pr.area && !cur ? `<option value="${esc(pr.area)}" selected>${esc(pr.area)}</option>` : ''}${A.map(a => `<option value="${esc(a)}"${a === cur ? ' selected' : ''}>${esc(a)}</option>`).join('')}<option value="__new">＋ พิมพ์พื้นที่ / งานใหม่…</option></select>`; return; }
   $('areaBox').innerHTML = A.map(a => `<button class="chip${norm(a) === norm(pr.area) ? ' on' : ''}" data-ar="${esc(a)}">${esc(a)}</button>`).join('') + '<button class="chip add" data-ar-new>＋ พิมพ์พื้นที่ / งาน</button>';
 }
 function renderFav() {
@@ -772,6 +775,10 @@ $('areaBox').addEventListener('click', (e) => {
   pr.area = a; pr.items.forEach(it => { if (!it.remark || norm(it.remark) === norm(old)) it.remark = a; });   // ใส่ให้ทุกรายการที่ยังว่าง / ยังเป็นค่าเดิม
   renderArea(); renderItems(); preview(); draftSave();
 });
+$('areaBox').addEventListener('change', (e) => { if (e.target.id !== 'areaSel') return; const pr = APP.pr, old = pr.area; let a = e.target.value;
+  if (a === '__new') { a = prompt('ใช้กับงาน / พื้นที่ไหน?\nเช่น ติดตั้งประตู ชั้น 2 · ห้องน้ำ Master · ทีมช่างเฟอร์นิเจอร์', ''); if (!a || !a.trim()) { renderArea(); return; } a = a.trim(); }
+  pr.area = a; pr.items.forEach(it => { if (!it.remark || norm(it.remark) === norm(old)) it.remark = a; });
+  renderArea(); renderItems(); preview(); draftSave(); });
 $('favBox').addEventListener('click', (e) => { const b = e.target.closest('[data-fav]'); if (b) addItem(b.dataset.fav); });
 $('sug').addEventListener('click', (e) => { const cb = e.target.closest('[data-cpick]'); if (cb) { addFromCat([cb.dataset.cpick]); $('q').value = ''; renderSug(); renderFav(); renderItems(); preview(); draftSave(); return; } const b = e.target.closest('[data-pick]'); if (b) addItem(b.dataset.pick); });
 $('q').addEventListener('input', renderSug);
@@ -1043,7 +1050,7 @@ function calcBase(C) {   // ปริมาณงานรวม = Takeoff ท�
 const calcQty = (C, l, total) => { const per = num(l.per), mult = num(l.mult || 1) || 1; if (!(per > 0) || !(total > 0)) return 0; return Math.ceil(total * (1 + num(C.waste) / 100) / per * mult - 1e-9); };
 function renderCalc() {
   const C = APP.calc; if (!C) return; const T = CALC_T.find(x => x.k === C.k) || {}; const B = calcBase(C); const h = [];
-  h.push(`<div class="card"><div class="h"><span class="n">1</span>งานอะไร <small>เลือกแม่แบบ — แก้ค่าได้ทุกช่อง</small></div><div class="chips">${CALC_T.map(t => `<button class="chip${t.k === C.k ? ' on' : ''}" data-ctpl="${t.k}">${t.ic} ${t.th}</button>`).join('')}</div>
+  h.push(`<div class="card"><div class="h"><span class="n">1</span>งานอะไร <small>เลือกแม่แบบ — แก้ค่าได้ทุกช่อง</small></div><select class="dsel" data-ctplsel>${CALC_T.map(t => `<option value="${t.k}"${t.k === C.k ? ' selected' : ''}>${t.ic} ${t.th}</option>`).join('')}</select>
     ${T.free ? `<div class="chips" style="margin-top:4px"><small style="color:var(--mut);align-self:center">หน่วยของปริมาณงาน</small>${BASES.map(b => `<button class="chip${b === C.base ? ' on' : ''}" data-cbase="${b}">${b}</button>`).join('')}</div>` : ''}</div>`);
   // ② ปริมาณงาน
   const tk = (APP.tko || []).filter(m => unitBase(m.unit) === C.base);
@@ -1091,6 +1098,7 @@ function calcRefresh() {   // อัปเดตตัวเลขสด โด�
 }
 function calcInput(e, final) {   // พิมพ์ = คำนวณสด · ออกจากช่อง = บันทึกค่าที่แก้ (จำต่อแม่แบบ)
   const C = APP.calc, t = e.target; let x; if (!C) return;
+  if (t.hasAttribute('data-ctplsel')) { if (final) { setTpl(t.value); renderCalc(); } return; }
   if (t.dataset.ctko) { if (!final) return; if (t.checked) C.tko.add(t.dataset.ctko); else C.tko.delete(t.dataset.ctko); const row = t.closest('.cl-row'); if (row) row.classList.toggle('on', t.checked); calcRefresh(); return; }
   if (t.dataset.cr) { const r = C.rows[+t.closest('[data-crow]').dataset.crow]; r[t.dataset.cr] = t.value.trim(); calcRefresh(); return; }
   if (t.hasAttribute('data-cw')) { C.waste = num(t.value); if (final) calcSave(C); calcRefresh(); return; }
