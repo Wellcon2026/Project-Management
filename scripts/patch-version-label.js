@@ -6,6 +6,7 @@
    - เปลี่ยนเฉพาะ "ข้อความที่แสดง" — ไม่แตะ APP_VER() (ตัวล็อกเวอร์ชัน)
      เหตุผล: ถ้าเพิ่ม APP_VER แล้วไฟล์จาก canvas รอบหน้ายังเป็นเลขเดิม ทุกเครื่องจะถูกล็อกเป็น "เวอร์ชันเก่า" (อ่านอย่างเดียว)
    - ไม่ใช่ขั้นตอนประจำหลังอัปโหลดจาก canvas (canvas มีเลขเวอร์ชันของตัวเอง)
+   - เปลี่ยนเลขใน <script src="/wcnews.js?v=…"> ให้ตรงกันด้วย (ตัวแจ้งเตือนอัปเดต) และเตือนถ้า whatsnew.json ยังไม่มีรายการของเวอร์ชันนี้
    ===================================================================== */
 const fs = require('fs');
 const path = require('path');
@@ -31,6 +32,17 @@ const reDate = /(<span class="num" style="font-size:10\.5px;color:#8E876F">อ�
 const nD = (t.match(reDate) || []).length;
 if (nB < 1 || nD !== 1) { console.error('✗ หาป้ายเวอร์ชัน (' + nB + ') / วันที่ (' + nD + ') ไม่ครบ — ไม่แก้'); process.exit(1); }
 t = t.replace(reBadge, (m, a, b) => a + ver + b).replace(reDate, (m, a, b) => a + date + b);
+// ตัวแจ้งเตือนอัปเดต (wcnews.js): เลขใน ?v= คือ "เวอร์ชันของเครื่องนี้" — ต้องตรงกับป้ายเวอร์ชันเสมอ
+const reNews = /(\/wcnews\.js\?v=)\d+\.\d+\.\d+/g;
+const nN = (t.match(reNews) || []).length;
+t = t.replace(reNews, (m, a) => a + ver.slice(1));
 lines[idx] = enc(t);
 fs.writeFileSync(file, lines.join(nl));
 console.log('✓ ป้ายเวอร์ชัน ' + nB + ' จุด → ' + ver + ' · วันที่ → ' + date + ' (APP_VER ไม่เปลี่ยน)');
+if (nN) console.log('✓ ตัวแจ้งเตือนอัปเดต wcnews.js?v= → ' + ver.slice(1));
+// หน้าต่าง "มีอะไรใหม่" อ่านจาก whatsnew.json — รายการบนสุดต้องเป็นเวอร์ชันนี้ ไม่งั้นผู้ใช้ไม่ได้รับแจ้ง
+try {
+  const news = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', 'whatsnew.json'), 'utf8'));
+  if (!Array.isArray(news) || !news[0] || news[0].v !== ver) console.warn('⚠ whatsnew.json รายการบนสุดคือ ' + ((news[0] || {}).v || '—') + ' ไม่ใช่ ' + ver + ' — เพิ่มรายการของเวอร์ชันนี้ไว้บนสุด ผู้ใช้จึงจะได้รับแจ้งอัปเดต');
+  else console.log('✓ whatsnew.json รายการบนสุด = ' + ver);
+} catch (e) { console.warn('⚠ อ่าน whatsnew.json ไม่ได้: ' + e.message); }
