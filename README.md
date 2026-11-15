@@ -155,6 +155,9 @@ node scripts/patch-card-scope.js
 ```
 ```bash
 node scripts/patch-card-drag.js
+node scripts/patch-card-reset.js
+node scripts/patch-card-color.js
+node scripts/patch-nav-pagebar.js
 ```
 ```bash
 node scripts/patch-proc-sheet.js
@@ -249,7 +252,7 @@ node scripts/patch-layboard-th.js   # ข้อความ Layboard เป็�
 - **ทั้งระบบ**: app_state `featGlobal` `{ featKey | 'tab:<pdTab>': false }` — ปิดกับทุกคน (ยกเว้น AI ของ Super Admin) · หน้าในโครงการที่ปิดจะหายทั้งเมนูและการ์ด (Project Management เปิดเสมอ)
 - ลำดับ: ปิดทั้งระบบ → รายคน → ตามตำแหน่ง → ค่าเริ่มต้น (`featOn` / `aiAllowed` / `_featUserOn`) · `featGlobal` / `featRole` เขียนผ่าน `_stKeySet` เท่านั้น
 - v1.386.0 เลือกขอบเขตทีละรายการ: แท็บรายคน กดสวิตช์ → 👤 คนเดียว / 👥 ทั้งตำแหน่ง · "ทั้งตำแหน่ง" = ตั้งค่าตำแหน่ง + ปรับค่ารายคนของรายการนั้นให้ทุกคนในตำแหน่ง (`_ccRoleCard` / `_ccRoleFeat`)
-- สคริปต์: `scripts/patch-card-admin.js` (รันหลัง `patch-work-user.js`) → `scripts/patch-card-scope.js` → `scripts/patch-card-drag.js` (v1.402.0 ลากการ์ดไปวางตำแหน่งที่ต้องการ · คอมลากทั้งแถว · มือถือลากที่ ⋮⋮)
+- สคริปต์: `scripts/patch-card-admin.js` (รันหลัง `patch-work-user.js`) → `scripts/patch-card-scope.js` → `scripts/patch-card-drag.js` (v1.402.0 ลากการ์ดไปวางตำแหน่งที่ต้องการ · คอมลากทั้งแถว · มือถือลากที่ ⋮⋮) → `scripts/patch-card-reset.js` (v1.403.0 ปุ่มคืนค่าเริ่มต้นของตำแหน่ง · การ์ด + ลำดับ + ฟังก์ชัน) → `scripts/patch-card-color.js` (v1.404.0 สีประจำการ์ด + การเคลื่อนไหวของปุ่ม) → `scripts/patch-nav-pagebar.js` (v1.405.0 เอารายการหน้าในโครงการออกจากแถบซ้าย · แถบ "หน้าในโครงการ" แสดงทุกขนาดจอ)
 
 ## ความคืบหน้าโครงการ = กรอกเองเท่านั้น (ตั้งแต่ 14/11/2026 · v1.393.0)
 - ทีมติดตามงานใน Google Sheet (แถบ "ลิงก์ Google Sheet" ในหน้าโครงการ) — ตารางในแอปยังใช้ได้ แต่ **ไม่นับเป็นความคืบหน้า**
