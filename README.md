@@ -163,6 +163,7 @@ node scripts/patch-feat-proj.js     # เปิด-ปิดหน้าแย�
 node scripts/patch-daily-ot.js      # แจ้ง OT ในรายงานประจำวัน (อัตราจาก app_state 'claimRates')
 node scripts/patch-rate-card.js     # อัตรากลาง: การ์ดในตั้งค่าระบบ + ตัวคำนวณ VO / EOT (app_state 'claimRates')
 node scripts/patch-top-home.js      # มือถือ: ปุ่มหน้าแรกซ้ายสุดในแถบบนของแอปหลัก
+node scripts/patch-rate-mat.js      # อัตรากลาง: หมวดวัสดุมาตรฐาน + เมนูดรอปดาวน์เลือกหมวด
 ```
 ```bash
 node scripts/patch-proc-sheet.js
