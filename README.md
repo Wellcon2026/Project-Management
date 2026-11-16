@@ -164,6 +164,7 @@ node scripts/patch-daily-ot.js      # แจ้ง OT ในรายงาน�
 node scripts/patch-rate-card.js     # อัตรากลาง: การ์ดในตั้งค่าระบบ + ตัวคำนวณ VO / EOT (app_state 'claimRates')
 node scripts/patch-top-home.js      # มือถือ: ปุ่มหน้าแรกซ้ายสุดในแถบบนของแอปหลัก
 node scripts/patch-rate-mat.js      # อัตรากลาง: หมวดวัสดุมาตรฐาน + เมนูดรอปดาวน์เลือกหมวด
+node scripts/patch-rfi-issue.js     # RFI / RFA: ออกเอกสารถึง Owner / Designer / Consult (ผู้รับจากคู่สัญญา · ตรวจก่อนออก · พิมพ์ / PDF · ติดตาม)
 ```
 ```bash
 node scripts/patch-proc-sheet.js
