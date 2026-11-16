@@ -174,6 +174,83 @@ table.vq td.r,table.vq th.r{text-align:right;font-variant-numeric:tabular-nums;w
 table.vq tr.sec td{background:#FBF6EA;font-weight:700}
 table.vq td small{display:block;color:var(--mut);font-size:12px}
 @media(max-width:640px){.btn{min-height:44px;padding:0 12px;font-size:14px}.foot .btn{flex:1}}
+/* ===== v1.1.0 หน้าเริ่มงาน: แผงนำ (hero) ดำ-ทอง · ภาพเส้นแบบแปลนวาดตัวเอง · การ์ดประเภทงาน · ขั้นตอน ===== */
+.hero{position:relative;overflow:hidden;border-radius:22px;background:#1C1B18;color:#F6F1E8;padding:26px 26px 22px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;isolation:isolate}
+.hero::before{content:"";position:absolute;inset:0;z-index:-2;background:radial-gradient(700px 320px at 88% -10%,rgba(226,188,102,.34),transparent 65%),radial-gradient(520px 300px at -6% 110%,rgba(184,88,42,.28),transparent 62%),linear-gradient(135deg,#1C1B18,#2A2721)}
+.hero::after{content:"";position:absolute;right:-90px;top:-40px;width:380px;height:150%;z-index:-1;background:repeating-linear-gradient(115deg,rgba(201,169,97,.16) 0 16px,transparent 16px 34px);transform:skewX(-14deg);animation:hstripe 14s linear infinite}
+@keyframes hstripe{to{background-position:340px 0}}
+@media(min-width:900px){.hero{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);align-items:center;padding:34px 36px 30px}}
+.hero .kk{font-size:11.5px;letter-spacing:.24em;font-weight:700;color:#E2BC66;display:flex;align-items:center;gap:8px}
+.hero .kk i{width:26px;height:3px;background:#E2BC66;border-radius:3px;display:block}
+.hero h1{margin:8px 0 8px;font-size:clamp(25px,3.6vw,40px);line-height:1.18;font-weight:700;letter-spacing:-.3px}
+.hero h1 em{font-style:normal;color:#E2BC66;position:relative;white-space:nowrap}
+.hero h1 em::after{content:"";position:absolute;left:0;right:0;bottom:-3px;height:4px;border-radius:4px;background:#E2BC66;transform-origin:0 50%;transform:scaleX(0);animation:hul .7s .9s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes hul{to{transform:scaleX(1)}}
+.hero p{margin:0;color:#D9CFBD;font-size:14.5px;max-width:52ch}
+.hero .cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center}
+.hero .go{position:relative;min-height:54px;border-radius:15px;border:0;background:#E2BC66;color:#1C1B18;font-weight:700;font-size:16.5px;padding:0 24px;display:inline-flex;align-items:center;gap:10px;box-shadow:0 10px 26px rgba(226,188,102,.28);transition:transform .18s,box-shadow .18s}
+.hero .go::before{content:"";position:absolute;inset:-5px;border-radius:19px;border:2px solid rgba(226,188,102,.7);animation:hpulse 2.2s ease-out infinite}
+@keyframes hpulse{0%{opacity:.9;transform:scale(.97)}70%,100%{opacity:0;transform:scale(1.09)}}
+.hero .go:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(226,188,102,.42)}
+.hero .go svg{transition:transform .18s}.hero .go:hover svg{transform:translateX(4px)}
+.hero .gh{min-height:54px;border-radius:15px;border:1px solid #5A5547;background:transparent;color:#F6F1E8;font-weight:600;padding:0 18px;font-size:14.5px}
+.hero .gh:hover{border-color:#E2BC66;color:#E2BC66}
+.hstats{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.hstat{flex:1;min-width:104px;border:1px solid rgba(246,241,232,.14);background:rgba(246,241,232,.05);border-radius:14px;padding:9px 13px;text-align:left;color:inherit;transition:border-color .18s,background .18s}
+.hstat:hover{border-color:#E2BC66;background:rgba(226,188,102,.1)}
+.hstat b{display:block;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums;color:#E2BC66}
+.hstat span{font-size:12px;color:#D9CFBD}
+.hart{position:relative;min-height:210px;display:none}
+@media(min-width:900px){.hart{display:block}}
+.hart svg{width:100%;height:auto;display:block;overflow:visible}
+.hart .ln{fill:none;stroke:#F6F1E8;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:900;stroke-dashoffset:900;animation:hdraw 2.2s cubic-bezier(.4,0,.2,1) forwards}
+.hart .ln.th{stroke-width:1.2;opacity:.6}.hart .ln.gd{stroke:#E2BC66}
+.hart .d1{animation-delay:.15s}.hart .d2{animation-delay:.55s}.hart .d3{animation-delay:.95s}.hart .d4{animation-delay:1.35s}
+@keyframes hdraw{to{stroke-dashoffset:0}}
+.hart .mk{fill:rgba(210,70,46,.16);stroke:#F0745C;stroke-width:2.4;stroke-dasharray:7 5;opacity:0;animation:hin .5s 2s forwards,hdash 1.2s 2s linear infinite}
+@keyframes hdash{to{stroke-dashoffset:-24}}
+@keyframes hin{to{opacity:1}}
+.hart .tx{fill:#D9CFBD;font:600 11px 'IBM Plex Sans Thai',sans-serif;opacity:0;animation:hin .5s 1.7s forwards}
+.hart .tag{opacity:0;animation:hin .4s 2.2s forwards}
+.hart .scan{fill:url(#hsc);opacity:0;animation:hscan 3.6s 2.5s ease-in-out infinite}
+@keyframes hscan{0%{opacity:0;transform:translateY(0)}12%{opacity:.9}88%{opacity:.9}100%{opacity:0;transform:translateY(196px)}}
+.hart .doc{opacity:0;transform:translateY(14px);animation:hup .6s 2.7s cubic-bezier(.2,.8,.2,1) forwards}
+.hart .row{transform-origin:0 50%;transform:scaleX(0);animation:hrow .45s cubic-bezier(.2,.8,.2,1) forwards}
+.hart .r1{animation-delay:3.1s}.hart .r2{animation-delay:3.3s}.hart .r3{animation-delay:3.5s}.hart .r4{animation-delay:3.8s}
+@keyframes hrow{to{transform:scaleX(1)}}
+@keyframes hup{to{opacity:1;transform:none}}
+.hart .ok{transform-origin:356px 236px;transform:scale(0);animation:hpop .5s 4.2s cubic-bezier(.3,1.6,.5,1) forwards}
+@keyframes hpop{to{transform:scale(1)}}
+.hart .fl{animation:hfloat 5s 3.4s ease-in-out infinite}
+@keyframes hfloat{50%{transform:translateY(-6px)}}
+.kinds{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:10px}
+.kc{position:relative;overflow:hidden;text-align:left;border:1.5px solid var(--line);background:var(--card);border-radius:18px;padding:15px 15px 14px;display:flex;flex-direction:column;gap:5px;opacity:0;transform:translateY(16px);animation:hup .55s cubic-bezier(.2,.8,.2,1) forwards;transition:transform .2s,border-color .2s,box-shadow .2s}
+.kc:nth-child(1){animation-delay:.1s}.kc:nth-child(2){animation-delay:.2s}.kc:nth-child(3){animation-delay:.3s}.kc:nth-child(4){animation-delay:.4s}
+.kc::after{content:"";position:absolute;right:-34px;top:-34px;width:104px;height:104px;border-radius:50%;background:var(--kc,#C9A961);opacity:.13;transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .2s}
+.kc:hover{transform:translateY(-4px);border-color:var(--kc,#C9A961);box-shadow:0 14px 30px rgba(28,27,24,.13)}
+.kc:hover::after{transform:scale(2.5);opacity:.17}
+.kc .ic{width:46px;height:46px;border-radius:14px;background:var(--kc,#C9A961);color:#fff;display:flex;align-items:center;justify-content:center;transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
+.kc:hover .ic{transform:rotate(-7deg) scale(1.08)}
+.kc b{font-size:16px;margin-top:5px}.kc small{color:var(--mut);font-size:12.5px;line-height:1.45}
+.kc .ar{margin-top:7px;font-size:13px;font-weight:700;color:var(--kc,#B8582A);display:flex;align-items:center;gap:6px}
+.kc .ar svg{transition:transform .2s}.kc:hover .ar svg{transform:translateX(5px)}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;counter-reset:st}
+.stp{position:relative;background:#F3EDE1;border-radius:14px;padding:10px 12px 10px 46px;font-size:13px;line-height:1.45;opacity:0;animation:hup .5s cubic-bezier(.2,.8,.2,1) forwards}
+.stp:nth-child(1){animation-delay:.45s}.stp:nth-child(2){animation-delay:.55s}.stp:nth-child(3){animation-delay:.65s}.stp:nth-child(4){animation-delay:.75s}
+.stp::before{counter-increment:st;content:counter(st);position:absolute;left:11px;top:11px;width:26px;height:26px;border-radius:50%;background:#1C1B18;color:#E2BC66;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+.stp b{display:block;font-size:13.5px}
+.sech{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;margin-top:4px}
+.sech i{flex:1;height:1px;background:var(--line)}
+.qrow{opacity:0;animation:hup .4s cubic-bezier(.2,.8,.2,1) forwards;transition:transform .16s,border-color .16s,box-shadow .16s}
+.qrow:hover{transform:translateX(3px);box-shadow:0 6px 18px rgba(28,27,24,.08)}
+#scrEdit .card,#scrView .card{animation:hup .45s cubic-bezier(.2,.8,.2,1) backwards}
+#scrEdit .col>.card:nth-child(2),#scrView .wrap>.card:nth-child(2){animation-delay:.07s}#scrEdit .col>.card:nth-child(3),#scrView .wrap>.card:nth-child(3){animation-delay:.14s}
+#edAiRun{position:relative;overflow:hidden}
+#edAiRun::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:45%;background:linear-gradient(100deg,transparent,rgba(226,188,102,.55),transparent);animation:hshine 3.2s 1s ease-in-out infinite}
+@keyframes hshine{0%,55%{left:-60%}100%{left:130%}}
+.drop{transition:border-color .2s,background .2s,transform .2s}.drop:hover{border-color:var(--gold);background:#FFFBF1;transform:translateY(-1px)}
+@media(max-width:640px){#scrList .hdr .hb{display:none}.hero{padding:20px 18px 18px}.hero::after{opacity:.45}.kc{padding:13px 12px 12px}.kc b{font-size:15px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001s!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001s!important}}
 @media print{.scr,#vw,#dlg,#toast{display:none!important}}
 </style>
 </head>
@@ -190,6 +267,39 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
     <div class="tt"><b>Quotation Maker</b><span id="listSub">ใบเสนอราคาด่วน</span></div>
     <button class="hb gold" data-act="new">＋ สร้างใบเสนอราคา</button></div>
   <div class="body"><div class="wrap">
+    <div class="hero">
+      <div>
+        <div class="kk"><i></i>QUOTATION MAKER · WELLCON QS</div>
+        <h1>จากแบบ สู่ใบเสนอราคา<br><em>ในหน้าเดียว</em></h1>
+        <p>แนบผัง · รูปด้าน · Perspective · สเปก ให้ AI ช่วยถอดรายการ ใส่ราคาจากอัตรากลาง แล้วส่งขออนุมัติ — สำหรับงานที่ไม่ซับซ้อน ทั้งในโครงการและงานใหม่</p>
+        <div class="cta"><button class="go" data-act="new">เริ่มใบเสนอราคาใหม่ <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <button class="gh" data-act="toList">ดูใบที่ทำไว้ ↓</button></div>
+        <div class="hstats" id="heroStats"></div>
+      </div>
+      <div class="hart" aria-hidden="true">
+        <svg viewBox="0 0 420 290">
+          <defs><linearGradient id="hsc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E2BC66" stop-opacity="0"/><stop offset="1" stop-color="#E2BC66" stop-opacity=".55"/></linearGradient></defs>
+          <g class="fl">
+            <path class="ln d1" d="M24 40h232v196H24z"/><path class="ln d2" d="M24 128h96M152 128h104M150 40v60M150 128v108"/>
+            <path class="ln d2 th" d="M120 128a32 32 0 0 1 32-32"/><path class="ln d3 th" d="M36 52h46v30H36zM170 150h70v20h-70zM178 190h54"/>
+            <path class="ln d3 gd th" d="M24 258h232M24 252v12M256 252v12M278 40v196M272 40h12M272 236h12"/>
+            <text class="tx" x="128" y="276">4,200</text><text class="tx" x="290" y="142" transform="rotate(90 290 142)">2,700</text>
+            <rect class="mk" x="162" y="140" width="86" height="88" rx="4"/>
+            <g class="tag"><rect x="162" y="120" width="88" height="18" rx="5" fill="#F0745C"/><text x="170" y="133" fill="#fff" font-size="10.5" font-weight="700" font-family="IBM Plex Sans Thai,sans-serif">ตู้ TV · ผนัง A</text></g>
+            <rect class="scan" x="24" y="40" width="232" height="22"/>
+          </g>
+          <g class="doc"><rect x="296" y="64" width="112" height="150" rx="10" fill="#FFFDF8"/><rect x="296" y="64" width="112" height="24" rx="10" fill="#E2BC66"/><rect x="296" y="78" width="112" height="10" fill="#E2BC66"/>
+            <text x="306" y="81" fill="#1C1B18" font-size="10" font-weight="700" font-family="IBM Plex Sans Thai,sans-serif">QUOTATION</text>
+            <rect class="row r1" x="306" y="100" width="92" height="7" rx="3.5" fill="#D9CFBD"/><rect class="row r2" x="306" y="116" width="74" height="7" rx="3.5" fill="#D9CFBD"/><rect class="row r3" x="306" y="132" width="84" height="7" rx="3.5" fill="#D9CFBD"/>
+            <rect class="row r4" x="306" y="160" width="92" height="22" rx="6" fill="#1C1B18"/><text class="tag" x="316" y="175" fill="#E2BC66" font-size="10.5" font-weight="700" font-family="IBM Plex Sans Thai,sans-serif">รวม VAT 7%</text>
+            <g class="ok"><circle cx="356" cy="236" r="19" fill="#2E7D46"/><path d="M347 236l6 6 12-13" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></g></g>
+        </svg>
+      </div>
+    </div>
+    <div class="sech">เริ่มจากประเภทงาน<i></i></div>
+    <div class="kinds" id="heroKinds"></div>
+    <div class="steps"><div class="stp"><b>แนบแบบ · ตีกรอบพื้นที่</b>จากเครื่อง หรือคลังแบบ QS Take-off</div><div class="stp"><b>AI ถอดรายการ</b>ปริมาณ + ที่มา · QS ตรวจทุกรายการ</div><div class="stp"><b>ใส่ราคา</b>จากอัตรากลาง · รวม VAT ให้</div><div class="stp"><b>ส่งขออนุมัติ</b>อนุมัติแล้วพิมพ์ / PDF ส่งลูกค้า</div></div>
+    <div class="sech" id="listTop">ใบเสนอราคาของงาน<i></i></div>
     <div class="card">
       <div class="grid">
         <label class="f"><span>แสดงงานของ</span><select id="fScope"></select></label>
@@ -301,7 +411,7 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
 
 <script src="vendor/supabase.js"></script>
 <script src="wctag.js?v=1.2.2"></script>
-<script src="quotation.js?v=1.0.0"></script>
+<script src="quotation.js?v=1.1.0"></script>
 <script src="pm-nav.js?v=1.3.0"></script>
 </body>
 </html>

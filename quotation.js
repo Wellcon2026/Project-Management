@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.0.0';
+const QM_VER = 'v1.1.0';   // 1.1.0: หน้าเริ่มงานใหม่ — แผงนำดำ-ทอง · ภาพเส้นแบบแปลนเคลื่อนไหว · การ์ดประเภทงานกดเริ่มได้เลย · ตัวเลขสรุปงาน
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -243,9 +243,21 @@ function renderList() {
   const wait = visible().filter(canApprove);
   $('listInbox').innerHTML = wait.length ? `<div class="card" style="border-color:var(--gold)"><div class="h">✍️ รอคุณอนุมัติ <small>${wait.length} ใบ</small></div>${wait.map(rowHtml).join('')}</div>` : '';
   $('listBody').innerHTML = L.length ? L.map(rowHtml).join('') : `<p class="empty">ยังไม่มีใบเสนอราคา${APP.filter === 'all' ? '' : 'ในสถานะนี้'} — กด “＋ สร้างใบเสนอราคา” เพื่อเริ่ม</p>`;
+  renderHero();
   $('listSub').textContent = APP.scope === 'all' ? 'ใบเสนอราคาด่วน · ทุกงาน' : APP.scope === NEW ? 'งานใหม่นอกโครงการ' : [projName(APP.projects.find(p => p.id === APP.scope))].join('');
   show('list');
 }
+// ---------- หน้าเริ่มงาน: ตัวเลขสรุป (นับขึ้น) + การ์ดประเภทงาน ----------
+const KIC = { area: ['#B8582A', 'M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zM9 21v-7h6v7'], furn: ['#0D5C63', 'M5 11V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4M3 11h18v6H3zM5 17v3M19 17v3'],
+  damage: ['#A16207', 'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z'], dco: ['#5B2E91', 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z'] };
+const KHINT = { area: 'ห้อง / โซนเดียว — พื้น ฝ้า ผนัง ครบในใบเดียว', furn: 'Built-in / Loose ตามรูปด้านและรูปตัด', damage: 'ซ่อม / เปลี่ยนของเสียหาย แนบรูปถ่ายหน้างาน', dco: 'Design Change — เทียบแบบเดิมกับแบบใหม่' };
+function countUp(el, to) { const t0 = performance.now(), d = 700; if (!to || (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches)) { el.textContent = to; return; }
+  const tick = (t) => { const k = Math.min(1, (t - t0) / d); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); }; requestAnimationFrame(tick); }
+function renderHero() { const V = visible(), n = (f) => V.filter(f).length;
+  const S = [['draft', 'ร่างของฉัน', n(q => ['draft', 'returned'].includes(q.status || 'draft') && isMine(q))], ['sent', 'รออนุมัติ', n(q => q.status === 'sent')], ['approved', 'อนุมัติแล้ว', n(q => q.status === 'approved' || q.status === 'issued')]];
+  const key = S.map(x => x[2]).join(',');
+  if (APP.heroKey !== key) { APP.heroKey = key; $('heroStats').innerHTML = S.map(x => `<button class="hstat" data-stat="${x[0]}" title="กดเพื่อดูรายการ"><b data-n="${x[2]}">0</b><span>${x[1]}</span></button>`).join(''); $('heroStats').querySelectorAll('b').forEach(b => countUp(b, Number(b.dataset.n))); }
+  if (!$('heroKinds').childElementCount) $('heroKinds').innerHTML = KINDS.map(k => `<button class="kc" data-newkind="${k[0]}" style="--kc:${KIC[k[0]][0]}"><span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${KIC[k[0]][1]}"/></svg></span><b>${k[2]}</b><small>${KHINT[k[0]]}</small><span class="ar">เริ่มเลย <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></button>`).join(''); }
 function rowHtml(q) { const k = kindOf(q.kind), c = calc(q);
   return `<button class="qrow" data-open="${esc(q.id)}"><span class="k">${k[1]}</span><span class="m"><b>${esc(q.title || '(ยังไม่มีชื่องาน)')}</b><span>${esc([q.no || 'ยังไม่มีเลขที่', scopeName(q), q.cust, 'โดย ' + (q.by || '')].filter(Boolean).join(' · '))}</span></span>
     <span class="v">${stTag(q.status || 'draft')}<b>${baht(c.net)}</b><small class="mut" style="font-size:11px">ไม่รวม VAT</small></span></button>`; }
@@ -748,6 +760,8 @@ document.addEventListener('click', async (e) => {
   const z = t.closest('[data-zoom]'); if (z) { const q = APP.screen === 'edit' ? C() : VQ(); const a = q && (q.atts || []).find(x => x.id === z.dataset.zoom); if (a) openViewer(a, APP.screen === 'edit', APP.screen === 'edit' ? renderAtts : null); return; }
   const o = t.closest('[data-open]'); if (o) { openQ(o.dataset.open); return; }
   const f = t.closest('[data-f]'); if (f) { APP.filter = f.dataset.f; renderList(); return; }
+  const nk = t.closest('[data-newkind]'); if (nk) { const n = blank(); n.kind = nk.dataset.newkind; openEdit(n); return; }
+  const hs = t.closest('[data-stat]'); if (hs) { APP.filter = hs.dataset.stat; renderList(); $('listTop').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   const kd = t.closest('[data-kind]'); if (kd && C()) { C().kind = kd.dataset.kind; touch(); $('edKind').querySelectorAll('.chip').forEach(b => b.classList.toggle('on', b === kd)); return; }
   const ad = t.closest('[data-adel]'); if (ad && C()) { if (await ask('เอาแบบนี้ออกจากใบเสนอราคา?', '', 'เอาออก', true)) { C().atts = C().atts.filter(a => a.id !== ad.dataset.adel); touch(); renderAtts(); } return; }
   const rd = t.closest('[data-rdel]'); if (rd && C()) { const id = rd.closest('[data-row]').dataset.row; C().items = C().items.filter(i => i.id !== id); touch(); renderItems(); sumOut(); return; }
@@ -756,6 +770,7 @@ document.addEventListener('click', async (e) => {
   if (a === 'toPm') { if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1) history.back(); else location.href = pmUrl() + '#/work'; }
   else if (a === 'back') { if (APP.screen === 'edit' && !(await leaveEdit())) return; try { await loadAll(); } catch (x) {} renderList(); }
   else if (a === 'new') openEdit(blank());
+  else if (a === 'toList') $('listTop').scrollIntoView({ behavior: 'smooth', block: 'start' });
   else if (a === 'rowAdd') { const it = addRow({ sec: C().kind === 'furn' ? 'bi' : C().kind === 'damage' ? 'demo' : 'other' }); renderItems(); sumOut(); const r = $('edItems').querySelector(`[data-row="${it.id}"] textarea`); if (r) r.focus(); }
   else if (a === 'rateAdd') pickRate(); else if (a === 'tkAdd') pickTakeoff(); else if (a === 'tqAdd') pickQty();
   else if (a === 'aiRun') { pull(); aiRun(); } else if (a === 'aiAsk') { pull(); aiAsk(); } else if (a === 'aiAdd') aiAdd(); else if (a === 'aiTerms') aiTerms();
