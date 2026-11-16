@@ -160,6 +160,7 @@ node scripts/patch-card-color.js
 node scripts/patch-nav-pagebar.js
 node scripts/patch-page-access.js
 node scripts/patch-feat-proj.js     # เปิด-ปิดหน้าแยกรายโครงการ (app_state 'featProj')
+node scripts/patch-daily-ot.js      # แจ้ง OT ในรายงานประจำวัน (อัตราจาก app_state 'claimRates')
 ```
 ```bash
 node scripts/patch-proc-sheet.js
