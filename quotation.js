@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.1.0';   // 1.1.0: หน้าเริ่มงานใหม่ — แผงนำดำ-ทอง · ภาพเส้นแบบแปลนเคลื่อนไหว · การ์ดประเภทงานกดเริ่มได้เลย · ตัวเลขสรุปงาน
+const QM_VER = 'v1.2.0';   // 1.2.0: เปิดจากแท็บ Quotation Maker ในแอป QS Take-off — รับตั๋วเข้าสู่ระบบครั้งเดียว (?wsso=) · ?tk=<งานใน Take-off> = ผูกงานนั้นให้ (แบบ / โครงการ) · &new=1 เริ่มใบใหม่ทันที · 1.1.0: หน้าเริ่มงานใหม่ — แผงนำดำ-ทอง · ภาพเส้นแบบแปลนเคลื่อนไหว · การ์ดประเภทงานกดเริ่มได้เลย · ตัวเลขสรุปงาน
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -180,8 +180,11 @@ async function boot() {
   $('verTxt').textContent = 'Quotation Maker ' + QM_VER;
   if (IS_STG) document.querySelectorAll('.scr').forEach(s => { const d = document.createElement('div'); d.className = 'stg'; d.textContent = 'ข้อมูลทดสอบ (staging) — ไม่กระทบข้อมูลจริง'; s.prepend(d); });
   try {
+    // v1.2.0 เปิดจากแอป QS Take-off (คนละโดเมน): แลกตั๋วใช้ครั้งเดียว อายุ 2 นาที → เข้าสู่ระบบคนเดิม (กลไกเดียวกับ PM ⇄ Site Work)
+    let sso = ''; try { if (window.WCTag && /[?&]wsso=/.test(location.search)) sso = (await WCTag.ssoTake(sb)) || ''; } catch (e) {}
+    if (sso) { try { localStorage.setItem(SESS_KEY, JSON.stringify({ email: sso, at: Date.now() })); } catch (e) {} }
     let ok = false; try { const r = await sb.auth.getSession(); ok = !!(r && r.data && r.data.session); } catch (e) {}
-    if (!ok) { msg(card('ยังไม่ได้เชื่อมต่อ Wellcon PM ในเครื่องนี้', 'เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิด “Quotation Maker” จากหน้าโครงการ')); return; }
+    if (!ok) { msg(card('ยังไม่ได้เชื่อมต่อ Wellcon PM ในเครื่องนี้', sso ? 'เครื่องนี้ยังไม่เคยเปิด Wellcon PM — กดปุ่มด้านล่างเพื่อเปิด Wellcon PM หนึ่งครั้ง (ระบบเข้าสู่ระบบให้อัตโนมัติ) แล้วกลับไปกดแท็บ “Quotation Maker” อีกครั้ง' : 'เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิด “Quotation Maker” จากหน้าโครงการ')); return; }
     const [a, p, st] = await Promise.all([sb.from('accounts').select('id,data'), sb.from('projects').select('id,project,data'),
       sb.from('app_state').select('id,data').in('id', ['featGlobal', 'featProj', 'workPages', 'workUser', 'claimRates'])]);
     if (a.error) throw a.error; if (p.error) throw p.error;
@@ -213,9 +216,10 @@ async function boot() {
     const P = new URLSearchParams(location.search), pid = P.get('pid'), qid = P.get('q');
     if (pid && projOff(pid)) { msg(card('ผู้ดูแลระบบปิด “Quotation Maker” ของโครงการนี้ไว้', 'ถ้าต้องการใช้งาน แจ้ง Admin เปิดที่ ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน → รายโครงการ', back)); return; }
     if (pid && APP.projects.some(x => x.id === pid)) { APP.scope = pid; try { localStorage.setItem('wellcon_pm_workpid', pid); } catch (e) {} }
-    renderList();
     const tk = P.get('tk');
-    if (tk && !qid) { try { await tkLoad(); const r = TK.folders.find(f => f.id === tk && !f.parent_id); if (r) { const inPm = APP.projects.some(x => x.id === r.pm_project_id); if (inPm) APP.scope = r.pm_project_id; const n = blank(); n.tk = r.id; if (!inPm) { n.pid = ''; n.title = r.name || ''; n.site = r.name || ''; n.cust = ''; } openEdit(n); } } catch (e) { console.warn(e); } }
+    if (tk) { try { await tkLoad(); const r = TK.folders.find(f => f.id === tk && !f.parent_id); if (r) { APP.tkRoot = r; if (tkIsPm(r)) { APP.scope = r.pm_project_id; try { localStorage.setItem('wellcon_pm_workpid', r.pm_project_id); } catch (e) {} } else if (!pid) APP.scope = NEW; } } catch (e) { console.warn(e); } }
+    renderList();
+    if (APP.tkRoot && !qid) { if (P.get('new')) openEdit(blank()); else toast('เปิดจาก QS Take-off — งาน “' + (APP.tkRoot.name || '') + '” · เลือกแบบของงานนี้ได้จากปุ่ม “เลือกแบบจากคลังแบบ QS Take-off”', 5200); }
     if (qid) { const q = findQ(qid); if (q && canSee(q)) openQ(q.id); else toast('ไม่พบใบเสนอราคาตามลิงก์ หรือคุณไม่มีสิทธิ์เปิด'); }
   } catch (e) {
     console.error(e);
@@ -267,6 +271,9 @@ function openQ(id) { const q = findQ(id); if (!q) { toast('ไม่พบใบ
 // แก้ไข
 // =====================================================================
 function blank() { const pid = APP.scope !== 'all' && APP.scope !== NEW ? APP.scope : ''; const p = APP.projects.find(x => x.id === pid);
+  const r = APP.tkRoot, tkOn = !!r && (tkIsPm(r) ? pid === r.pm_project_id : !pid);   // v1.2.0 งานจาก QS Take-off ที่ผูกมากับลิงก์ (?tk=)
+  const o = blankBase(pid, p); if (tkOn) { o.tk = r.id; if (!pid) { o.title = r.name || ''; o.site = r.name || ''; } } return o; }
+function blankBase(pid, p) {
   return { id: uid('q'), no: '', pid, kind: 'area', title: '', area: '', desc: '', cust: p ? (p.client || '') : '', attn: '', site: p ? projName(p) : '', atts: [], items: [], prelimPct: '', ohpPct: APP.ohp == null ? '' : APP.ohp, discount: '', ohpShow: false,
     valid: 30, lead: '', pay: '', assume: '', excl: '', memo: '', form: 'wellcon', lang: 'th', ai: null, status: 'draft', by: APP.me.name, byFull: APP.me.full, byEmail: APP.me.email, byTitle: APP.me.title, at: Date.now(), log: [] }; }
 const C = () => APP.cur;
