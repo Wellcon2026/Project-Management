@@ -23,9 +23,9 @@ input,select,textarea{font:inherit;color:inherit}
 .scr.full{max-width:none}
 @media (min-width:600px){ .scr:not(.full){box-shadow:0 0 0 1px var(--line)} }
 .stg{background:#F4D35E;color:#3A2F00;font-size:12px;text-align:center;padding:2px 8px;font-weight:500}
-.hdr{background:var(--dk);color:#F6F1E8;padding:calc(env(safe-area-inset-top,0px) + 14px) 14px 12px;display:flex;align-items:center;gap:10px}
-.hdr .back{width:44px;height:44px;border-radius:12px;border:0;background:var(--dk2);display:flex;align-items:center;justify-content:center;flex:none}
-.hdr .tt{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.hdr{background:var(--dk);color:#F6F1E8;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;min-height:60px;box-sizing:border-box;display:flex;align-items:center;gap:10px} /* แถบหัวมาตรฐาน: สูง 60px · ขอบ 14px · ปุ่ม 40px — 🏠 อยู่ตำแหน่งเดียวกันทุกแอป */
+.hdr .back{width:40px;height:40px;border-radius:12px;border:0;background:var(--dk2);display:flex;align-items:center;justify-content:center;flex:none}
+.hdr .tt{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
 .hdr .tt b{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hdr .tt span{font-size:12px;color:var(--hd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hdr .badge{margin-left:auto;font-size:11.5px;border-radius:999px;padding:3px 10px;white-space:nowrap;flex:none}
@@ -101,7 +101,7 @@ label.f textarea{min-height:72px;resize:vertical}
 .mode{background:var(--accT);color:var(--accD);font-size:12px;padding:4px 12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #F0D9C8}
 .mode b{font-weight:600}
 .mode i{font-style:normal;background:#fff;border:1px solid #EBC9B2;border-radius:999px;padding:0 8px}
-.hdr .brand{font-size:11px;letter-spacing:.04em;color:#E9B48F;text-transform:uppercase}
+.hdr .brand{display:none}   /* แถบหัวมาตรฐาน v1.7.5: 🏠 มุมบนซ้ายคือแบรนด์ — หัว 2 บรรทัด = ชื่อแอป / ชื่อโครงการ เหมือนทุกแอป */
 .mwrap{flex:1;display:flex;min-height:0}
 .mmain{flex:1;display:flex;flex-direction:column;min-width:0}
 .mside{display:none}
@@ -190,7 +190,7 @@ label.f textarea{min-height:72px;resize:vertical}
 /* v1.6.0 จอคอม (≥ 1000px) — ทุกหน้านอกจากหน้าวัด (ซึ่งมี 3 ส่วนอยู่แล้ว) ใช้เต็มจอ · เนื้อหากว้างสุด 1280px · มือถือไม่เปลี่ยน */
 @media (min-width:1000px){
   .scr:not(.full){max-width:none;box-shadow:none}
-  .scr:not(.full) .hdr{padding:12px max(24px,calc((100% - 1280px)/2))}
+  .scr:not(.full) .hdr{padding:10px 14px}   /* 🏠 ชิดมุมบนซ้ายเท่ากันทุกแอป (เดิมจัดกลางตามความกว้างเนื้อหา) */
   .scr:not(.full) .mode{padding:4px max(24px,calc((100% - 1280px)/2))}
   .scr:not(.full) .body{order:2;padding:18px max(24px,calc((100% - 1280px)/2)) 32px}
   .scr:not(.full) .foot{order:1;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;padding:10px max(24px,calc((100% - 1280px)/2));border-top:0;border-bottom:1px solid var(--line)}
@@ -256,7 +256,7 @@ label.f textarea{min-height:72px;resize:vertical}
 <!-- ===== รายการที่วัด (แบบ หน้าจอ 2) ===== -->
 <section id="scrList" class="scr" hidden>
   <div class="hdr"><button class="back" data-act="toPm" aria-label="กลับ Wellcon PM"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <span class="tt"><span class="brand">Wellcon PM · วัดหน้างาน</span><b id="listTitle">ที่ฉันวัดในโครงการนี้</b><span id="listProj"></span></span></div>
+    <span class="tt"><span class="brand">Wellcon PM · วัดหน้างาน</span><b id="listTitle">Takeoff · วัดหน้างาน</b><span id="listProj"></span></span></div>
   <div class="mode" role="note"><b>โหมด PM</b> ตัวเลขหน้างาน — ยังไม่ใช่ BOQ จนกว่า QS รับ <i>ไม่แสดงราคา</i></div>
   <div class="body" id="listBody"></div>
   <div class="foot">
@@ -378,7 +378,7 @@ label.f textarea{min-height:72px;resize:vertical}
 <script src="wdraw.js?v=1.1.0"></script>
 <script src="takeoff-engine.js"></script>
 <script src="wctag.js?v=1.2.2"></script>
-<script src="quick-measure.js?v=1.7.4"></script>
-<script src="pm-nav.js?v=1.2.0"></script>
+<script src="quick-measure.js?v=1.7.5"></script>
+<script src="pm-nav.js?v=1.3.0"></script>
 </body>
 </html>
