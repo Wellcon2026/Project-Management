@@ -111,9 +111,11 @@
     // สิทธิ์ใช้ Layboard (สวิตช์ "Layboard · Presentation" ในหน้าจัดการผู้ใช้ของ PM · ค่าเริ่มต้นตามตำแหน่ง)
     const LAY_DEF = ['superadmin', 'director', 'pm', 'pm_mgr', 'sitemgr', 'site', 'designer', 'design_mgr'];
     // กติกาเดียวกับแอปหลัก (featOn): ปิดทั้งระบบ > รายคน > ตามตำแหน่ง > ค่าเริ่มต้น
-    let FG = {}, FR = {}; try { const r = await sb.from('app_state').select('id,data').in('id', ['featGlobal', 'featRole']);
-      (r.data || []).forEach(x => { const v = (x.data && x.data.v) || {}; if (x.id === 'featGlobal') FG = v; else FR = v; }); } catch (e) {}
+    let FG = {}, FR = {}, FP = {}; try { const r = await sb.from('app_state').select('id,data').in('id', ['featGlobal', 'featRole', 'featProj']);
+      (r.data || []).forEach(x => { const v = (x.data && x.data.v) || {}; if (x.id === 'featGlobal') FG = v; else if (x.id === 'featProj') FP = v; else FR = v; }); } catch (e) {}
     if (FG.lay === false || FG['tab:lay'] === false) { block('ผู้ดูแลระบบปิด Layboard ไว้ทั้งระบบ', 'ถ้าต้องการใช้งาน แจ้ง Admin เปิดที่ ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน ใน Wellcon PM'); return false; }
+    // ปิดรายโครงการ (ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน → รายโครงการ)
+    if (FP[pid] && typeof FP[pid] === 'object' && FP[pid]['tab:lay'] === false) { block('ผู้ดูแลระบบปิด Layboard ของโครงการนี้ไว้', 'ถ้าต้องการใช้งาน แจ้ง Admin เปิดที่ ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน → รายโครงการ ใน Wellcon PM'); return false; }
     const fo = acc.featOff || {}, fr = (FR[acc.roleKey] || {}).lay;
     const layOn = fo.lay !== undefined ? fo.lay !== true : typeof fr === 'boolean' ? fr : LAY_DEF.includes(acc.roleKey);
     if (!layOn) { block('ยังไม่ได้เปิดสิทธิ์ใช้ Layboard ให้บัญชีนี้', 'แจ้ง Super Admin เปิดสวิตช์ "Layboard · Presentation" ให้บัญชีของคุณที่หน้าจัดการผู้ใช้ใน Wellcon PM'); return false; }

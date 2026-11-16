@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.7.3';   // 1.7.3: ชื่อเรียกเดียวกับเมนู (Takeoff · วัดหน้างาน / Site Work) · แถบบนสีเดียวกับแอปหลัก · 1.7.2: กลับ Wellcon PM (← / 🏠) = โครงการเดิม · 1.7.1: ปิดฟังก์ชันทั้งระบบแล้วเข้าหน้านี้ไม่ได้ · 1.7.0: เลเยอร์ (ซ่อน/แสดง · สีตามงาน · วาดในเลเยอร์) · ความยาวหลายช่วงรวมเป็นรายการเดียว (✂ เริ่มช่วงใหม่) · ความสูงผนังตอนวาด · 1.6.0: จอคอม — รายการเป็นตาราง + แผงสรุป · เลือกแบบ / ทีม เป็น grid · ปุ่มหลักอยู่ด้านบน · หน้าต่างกลางจอ · 1.5.3: ระบบแท็ก — ส่ง QS ตรวจ = แท็ก QS · QS รับ / ส่งกลับ = แท็กผู้วัด · 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
+const QM_VER = 'v1.7.4';   // 1.7.4: ปิดหน้านี้ "แยกรายโครงการ" ได้ (ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน → รายโครงการ) · 1.7.3: ชื่อเรียกเดียวกับเมนู (Takeoff · วัดหน้างาน / Site Work) · แถบบนสีเดียวกับแอปหลัก · 1.7.2: กลับ Wellcon PM (← / 🏠) = โครงการเดิม · 1.7.1: ปิดฟังก์ชันทั้งระบบแล้วเข้าหน้านี้ไม่ได้ · 1.7.0: เลเยอร์ (ซ่อน/แสดง · สีตามงาน · วาดในเลเยอร์) · ความยาวหลายช่วงรวมเป็นรายการเดียว (✂ เริ่มช่วงใหม่) · ความสูงผนังตอนวาด · 1.6.0: จอคอม — รายการเป็นตาราง + แผงสรุป · เลือกแบบ / ทีม เป็น grid · ปุ่มหลักอยู่ด้านบน · หน้าต่างกลางจอ · 1.5.3: ระบบแท็ก — ส่ง QS ตรวจ = แท็ก QS · QS รับ / ส่งกลับ = แท็กผู้วัด · 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -164,16 +164,21 @@ async function boot() {
       return;
     }
     // v1.7.1 ปิดฟังก์ชันทั้งระบบ (ตั้งค่าระบบ → ฟังก์ชันทั้งระบบ) = เข้าหน้านี้ไม่ได้ แม้เปิดจากลิงก์เก่า / แจ้งเตือน
-    try { const fg = await sb.from('app_state').select('data').eq('id', 'featGlobal').maybeSingle();
-      if (!fg.error && fg.data && fg.data.data && (fg.data.data.v || {})['tab:qm'] === false) {
+    // v1.7.4 ปิดรายโครงการ (featProj { pid:{ 'tab:qm':false } }) = โครงการนั้นไม่ขึ้นในรายการ และเปิดจากลิงก์ไม่ได้
+    let FP = {};
+    try { const fg = await sb.from('app_state').select('id,data').in('id', ['featGlobal', 'featProj']);
+      const fv = (id) => { const r = (fg.data || []).find(x => x.id === id); return (r && r.data && r.data.v) || {}; }; if (!fg.error) FP = fv('featProj');
+      if (!fg.error && fv('featGlobal')['tab:qm'] === false) {
         msg(`<div class="card" style="margin-top:20px"><b>ผู้ดูแลระบบปิด “Takeoff · วัดหน้างาน” ไว้</b><span style="color:var(--mut);font-size:14px">ถ้าต้องการใช้งาน แจ้ง Admin เปิดที่ ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน</span><a class="btn pri" style="display:flex;align-items:center;justify-content:center;text-decoration:none;margin-top:8px" href="${pmUrl()}">กลับ Wellcon PM</a></div>`); return; } } catch (e) {}
     APP.acc = acc;
     APP.me = { name: nickOf(acc), email: norm(acc.email), role: acc.roleKey || '', review: QS_REVIEW.includes(acc.roleKey) };
     try { sb.rpc('usage_touch', { p_email: APP.me.email, p_app: 'qm' }).then(() => {}, () => {}); } catch (e) {}   // นับการเปิดแอป (หน้าการใช้งานระบบ)
     if (window.WCTag) WCTag.setup({ sb, app: 'qm', me: APP.me, accounts: accounts.filter(x => x.active !== false && !x.disabled), projects: live });   // ระบบแท็ก
-    APP.projects = live.filter(x => seesAll(acc) || (acc.projects || []).includes(x.id));
+    const projOff = (id) => { const o = FP[id]; return !!o && typeof o === 'object' && o['tab:qm'] === false; };
+    APP.projects = live.filter(x => seesAll(acc) || (acc.projects || []).includes(x.id)).filter(x => !projOff(x.id));
     const pid = new URLSearchParams(location.search).get('pid');
     if (pid) {
+      if (projOff(pid)) { msg(`<div class="card" style="margin-top:20px"><b>ผู้ดูแลระบบปิด “Takeoff · วัดหน้างาน” ของโครงการนี้ไว้</b><span style="color:var(--mut);font-size:14px">ถ้าต้องการใช้งาน แจ้ง Admin เปิดที่ ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน → รายโครงการ</span><a class="btn pri" style="display:flex;align-items:center;justify-content:center;text-decoration:none;margin-top:8px" href="${pmUrl()}">กลับ Wellcon PM</a></div>`); return; }
       if (!APP.projects.some(x => x.id === pid)) {
         msg(`<div class="card" style="margin-top:20px"><b>คุณไม่ได้รับมอบหมายในโครงการนี้</b><span style="color:var(--mut);font-size:14px">Takeoff · วัดหน้างาน เปิดได้เฉพาะโครงการที่คุณถูก assign — ติดต่อผู้ดูแลระบบถ้าต้องการสิทธิ์</span></div>`);
         return;
