@@ -165,6 +165,8 @@ node scripts/patch-rate-card.js     # อัตรากลาง: การ์�
 node scripts/patch-top-home.js      # มือถือ: ปุ่มหน้าแรกซ้ายสุดในแถบบนของแอปหลัก
 node scripts/patch-rate-mat.js      # อัตรากลาง: หมวดวัสดุมาตรฐาน + เมนูดรอปดาวน์เลือกหมวด
 node scripts/patch-rfi-issue.js     # RFI / RFA: ออกเอกสารถึง Owner / Designer / Consult (ผู้รับจากคู่สัญญา · ตรวจก่อนออก · พิมพ์ / PDF · ติดตาม)
+node scripts/patch-top-fit.js       # จอคอม: แถบปุ่มด้านบนย่อป้ายปุ่มทีละขั้นให้พอดีจอ — หน้าไม่เลื่อนแนวนอน (มือถือ / แท็บเล็ตไม่เปลี่ยน)
+node scripts/patch-quotation-menu.js   # การ์ด / เมนู "Quotation Maker" → เปิดหน้าแยก quotation.html (QS · QS Manager · Director)
 ```
 ```bash
 node scripts/patch-proc-sheet.js
@@ -207,6 +209,18 @@ node scripts/patch-layboard-th.js   # ข้อความ Layboard เป็�
 - **มีอะไรใหม่**: หลังเข้าสู่ระบบ ถ้าเวอร์ชันบนสุดยังไม่เคยเห็นในเครื่องนั้น (localStorage `wellcon_pm_news_seen`) → แสดง 1 ครั้ง · กดป้ายเลขเวอร์ชันเพื่อดูย้อนหลัง
 - **ทุกครั้งที่ขึ้นงาน**: ① เพิ่มรายการบนสุดใน `whatsnew.json` (ภาษาที่ผู้ใช้อ่านเข้าใจ · ไม่มีราคา / ต้นทุน) ② `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"` — เปลี่ยนป้ายเวอร์ชัน + เลขใน `wcnews.js?v=` และเตือนถ้า `whatsnew.json` ยังไม่มีเวอร์ชันนั้น
 - ไม่เกี่ยวกับ `APP_VER()` (ตัวล็อกเวอร์ชันเก่าห้ามเขียนข้อมูล — แถบสีส้ม) ซึ่งยังทำงานตามเดิม
+
+## Quotation Maker · ใบเสนอราคาด่วนสำหรับ QS (ตั้งแต่ 16/11/2026 · PM v1.414.0)
+- หน้าแยก `quotation.html` + `quotation.js` (`&env=staging` = ข้อมูลทดสอบ) — เปิดจากการ์ด / เมนู "Quotation Maker" (`scripts/patch-quotation-menu.js`) · `?pid=<id>` งานในโครงการ · ไม่มี `pid` = เลือกเอง / งานใหม่นอกโครงการ · `?q=<id>` เปิดใบตรง ๆ (ลิงก์แจ้งเตือน) · `?tk=<root folder id>` เริ่มใบใหม่จากงานในแอป QS Take-off
+- ใช้กับงานไม่ซับซ้อน: พื้นที่เดียว · เฟอร์นิเจอร์ · งานซ่อมความเสียหาย · งานเปลี่ยนแบบ (Design Change)
+- สิทธิ์เข้าหน้า = การ์ด `tab:quo` (ชุดเริ่มต้น: `qs` · `qs_mgr` · `director` · Super Admin เข้าได้เสมอ) + ในแอปหลักต้องมีสิทธิ์ "ตัวเลขเงินโครงการ" · ปิดทั้งระบบ / รายโครงการด้วยสวิตช์ `tab:quo` (`featGlobal` / `featProj`)
+- ข้อมูล: app_state `quotations` = `{ <pid> | '_new': [ { id, no (QT-YYMM-NNN · ฉบับแก้ไข -R1), pid, kind: area|furn|damage|dco, title, area, desc, cust, attn, site, atts[{ id, kind, name, path, url, w, h, marks[{ x, y, w, h, t }], inAi, inPrint, src }], items[{ id, sec, desc, spec, unit, qty, rate, rk, ai{ conf, basis }, chk, src }], prelimPct, ohpPct, discount, ohpShow, valid, lead, pay, assume, excl, memo, form, lang, ai{…}, status: draft|sent|returned|approved|issued|cancelled, by*, ap*, log[] } ] }` — บันทึกแบบอ่าน-รวม-เขียนรายใบ · PM หลักไม่อ่าน/เขียนคีย์นี้ · ไม่ต้องรัน SQL
+- ไฟล์แบบ: bucket `general-photo` โฟลเดอร์ `quotation/<id ใบ>/` (รูป JPEG ด้านยาวไม่เกิน 2,800px · PDF แปลงเป็นรูปรายหน้า) · กรอบพื้นที่เก็บเป็นสัดส่วน 0–1 ของรูป
+- เชื่อม QS Take-off (อ่านอย่างเดียว ไม่เขียนตาราง `takeoff_*`): เลือกแบบจาก `takeoff_folders` / `takeoff_files` (bucket `takeoff-drawings` · ทั้งโครงการ PM และงาน Tender) → คัดลอกมาแนบ · ดึงปริมาณที่ QS ส่งต่อผ่าน `takeoff_pm_feed`
+- AI: Supabase function `ai-assistant` ตัวเดียวกับแอปหลัก (โควตาเดียวกัน) — ส่งรูปแบบทั้งแผ่น (ย่อด้านยาว 1,568px) + ภาพขยายเฉพาะกรอบ สูงสุด 8 ภาพ · ชื่อรายการอัตรากลาง (ไม่มีราคา) · ตอบเป็น JSON `{ summary, items[{ sec, desc, spec, unit, qty, basis, conf, rk }], assume, excl, questions }` · **AI ไม่ใส่ราคา** · รายการจาก AI ต้องติ๊ก "ตรวจแล้ว" ก่อนส่งอนุมัติ
+- ราคา: จากอัตรากลาง (app_state `claimRates`) หรือ QS กรอกเอง (ผู้อนุมัติเห็นว่ารายการไหนกรอกเอง) · ยอด = ค่างาน + Preliminary % + OH&P % − ส่วนลด → ไม่รวม VAT → VAT 7% · เตือนเมื่อ Preliminary นอก 8–20% / OH&P นอก 10–15%
+- เอกสารลูกค้า (`docHtml`): แบบฟอร์ม Wellcon · OH&P รวมอยู่ในราคา / หน่วย (ไม่แสดงกำไร — เลือกแสดงเป็นบรรทัดแยกได้) · ลายน้ำ DRAFT จนกว่าจะอนุมัติ · แนบแบบพร้อมกรอบพื้นที่ท้ายเอกสาร · ไทย หรือ อังกฤษ / ไทย · ฟอร์มของ Owner = คัดลอกตาราง (คั่นแท็บ) ไปวางใน Excel
+- ขั้นตอน: `draft` → `sent` (แจ้ง QS Manager · ไม่มีก็ Director ผ่าน `WCTag.send` app `Quotation Maker` ref_type `quo`) → `approved` / `returned` → `issued` · `cancelled` — `transition()` อ่านล่าสุดแล้วตรวจสถานะก่อนเขียน · ห้ามอนุมัติใบของตัวเอง
 
 ## Layboard · Presentation (ตั้งแต่ 09/11/2026)
 - หน้าแยก `/layboard/index.html?pid=<project id>` — สำเนาแอป Layboard (repo Wellcon2026/layboard) สำหรับทำงานนำเสนอในโครงการ
