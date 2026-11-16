@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="th" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1C1B18">
+<meta name="google" content="notranslate">
+<title>Quotation Maker · Wellcon PM</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4EFE6; --card:#FFFDF8; --line:#E3DACB; --ink:#22231C; --ink2:#4A4840; --mut:#6B6758;
+  --dk:#1C1B18; --dk2:#33302A; --hd:#D9CFBD; --acc:#B8582A; --accT:#FBEDE3; --gold:#C9A961; --ok:#2E7D46; --warn:#8A6D10; --warnB:#FAF1D6; --bad:#B4442E;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Thai',system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+input,select,textarea{font:inherit;color:inherit;font-size:15px}
+[hidden]{display:none!important}
+.scr{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg)}
+.stg{background:#F4D35E;color:#3A2F00;font-size:12px;text-align:center;padding:2px 8px;font-weight:500}
+/* แถบหัวมาตรฐาน: สูง 60px · ขอบ 14px · ปุ่ม 40px — 🏠 อยู่ตำแหน่งเดียวกันทุกแอป (pm-nav.js) */
+.hdr{background:var(--dk);color:#F6F1E8;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;min-height:60px;display:flex;align-items:center;gap:10px}
+.hdr .back{width:40px;height:40px;border-radius:12px;border:0;background:var(--dk2);display:flex;align-items:center;justify-content:center;flex:none}
+.hdr .tt{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.hdr .tt b{font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .tt span{font-size:12px;color:var(--hd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .hb{flex:none;min-height:40px;border-radius:12px;border:1px solid #4A463C;background:transparent;color:#F6F1E8;padding:0 12px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.hdr .hb.gold{background:var(--gold);border-color:var(--gold);color:var(--dk)}
+.body{flex:1;overflow:auto;padding:14px;-webkit-overflow-scrolling:touch}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
+@media(min-width:1100px){.cols{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.foot{padding:10px 14px calc(10px + var(--safe-b));background:var(--card);border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.btn{min-height:46px;border-radius:13px;border:1px solid var(--line);background:#fff;font-weight:600;padding:0 16px;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:var(--ink);white-space:nowrap}
+.btn.pri{border:0;background:var(--acc);color:#fff}
+.btn.ok{border:0;background:var(--ok);color:#fff}
+.btn.dk{border:0;background:var(--dk);color:#fff}
+.btn.gold{border:0;background:var(--gold);color:var(--dk)}
+.btn.bad{border-color:#EBC3B8;color:var(--bad)}
+.btn.sm{min-height:38px;border-radius:11px;font-size:13.5px;padding:0 12px}
+.btn:disabled{opacity:.45;cursor:default}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.h{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;flex-wrap:wrap}
+.h .n{width:26px;height:26px;border-radius:50%;background:var(--dk);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
+.h small{font-weight:500;color:var(--mut);font-size:12.5px}
+.h .sp{flex:1}
+.mut{color:var(--mut);font-size:13px}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{min-height:40px;border-radius:999px;border:1.5px solid var(--line);background:#fff;padding:0 14px;font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.chip.on{background:var(--dk);border-color:var(--dk);color:#fff;font-weight:600}
+.chip small{font-size:11px;opacity:.75}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px}
+.f{display:flex;flex-direction:column;gap:3px;min-width:0}
+.f>span{font-size:12px;color:var(--mut);font-weight:500}
+.f input,.f select,.f textarea{border:1.5px solid var(--line);border-radius:11px;padding:8px 11px;background:#fff;min-width:0;width:100%;min-height:42px}
+.f textarea{min-height:74px;resize:vertical;line-height:1.5}
+.f.w2{grid-column:1/-1}
+.st{display:inline-flex;align-items:center;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.empty{color:var(--mut);text-align:center;padding:26px 10px;font-size:14px}
+.warn{background:var(--warnB);color:var(--warn);border-radius:11px;padding:8px 12px;font-size:13px;line-height:1.5}
+.warn.bad{background:#FBEDE9;color:var(--bad)}
+.info{background:#EEF3F8;color:#2B4A6B;border-radius:11px;padding:8px 12px;font-size:13px;line-height:1.5}
+/* รายการใบเสนอราคา */
+.qrow{display:flex;gap:12px;align-items:center;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;width:100%}
+.qrow:hover{border-color:var(--gold)}
+.qrow .k{width:42px;height:42px;border-radius:12px;background:var(--accT);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.qrow .m{flex:1;min-width:0;display:flex;flex-direction:column}
+.qrow .m b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qrow .m span{font-size:12.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qrow .v{flex:none;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.qrow .v b{font-size:14.5px;font-variant-numeric:tabular-nums}
+/* แบบแนบ */
+.atts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
+.att{border:1.5px solid var(--line);border-radius:13px;background:#fff;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.att .th{position:relative;height:112px;background:#EDE7DA;cursor:zoom-in;overflow:hidden}
+.att .th img{width:100%;height:100%;object-fit:cover;display:block}
+.att .th .mk{position:absolute;border:2px solid #D2462E;background:rgba(210,70,46,.14);pointer-events:none}
+.att .th .zb{position:absolute;right:6px;bottom:6px;background:rgba(28,27,24,.78);color:#fff;border-radius:8px;font-size:11px;padding:2px 7px}
+.att .bd{padding:6px 8px;display:flex;flex-direction:column;gap:5px}
+.att .bd select{border:1px solid var(--line);border-radius:8px;padding:3px 6px;font-size:12.5px;background:#fff;width:100%;min-height:30px}
+.att .bd .nm{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.att .bd .r{display:flex;gap:5px;align-items:center}
+.att .bd .r label{font-size:11.5px;display:flex;align-items:center;gap:3px;flex:1;white-space:nowrap}
+.att .bd .x{border:0;background:none;color:var(--bad);font-size:15px;padding:0 4px}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:16px;text-align:center;color:var(--mut);font-size:13.5px;background:#fff;cursor:pointer}
+.drop.on{border-color:var(--acc);background:var(--accT)}
+/* ตารางรายการ */
+.tbw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+table.bq{border-collapse:collapse;width:100%;min-width:760px;font-size:13.5px}
+table.bq th{background:#F3EDE1;font-size:12px;font-weight:600;color:var(--ink2);padding:7px 8px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+table.bq td{padding:4px 5px;border-bottom:1px solid #F0E9DC;vertical-align:top}
+table.bq tr.sec td{background:#FBF6EA;font-weight:700;font-size:13px;padding:7px 9px}
+table.bq tr.sec td small{font-weight:500;color:var(--mut)}
+table.bq input,table.bq select,table.bq textarea{border:1px solid transparent;border-radius:7px;padding:5px 6px;background:transparent;width:100%;min-width:0;font-size:13.5px}
+table.bq textarea{resize:none;overflow:hidden;line-height:1.4;min-height:30px;display:block}
+table.bq input:hover,table.bq select:hover,table.bq textarea:hover{border-color:var(--line)}
+table.bq input:focus,table.bq select:focus,table.bq textarea:focus{border-color:var(--gold);background:#fff;outline:0}
+table.bq .num{text-align:right;font-variant-numeric:tabular-nums}
+table.bq td.amt{text-align:right;font-variant-numeric:tabular-nums;padding:9px 9px;white-space:nowrap;font-weight:600}
+table.bq td.no{color:var(--mut);padding:9px 4px 0 9px;font-size:12px;white-space:nowrap}
+table.bq .x{border:0;background:none;color:var(--bad);font-size:15px;padding:6px 4px}
+.aib{display:inline-block;font-size:10px;font-weight:700;border-radius:6px;padding:0 5px;margin-right:4px;vertical-align:1px;background:#EDE4F7;color:#5B2E91}
+.aib.low{background:#FBEDE9;color:var(--bad)}
+.aib.ok{background:#E6EFE0;color:#3F5A33}
+.basis{font-size:11.5px;color:var(--mut);padding:0 6px 4px;line-height:1.4}
+/* สรุปยอด */
+.sum{display:flex;flex-direction:column;gap:4px;font-variant-numeric:tabular-nums}
+.sum .r{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:3px 0}
+.sum .r.t{border-top:1.5px solid var(--line);margin-top:4px;padding-top:8px;font-weight:700;font-size:16px}
+.sum .r input{width:84px;text-align:right;border:1.5px solid var(--line);border-radius:9px;padding:4px 8px;background:#fff}
+.sum .r small{color:var(--mut)}
+/* ผล AI */
+.ai{border:1.5px solid #D9C8F0;background:#FAF6FF;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:9px}
+.ai h4{margin:0;font-size:14px;display:flex;gap:8px;align-items:center}
+.ai ul{margin:0;padding-left:20px;font-size:13.5px}
+.ai .pi{display:flex;gap:8px;align-items:flex-start;background:#fff;border:1px solid #E7DCF5;border-radius:10px;padding:7px 9px;font-size:13.5px}
+.ai .pi input{margin-top:4px;flex:none;width:17px;height:17px}
+.ai .pi .t{flex:1;min-width:0}
+.ai .pi .t small{display:block;color:var(--mut);font-size:12px;line-height:1.4}
+.ai .pi .q{flex:none;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.spin{width:18px;height:18px;border:2.5px solid #D9C8F0;border-top-color:#5B2E91;border-radius:50%;animation:sp .8s linear infinite;flex:none}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* ตัวเปิดแบบ: ซูม · เลื่อน · ตีกรอบพื้นที่ */
+#vw{position:fixed;inset:0;z-index:80;background:#14130F;display:flex;flex-direction:column}
+#vw .vh{flex:none;display:flex;align-items:center;gap:8px;padding:10px 12px;color:#F6F1E8;flex-wrap:wrap}
+#vw .vh b{flex:1;min-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+#vw .vb{min-width:40px;height:40px;border-radius:11px;border:1px solid #4A463C;background:#26241F;color:#F6F1E8;padding:0 11px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
+#vw .vb.on{background:#D2462E;border-color:#D2462E}
+#vwStage{flex:1;position:relative;overflow:hidden;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+#vwStage.mark{cursor:crosshair}
+#vwLayer{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+#vwLayer img{display:block;max-width:none;pointer-events:none;-webkit-user-drag:none}
+#vwLayer .mk{position:absolute;border:3px solid #D2462E;background:rgba(210,70,46,.12)}
+#vwLayer .mk span{position:absolute;left:-3px;top:-3px;transform:translateY(-100%);background:#D2462E;color:#fff;font-weight:600;padding:1px 8px;border-radius:6px 6px 0 0;white-space:nowrap;transform-origin:0 100%}
+#vwLayer .mk.tmp{border-style:dashed}
+#vw .vf{flex:none;color:#B9B19F;font-size:12.5px;padding:8px 12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#vw .vf .ml{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+#vw .vf .ml button{border:1px solid #6B3A30;background:transparent;color:#F0A493;border-radius:8px;font-size:12px;padding:2px 8px}
+/* กล่องถาม / ยืนยัน */
+#dlg{position:fixed;inset:0;z-index:90;background:rgba(28,27,24,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+#dlg .bx{background:var(--card);border-radius:18px;padding:18px;width:min(520px,100%);max-height:88vh;overflow:auto;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+#dlg .bx b{font-size:16px}
+#dlg .bx .ac{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+#dlg .pl{display:flex;flex-direction:column;gap:5px;max-height:46vh;overflow:auto}
+#dlg .pl button{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 11px}
+#dlg .pl button span{flex:1;min-width:0}
+#dlg .pl button small{color:var(--mut);flex:none}
+#toast{position:fixed;left:50%;bottom:calc(84px + var(--safe-b));transform:translateX(-50%);background:var(--dk);color:#fff;border-radius:12px;padding:10px 16px;font-size:14px;z-index:99;max-width:92vw;text-align:center}
+.log{font-size:12.5px;color:var(--ink2);display:flex;flex-direction:column;gap:3px}
+.log div span{color:var(--mut)}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.vf2{background:#F3EDE1;border-radius:11px;padding:7px 11px;min-width:0}
+.vf2 small{display:block;font-size:11.5px;color:var(--mut)}
+.vf2 b{font-weight:600;font-size:14.5px;word-break:break-word}
+.dwg{border:1px solid var(--line);border-radius:13px;overflow:hidden;background:#fff}
+.dwg .im{position:relative;cursor:zoom-in;background:#EDE7DA}
+.dwg .im img{display:block;width:100%;height:auto}
+.dwg .im .mk{position:absolute;border:2.5px solid #D2462E;background:rgba(210,70,46,.12)}
+.dwg .im .mk span{position:absolute;left:-2.5px;top:-2.5px;transform:translateY(-100%);background:#D2462E;color:#fff;font-size:11.5px;font-weight:600;padding:0 7px;border-radius:5px 5px 0 0;white-space:nowrap}
+.dwg .cp{padding:7px 11px;font-size:13px;display:flex;gap:8px;align-items:center}
+.dwg .cp b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dwgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:10px}
+@media(min-width:900px){.dwgs{grid-template-columns:repeat(auto-fill,minmax(360px,520px))}}
+table.vq{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+table.vq th{background:#F3EDE1;font-size:12px;padding:7px 9px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+table.vq td{padding:6px 9px;border-bottom:1px solid #F0E9DC;vertical-align:top}
+table.vq td.r,table.vq th.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.vq tr.sec td{background:#FBF6EA;font-weight:700}
+table.vq td small{display:block;color:var(--mut);font-size:12px}
+@media(max-width:640px){.btn{min-height:44px;padding:0 12px;font-size:14px}.foot .btn{flex:1}}
+@media print{.scr,#vw,#dlg,#toast{display:none!important}}
+</style>
+</head>
+<body>
+
+<section id="scrMsg" class="scr">
+  <div class="hdr"><button class="back" data-act="toPm" aria-label="กลับ Wellcon PM"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="tt"><b>Quotation Maker</b><span>ใบเสนอราคาด่วน</span></div></div>
+  <div class="body"><div class="wrap" id="msgBody"><p class="empty">กำลังโหลด…</p></div></div>
+</section>
+
+<section id="scrList" class="scr" hidden>
+  <div class="hdr"><button class="back" data-act="toPm" aria-label="กลับ Wellcon PM"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="tt"><b>Quotation Maker</b><span id="listSub">ใบเสนอราคาด่วน</span></div>
+    <button class="hb gold" data-act="new">＋ สร้างใบเสนอราคา</button></div>
+  <div class="body"><div class="wrap">
+    <div class="card">
+      <div class="grid">
+        <label class="f"><span>แสดงงานของ</span><select id="fScope"></select></label>
+        <label class="f"><span>ค้นหา (เลขที่ · เรื่อง · ลูกค้า)</span><input id="fQ" type="search" placeholder="พิมพ์เพื่อค้นหา"></label>
+      </div>
+      <div class="chips" id="fChips"></div>
+    </div>
+    <div id="listInbox"></div>
+    <div id="listBody" style="display:flex;flex-direction:column;gap:8px"></div>
+    <p class="mut" style="text-align:center;margin:4px 0 0">ใช้กับงานไม่ซับซ้อน: พื้นที่เดียว · เฟอร์นิเจอร์ · งานซ่อมความเสียหาย · งานเปลี่ยนแบบ — ทุกใบต้องผ่านการอนุมัติก่อนส่งลูกค้า · <span id="verTxt"></span></p>
+  </div></div>
+</section>
+
+<section id="scrEdit" class="scr" hidden>
+  <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="tt"><b id="edTitle">ใบเสนอราคาใหม่</b><span id="edSub"></span></div>
+    <span id="edSaved" style="font-size:12px;color:var(--hd);flex:none"></span></div>
+  <div class="body"><div class="wrap">
+    <div id="edNote"></div>
+    <div class="cols">
+      <div class="col">
+        <div class="card">
+          <div class="h"><span class="n">1</span>งานนี้คืออะไร</div>
+          <div class="chips" id="edKind"></div>
+          <div class="grid">
+            <label class="f w2"><span>ใช้กับ</span><select id="edScope"></select></label>
+            <label class="f w2"><span>เรื่อง / ชื่องาน <i style="color:var(--bad)">*</i></span><input id="edTitleIn" maxlength="160" placeholder="เช่น งานตกแต่งห้องประชุมชั้น 3"></label>
+            <label class="f"><span>พื้นที่ / ห้อง</span><input id="edArea" maxlength="120" placeholder="เช่น ห้อง 1205 · Lobby ชั้น 1"></label>
+            <label class="f"><span>ลูกค้า / ผู้ว่าจ้าง <i style="color:var(--bad)">*</i></span><input id="edCust" maxlength="160"></label>
+            <label class="f"><span>เรียน (ผู้รับเอกสาร)</span><input id="edAttn" maxlength="120"></label>
+            <label class="f"><span>สถานที่ทำงาน</span><input id="edSite" maxlength="200"></label>
+            <label class="f w2"><span>รายละเอียดงาน / ขอบเขตโดยย่อ (ผู้อนุมัติและ AI อ่านส่วนนี้)</span><textarea id="edDesc" maxlength="2000" placeholder="เช่น รื้อฝ้าเดิม ทำฝ้ายิปซัมใหม่ ผนังกรุไม้วีเนียร์ด้าน A ตามรูปด้าน EL-02 ตู้บิวท์อินยาว 3.20 ม."></textarea></label>
+          </div>
+        </div>
+        <div class="card">
+          <div class="h"><span class="n">2</span>แบบแนบ<small>ผัง · รูปด้าน · รูปตัด · Perspective · สเปก · รูปถ่ายหน้างาน</small></div>
+          <div class="drop" id="edDrop">📎 กดเพื่อเลือกไฟล์ หรือลากไฟล์มาวาง — รูป (JPG / PNG) หรือ PDF<br><small>กดที่รูปเพื่อซูม และ "ตีกรอบพื้นที่" ให้ผู้อนุมัติเห็นว่าเสนอราคาส่วนไหน</small></div>
+          <input id="edFile" type="file" accept="image/*,application/pdf" multiple hidden>
+          <div><button class="btn sm" data-act="tkAdd">📐 เลือกแบบจากคลังแบบ QS Take-off</button></div>
+          <div class="atts" id="edAtts"></div>
+        </div>
+        <div class="card">
+          <div class="h"><span class="n">3</span>ผู้ช่วย AI อ่านแบบ<small>ถอดรายการและปริมาณจากแบบที่ติ๊ก "ให้ AI อ่าน"</small></div>
+          <div class="info">AI อ่านผัง · รูปด้าน · รูปตัด · Perspective · สเปก แล้วเสนอ <b>รายการ + ปริมาณ + ที่มาของตัวเลข</b> — <b>AI ไม่ใส่ราคา</b> ราคามาจากอัตรากลางหรือ QS กรอกเอง · ตัวเลขจาก AI ต้องตรวจกับแบบทุกรายการก่อนส่งอนุมัติ</div>
+          <label class="f"><span>บอก AI เพิ่มเติม (ไม่บังคับ)</span><input id="edAiHint" maxlength="300" placeholder="เช่น คิดเฉพาะผนังด้าน A และตู้ · ความสูงฝ้า 2.70 ม."></label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn dk" id="edAiRun" data-act="aiRun">✨ ให้ AI อ่านแบบและเสนอรายการ</button>
+            <button class="btn" id="edAiAsk" data-act="aiAsk">ถาม AI เกี่ยวกับแบบ</button>
+          </div>
+          <div id="edAiOut"></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <div class="h"><span class="n">4</span>รายการและราคา<small>ราคา / หน่วย = ราคาเรียกเก็บลูกค้า ไม่รวม VAT</small><span class="sp"></span>
+            <button class="btn sm" data-act="tqAdd">📏 ดึงปริมาณจาก QS Take-off</button><button class="btn sm" data-act="rateAdd">＋ เลือกจากอัตรากลาง</button><button class="btn sm" data-act="rowAdd">＋ เพิ่มรายการ</button></div>
+          <div class="tbw"><table class="bq"><thead><tr><th style="width:38px">ที่</th><th>รายการ / สเปก</th><th style="width:112px">หน่วย</th><th style="width:100px" class="num">จำนวน</th><th style="width:122px" class="num">ราคา / หน่วย</th><th style="width:128px" class="num">รวม (฿)</th><th style="width:30px"></th></tr></thead><tbody id="edItems"></tbody></table></div>
+          <div id="edItemWarn"></div>
+        </div>
+        <div class="card">
+          <div class="h"><span class="n">5</span>สรุปยอด<small>ไม่รวม VAT และรวม VAT 7%</small></div>
+          <div class="sum" id="edSum"></div>
+          <div id="edSumWarn"></div>
+        </div>
+        <div class="card">
+          <div class="h"><span class="n">6</span>เงื่อนไขในใบเสนอราคา</div>
+          <div class="grid">
+            <label class="f"><span>ยืนราคา (วัน)</span><input id="edValid" type="number" min="1" max="365" inputmode="numeric"></label>
+            <label class="f"><span>ระยะเวลาดำเนินการ</span><input id="edLead" maxlength="120" placeholder="เช่น 30 วัน นับจากวันอนุมัติแบบ"></label>
+            <label class="f"><span>รูปแบบเอกสาร</span><select id="edForm"><option value="wellcon">แบบฟอร์ม Wellcon (Type 2)</option><option value="owner">ใช้ฟอร์มของ Owner (Type 1) — คัดลอกตารางไปวาง</option></select></label>
+            <label class="f"><span>ภาษาเอกสาร</span><select id="edLang"><option value="th">ไทย</option><option value="en">อังกฤษ / ไทย (ลูกค้าต่างชาติ)</option></select></label>
+            <label class="f w2"><span>เงื่อนไขการชำระเงิน</span><textarea id="edPay" maxlength="600" placeholder="ระบุตามที่ผู้บริหารกำหนดสำหรับงานนี้"></textarea></label>
+            <label class="f w2"><span>ข้อสมมติฐาน (บรรทัดละ 1 ข้อ)</span><textarea id="edAssume" maxlength="2000"></textarea></label>
+            <label class="f w2"><span>ไม่รวมในราคา (บรรทัดละ 1 ข้อ)</span><textarea id="edExcl" maxlength="2000"></textarea></label>
+            <label class="f w2"><span>หมายเหตุถึงผู้อนุมัติ (ภายใน · ไม่พิมพ์ในเอกสารลูกค้า)</span><textarea id="edMemo" maxlength="1000"></textarea></label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <div class="foot">
+    <button class="btn bad" data-act="del" id="edDel">ลบร่าง</button>
+    <span style="flex:1"></span>
+    <button class="btn" data-act="preview">ดูตัวอย่าง / พิมพ์ (DRAFT)</button>
+    <button class="btn" data-act="save">บันทึกร่าง</button>
+    <button class="btn pri" data-act="send">ส่งขออนุมัติ</button>
+  </div>
+</section>
+
+<section id="scrView" class="scr" hidden>
+  <div class="hdr"><button class="back" data-act="back" aria-label="กลับ"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="tt"><b id="vwTitle"></b><span id="vwSub"></span></div></div>
+  <div class="body"><div class="wrap" id="vwBody"></div></div>
+  <div class="foot" id="vwFoot"></div>
+</section>
+
+<div id="vw" hidden>
+  <div class="vh"><b id="vwName"></b>
+    <button class="vb" data-v="out" title="ซูมออก">−</button><button class="vb" data-v="fit" title="พอดีจอ">พอดีจอ</button><button class="vb" data-v="in" title="ซูมเข้า">＋</button>
+    <button class="vb" data-v="mark" id="vwMark">▭ ตีกรอบพื้นที่</button>
+    <button class="vb" data-v="close" title="ปิด">✕ ปิด</button></div>
+  <div id="vwStage"><div id="vwLayer"><img id="vwImg" alt=""></div></div>
+  <div class="vf"><span id="vwHelp">หมุนล้อเมาส์ / ถ่างนิ้วเพื่อซูม · ลากเพื่อเลื่อน</span><span class="ml" id="vwMarks"></span><span id="vwZoom"></span></div>
+</div>
+
+<div id="dlg" hidden><div class="bx" id="dlgBox"></div></div>
+<div id="toast" hidden></div>
+<div id="printRoot"></div>
+
+<script src="vendor/supabase.js"></script>
+<script src="wctag.js?v=1.2.2"></script>
+<script src="quotation.js?v=1.0.0"></script>
+<script src="pm-nav.js?v=1.3.0"></script>
+</body>
+</html>
