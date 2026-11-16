@@ -165,6 +165,7 @@ node scripts/patch-rate-card.js     # อัตรากลาง: การ์�
 node scripts/patch-top-home.js      # มือถือ: ปุ่มหน้าแรกซ้ายสุดในแถบบนของแอปหลัก
 node scripts/patch-rate-mat.js      # อัตรากลาง: หมวดวัสดุมาตรฐาน + เมนูดรอปดาวน์เลือกหมวด
 node scripts/patch-rfi-issue.js     # RFI / RFA: ออกเอกสารถึง Owner / Designer / Consult (ผู้รับจากคู่สัญญา · ตรวจก่อนออก · พิมพ์ / PDF · ติดตาม)
+node scripts/patch-top-fit.js       # จอคอม: แถบปุ่มด้านบนย่อป้ายปุ่มทีละขั้นให้พอดีจอ — หน้าไม่เลื่อนแนวนอน (มือถือ / แท็บเล็ตไม่เปลี่ยน)
 ```
 ```bash
 node scripts/patch-proc-sheet.js
