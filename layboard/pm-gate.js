@@ -45,21 +45,25 @@
     sitemgr: 'Project Manager', site: 'Project Manager', qs_mgr: 'QS Manager', designer: 'Design Manager' };   // ทุกคนที่เปิดสิทธิ์ = สร้างบอร์ด / โปรเจกต์ย่อย / แก้ไขได้
   const COLORS = ['#c67139', '#56633f', '#8c491a', '#3d6b8c', '#8a4f7d', '#b8892a', '#2f7a6b', '#a8434a'];
   function chip(name) {
-    const go = () => { const a = document.createElement('a'); a.href = backUrl; a.id = 'lbpm-chip'; a.title = 'กลับหน้าแรกของฉันใน Wellcon PM';
-      a.textContent = '← หน้าแรก PM';
-      a.setAttribute('style', 'display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:10px;z-index:2147482000;max-width:min(60vw,320px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#1C1B18;color:#F4EFE6;border-radius:999px;padding:8px 14px;font:600 12.5px/1.2 system-ui,sans-serif;text-decoration:none;box-shadow:0 6px 18px rgba(0,0,0,.18);opacity:.92');
-      document.body.appendChild(a);
-      // ปุ่ม 🏠 หน้าแรก (มุมบน) — คอม: ข้างโลโก้ในแถบซ้าย · มือถือ: แถวเดียวกับ Sort · ซ่อนตอนเปิดบอร์ด (หน้าแก้ไข) ไม่ให้ทับเครื่องมือ
-      const hb = document.createElement('a'); hb.href = backUrl; hb.id = 'lbpm-home'; hb.title = 'กลับหน้าแรกของฉันใน Wellcon PM'; hb.setAttribute('aria-label', 'หน้าแรก Wellcon PM');
-      hb.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/></svg><span>หน้าแรก</span>';
-      const st = document.createElement('style');
-      st.textContent = '#lbpm-home{position:fixed;z-index:2147482000;display:inline-flex;align-items:center;gap:6px;background:#1C1B18;color:#F4EFE6;text-decoration:none;border-radius:999px;font:700 13px/1 system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.18);top:18px;right:300px;height:38px;padding:0 14px}'
-        + '@media (min-width:760px) and (max-width:1099px){#lbpm-home{right:auto;left:198px;width:38px;padding:0;justify-content:center}#lbpm-home span{display:none}}'
-        + '#lbpm-home:hover{background:#C9A961;color:#1C1B18}'
-        + '@media (max-width:759px){#lbpm-home{top:58px;left:auto;right:14px;height:36px}}'
-        + 'body.lbpm-edit #lbpm-home{display:none}body.lbpm-edit #lbpm-chip{display:block!important}';
-      document.head.appendChild(st); document.body.appendChild(hb);
-      setInterval(() => { document.body.classList.toggle('lbpm-edit', !!document.querySelector('main[data-canvas]')); }, 800); };
+    // แถบหัวมาตรฐานของ Wellcon PM (ผู้บริหารสั่ง 16/11/2026 — ทุกแอปหน้าตาเดียวกัน): [🏠 หน้าแรก มุมบนซ้าย] ชื่อแอป / ชื่อโครงการ … [เปลี่ยนโครงการ]
+    //   สูง 60px · ขอบ 14px · ปุ่ม 40px เท่ากับ ใบขอซื้อ · Takeoff · Claim · Site Work — ตัวแอป Layboard อยู่ใต้แถบ (ทุกหน้า รวมหน้าแก้ไขบอร์ด)
+    //   ไม่ใช้ transform กับ #dc-root: เมนู / ป๊อปอัปของ Layboard วางตำแหน่งด้วยพิกัดหน้าจอ (position:fixed) — ใส่ transform แล้วจะเลื่อนลง 60px
+    const go = () => { const bar = document.createElement('div'); bar.id = 'lbpm-bar';
+      bar.innerHTML = '<a id="lbpm-home" href="' + esc(backUrl) + '" title="หน้าแรก Wellcon PM" aria-label="หน้าแรก Wellcon PM"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></a>'
+        + '<div class="tt"><b>Layboard · บอร์ดนำเสนองาน</b><span></span></div><span id="lbpm-slot"></span>';
+      bar.querySelector('.tt span').textContent = name;
+      const st = document.createElement('style'); const H = 'calc(60px + env(safe-area-inset-top,0px))';
+      st.textContent = '#lbpm-bar{position:fixed;top:0;left:0;right:0;z-index:2147482000;height:' + H + ';box-sizing:border-box;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;display:flex;align-items:center;gap:10px;background:#1C1B18;color:#F6F1E8;font-family:"IBM Plex Sans Thai",system-ui,sans-serif}'
+        + '#lbpm-home{flex:none;width:40px;height:40px;border-radius:12px;box-sizing:border-box;border:1px solid #C9A961;background:#C9A961;color:#1C1B18;display:flex;align-items:center;justify-content:center;text-decoration:none}#lbpm-home:active{transform:scale(.96)}'
+        + '#lbpm-bar .tt{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}#lbpm-bar .tt b{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#lbpm-bar .tt span{font-size:12px;color:#C9BFA9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+        + '#lbpm-slot{flex:none;display:flex;align-items:center;gap:6px}'
+        + '#dc-root{position:fixed!important;top:' + H + ';left:0;right:0;bottom:0;height:auto!important;min-height:0!important;overflow:hidden}#dc-root>.sc-host{height:100%}'
+        + '#dc-root [style*="height: 100vh"],#dc-root [style*="height:100vh"]{height:100%!important}'
+        + '#dc-root aside.lbpm-fx{top:' + H + '!important;height:auto!important;bottom:0!important}';   // แถบเมนูเลื่อน (จอแคบ · position:fixed): เริ่มใต้แถบหัว
+      // แถบเมนูของ Layboard เป็น position:fixed เฉพาะจอแคบ — ติดป้ายให้เฉพาะตอนนั้น (จอกว้างเป็นคอลัมน์ปกติ ไม่แตะ)
+      const fx = () => { document.querySelectorAll('#dc-root aside').forEach((a) => { const on = getComputedStyle(a).position === 'fixed'; if (a.classList.contains('lbpm-fx') !== on) a.classList.toggle('lbpm-fx', on); }); };
+      setInterval(fx, 600); window.addEventListener('resize', fx);
+      document.head.appendChild(st); document.body.appendChild(bar); };
     if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
   }
   // ---- เปลี่ยนโครงการ (เฉพาะโครงการที่ได้รับมอบหมาย) · จอกว้าง: แถบบนข้างปุ่มหน้าแรก · จออื่น / ตอนแก้บอร์ด: ล่างกลางจอ ----
@@ -67,7 +71,7 @@
     const go = () => {
       const url = (id) => '/layboard/index.html?pid=' + encodeURIComponent(id) + (schema === 'staging' ? '&env=staging' : '');
       const b = document.createElement('button'); b.id = 'lbpm-proj'; b.type = 'button'; b.title = 'เปลี่ยนโครงการ — แต่ละโครงการมี Layboard แยกกัน';
-      b.innerHTML = '<span class="i">📁</span><span class="n"></span><span class="c">▾</span>'; b.querySelector('.n').textContent = name;
+      b.innerHTML = '<span class="i">📁</span><span class="n">เปลี่ยนโครงการ</span><span class="c">▾</span>';   // ชื่อโครงการอยู่ในแถบหัวแล้ว
       const pn = document.createElement('div'); pn.id = 'lbpm-pan'; pn.hidden = true;
       pn.innerHTML = '<div class="h">เปลี่ยนโครงการ <small>(' + G.projects.length + ')</small></div><input type="search" placeholder="ค้นหาชื่อโครงการ / รหัส…"><div class="l"></div>';
       const inp = pn.querySelector('input'), list = pn.querySelector('.l');
@@ -77,17 +81,16 @@
       b.onclick = (e) => { e.stopPropagation(); if (!pn.hidden) return close(); draw(); pn.hidden = false; b.classList.add('open'); setTimeout(() => { try { inp.focus(); } catch (x) {} }, 30); };
       inp.oninput = draw; pn.onclick = (e) => e.stopPropagation(); document.addEventListener('click', close); document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
       const st = document.createElement('style');
-      st.textContent = '#lbpm-proj{position:fixed;z-index:2147482000;display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px;border-radius:999px;border:1.5px solid #C9A961;background:#fff;color:#1C1B18;font:700 13px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.10);top:18px;right:410px;max-width:min(360px,calc(100vw - 1170px))}'
-        + '#lbpm-proj .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}#lbpm-proj .c{color:#A08A5C}#lbpm-proj:hover,#lbpm-proj.open{background:#FBF3E2}'
-        + '#lbpm-pan{position:fixed;z-index:2147483001;top:62px;right:410px;width:min(380px,calc(100vw - 24px));max-height:min(520px,70vh);display:flex;flex-direction:column;background:#fff;border:1px solid #E4DED2;border-radius:16px;box-shadow:0 18px 50px rgba(28,27,24,.18);padding:12px;font-family:system-ui,sans-serif}'
+      st.textContent = '#lbpm-proj{flex:none;display:inline-flex;align-items:center;gap:7px;height:40px;box-sizing:border-box;padding:0 12px;border-radius:12px;border:1px solid #3A3832;background:#2C2A25;color:#F6F1E8;font:600 13px/1 "IBM Plex Sans Thai",system-ui,sans-serif;cursor:pointer;max-width:min(40vw,300px)}'
+        + '#lbpm-proj .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}#lbpm-proj .c{color:#C9A961}#lbpm-proj:hover,#lbpm-proj.open{border-color:#C9A961}'
+        + '@media (max-width:560px){#lbpm-proj .n{display:none}#lbpm-proj{padding:0 10px}}'
+        + '#lbpm-pan{position:fixed;z-index:2147483001;top:calc(66px + env(safe-area-inset-top,0px));right:14px;width:min(380px,calc(100vw - 28px));max-height:min(520px,70vh);display:flex;flex-direction:column;background:#fff;border:1px solid #E4DED2;border-radius:16px;box-shadow:0 18px 50px rgba(28,27,24,.18);padding:12px;font-family:system-ui,sans-serif}'
         + '#lbpm-pan[hidden]{display:none}#lbpm-pan .h{font-weight:800;font-size:14px;color:#1C1B18;margin:2px 4px 8px}#lbpm-pan .h small{color:#8C877D;font-weight:600}'
         + '#lbpm-pan input{box-sizing:border-box;width:100%;border:1px solid #E4DED2;border-radius:10px;padding:9px 11px;font:inherit;font-size:14px;margin-bottom:8px;outline:none}'
         + '#lbpm-pan .l{overflow:auto;display:flex;flex-direction:column;gap:4px}'
         + '#lbpm-pan a{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;padding:10px 11px;border-radius:10px;text-decoration:none;color:#1C1B18;border:1px solid #F0EBE1;font-size:14px}#lbpm-pan a:hover{border-color:#C9A961;background:#FBF8F1}'
-        + '#lbpm-pan a.on{background:#FBF3E2;border-color:#E2CB92}#lbpm-pan a small{color:#8C877D;font-size:12px}#lbpm-pan a em{margin-left:auto;font-style:normal;font-size:12px;font-weight:700;color:#5E7A4E}#lbpm-pan .e{padding:14px;text-align:center;color:#8C877D;font-size:13px}'
-        + '@media (max-width:1299px){#lbpm-proj{top:auto;bottom:10px;right:auto;left:50%;transform:translateX(-50%);max-width:min(70vw,360px)}#lbpm-pan{top:auto;bottom:56px;right:auto;left:50%;transform:translateX(-50%)}}'
-        + 'body.lbpm-edit #lbpm-proj{top:auto;bottom:10px;right:auto;left:calc(50% + 120px);transform:none;max-width:260px}body.lbpm-edit #lbpm-pan{top:auto;bottom:56px;right:auto;left:calc(50% - 190px);transform:none}';
-      document.head.appendChild(st); document.body.appendChild(b); document.body.appendChild(pn); };
+        + '#lbpm-pan a.on{background:#FBF3E2;border-color:#E2CB92}#lbpm-pan a small{color:#8C877D;font-size:12px}#lbpm-pan a em{margin-left:auto;font-style:normal;font-size:12px;font-weight:700;color:#5E7A4E}#lbpm-pan .e{padding:14px;text-align:center;color:#8C877D;font-size:13px}';
+      document.head.appendChild(st); (document.getElementById('lbpm-slot') || document.body).appendChild(b); document.body.appendChild(pn); };
     if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
   }
   window.LB_PM_READY = (async () => {

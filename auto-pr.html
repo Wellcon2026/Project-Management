@@ -21,10 +21,10 @@ input,select,textarea{font:inherit;color:inherit;font-size:16px}
 [hidden]{display:none!important}
 .scr{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg)}
 .stg{background:#F4D35E;color:#3A2F00;font-size:12px;text-align:center;padding:2px 8px;font-weight:500}
-.hdr{background:var(--dk);color:#F6F1E8;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 12px;display:flex;align-items:center;gap:10px}
-.hdr .back{width:44px;height:44px;border-radius:12px;border:0;background:var(--dk2);display:flex;align-items:center;justify-content:center;flex:none}
+.hdr{background:var(--dk);color:#F6F1E8;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;min-height:60px;box-sizing:border-box;display:flex;align-items:center;gap:10px} /* แถบหัวมาตรฐาน: สูง 60px · ขอบ 14px · ปุ่ม 40px — 🏠 อยู่ตำแหน่งเดียวกันทุกแอป */
+.hdr .back{width:40px;height:40px;border-radius:12px;border:0;background:var(--dk2);display:flex;align-items:center;justify-content:center;flex:none}
 .hdr .tt{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
-.hdr .tt small{font-size:11px;letter-spacing:.04em;color:#E9B48F;text-transform:uppercase}
+.hdr .tt small{display:none}   /* แถบหัวมาตรฐาน v1.9.4: 🏠 มุมบนซ้ายคือแบรนด์ — หัว 2 บรรทัด = ชื่อแอป / ชื่อโครงการ เหมือนทุกแอป */
 .hdr .tt b{font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hdr .tt span{font-size:12px;color:var(--hd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .body{flex:1;overflow:auto;padding:14px;-webkit-overflow-scrolling:touch}
@@ -268,7 +268,7 @@ details.mg input{min-height:44px;border:1.5px solid var(--line);border-radius:12
 <!-- รายการใบขอซื้อของโครงการ -->
 <section id="scrList" class="scr" hidden>
   <div class="hdr"><button class="back" data-act="toPm" aria-label="กลับ Wellcon PM"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <span class="tt"><small>Wellcon PM</small><b id="listTitle">ใบขอซื้อ · ใบขอจ้าง ของโครงการ</b><span id="listProj"></span></span></div>
+    <span class="tt"><small>Wellcon PM</small><b id="listTitle">ใบขอซื้อ · ใบขอจ้าง</b><span id="listProj"></span></span></div>
   <div class="body"><div class="wrap" id="listBody"></div></div>
   <div class="foot"><button class="btn pri" id="btnNew">🧾 สร้างใบขอซื้อ</button><button class="btn pri wo" id="btnNewWo">🛠 สร้างใบขอจ้าง</button></div>
 </section>
@@ -355,7 +355,7 @@ details.mg input{min-height:44px;border:1.5px solid var(--line);border-radius:12
 
 <script src="vendor/supabase.js"></script>
 <script src="wctag.js?v=1.2.2"></script>
-<script src="auto-pr.js?v=1.9.3"></script>
-<script src="pm-nav.js?v=1.2.0"></script>
+<script src="auto-pr.js?v=1.9.4"></script>
+<script src="pm-nav.js?v=1.3.0"></script>
 </body>
 </html>
