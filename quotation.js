@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.1.0';   // 1.1.0: หน้าเริ่มงานใหม่ — แผงนำดำ-ทอง · ภาพเส้นแบบแปลนเคลื่อนไหว · การ์ดประเภทงานกดเริ่มได้เลย · ตัวเลขสรุปงาน
+const QM_VER = 'v1.3.0';   // 1.3.0: สร้าง / แก้ไข / ลบ ชัดเจนทุกหน้า — ปุ่ม ⋯ ในรายการ (เปิดดู · แก้ไข · ทำสำเนา · ลบ) · ลบได้ทั้งร่าง / ส่งกลับ / รออนุมัติ / ยกเลิกแล้ว · ทิ้งร่างที่ยังไม่บันทึก · ปุ่มแก้ไข / ลบ / ทำสำเนาในหน้าดูใบ · 1.2.0: เปิดจากแท็บ Quotation Maker ในแอป QS Take-off — รับตั๋วเข้าสู่ระบบครั้งเดียว (?wsso=) · ?tk=<งานใน Take-off> = ผูกงานนั้นให้ (แบบ / โครงการ) · &new=1 เริ่มใบใหม่ทันที · 1.1.0: หน้าเริ่มงานใหม่ — แผงนำดำ-ทอง · ภาพเส้นแบบแปลนเคลื่อนไหว · การ์ดประเภทงานกดเริ่มได้เลย · ตัวเลขสรุปงาน
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -133,6 +133,11 @@ const logIt = (q, act, note) => { q.log = [...(q.log || []), { at: Date.now(), b
 const isMine = (q) => norm(q.byEmail) === APP.me.email;
 const isBoss = () => ['superadmin', 'director'].includes(APP.me.role);
 const canEdit = (q) => ['draft', 'returned'].includes(q.status || 'draft') && (isMine(q) || isBoss() || APP.me.role === 'qs_mgr');
+const isMgr = () => isBoss() || APP.me.role === 'qs_mgr';
+// ลบ: ร่าง / ส่งกลับ / ยกเลิกแล้ว = ผู้จัดทำ · QS Manager · ผู้บริหาร — รออนุมัติ = ผู้จัดทำ · ผู้บริหาร (ยกเลิกคำขอให้ด้วย) — อนุมัติแล้ว / ส่งลูกค้าแล้ว ต้อง "ยกเลิกใบ" (ใส่เหตุผล) ก่อน
+const canDelete = (q) => { const st = q.status || 'draft'; return ['draft', 'returned', 'cancelled'].includes(st) ? (isMine(q) || isMgr()) : st === 'sent' ? (isMine(q) || isBoss()) : false; };
+// แก้ไข: ร่าง / ส่งกลับ = แก้ตรง ๆ · รออนุมัติ = ดึงกลับ · อนุมัติแล้ว = สร้างฉบับแก้ไข (Rev.) — ใบที่อนุมัติแล้วไม่ถูกแก้ทับ
+const editMode = (q) => canEdit(q) ? 'edit' : (q.status === 'sent' && (isMine(q) || isBoss())) ? 'recall' : (['approved', 'issued'].includes(q.status) && (isMine(q) || isMgr())) ? 'revise' : '';
 const canApprove = (q) => q.status === 'sent' && APPROVER_R.includes(APP.me.role) && !isMine(q);
 const actv = () => APP.accounts.filter(a => a && a.email && a.active !== false && !a.disabled);
 function approversFor(q) { const req = norm(q.byEmail), em = (L) => L.map(a => norm(a.email)).filter(e => e && e !== req);
@@ -180,8 +185,11 @@ async function boot() {
   $('verTxt').textContent = 'Quotation Maker ' + QM_VER;
   if (IS_STG) document.querySelectorAll('.scr').forEach(s => { const d = document.createElement('div'); d.className = 'stg'; d.textContent = 'ข้อมูลทดสอบ (staging) — ไม่กระทบข้อมูลจริง'; s.prepend(d); });
   try {
+    // v1.2.0 เปิดจากแอป QS Take-off (คนละโดเมน): แลกตั๋วใช้ครั้งเดียว อายุ 2 นาที → เข้าสู่ระบบคนเดิม (กลไกเดียวกับ PM ⇄ Site Work)
+    let sso = ''; try { if (window.WCTag && /[?&]wsso=/.test(location.search)) sso = (await WCTag.ssoTake(sb)) || ''; } catch (e) {}
+    if (sso) { try { localStorage.setItem(SESS_KEY, JSON.stringify({ email: sso, at: Date.now() })); } catch (e) {} }
     let ok = false; try { const r = await sb.auth.getSession(); ok = !!(r && r.data && r.data.session); } catch (e) {}
-    if (!ok) { msg(card('ยังไม่ได้เชื่อมต่อ Wellcon PM ในเครื่องนี้', 'เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิด “Quotation Maker” จากหน้าโครงการ')); return; }
+    if (!ok) { msg(card('ยังไม่ได้เชื่อมต่อ Wellcon PM ในเครื่องนี้', sso ? 'เครื่องนี้ยังไม่เคยเปิด Wellcon PM — กดปุ่มด้านล่างเพื่อเปิด Wellcon PM หนึ่งครั้ง (ระบบเข้าสู่ระบบให้อัตโนมัติ) แล้วกลับไปกดแท็บ “Quotation Maker” อีกครั้ง' : 'เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิด “Quotation Maker” จากหน้าโครงการ')); return; }
     const [a, p, st] = await Promise.all([sb.from('accounts').select('id,data'), sb.from('projects').select('id,project,data'),
       sb.from('app_state').select('id,data').in('id', ['featGlobal', 'featProj', 'workPages', 'workUser', 'claimRates'])]);
     if (a.error) throw a.error; if (p.error) throw p.error;
@@ -213,9 +221,10 @@ async function boot() {
     const P = new URLSearchParams(location.search), pid = P.get('pid'), qid = P.get('q');
     if (pid && projOff(pid)) { msg(card('ผู้ดูแลระบบปิด “Quotation Maker” ของโครงการนี้ไว้', 'ถ้าต้องการใช้งาน แจ้ง Admin เปิดที่ ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน → รายโครงการ', back)); return; }
     if (pid && APP.projects.some(x => x.id === pid)) { APP.scope = pid; try { localStorage.setItem('wellcon_pm_workpid', pid); } catch (e) {} }
-    renderList();
     const tk = P.get('tk');
-    if (tk && !qid) { try { await tkLoad(); const r = TK.folders.find(f => f.id === tk && !f.parent_id); if (r) { const inPm = APP.projects.some(x => x.id === r.pm_project_id); if (inPm) APP.scope = r.pm_project_id; const n = blank(); n.tk = r.id; if (!inPm) { n.pid = ''; n.title = r.name || ''; n.site = r.name || ''; n.cust = ''; } openEdit(n); } } catch (e) { console.warn(e); } }
+    if (tk) { try { await tkLoad(); const r = TK.folders.find(f => f.id === tk && !f.parent_id); if (r) { APP.tkRoot = r; if (tkIsPm(r)) { APP.scope = r.pm_project_id; try { localStorage.setItem('wellcon_pm_workpid', r.pm_project_id); } catch (e) {} } else if (!pid) APP.scope = NEW; } } catch (e) { console.warn(e); } }
+    renderList();
+    if (APP.tkRoot && !qid) { if (P.get('new')) openEdit(blank()); else toast('เปิดจาก QS Take-off — งาน “' + (APP.tkRoot.name || '') + '” · เลือกแบบของงานนี้ได้จากปุ่ม “เลือกแบบจากคลังแบบ QS Take-off”', 5200); }
     if (qid) { const q = findQ(qid); if (q && canSee(q)) openQ(q.id); else toast('ไม่พบใบเสนอราคาตามลิงก์ หรือคุณไม่มีสิทธิ์เปิด'); }
   } catch (e) {
     console.error(e);
@@ -259,14 +268,42 @@ function renderHero() { const V = visible(), n = (f) => V.filter(f).length;
   if (APP.heroKey !== key) { APP.heroKey = key; $('heroStats').innerHTML = S.map(x => `<button class="hstat" data-stat="${x[0]}" title="กดเพื่อดูรายการ"><b data-n="${x[2]}">0</b><span>${x[1]}</span></button>`).join(''); $('heroStats').querySelectorAll('b').forEach(b => countUp(b, Number(b.dataset.n))); }
   if (!$('heroKinds').childElementCount) $('heroKinds').innerHTML = KINDS.map(k => `<button class="kc" data-newkind="${k[0]}" style="--kc:${KIC[k[0]][0]}"><span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${KIC[k[0]][1]}"/></svg></span><b>${k[2]}</b><small>${KHINT[k[0]]}</small><span class="ar">เริ่มเลย <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></button>`).join(''); }
 function rowHtml(q) { const k = kindOf(q.kind), c = calc(q);
-  return `<button class="qrow" data-open="${esc(q.id)}"><span class="k">${k[1]}</span><span class="m"><b>${esc(q.title || '(ยังไม่มีชื่องาน)')}</b><span>${esc([q.no || 'ยังไม่มีเลขที่', scopeName(q), q.cust, 'โดย ' + (q.by || '')].filter(Boolean).join(' · '))}</span></span>
-    <span class="v">${stTag(q.status || 'draft')}<b>${baht(c.net)}</b><small class="mut" style="font-size:11px">ไม่รวม VAT</small></span></button>`; }
+  return `<div class="qrow" role="button" tabindex="0" data-open="${esc(q.id)}"><span class="k">${k[1]}</span><span class="m"><b>${esc(q.title || '(ยังไม่มีชื่องาน)')}</b><span>${esc([q.no || 'ยังไม่มีเลขที่', scopeName(q), q.cust, 'โดย ' + (q.by || '')].filter(Boolean).join(' · '))}</span></span>
+    <span class="v">${stTag(q.status || 'draft')}<b>${baht(c.net)}</b><small class="mut" style="font-size:11px">ไม่รวม VAT</small></span><button class="qm" data-menu="${esc(q.id)}" title="แก้ไข · ทำสำเนา · ลบ" aria-label="ตัวเลือกของใบ ${esc(q.no || 'ร่าง')}">⋯</button></div>`; }
+// เมนูของใบ (ปุ่ม ⋯): เปิดดู · แก้ไข · ทำสำเนา · ลบ — แสดงเฉพาะที่ทำได้ตามสถานะและสิทธิ์
+async function rowMenu(id) { const q = findQ(id); if (!q) return; const m = editMode(q), can = canDelete(q);
+  const EL = { edit: '✏️ แก้ไข', recall: '✏️ แก้ไข — ดึงกลับจากการขออนุมัติ', revise: '✏️ แก้ไข — สร้างฉบับแก้ไข (Rev.) · ใบเดิมไม่เปลี่ยน' };
+  const why = ['approved', 'issued'].includes(q.status) ? 'ใบที่อนุมัติแล้วลบโดยตรงไม่ได้ — กด “เปิดดู” แล้ว “ยกเลิกใบนี้” (ใส่เหตุผล) ก่อน จึงลบได้' : 'ลบได้เฉพาะผู้จัดทำ · QS Manager · ผู้บริหาร';
+  const p = dlg({ title: (q.no || 'ร่าง') + ' · ' + (q.title || ''), ok: false, cancel: 'ปิด',
+    html: `<div class="pl" id="rmL"><button data-rm="open"><span>👁 เปิดดู</span></button>${m ? `<button data-rm="${m}"><span>${EL[m]}</span></button>` : ''}<button data-rm="dup"><span>📄 ทำสำเนาเป็นใบใหม่</span></button>${can ? '<button data-rm="del" style="color:var(--bad);border-color:#EBC3B8"><span>🗑 ลบ</span></button>' : `<div class="mut" style="padding:4px 2px">${why}</div>`}</div>` });
+  $('rmL').onclick = (e) => { const b = e.target.closest('[data-rm]'); if (b) $('dlgBox')._pick(b.dataset.rm); };
+  const a = await p; if (!a) return; APP.view = q.id;
+  if (a === 'open') openView(q); else if (a === 'edit') openEdit(clone(q)); else if (a === 'recall') recall(); else if (a === 'revise') revise(); else if (a === 'dup') duplicate(q); else if (a === 'del') removeQ(q); }
+async function duplicate(q) { if (!q || APP.busy) return; const n = clone(q);
+  Object.assign(n, { id: uid('q'), no: '', status: 'draft', title: String(q.title || '').slice(0, 150) + ' (สำเนา)', by: APP.me.name, byFull: APP.me.full, byEmail: APP.me.email, byTitle: APP.me.title, at: Date.now(), upAt: Date.now(), log: [], deleted: false });
+  ['revOf', 'revBase', 'sentAt', 'apAt', 'apBy', 'apFull', 'apEmail', 'apTitle', 'apNote', 'retAt', 'retBy', 'retNote', 'issuedAt', 'cancelAt', 'cancelBy', 'cancelNote', 'delAt', 'delBy'].forEach(k => delete n[k]);
+  logIt(n, 'ทำสำเนาจาก ' + (q.no || 'ร่าง')); APP.busy = true;
+  try { await writeQ(n); toast('ทำสำเนาเป็น ' + n.no + ' แล้ว — แก้ไขได้เลย'); openEdit(clone(n)); } catch (e) { console.error(e); toast('ทำสำเนาไม่สำเร็จ: ' + ((e && e.message) || e), 5000); }
+  APP.busy = false; }
+// ลบ = ซ่อนจากรายการ (ข้อมูลและประวัติยังอยู่ในระบบ) · ใบที่รออนุมัติ: ยกเลิกคำขออนุมัติให้ด้วย
+async function removeQ(q) { if (!q || APP.busy) return; if (!canDelete(q)) { toast('ใบนี้ลบไม่ได้ในสถานะนี้'); return; }
+  const sent = q.status === 'sent';
+  if (!(await dlg({ title: 'ลบใบเสนอราคา ' + (q.no || '(ร่าง)') + '?', text: '“' + (q.title || '') + '”\n' + (sent ? 'ใบนี้กำลังรออนุมัติ — ลบแล้วคำขออนุมัติจะถูกยกเลิกด้วย\n' : '') + 'ลบแล้วจะไม่แสดงในรายการอีก', ok: '🗑 ลบ', bad: true }))) return;
+  APP.busy = true;
+  try { const x = await transition(q.id, ['draft', 'returned', 'sent', 'cancelled'], (z) => { z.deleted = true; z.delAt = Date.now(); z.delBy = APP.me.name; z.upAt = Date.now(); logIt(z, 'ลบ'); });
+    await notify(x, sent ? { title: 'ผู้จัดทำลบใบเสนอราคา ' + x.no + ' · ' + x.title + ' (ไม่ต้องอนุมัติแล้ว)', to: approversFor(x), close: 'all' } : { close: 'all' });
+    APP.cur = null; APP.dirty = false; toast('ลบ ' + (x.no || 'ร่าง') + ' แล้ว'); renderList();
+  } catch (e) { console.error(e); toast((e && e.message) || 'ลบไม่สำเร็จ', 5000); try { await loadAll(); renderList(); } catch (x) {} }
+  APP.busy = false; }
 function openQ(id) { const q = findQ(id); if (!q) { toast('ไม่พบใบเสนอราคานี้'); return; } if (canEdit(q)) openEdit(clone(q)); else openView(q); }
 
 // =====================================================================
 // แก้ไข
 // =====================================================================
 function blank() { const pid = APP.scope !== 'all' && APP.scope !== NEW ? APP.scope : ''; const p = APP.projects.find(x => x.id === pid);
+  const r = APP.tkRoot, tkOn = !!r && (tkIsPm(r) ? pid === r.pm_project_id : !pid);   // v1.2.0 งานจาก QS Take-off ที่ผูกมากับลิงก์ (?tk=)
+  const o = blankBase(pid, p); if (tkOn) { o.tk = r.id; if (!pid) { o.title = r.name || ''; o.site = r.name || ''; } } return o; }
+function blankBase(pid, p) {
   return { id: uid('q'), no: '', pid, kind: 'area', title: '', area: '', desc: '', cust: p ? (p.client || '') : '', attn: '', site: p ? projName(p) : '', atts: [], items: [], prelimPct: '', ohpPct: APP.ohp == null ? '' : APP.ohp, discount: '', ohpShow: false,
     valid: 30, lead: '', pay: '', assume: '', excl: '', memo: '', form: 'wellcon', lang: 'th', ai: null, status: 'draft', by: APP.me.name, byFull: APP.me.full, byEmail: APP.me.email, byTitle: APP.me.title, at: Date.now(), log: [] }; }
 const C = () => APP.cur;
@@ -281,7 +318,7 @@ function openEdit(q) {
   const set = (id, v) => { $(id).value = v == null ? '' : v; };
   set('edTitleIn', q.title); set('edArea', q.area); set('edCust', q.cust); set('edAttn', q.attn); set('edSite', q.site); set('edDesc', q.desc);
   set('edValid', q.valid); set('edLead', q.lead); set('edForm', q.form || 'wellcon'); set('edLang', q.lang || 'th'); set('edPay', q.pay); set('edAssume', q.assume); set('edExcl', q.excl); set('edMemo', q.memo); set('edAiHint', q.aiHint);
-  $('edDel').hidden = !q.no; $('edSub').textContent = scopeName(q);
+  $('edDel').textContent = q.no ? '🗑 ลบร่าง' : '🗑 ทิ้งร่างนี้'; $('edSub').textContent = scopeName(q);
   $('edAiRun').disabled = APP.aiOff; $('edAiAsk').disabled = APP.aiOff;
   renderAtts(); renderItems(); renderSum(); renderAi();
   show('edit'); $('scrEdit').querySelector('.body').scrollTop = 0;
@@ -581,7 +618,7 @@ async function save(silent) { const q = pull();
   if (APP.saving) return false; APP.saving = true;
   try { q.upAt = Date.now(); if (!q.no) logIt(q, 'สร้างร่าง');
     await writeQ(q, (prev) => { if (prev && !['draft', 'returned'].includes(prev.status || 'draft')) throw new Error('ใบนี้ถูกส่ง / ดำเนินการไปแล้ว แก้ไขไม่ได้ — โหลดล่าสุดแล้ว'); });
-    APP.dirty = false; $('edTitle').textContent = 'แก้ไข ' + q.no; $('edSaved').textContent = 'บันทึกแล้ว ' + dmyhm(q.upAt); $('edDel').hidden = false; $('edSub').textContent = scopeName(q);
+    APP.dirty = false; $('edTitle').textContent = 'แก้ไข ' + q.no; $('edSaved').textContent = 'บันทึกแล้ว ' + dmyhm(q.upAt); $('edDel').textContent = '🗑 ลบร่าง'; $('edSub').textContent = scopeName(q);
     if (!silent) toast('บันทึกร่าง ' + q.no + ' แล้ว'); APP.saving = false; return true;
   } catch (e) { console.error(e); APP.saving = false; toast('บันทึกไม่สำเร็จ: ' + ((e && e.message) || e), 5000); return false; }
 }
@@ -638,10 +675,12 @@ function openView(q) { APP.view = q.id; const c = calc(q), k = kindOf(q.kind), W
     <div class="card"><div class="h">ประวัติ</div><div class="log">${(q.log || []).slice().reverse().map(l => `<div><span>${dmyhm(l.at)}</span> · <b>${esc(l.by)}</b> ${esc(l.act)}${l.note ? ' — ' + esc(l.note) : ''}</div>`).join('')}</div></div>`;
   const B = [];
   if (canApprove(q)) B.push('<button class="btn bad" data-act="ret">ส่งกลับแก้ไข</button>', '<span style="flex:1"></span>', '<button class="btn" data-act="vPrint">ดูเอกสารลูกค้า (DRAFT)</button>', '<button class="btn ok" data-act="approve">✓ อนุมัติ</button>');
-  else if (q.status === 'sent') { if (isMine(q) || isBoss()) B.push('<button class="btn" data-act="recall">ดึงกลับมาแก้ไข</button>'); B.push('<span style="flex:1"></span>', '<button class="btn" data-act="vPrint">ดูเอกสารลูกค้า (DRAFT)</button>'); if (isMine(q)) B.push('<span class="mut" style="align-self:center">รอ ' + esc(approversFor(q).map(nameOf).join(', ')) + ' อนุมัติ</span>'); }
-  else if (q.status === 'approved' || q.status === 'issued') { if (isMine(q) || isBoss() || APP.me.role === 'qs_mgr') B.push('<button class="btn bad" data-act="cancel">ยกเลิกใบนี้</button>', '<button class="btn" data-act="revise">สร้างฉบับแก้ไข (Rev.)</button>');
+  else if (q.status === 'sent') { if (isMine(q) || isBoss()) B.push('<button class="btn" data-act="recall">✏️ แก้ไข (ดึงกลับ)</button>'); B.push('<span style="flex:1"></span>', '<button class="btn" data-act="vPrint">ดูเอกสารลูกค้า (DRAFT)</button>'); if (isMine(q)) B.push('<span class="mut" style="align-self:center">รอ ' + esc(approversFor(q).map(nameOf).join(', ')) + ' อนุมัติ</span>'); }
+  else if (q.status === 'approved' || q.status === 'issued') { if (isMine(q) || isBoss() || APP.me.role === 'qs_mgr') B.push('<button class="btn bad" data-act="cancel">ยกเลิกใบนี้</button>', '<button class="btn" data-act="revise">✏️ แก้ไข (สร้างฉบับ Rev.)</button>');
     B.push('<span style="flex:1"></span>', '<button class="btn" data-act="copyTsv">คัดลอกตาราง (วางใน Excel)</button>'); if (q.status === 'approved') B.push('<button class="btn" data-act="issued">บันทึกว่าส่งลูกค้าแล้ว</button>'); B.push('<button class="btn pri" data-act="vPrint">พิมพ์ / PDF</button>'); }
-  else B.push('<span style="flex:1"></span>', '<button class="btn" data-act="vPrint">ดูเอกสาร (DRAFT)</button>');
+  else { if (canEdit(q)) B.push('<button class="btn" data-act="vEdit">✏️ แก้ไข</button>'); B.push('<span style="flex:1"></span>', '<button class="btn" data-act="vPrint">ดูเอกสาร (DRAFT)</button>'); }
+  if (!canApprove(q)) B.splice(1, 0, '<button class="btn" data-act="vDup">📄 ทำสำเนา</button>');
+  if (canDelete(q)) B.unshift('<button class="btn bad" data-act="vDel">🗑 ลบ</button>');
   $('vwFoot').innerHTML = B.join(''); show('view'); $('scrView').querySelector('.body').scrollTop = 0;
 }
 const VQ = () => findQ(APP.view);
@@ -669,9 +708,9 @@ async function revise() { const q = VQ(); if (!q) return; if (!(await ask('ส�
   ['sentAt', 'apAt', 'apBy', 'apFull', 'apEmail', 'apTitle', 'apNote', 'retAt', 'retBy', 'retNote', 'issuedAt', 'cancelAt', 'cancelBy', 'cancelNote'].forEach(k => delete n[k]);
   logIt(n, 'สร้างฉบับแก้ไขจาก ' + q.no);
   await act(async () => { await writeQ(n); openEdit(clone(n)); return null; }, 'สร้างร่างฉบับแก้ไขแล้ว'); }
-async function del() { const q = C(); if (!q || !q.no) return; if (!(await dlg({ title: 'ลบร่าง ' + q.no + '?', text: 'ลบแล้วไม่แสดงในรายการอีก', ok: 'ลบร่าง', bad: true }))) return;
-  try { q.deleted = true; q.upAt = Date.now(); logIt(q, 'ลบร่าง'); await writeQ(q, (prev) => { if (prev && !['draft', 'returned'].includes(prev.status || 'draft')) throw new Error('ใบนี้ถูกส่งไปแล้ว ลบไม่ได้'); });
-    APP.cur = null; APP.dirty = false; toast('ลบร่างแล้ว'); renderList(); } catch (e) { q.deleted = false; toast((e && e.message) || 'ลบไม่สำเร็จ', 5000); } }
+async function del() { const q = C(); if (!q) return;
+  if (!q.no) { if (!(await dlg({ title: 'ทิ้งร่างนี้?', text: 'ใบนี้ยังไม่ได้บันทึก — ข้อมูลที่กรอกไว้จะหายไป', ok: '🗑 ทิ้งร่าง', bad: true }))) return; APP.cur = null; APP.dirty = false; toast('ทิ้งร่างแล้ว'); renderList(); return; }
+  removeQ(findQ(q.id) || q); }
 
 // =====================================================================
 // เอกสารลูกค้า (แบบฟอร์ม Wellcon) — ไม่มีต้นทุน / กำไร · ลายน้ำ DRAFT จนกว่าจะอนุมัติ
@@ -758,6 +797,7 @@ async function leaveEdit() { if (APP.dirty) { const r = await dlg({ title: 'ย�
 document.addEventListener('click', async (e) => {
   const t = e.target;
   const z = t.closest('[data-zoom]'); if (z) { const q = APP.screen === 'edit' ? C() : VQ(); const a = q && (q.atts || []).find(x => x.id === z.dataset.zoom); if (a) openViewer(a, APP.screen === 'edit', APP.screen === 'edit' ? renderAtts : null); return; }
+  const mn = t.closest('[data-menu]'); if (mn) { rowMenu(mn.dataset.menu); return; }
   const o = t.closest('[data-open]'); if (o) { openQ(o.dataset.open); return; }
   const f = t.closest('[data-f]'); if (f) { APP.filter = f.dataset.f; renderList(); return; }
   const nk = t.closest('[data-newkind]'); if (nk) { const n = blank(); n.kind = nk.dataset.newkind; openEdit(n); return; }
@@ -777,6 +817,7 @@ document.addEventListener('click', async (e) => {
   else if (a === 'aiCopyQ') { const L = (C().ai && C().ai.questions) || []; try { await navigator.clipboard.writeText(L.map((x, i) => (i + 1) + '. ' + x).join('\n')); toast('คัดลอกคำถามแล้ว — นำไปออก RFI ได้'); } catch (x) { toast('คัดลอกไม่สำเร็จ'); } }
   else if (a === 'save') save(); else if (a === 'send') send(); else if (a === 'del') del();
   else if (a === 'preview') preview(pull());
+  else if (a === 'vEdit') { const q = VQ(); if (q && canEdit(q)) openEdit(clone(q)); } else if (a === 'vDup') duplicate(VQ()); else if (a === 'vDel') removeQ(VQ());
   else if (a === 'vPrint') { const q = VQ(); if (q) preview(q); } else if (a === 'copyTsv') { const q = VQ(); if (q) copyTsv(q); }
   else if (a === 'approve') approve(); else if (a === 'ret') ret(); else if (a === 'recall') recall(); else if (a === 'issued') issued(); else if (a === 'cancel') cancelQ(); else if (a === 'revise') revise();
 });
@@ -808,6 +849,7 @@ document.addEventListener('change', (e) => { const t = e.target, q = C();
 (function dropBind() { const d = $('edDrop'); ['dragenter', 'dragover'].forEach(k => d.addEventListener(k, (e) => { e.preventDefault(); d.classList.add('on'); }));
   ['dragleave', 'drop'].forEach(k => d.addEventListener(k, (e) => { e.preventDefault(); d.classList.remove('on'); })); d.addEventListener('drop', (e) => { addFiles([...(e.dataTransfer.files || [])]); });
   document.addEventListener('paste', (e) => { if (APP.screen !== 'edit' || !$('dlg').hidden || !$('vw').hidden) return; const F = [...((e.clipboardData && e.clipboardData.files) || [])].filter(f => /^image\//.test(f.type)); if (F.length) { e.preventDefault(); addFiles(F); } }); })();
+document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('qrow')) { e.preventDefault(); openQ(e.target.dataset.open); } });
 window.addEventListener('beforeunload', (e) => { if (APP.dirty && APP.screen === 'edit') { e.preventDefault(); e.returnValue = ''; } });
 window.__QM = { calc, parseAi, nextNo, warnsOf, ver: QM_VER };   // ใช้ตรวจสอบในชุดทดสอบ
 boot();
