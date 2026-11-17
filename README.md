@@ -169,6 +169,7 @@ node scripts/patch-top-fit.js       # จอคอม: แถบปุ่มด�
 node scripts/patch-quotation-menu.js   # การ์ด / เมนู "Quotation Maker" → เปิดหน้าแยก quotation.html (QS · QS Manager · Director)
 node scripts/patch-access-page.js      # ตั้งค่าระบบ: ปุ่ม "ตารางสิทธิ์ตามตำแหน่ง" → access.html · สิทธิ์พิเศษรายคน (app_state workUserAdd)
 node scripts/patch-pdf-menu.js         # การ์ด / เมนู "PDF Maker" → เปิดหน้าแยก pdf.html (ทุกตำแหน่ง · ไม่ต้องเลือกโครงการ)
+node scripts/patch-photo-menu.js       # การ์ด / เมนู "Photo Editor" → เปิดหน้าแยก photo.html (ทุกตำแหน่ง · ไม่ต้องเลือกโครงการ)
 ```
 ```bash
 node scripts/patch-proc-sheet.js
@@ -211,6 +212,13 @@ node scripts/patch-layboard-th.js   # ข้อความ Layboard เป็�
 - **มีอะไรใหม่**: หลังเข้าสู่ระบบ ถ้าเวอร์ชันบนสุดยังไม่เคยเห็นในเครื่องนั้น (localStorage `wellcon_pm_news_seen`) → แสดง 1 ครั้ง · กดป้ายเลขเวอร์ชันเพื่อดูย้อนหลัง
 - **ทุกครั้งที่ขึ้นงาน**: ① เพิ่มรายการบนสุดใน `whatsnew.json` (ภาษาที่ผู้ใช้อ่านเข้าใจ · ไม่มีราคา / ต้นทุน) ② `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"` — เปลี่ยนป้ายเวอร์ชัน + เลขใน `wcnews.js?v=` และเตือนถ้า `whatsnew.json` ยังไม่มีเวอร์ชันนั้น
 - ไม่เกี่ยวกับ `APP_VER()` (ตัวล็อกเวอร์ชันเก่าห้ามเขียนข้อมูล — แถบสีส้ม) ซึ่งยังทำงานตามเดิม
+
+## Photo Editor · แต่งรูปผลงาน (ตั้งแต่ 17/11/2026 · PM v1.420.0)
+- หน้าแยก `photo.html` + `photoedit.js` (`?env=staging` = ข้อมูลทดสอบ) — เปิดจากการ์ด / เมนู "Photo Editor" (`scripts/patch-photo-menu.js`) · ติดตั้งเป็นไอคอนแยกได้ (`photo.webmanifest`) แต่ใช้การเข้าสู่ระบบของ Wellcon PM
+- ทำงานในเบราว์เซอร์ทั้งหมด (canvas + JS ล้วน) — รูปไม่ถูกอัปโหลด · บันทึกลงเครื่องเท่านั้น (ผู้บริหารเลือก 17/11/2026)
+- สิทธิ์: การ์ด `tab:photo` (ไม่ต้องเลือกโครงการ · ชุดเริ่มต้นทุกตำแหน่ง) · ปิดทั้งระบบ = `featGlobal['tab:photo']=false`
+- เรขาคณิต: หน่วยสัมพัทธ์ (ศูนย์กลางภาพ = 0 · ด้านยาว = 1) · oriented (หมุน 90° / กลับด้าน) → เส้นนำ (homography) → ปรับมุมมองเอง → ปรับเอียง → ครอป · ไฟล์จริงวาดใหม่จากต้นฉบับ (ไม่ขยายจากภาพตัวอย่าง)
+- ชุดทดสอบเรียกใช้ `window.__PE` (APP · geo · cropRect · buildJpeg · autoAngle · guidedG)
 
 ## PDF Maker · แก้ไขเอกสาร PDF (ตั้งแต่ 17/11/2026 · PM v1.419.0)
 - หน้าแยก `pdf.html` + `pdfmaker.js` (`?env=staging` = ข้อมูลทดสอบ) — เปิดจากการ์ด / เมนู "PDF Maker" (`scripts/patch-pdf-menu.js`) · ติดตั้งเป็นไอคอนแยกได้ (`pdf.webmanifest` · ไอคอน `pdf-icon*.png/svg`) แต่ใช้การเข้าสู่ระบบของ Wellcon PM
