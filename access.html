@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="th" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1C1B18">
+<meta name="google" content="notranslate">
+<title>สิทธิ์ตามตำแหน่ง · Wellcon PM</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4EFE6; --card:#FFFDF8; --line:#E3DACB; --ink:#22231C; --ink2:#4A4840; --mut:#6B6758;
+  --dk:#1C1B18; --dk2:#33302A; --hd:#D9CFBD; --acc:#B8582A; --accT:#FBEDE3; --gold:#C9A961; --ok:#2E7D46; --okT:#E6EFE0;
+  --warn:#8A6D10; --warnB:#FAF1D6; --bad:#B4442E; --badT:#FBEDE9; --off:#ECEAE4;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Thai',system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+input,select{font:inherit;color:inherit;font-size:15px}
+[hidden]{display:none!important}
+.scr{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg)}
+.stg{background:#F4D35E;color:#3A2F00;font-size:12px;text-align:center;padding:2px 8px;font-weight:500}
+/* แถบหัวมาตรฐาน: สูง 60px · ขอบ 14px · ปุ่ม 40px — 🏠 อยู่ตำแหน่งเดียวกันทุกแอป (pm-nav.js) */
+.hdr{background:var(--dk);color:#F6F1E8;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;min-height:60px;display:flex;align-items:center;gap:10px}
+.hdr .back{width:40px;height:40px;border-radius:12px;border:0;background:var(--dk2);display:flex;align-items:center;justify-content:center;flex:none}
+.hdr .tt{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.hdr .tt b{font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .tt span{font-size:12px;color:var(--hd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.body{flex:1;overflow:auto;padding:14px;-webkit-overflow-scrolling:touch}
+.wrap{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.h{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;flex-wrap:wrap}
+.h small{font-weight:500;color:var(--mut);font-size:12.5px}
+.h .sp{flex:1}
+.mut{color:var(--mut);font-size:13px}
+.btn{min-height:42px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:600;padding:0 14px;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--gold)}
+.btn.dk{border:0;background:var(--dk);color:#fff}
+.btn.pri{border:0;background:var(--acc);color:#fff}
+.btn.bad{border-color:#EBC3B8;color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:focus-visible,.cell:focus-visible,.sw:focus-visible,.chip:focus-visible,.urow:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.chip{min-height:40px;border-radius:999px;border:1.5px solid var(--line);background:#fff;padding:0 15px;font-size:14px;display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.chip.on{background:var(--dk);border-color:var(--dk);color:#fff}
+.chip small{font-size:11.5px;opacity:.75;font-weight:500}
+.info{background:#EEF3F8;color:#2B4A6B;border-radius:11px;padding:9px 12px;font-size:13px;line-height:1.55}
+.warn{background:var(--warnB);color:var(--warn);border-radius:11px;padding:9px 12px;font-size:13px;line-height:1.55}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);align-items:center}
+.legend i{display:inline-flex;width:22px;height:22px;border-radius:7px;align-items:center;justify-content:center;font-style:normal;font-weight:700;margin-right:5px;vertical-align:-6px}
+.tog{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer}
+/* ตาราง */
+.tw{overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fff;max-height:calc(100vh - 290px);min-height:320px}
+table.mx{border-collapse:separate;border-spacing:0;font-size:13.5px;min-width:100%}
+.mx th,.mx td{border-bottom:1px solid #EFE8DA;border-right:1px solid #F3EDE1;padding:0}
+.mx thead th{position:sticky;top:0;z-index:3;background:#F3EDE1;font-size:12px;font-weight:700;color:var(--ink2);padding:8px 6px;text-align:center;line-height:1.3;min-width:86px;vertical-align:bottom}
+.mx thead th small{display:block;font-weight:500;color:var(--mut);font-size:10.5px}
+.mx thead th.fx{left:0;z-index:4;text-align:left;min-width:250px;padding-left:12px}
+.mx td.fx{position:sticky;left:0;z-index:2;background:#fff;padding:7px 10px 7px 12px;min-width:250px;max-width:300px}
+.mx td.fx b{display:block;font-size:13.5px;line-height:1.35}
+.mx td.fx small{display:block;color:var(--mut);font-size:11.5px;line-height:1.35}
+.mx tr.sec td{background:#FBF6EA;font-weight:700;font-size:13px;padding:8px 12px;position:sticky;left:0}
+.mx tr.sec td small{font-weight:500;color:var(--mut)}
+.mx tr.offrow td.fx{background:#F7F5F0}
+.mx td.c{text-align:center;padding:5px}
+.mx td.gl{text-align:center;padding:5px 8px;background:#FCFAF5}
+.cell{width:40px;height:40px;border-radius:11px;border:1.5px dashed #DCD3C2;background:#fff;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;color:transparent;transition:transform .12s,background .15s}
+.cell:hover{border-color:var(--gold);color:#CFC6B4}
+.cell:hover::after{content:"+";font-size:18px}
+.cell.on{border:0;background:var(--ok);color:#fff}
+.cell.on:hover::after{content:""}
+.cell.wait{border:0;background:#E9C46A;color:#4A3800}
+.cell.part{border:1.5px solid var(--ok);background:var(--okT);color:var(--ok);font-size:14px}
+.cell.part:hover::after{content:""}
+.cell.ro{cursor:default;border:0;background:#E7E2D6;color:#6B6758}
+.cell.ro:hover::after{content:""}
+.cell.busy{opacity:.45;pointer-events:none}
+.cell:active{transform:scale(.92)}
+.sw{position:relative;width:46px;height:26px;border-radius:999px;border:0;background:#C9C2B3;padding:0;flex:none;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.sw.on{background:var(--ok)}
+.sw.on::after{left:23px}
+.sw.busy{opacity:.5;pointer-events:none}
+.mx tfoot td{position:sticky;bottom:0;background:var(--dk);color:#E2BC66;font-weight:700;text-align:center;padding:8px 4px;font-variant-numeric:tabular-nums;z-index:2}
+.mx tfoot td.fx{color:#F6F1E8;z-index:3;background:var(--dk)}
+.flag{display:inline-block;font-size:10px;font-weight:700;border-radius:5px;padding:0 5px;margin-left:5px;vertical-align:1px;background:var(--warnB);color:var(--warn)}
+/* รายคน */
+.ugrid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
+@media(min-width:1000px){.ugrid{grid-template-columns:340px minmax(0,1fr)}}
+.ulist{display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 330px);overflow:auto}
+.urow{display:flex;align-items:center;gap:10px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:8px 10px;width:100%}
+.urow.on{border-color:var(--dk);background:#F7F3EA}
+.urow .av{width:34px;height:34px;border-radius:50%;background:var(--dk);color:#E2BC66;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;font-size:14px}
+.urow .m{flex:1;min-width:0;display:flex;flex-direction:column}
+.urow .m b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.urow .m span{font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{flex:none;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;background:var(--accT);color:var(--acc)}
+.search{width:100%;min-height:44px;border:1.5px solid var(--line);border-radius:12px;padding:0 12px;background:#fff}
+.flist{display:flex;flex-direction:column;gap:6px}
+.frow{display:flex;align-items:center;gap:10px;border:1px solid #EFE8DA;border-radius:12px;padding:8px 10px;background:#fff}
+.frow .t{flex:1;min-width:0}
+.frow .t b{display:block;font-size:14px}
+.frow .t small{display:block;font-size:12px;color:var(--mut)}
+.st{flex:none;font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.st.role{background:#E7E2D6;color:#4A4840}.st.add{background:var(--okT);color:var(--ok)}.st.off{background:var(--off);color:#8A8375}.st.no{background:transparent;color:#B5AE9E}
+/* กล่องยืนยัน / ข้อความ */
+#dlg{position:fixed;inset:0;z-index:90;background:rgba(28,27,24,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+#dlg .bx{background:var(--card);border-radius:18px;padding:18px;width:min(620px,100%);max-height:88vh;overflow:auto;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+#dlg .bx b.t{font-size:16px}
+#dlg .ac{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+#dlg ul{margin:0;padding-left:20px;font-size:13.5px;max-height:46vh;overflow:auto}
+#toast{position:fixed;left:50%;bottom:calc(20px + var(--safe-b));transform:translateX(-50%);background:var(--dk);color:#fff;border-radius:12px;padding:10px 16px;font-size:14px;z-index:99;max-width:92vw;text-align:center}
+.empty{color:var(--mut);text-align:center;padding:22px 10px;font-size:14px}
+@media(max-width:640px){.body{padding:10px}.mx td.fx,.mx thead th.fx{min-width:170px;max-width:190px}.mx td.fx small{display:none}.mx thead th{min-width:68px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<section id="scrMsg" class="scr">
+  <div class="hdr"><button class="back" data-act="toPm" aria-label="กลับ Wellcon PM"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="tt"><b>สิทธิ์ตามตำแหน่ง</b><span>ตั้งค่าระบบ</span></div></div>
+  <div class="body"><div class="wrap" id="msgBody"><p class="empty">กำลังโหลด…</p></div></div>
+</section>
+
+<section id="scrMain" class="scr" hidden>
+  <div class="hdr"><button class="back" data-act="toPm" aria-label="กลับ Wellcon PM"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4l-6 6 6 6" fill="none" stroke="#F6F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="tt"><b>สิทธิ์ตามตำแหน่ง</b><span>ตั้งค่าระบบ · เปิด-ปิดฟีเจอร์ให้แต่ละตำแหน่ง และรายคน</span></div></div>
+  <div class="body"><div class="wrap">
+    <div class="card">
+      <div class="tabs" role="tablist">
+        <button class="chip" role="tab" data-tab="role" id="tabRole">ตามตำแหน่ง</button>
+        <button class="chip" role="tab" data-tab="user" id="tabUser">รายคน · สิทธิ์พิเศษ <small id="tabUserN"></small></button>
+      </div>
+      <div class="mut" id="topNote"></div>
+    </div>
+
+    <div id="paneRole">
+      <div class="card">
+        <div class="h">ตำแหน่ง × ฟีเจอร์<small>กดช่องเพื่อเปิด / ปิด · บันทึกทันที</small><span class="sp"></span>
+          <label class="tog"><input type="checkbox" id="splitRoles"> แยกทุกตำแหน่ง</label>
+          <button class="btn" data-act="export">⬇ ดาวน์โหลด Excel</button>
+          <button class="btn dk" data-act="import">⬆ นำเข้าจาก Excel</button>
+          <input type="file" id="xlsIn" accept=".xlsx,.xls" hidden>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--ok);color:#fff">✓</i>ใช้ได้</span>
+          <span><i style="background:#E9C46A;color:#4A3800">○</i>ให้แล้ว แต่ฟีเจอร์ปิดทั้งระบบอยู่</span>
+          <span><i style="background:var(--okT);color:var(--ok);border:1.5px solid var(--ok)">◐</i>บางตำแหน่งในกลุ่ม</span>
+          <span><i style="border:1.5px dashed #DCD3C2"></i>ไม่ให้</span>
+          <span>สวิตช์ “เปิดใช้” = เปิด-ปิดฟีเจอร์นั้นกับทุกคน</span>
+        </div>
+        <div class="tw"><table class="mx" id="mx"></table></div>
+        <div class="mut" id="mxNote"></div>
+      </div>
+    </div>
+
+    <div id="paneUser" hidden>
+      <div class="ugrid">
+        <div class="card">
+          <div class="h">เลือกคน</div>
+          <input class="search" id="uq" type="search" placeholder="ค้นหาชื่อ · ชื่อเล่น · อีเมล · ตำแหน่ง" aria-label="ค้นหาผู้ใช้">
+          <label class="tog"><input type="checkbox" id="uOnlySpecial"> เฉพาะคนที่มีสิทธิ์พิเศษ</label>
+          <div class="ulist" id="ulist"></div>
+        </div>
+        <div class="card" id="uPanel"><p class="empty">เลือกคนทางซ้าย เพื่อดูและให้ฟีเจอร์พิเศษเฉพาะคนนั้น</p></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<div id="dlg" hidden><div class="bx" id="dlgBox"></div></div>
+<div id="toast" hidden></div>
+
+<script src="vendor/supabase.js"></script>
+<script src="wctag.js?v=1.2.2"></script>
+<script src="access.js?v=1.0.0"></script>
+<script src="pm-nav.js?v=1.3.0"></script>
+</body>
+</html>

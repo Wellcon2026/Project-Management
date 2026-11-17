@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.4.0';   // 1.4.0: ภาพเคลื่อนไหวหน้าเริ่มงานแบบ A "แบบแปลนวาดตัวเอง" (มือถือเห็นภาพแล้ว · เล่นครั้งเดียวต่อการเปิดแอป) · ตัวเลขสรุป 3 ช่องแถวเดียว · 1.3.0: สร้าง / แก้ไข / ลบ ชัดเจนทุกหน้า — ปุ่ม ⋯ ในรายการ (เปิดดู · แก้ไข · ทำสำเนา · ลบ) · ลบได้ทั้งร่าง / ส่งกลับ / รออนุมัติ / ยกเลิกแล้ว · ทิ้งร่างที่ยังไม่บันทึก · ปุ่มแก้ไข / ลบ / ทำสำเนาในหน้าดูใบ · 1.2.0: เปิดจากแท็บ Quotation Maker ในแอป QS Take-off — รับตั๋วเข้าสู่ระบบครั้งเดียว (?wsso=) · ?tk=<งานใน Take-off> = ผูกงานนั้นให้ (แบบ / โครงการ) · &new=1 เริ่มใบใหม่ทันที · 1.1.0: หน้าเริ่มงานใหม่ — แผงนำดำ-ทอง · ภาพเส้นแบบแปลนเคลื่อนไหว · การ์ดประเภทงานกดเริ่มได้เลย · ตัวเลขสรุปงาน
+const QM_VER = 'v1.5.0';   // 1.5.0: นับสิทธิ์พิเศษรายคน (app_state workUserAdd) ตอนตรวจสิทธิ์เข้าหน้า ·   // 1.4.0: ภาพเคลื่อนไหวหน้าเริ่มงานแบบ A "แบบแปลนวาดตัวเอง" (มือถือเห็นภาพแล้ว · เล่นครั้งเดียวต่อการเปิดแอป) · ตัวเลขสรุป 3 ช่องแถวเดียว · 1.3.0: สร้าง / แก้ไข / ลบ ชัดเจนทุกหน้า — ปุ่ม ⋯ ในรายการ (เปิดดู · แก้ไข · ทำสำเนา · ลบ) · ลบได้ทั้งร่าง / ส่งกลับ / รออนุมัติ / ยกเลิกแล้ว · ทิ้งร่างที่ยังไม่บันทึก · ปุ่มแก้ไข / ลบ / ทำสำเนาในหน้าดูใบ · 1.2.0: เปิดจากแท็บ Quotation Maker ในแอป QS Take-off — รับตั๋วเข้าสู่ระบบครั้งเดียว (?wsso=) · ?tk=<งานใน Take-off> = ผูกงานนั้นให้ (แบบ / โครงการ) · &new=1 เริ่มใบใหม่ทันที · 1.1.0: หน้าเริ่มงานใหม่ — แผงนำดำ-ทอง · ภาพเส้นแบบแปลนเคลื่อนไหว · การ์ดประเภทงานกดเริ่มได้เลย · ตัวเลขสรุปงาน
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -191,7 +191,7 @@ async function boot() {
     let ok = false; try { const r = await sb.auth.getSession(); ok = !!(r && r.data && r.data.session); } catch (e) {}
     if (!ok) { msg(card('ยังไม่ได้เชื่อมต่อ Wellcon PM ในเครื่องนี้', sso ? 'เครื่องนี้ยังไม่เคยเปิด Wellcon PM — กดปุ่มด้านล่างเพื่อเปิด Wellcon PM หนึ่งครั้ง (ระบบเข้าสู่ระบบให้อัตโนมัติ) แล้วกลับไปกดแท็บ “Quotation Maker” อีกครั้ง' : 'เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิด “Quotation Maker” จากหน้าโครงการ')); return; }
     const [a, p, st] = await Promise.all([sb.from('accounts').select('id,data'), sb.from('projects').select('id,project,data'),
-      sb.from('app_state').select('id,data').in('id', ['featGlobal', 'featProj', 'workPages', 'workUser', 'claimRates'])]);
+      sb.from('app_state').select('id,data').in('id', ['featGlobal', 'featProj', 'workPages', 'workUser', 'workUserAdd', 'claimRates'])]);
     if (a.error) throw a.error; if (p.error) throw p.error;
     APP.accounts = (a.data || []).map(rowOf);
     const live = (p.data || []).map(rowOf).filter(x => !x.deleted && !x.del);
@@ -203,12 +203,12 @@ async function boot() {
     try { sb.rpc('usage_touch', { p_email: APP.me.email, p_app: 'quo' }).then(() => {}, () => {}); } catch (e) {}
     if (window.WCTag) WCTag.setup({ sb, app: TAG_APP, me: APP.me, accounts: actv(), projects: live });
     const sv = (id) => { const r = ((!st.error && st.data) || []).find(x => x.id === id); return (r && r.data && r.data.v) || {}; };
-    const FG = sv('featGlobal'), WP = sv('workPages'), WU = sv('workUser'); APP.FP = sv('featProj');
+    const FG = sv('featGlobal'), WP = sv('workPages'), WU = sv('workUser'), WUA = sv('workUserAdd'); APP.FP = sv('featProj');
     const back = `<a class="btn pri" href="${pmUrl()}">กลับ Wellcon PM</a>`;
     if (FG[TAB] === false) { msg(card('ผู้ดูแลระบบปิด “Quotation Maker” ไว้', 'ถ้าต้องการใช้งาน แจ้ง Admin เปิดที่ ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน', back)); return; }
     // สิทธิ์เข้าหน้า = การ์ดที่เปิดให้ (ตำแหน่ง ∪ รายคน) แบบเดียวกับแอปหลัก · ชุดเริ่มต้น: QS · QS Manager · Director · Super Admin เข้าได้เสมอ
     const roleCards = Array.isArray(WP[APP.me.role]) ? WP[APP.me.role] : (DEF_ROLES.includes(APP.me.role) ? [TAB] : []);
-    const mine = Array.isArray(WU[APP.me.email]) ? WU[APP.me.email] : [];
+    const mine = [...(Array.isArray(WU[APP.me.email]) ? WU[APP.me.email] : []), ...(Array.isArray(WUA[APP.me.email]) ? WUA[APP.me.email] : [])];   // v1.5.0 + สิทธิ์พิเศษรายคน (หน้า access.html)
     if (APP.me.role !== 'superadmin' && ![...roleCards, ...mine].includes(TAB)) { msg(card('หน้านี้ยังไม่ได้เปิดให้ตำแหน่งของคุณ', 'Quotation Maker มีตัวเลขราคา — เปิดให้ QS · QS Manager · ผู้บริหาร เป็นค่าเริ่มต้น · ถ้าต้องการใช้ แจ้ง Admin เพิ่มการ์ด “Quotation Maker” ให้', back)); return; }
     APP.aiOff = (FG.ai === false && APP.me.role !== 'superadmin') || acc.aiOff === true;
     const projOff = (id) => { const o = APP.FP[id]; return !!o && typeof o === 'object' && o[TAB] === false; };
