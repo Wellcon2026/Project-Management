@@ -9,7 +9,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const PE_VER = 'v1.1.0';
+const PE_VER = 'v1.3.0';
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -25,22 +25,25 @@ const MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 const EMBED = /[?&]embed=1/.test(location.search) && window.parent !== window;   // เปิดจาก Layboard (แต่งรูปบนบอร์ด)
 const OUT_MAX = EMBED ? (MOBILE ? 4096 : 5000) : MOBILE ? 4096 : 6000;   // ไฟล์ที่บันทึก ด้านยาวสุด (iPhone จำกัดขนาด canvas · Layboard เก็บรูปสูงสุด 5000 px)
 const toParent = (m) => { try { window.parent.postMessage(m, location.origin); } catch (e) {} };
-const sb = window.supabase.createClient(CFG.url, CFG.anonKey, { db: { schema: SCHEMA }, auth: { persistSession: true, autoRefreshToken: true } });
+// SOLO: สำเนาในแอป Layboard แยก (layboard.vercel.app · photo-editor.html ตั้ง window.PE_CFG = { solo: true }) — ไม่มีบัญชี Wellcon PM · ทำงานในเครื่องล้วน · หน้า photo.html ใน PM ไม่ตั้งค่านี้
+const SOLO = !!(window.PE_CFG && window.PE_CFG.solo);
+const sb = SOLO ? null : window.supabase.createClient(CFG.url, CFG.anonKey, { db: { schema: SCHEMA }, auth: { persistSession: true, autoRefreshToken: true } });
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const norm = (s) => String(s || '').trim().toLowerCase();
 const nickOf = (a) => a ? (String(a.nick || '').trim() || a.name || a.username || a.email || '') : '';
 const uid = (p) => (p || 'i') + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
-const pmUrl = () => '/' + (IS_STG ? '?env=staging' : '');
+const pmUrl = () => SOLO ? '/' : '/' + (IS_STG ? '?env=staging' : '');
 let toastT = null;
 function toast(m, ms) { const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms || 2600); }
 function busy(on, txt) { $('busy').hidden = !on; if (txt) $('busyTxt').textContent = txt; }
 const tick = () => new Promise(r => setTimeout(r, 30));
 
-const APP = { me: null, photos: [], cur: -1, panel: 'geo', guideMode: false, before: false, dirty: false };
+const APP = { me: null, photos: [], cur: -1, panel: 'geo', guideMode: false, before: false, dirty: false, view: 'edit', wbPick: false, mixSel: 'red' };
 const DEF = () => ({ rot: 0, fh: false, fv: false, angle: 0, upright: 'off', guides: [], tf: { v: 0, h: 0, r: 0, a: 0, s: 100, x: 0, y: 0 },
-  constrain: true, aspect: 'orig', crop: null, overlay: 'thirds', fx: { tex: 0, cla: 0, dhz: 0, vig: 0, grn: 0 } });
+  constrain: true, aspect: 'orig', crop: null, overlay: 'thirds', fx: { tex: 0, cla: 0, dhz: 0, vig: 0, grn: 0 },
+  lc: { exp: 0, con: 0, hi: 0, sh: 0, wh: 0, bl: 0, curve: [0, 0.25, 0.5, 0.75, 1], temp: 0, tint: 0, wb: null, vib: 0, sat: 0, mix: {} } });
 const FX = [['tex', 'พื้นผิว', 'Texture', -100, 100], ['cla', 'ความคมชัด', 'Clarity', -100, 100], ['dhz', 'ลดหมอก', 'Dehaze', -100, 100], ['vig', 'ขอบมืด / สว่าง', 'Vignette', -100, 100], ['grn', 'เกรนฟิล์ม', 'Grain', 0, 100]];
 const TF = [['v', 'แนวตั้ง', 'Vertical', -100, 100, 1], ['h', 'แนวนอน', 'Horizontal', -100, 100, 1], ['r', 'หมุน', 'Rotate', -10, 10, 0.1], ['a', 'สัดส่วนภาพ', 'Aspect', -100, 100, 1], ['s', 'ขนาด', 'Scale', 50, 150, 1], ['x', 'เลื่อนซ้าย-ขวา', 'X Offset', -100, 100, 1], ['y', 'เลื่อนขึ้น-ลง', 'Y Offset', -100, 100, 1]];
 const ASPECTS = [['orig', 'ตามรูปเดิม'], ['free', 'อิสระ'], ['1:1', '1 : 1 (จัตุรัส)'], ['4:5', '4 : 5 (โพสต์แนวตั้ง)'], ['5:4', '5 : 4'], ['3:4', '3 : 4'], ['4:3', '4 : 3'], ['2:3', '2 : 3'], ['3:2', '3 : 2'], ['9:16', '9 : 16 (สตอรี่)'], ['16:9', '16 : 9 (จอกว้าง)']];
@@ -57,6 +60,10 @@ async function boot() {
     window.addEventListener('message', async (e) => { if (e.origin !== location.origin || e.source !== window.parent) return; const m = e.data || {};
       if (m.t === 'pe-open' && m.blob) { const f = new File([m.blob], (m.name || 'รูปจาก Layboard') + '.jpg', { type: m.blob.type || 'image/jpeg' }); await addFiles([f]); APP.dirty = false; renderHead(); } });
   }
+  if (SOLO) {   // แอป Layboard แยก: ไม่ตรวจบัญชี Wellcon PM
+    APP.me = { email: '', name: '', role: '' }; $('scrMsg').hidden = true; $('scrMain').hidden = false; renderAll();
+    if (EMBED) { busy(true, 'กำลังโหลดรูปจาก Layboard…'); toParent({ t: 'pe-ready' }); setTimeout(() => { if (!APP.photos.length) busy(false); }, 15000); }
+    return; }
   if (IS_STG) document.querySelectorAll('.scr').forEach(s => { const d = document.createElement('div'); d.className = 'stg'; d.textContent = 'โหมดทดสอบ (staging)'; s.prepend(d); });
   try {
     let ok = false; try { const r = await sb.auth.getSession(); ok = !!(r && r.data && r.data.session); } catch (e) {}
@@ -72,7 +79,7 @@ async function boot() {
     if (sv('featGlobal')[TAB] === false) { msg('ผู้ดูแลระบบปิด Photo Editor ไว้', 'ถ้าต้องการใช้งาน แจ้ง Admin เปิดที่ ตั้งค่าระบบ → ตารางสิทธิ์ตามตำแหน่ง'); return; }
     const WP = sv('workPages'), rl = WP[APP.me.role], mine = [...(sv('workUser')[APP.me.email] || []), ...(sv('workUserAdd')[APP.me.email] || [])];
     if (APP.me.role !== 'superadmin' && Array.isArray(rl) && rl.indexOf(TAB) < 0 && mine.indexOf(TAB) < 0) { msg('Photo Editor ยังไม่ได้เปิดให้ตำแหน่งของคุณ', 'แจ้ง Admin เพิ่ม “Photo Editor” ที่ ตั้งค่าระบบ → ตารางสิทธิ์ตามตำแหน่ง'); return; }
-    try { sb.rpc('usage_touch', { p_email: APP.me.email, p_app: 'photo' }).then(() => {}, () => {}); } catch (e) {}
+    try { if (sb) sb.rpc('usage_touch', { p_email: APP.me.email, p_app: 'photo' }).then(() => {}, () => {}); } catch (e) {}
     if (window.WCTag) WCTag.setup({ sb, app: 'Photo Editor', me: APP.me, accounts: accs.filter(x => x.active !== false && !x.disabled), projects: [] });
     $('scrMsg').hidden = true; $('scrMain').hidden = false; renderAll();
     if (EMBED) { busy(true, 'กำลังโหลดรูปจาก Layboard…'); toParent({ t: 'pe-ready' }); setTimeout(() => { if (!APP.photos.length) busy(false); }, 15000); }
@@ -203,6 +210,75 @@ function hash2(x, y) { let n = Math.imul(x, 374761393) + Math.imul(y, 668265263)
 // =====================================================================
 // เอฟเฟกต์ (ค่าทุกตัวสัมพัทธ์กับขนาดภาพ → ตัวอย่างกับไฟล์จริงเหมือนกัน)
 // =====================================================================
+// =====================================================================
+// แสง · สี (Light · Color) — ลำดับ: สมดุลแสงขาว → ความสว่าง (เชิงเส้น) → โทน (คอนทราสต์ · ส่วนสว่าง / มืด · ขาว / ดำ · เส้นโค้ง) → ความอิ่มสี → ผสมสี
+// =====================================================================
+const LIGHT = [['exp', 'ความสว่าง', 'Exposure', -4, 4, 0.05], ['con', 'คอนทราสต์', 'Contrast', -100, 100, 1], ['hi', 'ส่วนสว่าง', 'Highlights', -100, 100, 1], ['sh', 'ส่วนมืด', 'Shadows', -100, 100, 1], ['wh', 'ขาวสุด', 'Whites', -100, 100, 1], ['bl', 'ดำสุด', 'Blacks', -100, 100, 1]];
+const COLOR = [['temp', 'อุณหภูมิสี', 'Temp', -100, 100, 1, 'linear-gradient(90deg,#3B6FD8,#E8E2D6,#E3B238)'], ['tint', 'โทนเขียว-ม่วง', 'Tint', -100, 100, 1, 'linear-gradient(90deg,#3FA34D,#E8E2D6,#C04BC0)'],
+  ['vib', 'ความสดสี', 'Vibrance', -100, 100, 1, 'linear-gradient(90deg,#9A968C,#E8E2D6,#E0543A)'], ['sat', 'ความอิ่มสี', 'Saturation', -100, 100, 1, 'linear-gradient(90deg,#8A8A8A,#E8E2D6,#E0543A)']];
+const MIX = [['red', 'แดง', 0, '#D93A2F'], ['orange', 'ส้ม', 30, '#EE8A2A'], ['yellow', 'เหลือง', 60, '#E8C931'], ['green', 'เขียว', 120, '#49A84A'], ['aqua', 'ฟ้าอมเขียว', 180, '#2FB8B3'], ['blue', 'น้ำเงิน', 225, '#3567D6'], ['purple', 'ม่วง', 270, '#8A4FD1'], ['magenta', 'ชมพูม่วง', 315, '#D2479E']];
+const LIN8 = (() => { const t = new Float32Array(256); for (let i = 0; i < 256; i++) { const c = i / 255; t[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); } return t; })();
+const ENC_N = 16384, ENC_MAX = 4, ENC = (() => { const t = new Float32Array(ENC_N + 1); for (let i = 0; i <= ENC_N; i++) { const v = i / ENC_N * ENC_MAX; t[i] = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055; } return t; })();
+const enc = (v) => v <= 0 ? 0 : ENC[v >= ENC_MAX ? ENC_N : (v / ENC_MAX * ENC_N) | 0];
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+function curveFn(ys) {   // Monotone cubic (Fritsch–Carlson) ผ่าน 5 จุด x = 0 · ¼ · ½ · ¾ · 1
+  const n = ys.length, h = 1 / (n - 1), dk = [], m = new Array(n);
+  for (let i = 0; i < n - 1; i++) dk.push((ys[i + 1] - ys[i]) / h);
+  m[0] = dk[0]; m[n - 1] = dk[n - 2]; for (let i = 1; i < n - 1; i++) m[i] = dk[i - 1] * dk[i] <= 0 ? 0 : (dk[i - 1] + dk[i]) / 2;
+  for (let i = 0; i < n - 1; i++) { if (!dk[i]) { m[i] = m[i + 1] = 0; continue; } const a = m[i] / dk[i], b = m[i + 1] / dk[i], q = a * a + b * b; if (q > 9) { const t = 3 / Math.sqrt(q); m[i] = t * a * dk[i]; m[i + 1] = t * b * dk[i]; } }
+  return (x) => { if (x <= 0) return ys[0]; if (x >= 1) return ys[n - 1]; const i = Math.min(n - 2, (x / h) | 0), t = (x - i * h) / h, t2 = t * t, t3 = t2 * t;
+    return (2 * t3 - 3 * t2 + 1) * ys[i] + (t3 - 2 * t2 + t) * h * m[i] + (-2 * t3 + 3 * t2) * ys[i + 1] + (t3 - t2) * h * m[i + 1]; };
+}
+const curveIdentity = (c) => !c || c.every((v, i) => Math.abs(v - i / 4) < 1e-4);
+const mixActive = (mx) => !!mx && Object.keys(mx).some(k => (mx[k] || []).some(v => v));
+function lcActive(lc) { return !!lc && !!(lc.exp || lc.con || lc.hi || lc.sh || lc.wh || lc.bl || lc.temp || lc.tint || lc.wb || lc.vib || lc.sat || !curveIdentity(lc.curve) || mixActive(lc.mix)); }
+function wbMul(lc) {   // ตัวคูณสีแบบเชิงเส้น: จุดสีเทาที่เลือก × อุณหภูมิสี × Tint (คงความสว่างเฉลี่ย)
+  let r = 1, g = 1, b = 1; if (lc.wb) { r = lc.wb[0]; g = lc.wb[1]; b = lc.wb[2]; }
+  const t = (lc.temp || 0) / 100, n = (lc.tint || 0) / 100; r *= Math.pow(2, 0.42 * t); b *= Math.pow(2, -0.42 * t); g *= Math.pow(2, -0.42 * n);
+  const y = (r + g + b) / 3; return [r / y, g / y, b / y];
+}
+function toneLUT(lc) {   // ฟังก์ชันโทนบนความสว่าง (0 … 2 รองรับส่วนที่สว่างเกินจากการเพิ่ม Exposure)
+  const N = 2048, T = new Float32Array(N + 1), c = (lc.con || 0) / 100, h = (lc.hi || 0) / 100, sd = (lc.sh || 0) / 100, w = (lc.wh || 0) / 100, b = (lc.bl || 0) / 100, cv = curveIdentity(lc.curve) ? null : curveFn(lc.curve);
+  for (let i = 0; i <= N; i++) { const x = i / N * 2; let y = x;
+    if (c) { const k = c > 0 ? 1 + c * 0.55 : 1 + c * 0.6; const xc = Math.min(x, 1.2); y = 0.5 + (xc - 0.5) * k + (x - xc); }
+    if (h) y += h * (h < 0 ? 0.32 : 0.22) * smooth(0.45, 1.15, y) * (h < 0 ? Math.min(1, y) : 1);
+    if (sd) y += sd * 0.24 * (1 - smooth(0.0, 0.55, y)) * (sd > 0 ? Math.min(1, 0.35 + y * 2) : 1);
+    if (w) y += w * 0.16 * smooth(0.6, 1.1, y);
+    if (b) y += b * 0.12 * (1 - smooth(0.0, 0.32, y));
+    if (y > 0.88) y = 0.88 + 0.12 * Math.tanh((y - 0.88) / 0.12); if (y < 0) y = 0;
+    if (cv) y = Math.min(1, Math.max(0, cv(y)));
+    T[i] = y; }
+  return T;
+}
+function applyLC(im, lc) {
+  if (!lcActive(lc)) return; const d = im.data, n = d.length, [mr, mg, mb] = wbMul(lc), ex = Math.pow(2, lc.exp || 0), kr = mr * ex, kg = mg * ex, kb = mb * ex;
+  const T = toneLUT(lc), TN = T.length - 1, sat = (lc.sat || 0) / 100, vib = (lc.vib || 0) / 100, MX = mixActive(lc.mix) ? MIX.map(([k, , hue]) => [hue, ...((lc.mix[k]) || [0, 0, 0]).map(v => v / 100)]) : null;
+  for (let o = 0; o < n; o += 4) {
+    let r = enc(LIN8[d[o]] * kr), g = enc(LIN8[d[o + 1]] * kg), b = enc(LIN8[d[o + 2]] * kb);
+    const L = 0.2126 * r + 0.7152 * g + 0.0722 * b, L2 = T[Math.min(TN, (L * TN / 2) | 0)];
+    if (L > 0.002) { const k = L2 / L; r *= k; g *= k; b *= k; } else { r = g = b = L2; }
+    if (r > 1 || g > 1 || b > 1) { const mx = Math.max(r, g, b), Y = 0.2126 * r + 0.7152 * g + 0.0722 * b; if (Y >= 1) { r = g = b = 1; } else { const t = (1 - Y) / (mx - Y); r = Y + (r - Y) * t; g = Y + (g - Y) * t; b = Y + (b - Y) * t; } }
+    if (sat || vib) { const Y = 0.2126 * r + 0.7152 * g + 0.0722 * b, s0 = Math.max(r, g, b) - Math.min(r, g, b), f = 1 + sat + vib * (vib > 0 ? (1 - s0) * (1 - s0) * 1.2 : 1); r = Y + (r - Y) * f; g = Y + (g - Y) * f; b = Y + (b - Y) * f; }
+    if (MX) { r = r < 0 ? 0 : r > 1 ? 1 : r; g = g < 0 ? 0 : g > 1 ? 1 : g; b = b < 0 ? 0 : b > 1 ? 1 : b;
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, dl = mx - mn;
+      if (dl > 0.004) { let hh = mx === r ? ((g - b) / dl) % 6 : mx === g ? (b - r) / dl + 2 : (r - g) / dl + 4; hh *= 60; if (hh < 0) hh += 360; let ss = dl / (1 - Math.abs(2 * l - 1) || 1);
+        let dh = 0, dsn = 0, dlm = 0, wsum = 0;
+        for (let i = 0; i < 8; i++) { const c = MX[i], c2 = MX[(i + 1) % 8], span = ((c2[0] - c[0]) + 360) % 360; let dd = ((hh - c[0]) + 360) % 360;
+          if (dd < span) { const t = dd / span, w1 = 1 - t, w2 = t; dh += w1 * c[1] + w2 * c2[1]; dsn += w1 * c[2] + w2 * c2[2]; dlm += w1 * c[3] + w2 * c2[3]; wsum = 1; break; } }
+        if (wsum) { hh = (hh + dh * 30 + 360) % 360; ss = Math.min(1, Math.max(0, ss * (1 + dsn))); let l2 = Math.min(1, Math.max(0, l + dlm * 0.3 * Math.min(1, ss * 2)));
+          const C = (1 - Math.abs(2 * l2 - 1)) * ss, X = C * (1 - Math.abs((hh / 60) % 2 - 1)), m0 = l2 - C / 2, sx = (hh / 60) | 0;
+          const rgb = sx === 0 ? [C, X, 0] : sx === 1 ? [X, C, 0] : sx === 2 ? [0, C, X] : sx === 3 ? [0, X, C] : sx === 4 ? [X, 0, C] : [C, 0, X]; r = rgb[0] + m0; g = rgb[1] + m0; b = rgb[2] + m0; } } }
+    d[o] = r * 255; d[o + 1] = g * 255; d[o + 2] = b * 255;
+  }
+}
+function autoTone(p) {   // ปรับแสงอัตโนมัติ: ความสว่างกลางภาพ ≈ 0.45 · ยืดจุดขาว / ดำ
+  const d = p.prev.data, H = new Uint32Array(256); let n = 0; for (let o = 0; o < d.length; o += 16) { H[Math.round(0.2126 * d[o] + 0.7152 * d[o + 1] + 0.0722 * d[o + 2])]++; n++; }
+  const pc = (q) => { let a = 0; for (let i = 0; i < 256; i++) { a += H[i]; if (a >= q * n) return i / 255; } return 1; };
+  const p01 = pc(0.005), p50 = pc(0.5), p99 = pc(0.995), lin = (v) => LIN8[Math.round(v * 255)] || 1e-4;
+  const exp = Math.max(-1.5, Math.min(1.5, Math.log2(lin(0.45) / Math.max(1e-4, lin(p50))) * 0.6));
+  return { exp: Math.round(exp * 20) / 20, wh: p99 < 0.93 ? Math.min(50, Math.round((0.97 - p99) * 220)) : 0, bl: p01 > 0.05 ? -Math.min(50, Math.round((p01 - 0.02) * 260)) : 0, con: 10, hi: p99 > 0.98 ? -25 : 0, sh: p50 < 0.3 ? 20 : 0 };
+}
+
 function applyFx(im, fx) {
   const W = im.width, H = im.height, d = im.data, N = W * H, diag = Math.hypot(W, H);
   if (fx.dhz) dehaze(d, W, H, fx.dhz / 100, diag);
@@ -269,14 +345,72 @@ function autoAngle(p) {
 // =====================================================================
 // เปิดรูป
 // =====================================================================
-const isImg = (f) => /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|bmp|heic|heif|avif)$/i.test(f.name);
+const isImg = (f) => /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|bmp|heic|heif|avif|tiff?|psd|psb)$/i.test(f.name);
+const extOf = (f) => ((String(f.name || '').match(/\.([^.]+)$/) || [])[1] || '').toLowerCase();
 const loadImage = (src) => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('เปิดรูปไม่ได้')); i.src = src; });
+// ---------- ถอดรหัสไฟล์รูปทุกชนิด → canvas / ImageBitmap (PSD · TIFF ถอดเอง · ที่เหลือใช้เบราว์เซอร์) ----------
+async function decodeAny(file) {
+  const e = extOf(file);
+  if (e === 'psd' || e === 'psb' || /photoshop/i.test(file.type)) return psdToCanvas(await file.arrayBuffer(), file.name);
+  if (e === 'tif' || e === 'tiff' || /tiff/i.test(file.type)) { try { return await createImageBitmap(file); } catch (x) {} return tiffToCanvas(await file.arrayBuffer(), file.name); }
+  if (e === 'heic' || e === 'heif') { try { return await decode(file); } catch (x) { throw new Error(file.name + ' — รูป HEIC เปิดได้เฉพาะ Safari (iPhone / Mac) · ใน Chrome ให้ส่งออกเป็น JPG ก่อน หรือตั้งกล้อง iPhone เป็น "เข้ากันได้มากที่สุด"'); } }
+  return decode(file);
+}
+function tiffToCanvas(buf, name) {
+  if (!window.UTIF) throw new Error('โหลดตัวอ่าน TIFF ไม่สำเร็จ'); let ifds;
+  try { ifds = UTIF.decode(buf); } catch (e) { throw new Error(name + ' — อ่านไฟล์ TIFF ไม่ได้'); }
+  const pick = ifds.filter(f => f.t256 && f.t257).sort((a, b) => (b.t256[0] * b.t257[0]) - (a.t256[0] * a.t257[0]))[0];   // หน้าใหญ่สุด (ไม่ใช่ภาพย่อ)
+  if (!pick) throw new Error(name + ' — ไม่พบรูปในไฟล์ TIFF');
+  const photo0 = pick.t262 ? pick.t262[0] : 2, cmp = pick.t259 ? pick.t259[0] : 1, spp = pick.t277 ? pick.t277[0] : 1;
+  // TIFF บีบอัด JPEG ที่เก็บสีเป็น RGB: ปิดการแปลง YCbCr→RGB ของตัวถอด JPEG (ไม่งั้นสีเพี้ยนเขียว-ชมพู) · มีเครื่องหมาย Adobe ในไฟล์ → ตัวถอดใช้ค่าในไฟล์เอง
+  const JD = UTIF.JpegDecoder, rgbJpeg = cmp === 7 && photo0 === 2 && spp >= 3;
+  if (rgbJpeg) UTIF.JpegDecoder = function () { const d = new JD(); d.B = 0; return d; };
+  try { UTIF.decodeImage(buf, pick, ifds); } catch (e) { throw new Error(name + ' — การบีบอัดใน TIFF นี้ยังไม่รองรับ'); } finally { UTIF.JpegDecoder = JD; }
+  const W = pick.width, H = pick.height, rgba = UTIF.toRGBA8(pick); if (!W || !H || !rgba || rgba.length < W * H * 4) throw new Error(name + ' — ถอดรหัส TIFF ไม่สำเร็จ');
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); const im = g.createImageData(W, H); im.data.set(rgba.subarray ? rgba.subarray(0, W * H * 4) : rgba.slice(0, W * H * 4)); g.putImageData(im, 0, 0); return c;
+}
+function psdToCanvas(buf, name) {   // ภาพรวม (composite) ของ PSD / PSB — RGB · CMYK · Grayscale · Indexed · 8 / 16 บิต
+  const dv = new DataView(buf), u8 = new Uint8Array(buf); let p = 0;
+  const r16 = () => { const v = dv.getUint16(p); p += 2; return v; }, r32 = () => { const v = dv.getUint32(p); p += 4; return v; };
+  if (r32() !== 0x38425053) throw new Error(name + ' — ไม่ใช่ไฟล์ Photoshop');
+  const ver = r16(); if (ver !== 1 && ver !== 2) throw new Error(name + ' — รุ่นไฟล์ PSD ไม่รองรับ'); p += 6;
+  const ch = r16(), H = r32(), W = r32(), depth = r16(), mode = r16();
+  const cmLen = r32(), cmAt = p; p += cmLen; p += r32();
+  const lmLen = ver === 2 ? Number(dv.getBigUint64(p)) : dv.getUint32(p); p += (ver === 2 ? 8 : 4) + lmLen;
+  if (depth !== 8 && depth !== 16) throw new Error(name + ' — PSD ' + depth + ' บิต ยังไม่รองรับ (ใช้ 8 / 16 บิต)');
+  const need = mode === 3 ? 3 : mode === 4 ? 4 : (mode === 1 || mode === 8 || mode === 2) ? 1 : 0;
+  if (!need) throw new Error(name + ' — โหมดสี PSD นี้ยังไม่รองรับ (ใช้ RGB · CMYK · Grayscale)');
+  if (ch < need) throw new Error(name + ' — ไฟล์ PSD ไม่สมบูรณ์');
+  const comp = r16(), bpc = depth / 8, N = W * H, planes = [];
+  if (comp === 0) { for (let c = 0; c < need; c++) { const pl = new Uint8Array(N), base = p + c * N * bpc; for (let i = 0; i < N; i++) pl[i] = u8[base + i * bpc]; planes.push(pl); } }
+  else if (comp === 1) {
+    const cntSz = ver === 2 ? 4 : 2, counts = new Array(ch * H); for (let i = 0; i < ch * H; i++) counts[i] = cntSz === 4 ? r32() : r16();
+    const rowB = W * bpc, row = new Uint8Array(rowB);
+    for (let c = 0; c < need; c++) { const pl = new Uint8Array(N);
+      for (let y = 0; y < H; y++) { const len = counts[c * H + y], end = p + len; let o = 0;
+        while (p < end && o < rowB) { const n = (u8[p++] << 24) >> 24; if (n >= 0) { for (let k = 0; k <= n && o < rowB; k++) row[o++] = u8[p++]; } else if (n !== -128) { const v = u8[p++]; for (let k = 0; k < 1 - n && o < rowB; k++) row[o++] = v; } }
+        p = end; const b = y * W; for (let x = 0; x < W; x++) pl[b + x] = row[x * bpc]; }
+      planes.push(pl); }
+  } else throw new Error(name + ' — การบีบอัดใน PSD นี้ยังไม่รองรับ');
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'), im = g.createImageData(W, H), d = im.data;
+  const pal = mode === 2 && cmLen >= 768 ? u8.subarray(cmAt, cmAt + 768) : null;
+  for (let i = 0, o = 0; i < N; i++, o += 4) {
+    if (mode === 3) { d[o] = planes[0][i]; d[o + 1] = planes[1][i]; d[o + 2] = planes[2][i]; }
+    else if (mode === 4) { const k = planes[3][i] / 255; d[o] = planes[0][i] * k; d[o + 1] = planes[1][i] * k; d[o + 2] = planes[2][i] * k; }   // CMYK (เก็บกลับด้าน) → RGB แบบประมาณ
+    else if (pal) { const v = planes[0][i]; d[o] = pal[v]; d[o + 1] = pal[256 + v]; d[o + 2] = pal[512 + v]; }
+    else d[o] = d[o + 1] = d[o + 2] = planes[0][i];
+    d[o + 3] = 255; }
+  g.putImageData(im, 0, 0);
+  if (lmLen > 0 && N > 0) { let flat = true; const s0 = d[0] + d[1] + d[2]; for (let i = 0; i < N * 4 && flat; i += 4 * 997) if (d[i] + d[i + 1] + d[i + 2] !== s0) flat = false;
+    if (flat) throw new Error(name + ' — ไฟล์ PSD นี้ไม่มีภาพรวม: เปิดใน Photoshop แล้วบันทึกใหม่โดยติ๊ก "Maximize PSD Compatibility"'); }
+  c.__cmyk = mode === 4; return c;
+}
 async function decode(file) {
   try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) {}
   const url = URL.createObjectURL(file); try { return await loadImage(url); } catch (e) { throw new Error(file.name + ' เปิดไม่ได้ — ใช้ไฟล์ JPG / PNG (รูป HEIC จาก iPhone: ตั้งกล้องเป็น "เข้ากันได้มากที่สุด" หรือส่งออกเป็น JPG)'); }
 }
 async function loadPhoto(file) {
-  const bmp = await decode(file), W = bmp.width, H = bmp.height, k = Math.min(1, PREV / Math.max(W, H));
+  const bmp = await decodeAny(file), W = bmp.width, H = bmp.height, k = Math.min(1, PREV / Math.max(W, H));
   const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(W * k)); c.height = Math.max(1, Math.round(H * k));
   const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(bmp, 0, 0, c.width, c.height);
   const t = document.createElement('canvas'), tk = 200 / Math.max(W, H); t.width = Math.round(W * tk); t.height = Math.round(H * tk); t.getContext('2d').drawImage(c, 0, 0, t.width, t.height);
@@ -298,6 +432,9 @@ let VIEW = null;   // { rect, cw, ch } — ขนาดที่แสดง
 function fitSize(aw, ah, rw, rh) { const k = Math.min(aw / rw, ah / rh); return [Math.max(1, Math.floor(rw * k)), Math.max(1, Math.floor(rh * k))]; }
 function renderAll() {
   const has = APP.photos.length > 0;
+  $('batchPane').hidden = APP.view !== 'batch'; $('hbSave').hidden = APP.view === 'batch'; $('btBatch').hidden = EMBED; $('tbBatch').hidden = EMBED;
+  if (APP.view === 'batch') { $('startPane').hidden = true; $('edPane').hidden = true; $('hbClose').hidden = true;
+    $('docTitle').textContent = 'แปลงไฟล์ · ย่อรูป'; $('docSub').textContent = BT.fromEd ? 'รูปที่เปิดใน Photo Editor · ' + BT.items.length + ' รูป' : 'PSD · TIFF · PNG ฯลฯ → JPEG · ย่อขนาดทีละหลายรูป'; renderBatch(); return; }
   $('startPane').hidden = has; $('edPane').hidden = !has; $('hbSave').disabled = !has; $('hbClose').hidden = !has;
   const p = cur();
   $('docTitle').textContent = p ? p.name : 'Photo Editor';
@@ -322,7 +459,7 @@ function drawNow() {
   const Dp = Math.max(p.prev.width, p.prev.height), pw = Math.max(1, Math.min(Math.round(cw * dpr), Math.round(rect ? rect.w * Dp : p.prev.width))), ph = Math.max(1, Math.round(pw * ch / cw));
   c.width = pw; c.height = ph; const ctx = c.getContext('2d');
   if (APP.before) { const t = document.createElement('canvas'); t.width = p.prev.width; t.height = p.prev.height; t.getContext('2d').putImageData(p.prev, 0, 0); ctx.drawImage(t, 0, 0, pw, ph); }
-  else { const im = renderGeo(p, p.prev, rect, pw, ph); applyFx(im, p.s.fx); ctx.putImageData(im, 0, 0); }
+  else { const im = renderGeo(p, p.prev, rect, pw, ph); applyLC(im, p.s.lc); applyFx(im, p.s.fx); ctx.putImageData(im, 0, 0); }
   VIEW = { rect, cw, ch, g }; o.width = Math.round(cw * dpr); o.height = Math.round(ch * dpr); drawOverlay();
   $('tbInfo').textContent = APP.before ? 'รูปก่อนแต่ง' : isCropView() ? (APP.guideMode ? 'ลากเส้นตามเสา / ขอบผนังที่ควรตรง (สูงสุด 4 เส้น)' : 'ลากมุม / ขอบกรอบเพื่อครอป · ลากในกรอบเพื่อย้าย') : '';
   $('tbUndo').disabled = !p.hist.length;
@@ -359,14 +496,18 @@ function hit(px, py) { const p = cur(), cr = cropRect(p, VIEW.g), [x0, y0] = n2c
 const CUR = { nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize', n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize', move: 'move' };
 function pt(e) { const r = $('ovc').getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
 $('ovc').addEventListener('pointerdown', (e) => {
-  const p = cur(); if (!p || !isCropView() || APP.before || !VIEW) return; e.preventDefault(); const [px, py] = pt(e);
+  const p = cur(); if (p && APP.wbPick && !isCropView() && !APP.before && VIEW) { const [qx, qy] = pt(e), [nx, ny] = c2n(qx, qy), a = sampleSrc(p, nx, ny);   // เลือกจุดสีเทา
+    APP.wbPick = false; if (!a || Math.max(...a) < 0.003) { toast('จุดนี้มืดเกินไป — เลือกจุดสีเทา / ขาวที่สว่างกว่า'); renderSide(); return; }
+    if (Math.max(...a) > 0.97) { toast('จุดนี้สว่างจนสีขาด — เลือกจุดสีเทาที่ไม่จ้าเกินไป'); renderSide(); return; }
+    pushHist(p); const m = (a[0] + a[1] + a[2]) / 3; p.s.lc.wb = [m / a[0], m / a[1], m / a[2]]; p.s.lc.temp = 0; p.s.lc.tint = 0; changed(false); renderSide(); toast('ปรับสมดุลแสงขาวจากจุดที่เลือกแล้ว'); return; }
+  if (!p || !isCropView() || APP.before || !VIEW) return; e.preventDefault(); const [px, py] = pt(e);
   try { $('ovc').setPointerCapture(e.pointerId); } catch (x) {}
   if (APP.guideMode && p.s.upright === 'guided') { if (p.s.guides.length >= 4) { toast('มีเส้นนำครบ 4 เส้นแล้ว — ลบเส้นล่าสุดก่อน'); return; } const a = c2n(px, py); GDRAW = { a, b: a }; DRAG.on = true; DRAG.kind = 'guide'; return; }
   const h = hit(px, py); if (!h) return; pushHist(p);
   Object.assign(DRAG, { on: true, kind: h, p0: c2n(px, py), r0: { ...cropRect(p, VIEW.g) } });
 });
 $('ovc').addEventListener('pointermove', (e) => {
-  const p = cur(); if (!p || !VIEW || !isCropView()) return; const [px, py] = pt(e);
+  const p = cur(); if (p && !isCropView()) { $('ovc').style.cursor = APP.wbPick ? 'crosshair' : 'default'; return; } if (!p || !VIEW || !isCropView()) return; const [px, py] = pt(e);
   if (!DRAG.on) { $('ovc').style.cursor = APP.guideMode && p.s.upright === 'guided' ? 'crosshair' : (CUR[hit(px, py)] || 'default'); return; }
   const [nx, ny] = c2n(px, py);
   if (DRAG.kind === 'guide') { GDRAW.b = [nx, ny]; drawOverlay(); return; }
@@ -402,6 +543,35 @@ const endDrag = () => { const p = cur(); if (!DRAG.on || !p) return; DRAG.on = f
   changed(false); };
 $('ovc').addEventListener('pointerup', endDrag); $('ovc').addEventListener('pointercancel', endDrag);
 
+// ---------- เส้นโค้ง (Curve) ----------
+function drawCurve() {
+  const c = $('crv'), p = cur(); if (!c || !p) return; const g = c.getContext('2d'), W = c.width, H = c.height, ys = p.s.lc.curve, f = curveFn(ys), P = 24;
+  const X = (x) => P + x * (W - 2 * P), Y = (y) => H - P - y * (H - 2 * P);
+  g.clearRect(0, 0, W, H);
+  try { const d = p.prev.data, hist = new Uint32Array(64); let mxh = 1; for (let o = 0; o < d.length; o += 24) { const l = (0.2126 * d[o] + 0.7152 * d[o + 1] + 0.0722 * d[o + 2]) / 256; hist[(l * 64) | 0]++; } for (const v of hist) mxh = Math.max(mxh, v);
+    g.fillStyle = 'rgba(14,116,144,.13)'; for (let i = 0; i < 64; i++) { const h = hist[i] / mxh * (H - 2 * P); g.fillRect(X(i / 64), H - P - h, (W - 2 * P) / 64 + 0.5, h); } } catch (e) {}
+  g.strokeStyle = '#E3DACB'; g.lineWidth = 1; g.beginPath(); for (let i = 0; i <= 4; i++) { g.moveTo(X(i / 4), Y(0)); g.lineTo(X(i / 4), Y(1)); g.moveTo(X(0), Y(i / 4)); g.lineTo(X(1), Y(i / 4)); } g.stroke();
+  g.strokeStyle = '#B8AE9C'; g.setLineDash([6, 6]); g.beginPath(); g.moveTo(X(0), Y(0)); g.lineTo(X(1), Y(1)); g.stroke(); g.setLineDash([]);
+  g.strokeStyle = '#1C1B18'; g.lineWidth = 3; g.beginPath(); for (let i = 0; i <= 100; i++) { const x = i / 100, y = Math.min(1, Math.max(0, f(x))); i ? g.lineTo(X(x), Y(y)) : g.moveTo(X(x), Y(y)); } g.stroke();
+  ys.forEach((y, i) => { g.beginPath(); g.arc(X(i / 4), Y(y), 9, 0, 7); g.fillStyle = '#fff'; g.fill(); g.lineWidth = 3; g.strokeStyle = '#0E7490'; g.stroke(); });
+}
+const CRV = { i: -1 };
+document.addEventListener('pointerdown', (e) => { const c = e.target.closest && e.target.closest('#crv'); const p = cur(); if (!c || !p) return; e.preventDefault();
+  const r = c.getBoundingClientRect(), x = (e.clientX - r.left) / r.width; CRV.i = Math.max(0, Math.min(4, Math.round((x * c.width - 24) / (c.width - 48) * 4))); pushHist(p);
+  try { c.setPointerCapture(e.pointerId); } catch (x2) {} crvMove(e); });
+function crvMove(e) { const c = $('crv'), p = cur(); if (CRV.i < 0 || !c || !p) return; const r = c.getBoundingClientRect(), y = 1 - ((e.clientY - r.top) / r.height * c.height - 24) / (c.height - 48);
+  p.s.lc.curve[CRV.i] = Math.round(Math.min(1, Math.max(0, y)) * 1000) / 1000; drawCurve(); changed(false); }
+document.addEventListener('pointermove', (e) => { if (CRV.i >= 0) crvMove(e); });
+document.addEventListener('pointerup', () => { CRV.i = -1; });
+// ---------- เลือกจุดสีเทา (สมดุลแสงขาว) ----------
+function sampleSrc(p, nx, ny) {   // จุดบนจอ (หน่วยสัมพัทธ์ของ frame) → ค่าสีเฉลี่ย 7×7 ของภาพตัวอย่าง (ก่อนปรับสี)
+  const src = p.prev, Ws = src.width, Hs = src.height, [Wo, Ho] = oDims(p.s, Ws, Hs), D = Math.max(Wo, Ho), g = geo(p), [ox, oy] = ap(g.Ti, nx, ny);
+  let px = ox * D + Wo / 2, py = oy * D + Ho / 2; if (p.s.fh) px = Wo - px; if (p.s.fv) py = Ho - py; const rot = p.s.rot;
+  let sx, sy; if (rot === 0) { sx = px; sy = py; } else if (rot === 1) { sx = py; sy = Hs - px; } else if (rot === 2) { sx = Ws - px; sy = Hs - py; } else { sx = Ws - py; sy = px; }
+  sx = Math.round(sx); sy = Math.round(sy); if (sx < 0 || sy < 0 || sx >= Ws || sy >= Hs) return null; const a = [0, 0, 0]; let n = 0;
+  for (let y = Math.max(0, sy - 3); y <= Math.min(Hs - 1, sy + 3); y++) for (let x = Math.max(0, sx - 3); x <= Math.min(Ws - 1, sx + 3); x++) { const o = (y * Ws + x) * 4; a[0] += LIN8[src.data[o]]; a[1] += LIN8[src.data[o + 1]]; a[2] += LIN8[src.data[o + 2]]; n++; }
+  return a.map(v => v / n);
+}
 // ---------- ย้อนกลับ ----------
 function pushHist(p) { p.hist.push(JSON.stringify(p.s)); if (p.hist.length > 60) p.hist.shift(); }
 function undo() { const p = cur(); if (!p || !p.hist.length) return; p.s = JSON.parse(p.hist.pop()); markEdited(p); renderSide(); draw(); }
@@ -412,10 +582,28 @@ function renderHead() { const p = cur(); $('docSub').textContent = p ? (p.W + ' 
 // =====================================================================
 // แผงด้านขวา
 // =====================================================================
-const fmt = (v, st) => (st && st < 1 ? (Math.round(v * 10) / 10).toFixed(1) : String(Math.round(v))).replace(/^(\d)/, (m) => (v > 0 ? '+' : '') + m);
-const slider = (attr, key, th, en, min, max, step, val) => `<div class="sl"><div class="sh" data-rst="${attr}:${key}" title="ดับเบิลคลิก = กลับเป็นค่าเริ่มต้น"><span>${th}</span> <i>${en}</i><b id="v_${attr}_${key}">${fmt(val, step)}</b></div><input type="range" ${attr}="${key}" min="${min}" max="${max}" step="${step || 1}" value="${val}" aria-label="${th}"></div>`;
+const fmt = (v, st) => (st && st < 0.1 ? (Math.round(v * 100) / 100).toFixed(2) : st && st < 1 ? (Math.round(v * 10) / 10).toFixed(1) : String(Math.round(v))).replace(/^(\d)/, (m) => (v > 0 ? '+' : '') + m);
+const slider = (attr, key, th, en, min, max, step, val, bg) => `<div class="sl"><div class="sh" data-rst="${attr}:${key}" title="ดับเบิลคลิก = กลับเป็นค่าเริ่มต้น"><span>${th}</span> <i>${en}</i><b id="v_${attr}_${key}">${fmt(val, step)}</b></div><input type="range" ${attr}="${key}" min="${min}" max="${max}" step="${step || 1}" value="${val}" aria-label="${th}">${bg ? `<span class="grad" style="background:${bg}"></span>` : ''}</div>`;
 function renderSide() {
   const p = cur(), b = $('pbody'); if (!p) { b.innerHTML = ''; return; } const s = p.s, H = [];
+  if (APP.panel === 'lc') { const L = s.lc, mx = (L.mix || {})[APP.mixSel] || [0, 0, 0], mc = MIX.find(m => m[0] === APP.mixSel) || MIX[0];
+    H.push(`<div class="box"><h3>☀ แสง<small>Light</small></h3>${LIGHT.map(([k, th, en, mn, mxv, st]) => slider('data-lc', k, th, en, mn, mxv, st, L[k])).join('')}
+      <div class="row"><button class="btn sm" data-act="lcAuto">✦ ปรับแสงอัตโนมัติ</button><button class="btn sm" data-act="lcLightReset">รีเซ็ตแสง</button></div>
+      <details id="dCrv"${curveIdentity(L.curve) && !APP.crvOpen ? '' : ' open'}><summary>เส้นโค้ง (Curve)</summary><canvas id="crv" width="560" height="400" style="width:100%;aspect-ratio:7/5;margin-top:6px;border:1px solid var(--line);border-radius:10px;touch-action:none;cursor:ns-resize;background:#FBF9F4"></canvas>
+        <div class="row"><span class="mut" style="flex:1">ลากจุดขึ้น-ลง: ดำ · มืด · กลาง · สว่าง · ขาว</span><button class="btn sm" data-act="crvReset">รีเซ็ตเส้น</button></div></details></div>`);
+    H.push(`<div class="box"><h3>🎨 สี<small>Color</small></h3>
+      <div class="row"><label style="flex:none;color:var(--ink)">สมดุลแสงขาว</label><span class="mut" style="flex:1">${L.wb ? 'กำหนดจากจุดที่เลือก' : 'ตามที่ถ่าย (As Shot)'}</span>
+        <button class="btn sm${APP.wbPick ? ' on' : ''}" data-act="wbPick" title="คลิกจุดในรูปที่ควรเป็นสีขาว / เทา">💧 ${APP.wbPick ? 'คลิกจุดสีเทาในรูป…' : 'เลือกจุดสีเทา'}</button>${L.wb ? '<button class="btn sm" data-act="wbReset">ตามที่ถ่าย</button>' : ''}</div>
+      ${COLOR.map(([k, th, en, mn, mxv, st, bg]) => slider('data-lc', k, th, en, mn, mxv, st, L[k], bg)).join('')}
+      <details id="dMix"${mixActive(L.mix) || APP.mixOpen ? ' open' : ''}><summary>ผสมสี (Color Mixer)</summary>
+        <div class="mixc" style="margin-top:8px">${MIX.map(([k, t, , c]) => `<button data-mixsel="${k}" title="${t}" aria-label="${t}" class="${k === APP.mixSel ? 'on' : ''}" style="background:${c}">${((L.mix || {})[k] || []).some(v => v) ? '•' : ''}</button>`).join('')}</div>
+        <div class="mut" style="margin:4px 0">สี: <b style="color:${mc[3]}">${mc[1]}</b></div>
+        ${[['0', 'เฉดสี', 'Hue'], ['1', 'ความอิ่มสี', 'Saturation'], ['2', 'ความสว่าง', 'Luminance']].map(([i, th, en]) => slider('data-mix', i, th, en, -100, 100, 1, mx[+i])).join('')}
+        <div class="row"><button class="btn sm" data-act="mixReset">รีเซ็ตผสมสี</button></div></details>
+      <div class="row"><button class="btn sm" data-act="lcColorReset">รีเซ็ตสี</button>${APP.photos.length > 1 ? '<button class="btn sm" data-act="fxAll">ใช้ค่านี้กับทุกรูป</button>' : ''}</div>
+      <div class="mut">ดับเบิลคลิกชื่อแถบ = กลับเป็น 0 · กดค้างปุ่ม “ก่อนแต่ง” เพื่อเทียบ</div></div>`);
+    b.innerHTML = H.join('') + `<div class="row" style="padding:0 2px"><button class="btn sm" data-act="resetAll">↺ รีเซ็ตรูปนี้ทั้งหมด</button></div><div class="mut" style="font-size:12px">Photo Editor ${PE_VER}</div>`; drawCurve(); return;
+  }
   if (APP.panel === 'geo') {
     H.push(`<div class="box"><h3>✂ ครอป<small>สัดส่วน · ปรับเอียง</small></h3>
       <div class="row"><label style="flex:none">สัดส่วน</label><select id="selAsp">${ASPECTS.map(([k, t]) => `<option value="${k}"${k === s.aspect ? ' selected' : ''}>${t}</option>`).join('')}</select><button class="btn sm" data-act="aspSwap" title="สลับแนวตั้ง / แนวนอน"${['orig', 'free', '1:1'].includes(s.aspect) ? ' disabled' : ''}>⇄</button></div>
@@ -453,6 +641,17 @@ function ask(title, text, value) { return new Promise(res => { const b = $('dlgB
   const done = (v) => { $('dlg').hidden = true; b.onclick = null; b.onkeydown = null; res(v); };
   b.onclick = (e) => { const d = e.target.closest('[data-d]'); if (d) done(d.dataset.d === 'ok' ? (inp ? inp.value : true) : null); };
   b.onkeydown = (e) => { if (e.key === 'Escape') done(null); if (e.key === 'Enter' && inp) done(inp.value); }; }); }
+async function renderFull(p, outMax, quiet) {   // รูปที่แต่งแล้ว ความละเอียดเต็ม → canvas
+  const k = Math.min(1, 8000 / Math.max(p.W, p.H)), c = document.createElement('canvas'); c.width = Math.round(p.W * k); c.height = Math.round(p.H * k);
+  const cg = c.getContext('2d', { willReadFrequently: true }); cg.drawImage(p.bmp, 0, 0, c.width, c.height);
+  let src = cg.getImageData(0, 0, c.width, c.height); c.width = c.height = 1;
+  const g = geo(p), r = cropRect(p, g), [Wo, Ho] = oDims(p.s, src.width, src.height), D = Math.max(Wo, Ho);
+  let ow = r.w * D, oh = r.h * D; const m = Math.min(1, (outMax || OUT_MAX) / Math.max(ow, oh)); ow = Math.max(1, Math.round(ow * m)); oh = Math.max(1, Math.round(oh * m));
+  if (!quiet) { busy(true, 'กำลังดัด / ครอป… (' + ow + ' × ' + oh + ' px)'); await tick(); }
+  const im = renderGeo(p, src, r, ow, oh); src = null;
+  if (!quiet) { busy(true, 'กำลังปรับแสง · สี · เอฟเฟกต์…'); await tick(); } applyLC(im, p.s.lc); applyFx(im, p.s.fx);
+  const o = document.createElement('canvas'); o.width = ow; o.height = oh; o.getContext('2d').putImageData(im, 0, 0); return o;
+}
 async function buildJpeg(p) {
   busy(true, 'กำลังสร้างไฟล์ความละเอียดเต็ม…'); await tick();
   const k = Math.min(1, 8000 / Math.max(p.W, p.H)), c = document.createElement('canvas'); c.width = Math.round(p.W * k); c.height = Math.round(p.H * k);
@@ -462,7 +661,7 @@ async function buildJpeg(p) {
   let ow = r.w * D, oh = r.h * D; const m = Math.min(1, OUT_MAX / Math.max(ow, oh)); ow = Math.max(1, Math.round(ow * m)); oh = Math.max(1, Math.round(oh * m));
   busy(true, 'กำลังดัด / ครอป… (' + ow + ' × ' + oh + ' px)'); await tick();
   const im = renderGeo(p, src, r, ow, oh); src = null;
-  busy(true, 'กำลังใส่เอฟเฟกต์…'); await tick(); applyFx(im, p.s.fx);
+  busy(true, 'กำลังปรับแสง · สี · เอฟเฟกต์…'); await tick(); applyLC(im, p.s.lc); applyFx(im, p.s.fx);
   const o = document.createElement('canvas'); o.width = ow; o.height = oh; o.getContext('2d').putImageData(im, 0, 0);
   busy(true, 'กำลังบันทึกเป็น JPEG…'); await tick();
   const blob = await new Promise(ok => o.toBlob(ok, 'image/jpeg', 0.92)); o.width = o.height = 1; busy(false);
@@ -481,15 +680,153 @@ async function save() {
 }
 
 // =====================================================================
+// แปลงไฟล์ · ย่อรูปทีละหลายรูป (PSD · TIFF · PNG ฯลฯ → JPEG / PNG / WebP) · หลายไฟล์ = ZIP ไฟล์เดียว
+// =====================================================================
+const BT_KEY = 'wpe_batch_v1';
+const BT = Object.assign({ items: [], fromEd: false, useEdits: true, fmt: 'jpeg', mode: 'long', val: 2048, noUp: true, q: 85, maxKB: '', suffix: '' },
+  (() => { try { const o = JSON.parse(localStorage.getItem(BT_KEY) || 'null'); return o && typeof o === 'object' ? { fmt: o.fmt, mode: o.mode, val: o.val, noUp: o.noUp, q: o.q, maxKB: o.maxKB, suffix: o.suffix } : {}; } catch (e) { return {}; } })());
+const btSaveSet = () => { try { localStorage.setItem(BT_KEY, JSON.stringify({ fmt: BT.fmt, mode: BT.mode, val: BT.val, noUp: BT.noUp, q: BT.q, maxKB: BT.maxKB, suffix: BT.suffix })); } catch (e) {} };
+const fmtSize = (b) => b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+const BT_EXT = { jpeg: 'jpg', png: 'png', webp: 'webp' };
+const PRESETS = { long: [3840, 2560, 2048, 1920, 1600, 1280, 1024, 800], w: [3840, 2048, 1920, 1280, 1024, 800], h: [2160, 1440, 1080, 1024, 800, 600], pct: [75, 50, 33, 25] };
+function btOpen(fromEd) {
+  BT.items.forEach(it => { if (it.url) URL.revokeObjectURL(it.url); });
+  BT.fromEd = !!fromEd; BT.items = fromEd ? APP.photos.map(p => ({ id: uid('b'), name: p.name, photo: p, size: 0, kind: p.edited ? 'แต่งแล้ว' : 'รูป', thumb: p.thumb, status: '', msg: p.W + ' × ' + p.H + ' px' })) : [];
+  APP.view = 'batch'; renderAll();
+}
+function btAddFiles(files) {
+  const list = [...files].filter(isImg); if (!list.length) { toast('รองรับเฉพาะไฟล์รูป (JPG · PNG · WebP · TIFF · PSD …)'); return; }
+  list.forEach(f => { const e = extOf(f), web = !/^(psd|psb|tif|tiff|heic|heif)$/.test(e);
+    BT.items.push({ id: uid('b'), name: f.name.replace(/\.[^.]+$/, ''), file: f, size: f.size, kind: (e || 'รูป').toUpperCase(), url: web ? URL.createObjectURL(f) : '', status: '', msg: fmtSize(f.size) }); });
+  BT.fromEd = BT.fromEd && BT.items.every(it => it.photo || it.file); renderBatch(); toast('เพิ่ม ' + list.length + ' ไฟล์');
+}
+function btItemHtml(it) {
+  const bg = it.thumb || it.url, st = it.status === 'ok' ? 'ok' : it.status === 'bad' ? 'bad' : it.status === 'run' ? 'run' : '';
+  return `<div class="bi" data-bi="${it.id}"><span class="tn" style="${bg ? `background-image:url('${bg}')` : ''}">${bg ? '' : esc(it.kind)}</span>
+    <span style="min-width:0"><b title="${esc(it.name)}">${esc(it.name)}</b><small>${esc(it.kind)} · ${esc(it.status ? (it.src || '') : it.msg)}</small></span>
+    <span style="display:flex;align-items:center;gap:4px"><span class="st ${st}">${st ? esc(it.msg) : ''}</span>${BT.running ? '' : `<button class="x" data-btx="${it.id}" aria-label="เอาออก ${esc(it.name)}" title="เอาออก">✕</button>`}</span></div>`;
+}
+function paintItem(it) { const el = document.querySelector(`[data-bi="${it.id}"]`); if (el) el.outerHTML = btItemHtml(it); }
+function btOutName(it) { return (it.name + (BT.suffix || '')).replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.' + BT_EXT[BT.fmt]; }
+function renderBatch() {
+  const n = BT.items.length;
+  $('btList').innerHTML = n ? BT.items.map(btItemHtml).join('') : '<div class="mut" style="text-align:center;padding:18px">ยังไม่มีไฟล์ — เลือกไฟล์ หรือลากมาวางด้านบน</div>';
+  const unit = BT.mode === 'pct' ? '%' : 'px', pre = PRESETS[BT.mode] || [];
+  $('btSet').innerHTML = `<h3>⚙ ตั้งค่าการแปลง<small>${n} ไฟล์</small></h3>
+    <div style="font-size:13px;font-weight:600">บันทึกเป็น</div>
+    <div class="seg">${[['jpeg', 'JPEG'], ['png', 'PNG'], ['webp', 'WebP']].map(([k, t]) => `<button class="btn${BT.fmt === k ? ' on' : ''}" data-btfmt="${k}">${t}</button>`).join('')}</div>
+    <div style="font-size:13px;font-weight:600">ขนาดรูป</div>
+    <div class="row"><select id="btMode" style="min-height:36px;border:1px solid var(--line);border-radius:10px;padding:0 8px;background:#fff;flex:1">${[['orig', 'คงขนาดเดิม'], ['long', 'ด้านยาวไม่เกิน'], ['w', 'ความกว้าง'], ['h', 'ความสูง'], ['pct', 'ย่อเป็นเปอร์เซ็นต์']].map(([k, t]) => `<option value="${k}"${BT.mode === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
+      ${BT.mode === 'orig' ? '' : `<input type="number" id="btVal" min="1" max="${BT.mode === 'pct' ? 100 : 20000}" value="${BT.val}"><span class="mut">${unit}</span>`}</div>
+    ${BT.mode === 'orig' ? '' : `<div class="chips">${pre.map(v => `<button data-btpre="${v}" class="${+BT.val === v ? 'on' : ''}">${v}${unit === '%' ? '%' : ''}</button>`).join('')}</div>
+    ${BT.mode === 'pct' ? '' : `<label class="chk"><input type="checkbox" id="btNoUp"${BT.noUp ? ' checked' : ''}><span>ไม่ขยายรูปที่เล็กกว่าขนาดนี้</span></label>`}`}
+    ${BT.fmt === 'png' ? '<div class="mut">PNG ไม่บีบอัดแบบเสียคุณภาพ — ไฟล์ใหญ่กว่า JPEG มาก</div>' : `<div class="sl"><div class="sh"><span>คุณภาพ</span> <i>Quality</i><b id="btQv">${BT.q}</b></div><input type="range" id="btQ" min="50" max="100" step="1" value="${BT.q}" aria-label="คุณภาพ"></div>
+    <div class="row"><label style="color:var(--ink)">ขนาดไฟล์ไม่เกิน</label><input type="number" id="btMax" min="20" step="10" placeholder="ไม่จำกัด" value="${esc(BT.maxKB)}"><span class="mut">KB</span></div>`}
+    <div class="row"><label style="color:var(--ink)">ต่อท้ายชื่อไฟล์</label><input type="text" id="btSuf" maxlength="30" placeholder="เช่น _web" value="${esc(BT.suffix)}"></div>
+    <div class="mut" id="btEx">ตัวอย่าง: ${esc(n ? btOutName(BT.items[0]) : 'ชื่อเดิม' + (BT.suffix || '') + '.' + BT_EXT[BT.fmt])}</div>
+    ${BT.fromEd ? `<label class="chk"><input type="checkbox" id="btEdits"${BT.useEdits ? ' checked' : ''}><span>ใช้การแต่งรูปที่ทำไว้ (ครอป · หมุน · ดัดเส้น · เอฟเฟกต์)</span></label>` : ''}
+    <div class="info">ไฟล์ต้นฉบับไม่ถูกแก้ · หลายไฟล์ = ดาวน์โหลดเป็น ZIP ไฟล์เดียว · ทำในเครื่องคุณ ไม่อัปโหลด · ข้อมูลกล้อง (EXIF) ไม่ติดไปกับไฟล์ใหม่ · PSD ใช้ภาพรวมของไฟล์ (บันทึกแบบ Maximize Compatibility) · สี CMYK แปลงแบบประมาณ</div>
+    <button class="btn teal" data-act="btRun" style="width:100%;min-height:46px;font-size:15px"${n ? '' : ' disabled'}>⬇ แปลงและดาวน์โหลด (${n} ไฟล์)</button>
+    <div class="row"><button class="btn sm" data-act="btAdd">＋ เพิ่มไฟล์</button>${n ? '<button class="btn sm" data-act="btClear">ล้างรายการ</button>' : ''}</div>
+    <div id="btSum" class="mut"></div>`;
+}
+function btTarget(w, h) {
+  const v = Math.max(1, +BT.val || 1); let k = 1;
+  if (BT.mode === 'long') k = v / Math.max(w, h); else if (BT.mode === 'w') k = v / w; else if (BT.mode === 'h') k = v / h; else if (BT.mode === 'pct') k = Math.min(100, v) / 100;
+  if (BT.mode !== 'pct' && BT.noUp) k = Math.min(k, 1);
+  return [Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k))];
+}
+function resizeTo(src, w, h, white) {   // ย่อทีละครึ่ง (คมกว่าย่อครั้งเดียว) แล้วลงขนาดจริง
+  let curC = src, cw = src.width, ch = src.height;
+  while (cw / 2 >= w && ch / 2 >= h) { const t = document.createElement('canvas'); t.width = Math.round(cw / 2); t.height = Math.round(ch / 2); const g = t.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(curC, 0, 0, t.width, t.height);
+    if (curC !== src) curC.width = curC.height = 0; curC = t; cw = t.width; ch = t.height; }
+  const o = document.createElement('canvas'); o.width = w; o.height = h; const g = o.getContext('2d'); if (white) { g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); }
+  g.imageSmoothingQuality = 'high'; g.drawImage(curC, 0, 0, w, h); if (curC !== src) curC.width = curC.height = 0; return o;
+}
+const toBlob = (c, type, q) => new Promise(ok => c.toBlob(ok, type, q));
+async function btEncode(c) {
+  const type = 'image/' + BT.fmt; let q = BT.q / 100, b = await toBlob(c, type, q);
+  if (!b) throw new Error('สร้างไฟล์ไม่ได้ — รูปใหญ่เกินหน่วยความจำของเครื่อง');
+  const max = (+BT.maxKB || 0) * 1024; let over = false, w = c.width, h = c.height, shrunk = false;
+  if (max && BT.fmt !== 'png' && b.size > max) {   // ลดคุณภาพ (ไม่ต่ำกว่า 55) ก่อน · ยังเกิน → ย่อขนาดรูปลงทีละขั้น
+    let src = c, qMin = Math.min(0.55, q);
+    for (let round = 0; round < 6; round++) {
+      let lo = qMin, hi = q, best = null; const t0 = await toBlob(src, type, qMin);
+      if (t0 && t0.size <= max) { best = t0; for (let i = 0; i < 6; i++) { const m = (lo + hi) / 2, t = await toBlob(src, type, m); if (t && t.size <= max) { best = t; lo = m; } else hi = m; } }
+      if (best) { b = best; break; }
+      const f = Math.max(0.5, Math.sqrt(max / t0.size) * 0.92); w = Math.max(1, Math.round(w * f)); h = Math.max(1, Math.round(h * f));
+      const n = resizeTo(src, w, h, true); if (src !== c) src.width = src.height = 0; src = n; shrunk = true; b = t0;
+      if (round === 5) { b = await toBlob(src, type, qMin); over = b.size > max; } }
+    if (src !== c) src.width = src.height = 0;
+  }
+  return { blob: b, over, w, h, shrunk };
+}
+// ---------- ZIP (เก็บแบบไม่บีบอัด — JPEG บีบอัดแล้ว · ชื่อไฟล์ภาษาไทยใช้ UTF-8) ----------
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = (u) => { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = CRC_T[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+async function makeZip(files) {
+  const te = new TextEncoder(), parts = [], cen = [], d = new Date(); let off = 0;
+  const dt = ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xFFFF, dd = (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF;
+  for (const f of files) { const data = new Uint8Array(await f.blob.arrayBuffer()), nm = te.encode(f.name), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30)); h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true); h.setUint16(10, dt, true); h.setUint16(12, dd, true);
+    h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, nm.length, true); h.setUint16(28, 0, true);
+    const c = new DataView(new ArrayBuffer(46)); c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true); c.setUint16(12, dt, true); c.setUint16(14, dd, true);
+    c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+    parts.push(h, nm, data); cen.push(c, nm); off += 30 + nm.length + data.length; }
+  const cenLen = cen.reduce((a, x) => a + x.byteLength, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cenLen, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...cen, e], { type: 'application/zip' });
+}
+function downloadBlob(blob, fn) { const a = document.createElement('a'), url = URL.createObjectURL(blob); a.href = url; a.download = fn; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000); }
+async function btRun() {
+  const n = BT.items.length; if (!n || BT.running) return; BT.running = true; renderBatch();
+  const out = [], used = new Set(); let inB = 0, outB = 0, bad = 0, over = 0, i = 0;
+  for (const it of BT.items) { i++; it.status = 'run'; it.msg = 'กำลังแปลง…'; paintItem(it); busy(true, 'กำลังแปลง ' + i + ' / ' + n + ' — ' + it.name); await tick();
+    let src = null, own = false;
+    try {
+      if (it.photo) { if (BT.useEdits && it.photo.edited) { src = await renderFull(it.photo, 20000, true); own = true; } else src = it.photo.bmp; }
+      else { src = await decodeAny(it.file); own = true; }
+      it.src = src.width + ' × ' + src.height + ' px' + (src.__cmyk ? ' · CMYK' : '');
+      const [tw, th] = btTarget(src.width, src.height), c = resizeTo(src, tw, th, BT.fmt !== 'png');
+      if (own) { if (src.close) { try { src.close(); } catch (x) {} } else src.width = src.height = 0; } src = null;
+      const r = await btEncode(c); c.width = c.height = 0; const ow = r.w, oh = r.h;
+      let fn = btOutName(it), k = 2; while (used.has(fn.toLowerCase())) fn = btOutName({ name: it.name + ' (' + (k++) + ')' }); used.add(fn.toLowerCase());
+      out.push({ name: fn, blob: r.blob }); inB += it.size || 0; outB += r.blob.size; if (r.over) over++;
+      it.status = 'ok'; it.msg = '✓ ' + ow + ' × ' + oh + ' · ' + fmtSize(r.blob.size) + (r.over ? ' (เกินที่กำหนด)' : r.shrunk ? ' (ย่อเพิ่มให้ไม่เกินขนาดไฟล์)' : '');
+    } catch (e) { console.error(e); it.status = 'bad'; it.msg = '✗ ' + String((e && e.message) || e).replace(it.file ? it.file.name + ' — ' : '', ''); bad++;
+      if (own && src) { try { if (src.close) src.close(); else src.width = src.height = 0; } catch (x) {} } }
+    paintItem(it); }
+  BT.running = false;
+  if (!out.length) { busy(false); renderBatch(); toast('แปลงไม่สำเร็จ — ดูเหตุผลในรายการ', 5000); return; }
+  try { if (out.length === 1) { busy(false); downloadBlob(out[0].blob, out[0].name); }
+    else { busy(true, 'กำลังรวมเป็นไฟล์ ZIP…'); await tick(); const d = new Date(), z = await makeZip(out); busy(false);
+      downloadBlob(z, 'Wellcon รูป ' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '-' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + ' (' + out.length + ' รูป).zip'); }
+  } catch (e) { busy(false); toast('ดาวน์โหลดไม่สำเร็จ: ' + ((e && e.message) || e), 6000); }
+  renderBatch();
+  const sum = 'เสร็จ ' + out.length + ' / ' + n + ' ไฟล์' + (bad ? ' · ไม่สำเร็จ ' + bad : '') + (over ? ' · เกินขนาดที่กำหนด ' + over : '') + (inB ? ' · ' + fmtSize(inB) + ' → ' + fmtSize(outB) : ' · รวม ' + fmtSize(outB));
+  $('btSum').textContent = sum; toast(sum, 5000);
+}
+
+// =====================================================================
 // เหตุการณ์
 // =====================================================================
 document.addEventListener('click', async (e) => { const t = e.target;
+  const bx = t.closest('[data-btx]'); if (bx) { const i = BT.items.findIndex(x => x.id === bx.dataset.btx); if (i >= 0) { const [it] = BT.items.splice(i, 1); if (it.url) URL.revokeObjectURL(it.url); } renderBatch(); return; }
+  const bf2 = t.closest('[data-btfmt]'); if (bf2) { BT.fmt = bf2.dataset.btfmt; btSaveSet(); renderBatch(); return; }
+  const bp = t.closest('[data-btpre]'); if (bp) { BT.val = +bp.dataset.btpre; btSaveSet(); renderBatch(); return; }
   const px = t.closest('[data-phx]'); if (px) { e.stopPropagation(); const i = +px.dataset.phx, p = APP.photos[i];
     if (p.edited && !(await ask('ปิด “' + p.name + '”?', 'การแต่งรูปนี้ที่ยังไม่ได้บันทึกจะหายไป', null))) return;
     APP.photos.splice(i, 1); if (APP.cur >= APP.photos.length) APP.cur = APP.photos.length - 1; else if (APP.cur > i) APP.cur--; APP.guideMode = false; renderAll(); return; }
   const ph = t.closest('[data-ph]'); if (ph) { const i = +ph.dataset.ph; if (i !== APP.cur) { APP.cur = i; APP.guideMode = false; renderAll(); } return; }
-  const pn = t.closest('[data-panel]'); if (pn) { APP.panel = pn.dataset.panel; APP.guideMode = false; renderAll(); return; }
+  const ms = t.closest('[data-mixsel]'); if (ms) { APP.mixSel = ms.dataset.mixsel; renderSide(); return; }
+  const pn = t.closest('[data-panel]'); if (pn) { APP.panel = pn.dataset.panel; APP.guideMode = false; APP.wbPick = false; renderAll(); return; }
   const a = t.closest('[data-act]'); if (!a) return; const k = a.dataset.act, p = cur();
+  if (k === 'toPm' && APP.view === 'batch') { if (BT.running) return; APP.view = 'edit'; renderAll(); return; }
+  if (k === 'batchOpen') { btOpen(false); return; }
+  if (k === 'batchFromEd') { if (!APP.photos.length) return; btOpen(true); return; }
+  if (k === 'btAdd') { $('fBatch').click(); return; }
+  if (k === 'btRun') { btRun(); return; }
+  if (k === 'btClear') { BT.items.forEach(it => { if (it.url) URL.revokeObjectURL(it.url); }); BT.items = []; BT.fromEd = false; renderAll(); return; }
   if (k === 'toPm' && EMBED) { if (APP.photos.some(x => x.edited) && !(await ask('ยกเลิกการแต่งรูป?', 'รูปบน Layboard จะไม่เปลี่ยน', null))) return; toParent({ t: 'pe-cancel' }); return; }
   if (k === 'toPm') { if (APP.dirty && APP.photos.some(x => x.edited) && !(await ask('ออกโดยไม่บันทึก?', 'รูปที่แต่งแล้วยังไม่ได้บันทึกจะหายไป', null))) return; APP.dirty = false; location.href = pmUrl() + '#/work'; return; }
   if (k === 'open') { $('fOpen').click(); return; }
@@ -506,13 +843,28 @@ document.addEventListener('click', async (e) => { const t = e.target;
   else if (k === 'guideUndo') { pushHist(p); s.guides.pop(); changed(true); renderSide(); }
   else if (k === 'guideClear') { pushHist(p); s.guides = []; changed(true); renderSide(); }
   else if (k === 'tfReset') { pushHist(p); s.tf = DEF().tf; changed(true); renderSide(); }
+  else if (k === 'lcAuto') { pushHist(p); Object.assign(p.s.lc, autoTone(p)); changed(false); renderSide(); toast('ปรับแสงอัตโนมัติแล้ว — ปรับแถบต่อได้'); }
+  else if (k === 'lcLightReset') { pushHist(p); const D0 = DEF().lc; ['exp', 'con', 'hi', 'sh', 'wh', 'bl', 'curve'].forEach(x => { p.s.lc[x] = D0[x]; }); changed(false); renderSide(); }
+  else if (k === 'lcColorReset') { pushHist(p); const D0 = DEF().lc; ['temp', 'tint', 'wb', 'vib', 'sat', 'mix'].forEach(x => { p.s.lc[x] = D0[x]; }); APP.wbPick = false; changed(false); renderSide(); }
+  else if (k === 'crvReset') { pushHist(p); p.s.lc.curve = DEF().lc.curve; changed(false); renderSide(); }
+  else if (k === 'mixReset') { pushHist(p); p.s.lc.mix = {}; changed(false); renderSide(); }
+  else if (k === 'wbPick') { APP.wbPick = !APP.wbPick; renderSide(); if (APP.wbPick) toast('คลิกจุดในรูปที่ควรเป็นสีขาว / เทา (เช่น ผนังขาว · ฝ้า · กระดาษ)', 3500); }
+  else if (k === 'wbReset') { pushHist(p); p.s.lc.wb = null; changed(false); renderSide(); }
   else if (k === 'fxReset') { pushHist(p); s.fx = DEF().fx; changed(false); renderSide(); }
-  else if (k === 'fxAll') { if (!(await ask('ใช้ค่าเอฟเฟกต์นี้กับทุกรูป?', 'เฉพาะเอฟเฟกต์ (พื้นผิว · ความคมชัด · ลดหมอก · ขอบมืด · เกรน) — ครอป / หมุน / ดัดเส้นของแต่ละรูปไม่เปลี่ยน', null))) return;
-    APP.photos.forEach(q => { if (q !== p) { pushHist(q); q.s.fx = { ...s.fx }; markEdited(q); } }); renderFilm(); toast('ใช้กับ ' + (APP.photos.length - 1) + ' รูปแล้ว'); }
+  else if (k === 'fxAll') { if (!(await ask('ใช้ค่าแสง · สี · เอฟเฟกต์นี้กับทุกรูป?', 'แสง · สี (รวมสมดุลแสงขาว · เส้นโค้ง · ผสมสี) และเอฟเฟกต์ — ครอป / หมุน / ดัดเส้นของแต่ละรูปไม่เปลี่ยน', null))) return;
+    APP.photos.forEach(q => { if (q !== p) { pushHist(q); q.s.fx = { ...s.fx }; q.s.lc = JSON.parse(JSON.stringify(s.lc)); markEdited(q); } }); renderFilm(); toast('ใช้กับ ' + (APP.photos.length - 1) + ' รูปแล้ว'); }
   else if (k === 'resetAll') { if (!(await ask('รีเซ็ตรูปนี้ทั้งหมด?', 'ครอป · หมุน · ดัดเส้น · เอฟเฟกต์ กลับเป็นค่าเริ่มต้น (กด ↶ ย้อน ได้)', null))) return; pushHist(p); p.s = DEF(); APP.guideMode = false; changed(false); renderSide(); }
 });
 let sliding = null;
-document.addEventListener('input', (e) => { const t = e.target, p = cur(); if (!p) return;
+document.addEventListener('input', (e) => { const t = e.target;
+  if (t.id === 'btQ') { BT.q = +t.value; $('btQv').textContent = BT.q; btSaveSet(); return; }
+  if (t.id === 'btVal') { BT.val = Math.max(1, +t.value || 1); btSaveSet(); document.querySelectorAll('[data-btpre]').forEach(b => b.classList.toggle('on', +b.dataset.btpre === +BT.val)); return; }
+  if (t.id === 'btMax') { BT.maxKB = t.value; btSaveSet(); return; }
+  if (t.id === 'btSuf') { BT.suffix = t.value.replace(/[\/:*?"<>|]+/g, ''); btSaveSet(); const ex = $('btEx'); if (ex) ex.textContent = 'ตัวอย่าง: ' + (BT.items.length ? btOutName(BT.items[0]) : 'ชื่อเดิม' + BT.suffix + '.' + BT_EXT[BT.fmt]); return; }
+  const p = cur(); if (!p) return;
+  if (t.dataset.lc || t.dataset.mix) { const key = t.dataset.lc || t.dataset.mix, v = +t.value; if (sliding !== t) { pushHist(p); sliding = t; }
+    if (t.dataset.lc) p.s.lc[key] = v; else { const mx = { ...(p.s.lc.mix || {}) }, a = (mx[APP.mixSel] || [0, 0, 0]).slice(); a[+key] = v; mx[APP.mixSel] = a; p.s.lc.mix = mx; }
+    const lab = $('v_' + (t.dataset.lc ? 'data-lc' : 'data-mix') + '_' + key); if (lab) lab.textContent = fmt(v, +t.step); changed(false); return; }
   const at = t.dataset.fx ? ['data-fx', 'fx'] : t.dataset.tf ? ['data-tf', 'tf'] : t.dataset.geo ? ['data-geo', 'geo'] : null; if (!at) return;
   const key = t.getAttribute(at[0]), v = +t.value; if (sliding !== t) { pushHist(p); sliding = t; }
   if (at[1] === 'fx') p.s.fx[key] = v; else if (at[1] === 'tf') p.s.tf[key] = v; else p.s[key] = v;
@@ -521,14 +873,21 @@ document.addEventListener('input', (e) => { const t = e.target, p = cur(); if (!
 });
 document.addEventListener('change', (e) => { const t = e.target, p = cur(); sliding = null;
   if (t.id === 'fOpen') { const F = [...t.files]; t.value = ''; if (F.length) addFiles(F); return; }
+  if (t.id === 'fBatch') { const F = [...t.files]; t.value = ''; if (F.length) btAddFiles(F); return; }
+  if (t.id === 'btMode') { BT.mode = t.value; if (BT.mode === 'pct' && +BT.val > 100) BT.val = 50; if (BT.mode !== 'pct' && +BT.val <= 100) BT.val = 2048; btSaveSet(); renderBatch(); return; }
+  if (t.id === 'btNoUp') { BT.noUp = t.checked; btSaveSet(); return; }
+  if (t.id === 'btEdits') { BT.useEdits = t.checked; return; }
   if (!p) return; const s = p.s;
   if (t.id === 'selAsp') { pushHist(p); s.aspect = t.value; if (s.aspect === 'orig' && !needFit(s)) s.crop = null; else fitCrop(p, true); changed(false); renderSide(); }
   else if (t.id === 'selOv') { s.overlay = t.value; drawOverlay(); }
   else if (t.id === 'selUp') { pushHist(p); s.upright = t.value; APP.guideMode = t.value === 'guided' && !s.guides.length; changed(true); renderSide(); if (APP.guideMode) toast('ลากเส้นตามเสา / ขอบผนังที่ควรตั้งตรง', 3500); }
   else if (t.id === 'chkCon') { pushHist(p); s.constrain = t.checked; changed(true); }
 });
+document.addEventListener('toggle', (e) => { const t = e.target; if (t.id === 'dCrv') { APP.crvOpen = t.open; if (t.open) drawCurve(); } else if (t.id === 'dMix') APP.mixOpen = t.open; }, true);
 document.addEventListener('dblclick', (e) => { const r = e.target.closest('[data-rst]'); const p = cur(); if (!r || !p) return; const [attr, key] = r.dataset.rst.split(':');
-  pushHist(p); const D0 = DEF(); if (attr === 'data-fx') p.s.fx[key] = D0.fx[key]; else if (attr === 'data-tf') p.s.tf[key] = D0.tf[key]; else p.s[key] = D0[key];
+  pushHist(p); const D0 = DEF(); if (attr === 'data-lc') { p.s.lc[key] = D0.lc[key]; changed(false); renderSide(); return; }
+  if (attr === 'data-mix') { const mx = { ...(p.s.lc.mix || {}) }, a = (mx[APP.mixSel] || [0, 0, 0]).slice(); a[+key] = 0; mx[APP.mixSel] = a; p.s.lc.mix = mx; changed(false); renderSide(); return; }
+  if (attr === 'data-fx') p.s.fx[key] = D0.fx[key]; else if (attr === 'data-tf') p.s.tf[key] = D0.tf[key]; else p.s[key] = D0[key];
   changed(attr !== 'data-fx'); renderSide(); });
 const bf = $('tbBefore'); const bOn = (e) => { if (e) e.preventDefault(); APP.before = true; bf.classList.add('on'); draw(); }, bOff = () => { if (!APP.before) return; APP.before = false; bf.classList.remove('on'); draw(); };
 bf.addEventListener('pointerdown', bOn); bf.addEventListener('pointerup', bOff); bf.addEventListener('pointerleave', bOff); bf.addEventListener('pointercancel', bOff);
@@ -537,9 +896,11 @@ document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.
   if (e.key === 'Escape' && APP.guideMode) { APP.guideMode = false; renderSide(); draw(); } });
 (function dropBind() { const d = $('drop'); ['dragenter', 'dragover'].forEach(k => d.addEventListener(k, (e) => { e.preventDefault(); d.classList.add('on'); }));
   ['dragleave', 'drop'].forEach(k => d.addEventListener(k, (e) => { e.preventDefault(); d.classList.remove('on'); })); d.addEventListener('drop', (e) => addFiles([...(e.dataTransfer.files || [])]));
+  const bd = $('btDrop'); ['dragenter', 'dragover'].forEach(k => bd.addEventListener(k, (e) => { e.preventDefault(); bd.classList.add('on'); }));
+  ['dragleave', 'drop'].forEach(k => bd.addEventListener(k, (e) => { e.preventDefault(); bd.classList.remove('on'); })); bd.addEventListener('drop', (e) => btAddFiles([...(e.dataTransfer.files || [])]));
   $('view').addEventListener('dragover', (e) => e.preventDefault()); $('view').addEventListener('drop', (e) => { e.preventDefault(); const F = [...(e.dataTransfer.files || [])]; if (F.length) addFiles(F); }); })();
 let rzT = null; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (APP.photos.length) draw(); }, 120); });
 window.addEventListener('beforeunload', (e) => { if (!EMBED && APP.photos.some(x => x.edited) && APP.dirty) { e.preventDefault(); e.returnValue = ''; } });
-window.__PE = { APP, geo, cropRect, buildJpeg, autoAngle, guidedG, ver: PE_VER };   // ใช้ตรวจสอบในชุดทดสอบ
+window.__PE = { APP, BT, applyLC, autoTone, geo, cropRect, buildJpeg, autoAngle, guidedG, makeZip, ver: PE_VER };   // ใช้ตรวจสอบในชุดทดสอบ
 boot();
 })();
