@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const PM_VER = 'v1.1.0';
+const PM_VER = 'v1.2.0';
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -186,7 +186,7 @@ function renderAll() {
   $('startPane').hidden = has; $('edPane').hidden = !has; $('hbSave').disabled = !has; $('hbPrint').disabled = !has; $('hbNew').hidden = !has;
   $('docTitle').textContent = has ? (APP.docs[0] ? APP.docs[0].name : 'เอกสารใหม่') : 'PDF Maker';
   $('docSub').textContent = has ? APP.pages.length + ' หน้า' + (APP.docs.length > 1 ? ' · รวม ' + APP.docs.length + ' ไฟล์' : '') + (APP.dirty ? ' · ยังไม่ได้บันทึก' : '') : 'อ่าน · แทรกหน้า · รวมไฟล์ · ลายเซ็น · กรอกฟอร์ม · แก้ข้อความ';
-  if (!has) return; if (APP.cur >= APP.pages.length) APP.cur = APP.pages.length - 1;
+  if (!has) { sheet(null); return; } if (APP.cur >= APP.pages.length) APP.cur = APP.pages.length - 1;
   renderStrip(); renderPage(); renderSide();
 }
 function renderStrip() {
@@ -252,9 +252,18 @@ function renderSide() {
   if (nCover) H.push('<div class="warn">แก้ข้อความแบบปิดทับ: ถ้าไม่ติ๊กข้างบน ข้อความเดิมยังอยู่ใต้แถบขาว คัดลอก / ค้นหาเจอได้ · ใช้กับเอกสารของ Wellcon เท่านั้น — ห้ามแก้เอกสารของผู้อื่นแล้วส่งต่อเหมือนต้นฉบับ</div>');
   H.push('</div>');
   H.push(`<div class="mut" style="font-size:12px">ไฟล์อยู่ในเครื่องคุณ ไม่ถูกอัปโหลด · ไฟล์ต้นฉบับไม่ถูกแก้ (บันทึกเป็นไฟล์ใหม่) · ลายเซ็นแบบภาพ ไม่ใช่ลายเซ็นดิจิทัลที่มีใบรับรอง — สัญญา / เอกสารกฎหมายต้องผ่านผู้บริหารก่อนส่ง · PDF Maker ${PM_VER}</div>`);
-  $('side').innerHTML = H.join('');
+  $('side').innerHTML = H.join(''); mUpd();
   if (it && it.type === 'text') { const pc = $('pCover'); if (pc) pc.checked = !!it.bg; }
 }
+// ---------- มือถือ: แผ่นเลื่อนขึ้น (หน้า / ลายเซ็น) · ปุ่มเลื่อนหน้า ----------
+const isMob = () => window.matchMedia('(max-width:700px)').matches;
+function sheet(w) { document.body.classList.toggle('m-pages', w === 'pages'); document.body.classList.toggle('m-side', w === 'side'); }
+function mUpd() { const n = APP.pages.length, c = APP.cur + 1; const a = $('mPg'); if (!a) return; a.textContent = c + ' / ' + n; $('mPgN').textContent = n ? '(' + n + ')' : '';
+  $('mPrevB').disabled = APP.cur <= 0; $('mNextB').disabled = APP.cur >= n - 1; $('msel').hidden = !APP.sel; }
+function goPage(i) { if (i < 0 || i >= APP.pages.length || i === APP.cur) return; APP.cur = i; APP.sel = null; renderStrip(); renderPage(); renderSide(); try { $('stage').scrollTop = 0; } catch (e) {} }
+function mMore() { const b = $('dlgBox');
+  b.innerHTML = `<b class="t">เพิ่มเติม</b><div class="mmenu"><button data-act="mPages">▤ จัดหน้า · แทรกหน้า · รวมไฟล์</button><button data-act="rotDlg">⟳ หมุนหน้า</button><button data-act="print">🖨 พิมพ์</button><button data-act="zoomFit">⤢ ขนาดพอดีจอ</button><button data-act="new" style="color:var(--red)">✕ ปิดไฟล์</button></div><div class="ac"><button class="btn" data-d="no">ปิด</button></div>`;
+  $('dlg').hidden = false; b.onclick = (e) => { if (e.target.closest('[data-d]') || e.target.closest('[data-act]')) { $('dlg').hidden = true; b.onclick = null; } }; }
 function setMode(m) { APP.mode = m; document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === m)); $('ov').className = 'ov mode-' + m;
   if (m !== 'select') toast(m === 'text' ? 'ลากเป็นกรอบในหน้า แล้วพิมพ์ข้อความ' : 'ลากครอบข้อความเดิมที่ต้องการแก้ แล้วพิมพ์ข้อความใหม่', 3000); }
 function select(id) { APP.sel = id; renderOverlay(); renderSide(); }
@@ -340,7 +349,7 @@ async function sigNew() {
 }
 function placeSig(id) { const g = APP.sigs.find(x => x.id === id), p = curPage(); if (!g || !p) return;
   const w = g.stamp ? 110 : 150, h = w * g.h / g.w; const it = { id: uid('g'), type: 'img', src: g.url, x: (p.w - w) / 2, y: Math.min(p.h - h - 40, p.h * 0.72), w, h, stamp: !!g.stamp, sig: g.name };
-  p.items.push(it); APP.dirty = true; APP.sel = it.id; renderOverlay(); renderSide(); renderStrip(); renderAll0(); toast('ลากไปวางตำแหน่งที่ต้องการ · ลากมุมขวาล่างเพื่อปรับขนาด'); }
+  p.items.push(it); APP.dirty = true; APP.sel = it.id; if (isMob()) sheet(null); renderOverlay(); renderSide(); renderStrip(); renderAll0(); toast(isMob() ? 'ลากแถบสีน้ำเงินเพื่อย้าย · ลากจุดมุมเพื่อปรับขนาด' : 'ลากไปวางตำแหน่งที่ต้องการ · ลากมุมขวาล่างเพื่อปรับขนาด'); }
 
 // =====================================================================
 // สร้างไฟล์ PDF (บันทึก / พิมพ์)
@@ -476,7 +485,7 @@ document.addEventListener('click', async (e) => { const t = e.target;
   if (mv) { const i = +mv.dataset.i, j = i + +mv.dataset.pmv; if (j < 0 || j >= APP.pages.length) return; const [p] = APP.pages.splice(i, 1); APP.pages.splice(j, 0, p); APP.cur = j; APP.dirty = true; renderAll(); return; }
   if (pd) { const i = +pd.dataset.pdel; if (APP.pages.length === 1) { toast('ต้องเหลืออย่างน้อย 1 หน้า — ปิดไฟล์ได้ที่ปุ่ม ✕ ด้านบน'); return; }
     if (!(await ask('ลบหน้า ' + (i + 1) + '?', 'ลบเฉพาะในไฟล์ที่จะบันทึก — ไฟล์ต้นฉบับไม่ถูกแก้', null, 'ลบหน้า', true))) return; APP.pages.splice(i, 1); if (APP.cur >= i && APP.cur > 0) APP.cur--; APP.sel = null; APP.dirty = true; renderAll(); return; }
-  if (th) { const i = +th.dataset.pg; if (i !== APP.cur) { APP.cur = i; APP.sel = null; renderStrip(); renderPage(); renderSide(); } return; }
+  if (th) { const i = +th.dataset.pg; if (i !== APP.cur) { APP.cur = i; APP.sel = null; renderStrip(); renderPage(); renderSide(); } if (isMob()) sheet(null); return; }
   const md = t.closest('[data-mode]'); if (md) { setMode(md.dataset.mode); return; }
   const su = t.closest('[data-siguse]'); if (su) { placeSig(su.dataset.siguse); return; }
   const sd = t.closest('[data-sigdel]'); if (sd) { const g = APP.sigs.find(x => x.id === sd.dataset.sigdel); if (g && await ask('ลบ “' + g.name + '” ออกจากเครื่องนี้?', 'ลายเซ็นที่วางในเอกสารแล้วไม่หาย', null, 'ลบ', true)) { APP.sigs = APP.sigs.filter(x => x !== g); saveSigs(); renderSide(); } return; }
@@ -487,8 +496,15 @@ document.addEventListener('click', async (e) => { const t = e.target;
   else if (k === 'addBlank') addBlank(APP.cur + 1); else if (k === 'addPdf') $('fAddPdf').click(); else if (k === 'addImg') $('fAddImg').click();
   else if (k === 'sigPick') { if (!APP.sigs.length) sigNew(); else { toast('เลือกลายเซ็นทางขวา แล้วกด “วางในหน้านี้”'); const sd2 = $('side'); sd2.scrollTop = 0; } }
   else if (k === 'sigNew') sigNew();
+  else if (k === 'mPages') sheet(document.body.classList.contains('m-pages') ? null : 'pages');
+  else if (k === 'mSide') sheet('side');
+  else if (k === 'mSig') { if (!APP.sigs.length) sigNew(); else sheet(document.body.classList.contains('m-side') ? null : 'side'); }
+  else if (k === 'mClose') sheet(null);
+  else if (k === 'mPrev') goPage(APP.cur - 1); else if (k === 'mNext') goPage(APP.cur + 1);
+  else if (k === 'mMore') mMore();
   else if (k === 'rotDlg') rotDlg();
-  else if (k === 'delItem') { const f = APP.sel && findItem(APP.sel); if (f) { f.p.items = f.p.items.filter(x => x !== f.it); APP.sel = null; APP.dirty = true; renderOverlay(); renderSide(); renderStrip(); } }
+  else if (k === 'delItem' && isMob()) sheet(null);
+  if (k === 'delItem') { const f = APP.sel && findItem(APP.sel); if (f) { f.p.items = f.p.items.filter(x => x !== f.it); APP.sel = null; APP.dirty = true; renderOverlay(); renderSide(); renderStrip(); } }
   else if (k === 'deselect') select(null);
   else if (k === 'zoomIn') { APP.zoom = Math.min(4, APP.zoom * 1.25); renderPage(); } else if (k === 'zoomOut') { APP.zoom = Math.max(0.4, APP.zoom / 1.25); renderPage(); } else if (k === 'zoomFit') { APP.zoom = 1; renderPage(); }
   else if (k === 'save') savePdf(); else if (k === 'print') printPdf();
