@@ -9,7 +9,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const PE_VER = 'v1.0.0';
+const PE_VER = 'v1.1.0';
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -22,7 +22,9 @@ const IS_STG = SCHEMA === 'staging';
 const SESS_KEY = 'wellcon_pm_session_v1', SESS_DAYS = 14, TAB = 'tab:photo';
 const PREV = 1600;                                   // ภาพตัวอย่างด้านยาวสุด (px)
 const MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-const OUT_MAX = MOBILE ? 4096 : 6000;                // ไฟล์ที่บันทึก ด้านยาวสุด (iPhone จำกัดขนาด canvas)
+const EMBED = /[?&]embed=1/.test(location.search) && window.parent !== window;   // เปิดจาก Layboard (แต่งรูปบนบอร์ด)
+const OUT_MAX = EMBED ? (MOBILE ? 4096 : 5000) : MOBILE ? 4096 : 6000;   // ไฟล์ที่บันทึก ด้านยาวสุด (iPhone จำกัดขนาด canvas · Layboard เก็บรูปสูงสุด 5000 px)
+const toParent = (m) => { try { window.parent.postMessage(m, location.origin); } catch (e) {} };
 const sb = window.supabase.createClient(CFG.url, CFG.anonKey, { db: { schema: SCHEMA }, auth: { persistSession: true, autoRefreshToken: true } });
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -46,8 +48,15 @@ const ASPECTS = [['orig', 'ตามรูปเดิม'], ['free', 'อิส
 // =====================================================================
 // เข้าสู่ระบบ + สิทธิ์
 // =====================================================================
-function msg(t, s) { $('msgBody').innerHTML = `<img src="photo-icon.svg" alt="" style="width:80px;height:80px"><h1 style="font-size:20px;margin:0">${t}</h1><p>${s}</p><a class="btn dk" style="text-decoration:none" href="${pmUrl()}">ไปหน้า Wellcon PM</a>`; }
+function msg(t, s) { $('msgBody').innerHTML = `<img src="photo-icon.svg" alt="" style="width:80px;height:80px"><h1 style="font-size:20px;margin:0">${t}</h1><p>${s}</p>${EMBED ? '<button class="btn dk" data-act="toPm">ปิด กลับไป Layboard</button>' : `<a class="btn dk" style="text-decoration:none" href="${pmUrl()}">ไปหน้า Wellcon PM</a>`}`; }
 async function boot() {
+  if (EMBED) {   // แต่งรูปจาก Layboard: รูปเดียว · ไม่มีปุ่มหน้าแรก / ออกจากระบบ · ปุ่มบันทึก = ใช้รูปนี้ในบอร์ด
+    const st = document.createElement('style'); st.textContent = '.pmhome,.pmnav,#hbClose,.fadd,.fi .x{display:none!important}'; document.head.appendChild(st);
+    $('hbSave').innerHTML = '✓<span class="tx"> ใช้รูปนี้ในบอร์ด</span>'; $('hbSave').title = 'แทนที่รูปบน Layboard ด้วยรูปที่แต่งแล้ว';
+    document.querySelectorAll('[data-act="toPm"]').forEach(b => { b.setAttribute('aria-label', 'ยกเลิก กลับไป Layboard'); b.title = 'ยกเลิก กลับไป Layboard'; });
+    window.addEventListener('message', async (e) => { if (e.origin !== location.origin || e.source !== window.parent) return; const m = e.data || {};
+      if (m.t === 'pe-open' && m.blob) { const f = new File([m.blob], (m.name || 'รูปจาก Layboard') + '.jpg', { type: m.blob.type || 'image/jpeg' }); await addFiles([f]); APP.dirty = false; renderHead(); } });
+  }
   if (IS_STG) document.querySelectorAll('.scr').forEach(s => { const d = document.createElement('div'); d.className = 'stg'; d.textContent = 'โหมดทดสอบ (staging)'; s.prepend(d); });
   try {
     let ok = false; try { const r = await sb.auth.getSession(); ok = !!(r && r.data && r.data.session); } catch (e) {}
@@ -66,6 +75,7 @@ async function boot() {
     try { sb.rpc('usage_touch', { p_email: APP.me.email, p_app: 'photo' }).then(() => {}, () => {}); } catch (e) {}
     if (window.WCTag) WCTag.setup({ sb, app: 'Photo Editor', me: APP.me, accounts: accs.filter(x => x.active !== false && !x.disabled), projects: [] });
     $('scrMsg').hidden = true; $('scrMain').hidden = false; renderAll();
+    if (EMBED) { busy(true, 'กำลังโหลดรูปจาก Layboard…'); toParent({ t: 'pe-ready' }); setTimeout(() => { if (!APP.photos.length) busy(false); }, 15000); }
   } catch (e) { console.error(e); msg('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', esc((e && e.message) || e)); }
 }
 
@@ -460,6 +470,8 @@ async function buildJpeg(p) {
 }
 async function save() {
   const p = cur(); if (!p) return;
+  if (EMBED) { if (!p.edited) { toast('ยังไม่ได้แต่งรูป — กด ‹ เพื่อกลับไป Layboard'); return; }
+    try { const { blob } = await buildJpeg(p); APP.dirty = false; toParent({ t: 'pe-done', blob }); } catch (e) { console.error(e); busy(false); toast('สร้างรูปไม่สำเร็จ: ' + ((e && e.message) || e), 6000); } return; }
   const name = await ask('บันทึกลงเครื่อง', 'ไฟล์ต้นฉบับไม่ถูกแก้ — บันทึกเป็น JPEG ไฟล์ใหม่', p.name + ' (แก้ไข)'); if (name == null) return;
   try { const { blob, ow, oh } = await buildJpeg(p), fn = (String(name).trim() || p.name + ' (แก้ไข)').replace(/[\\/:*?"<>|]+/g, ' ') + '.jpg', file = new File([blob], fn, { type: 'image/jpeg' });
     if (MOBILE && navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: fn }); APP.dirty = false; renderHead(); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
@@ -478,6 +490,7 @@ document.addEventListener('click', async (e) => { const t = e.target;
   const ph = t.closest('[data-ph]'); if (ph) { const i = +ph.dataset.ph; if (i !== APP.cur) { APP.cur = i; APP.guideMode = false; renderAll(); } return; }
   const pn = t.closest('[data-panel]'); if (pn) { APP.panel = pn.dataset.panel; APP.guideMode = false; renderAll(); return; }
   const a = t.closest('[data-act]'); if (!a) return; const k = a.dataset.act, p = cur();
+  if (k === 'toPm' && EMBED) { if (APP.photos.some(x => x.edited) && !(await ask('ยกเลิกการแต่งรูป?', 'รูปบน Layboard จะไม่เปลี่ยน', null))) return; toParent({ t: 'pe-cancel' }); return; }
   if (k === 'toPm') { if (APP.dirty && APP.photos.some(x => x.edited) && !(await ask('ออกโดยไม่บันทึก?', 'รูปที่แต่งแล้วยังไม่ได้บันทึกจะหายไป', null))) return; APP.dirty = false; location.href = pmUrl() + '#/work'; return; }
   if (k === 'open') { $('fOpen').click(); return; }
   if (k === 'save') { save(); return; }
@@ -526,7 +539,7 @@ document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.
   ['dragleave', 'drop'].forEach(k => d.addEventListener(k, (e) => { e.preventDefault(); d.classList.remove('on'); })); d.addEventListener('drop', (e) => addFiles([...(e.dataTransfer.files || [])]));
   $('view').addEventListener('dragover', (e) => e.preventDefault()); $('view').addEventListener('drop', (e) => { e.preventDefault(); const F = [...(e.dataTransfer.files || [])]; if (F.length) addFiles(F); }); })();
 let rzT = null; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (APP.photos.length) draw(); }, 120); });
-window.addEventListener('beforeunload', (e) => { if (APP.photos.some(x => x.edited) && APP.dirty) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', (e) => { if (!EMBED && APP.photos.some(x => x.edited) && APP.dirty) { e.preventDefault(); e.returnValue = ''; } });
 window.__PE = { APP, geo, cropRect, buildJpeg, autoAngle, guidedG, ver: PE_VER };   // ใช้ตรวจสอบในชุดทดสอบ
 boot();
 })();
