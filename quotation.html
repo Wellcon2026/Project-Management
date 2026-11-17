@@ -147,6 +147,37 @@ table.bq .x{border:0;background:none;color:var(--bad);font-size:15px;padding:6px
 #vw .vf{flex:none;color:#B9B19F;font-size:12.5px;padding:8px 12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 #vw .vf .ml{display:flex;gap:6px;flex-wrap:wrap;flex:1}
 #vw .vf .ml button{border:1px solid #6B3A30;background:transparent;color:#F0A493;border-radius:8px;font-size:12px;padding:2px 8px}
+/* งานเปลี่ยนแบบ v1.7.0 */
+#scrEdit:not(.isdco) .dcoOnly{display:none!important}
+.card.dco{border-color:#CDBDE0;background:linear-gradient(#FBF8FE,var(--card) 90px)}
+.sidebar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;font-size:13.5px}
+.sidebar .sp{flex:1}
+.sidebar .chip[data-side="old"].on{background:#B4442E;border-color:#B4442E}.sidebar .chip[data-side="new"].on{background:#1F5FBF;border-color:#1F5FBF}
+.sideh{grid-column:1/-1;font-size:13.5px;padding:4px 2px 0;border-bottom:2px solid var(--line);display:flex;gap:6px;align-items:baseline}
+.sideh small{color:var(--mut)}.sideh.s-old{border-color:#E7B4A8}.sideh.s-old b{color:#B4442E}.sideh.s-new{border-color:#A9C3EA}.sideh.s-new b{color:#1F5FBF}.sideh.s-cmp b{color:#5B2E91}
+.sidee{grid-column:1/-1;margin:0;font-size:12.5px;color:var(--mut)}
+.att.s-old{border-color:#E7B4A8}.att.s-new{border-color:#A9C3EA}
+.att .th .sd{position:absolute;left:6px;bottom:6px;color:#fff;border-radius:7px;font-size:11px;font-weight:700;padding:1px 7px;background:#1F5FBF}
+.att.s-old .th .sd{background:#B4442E}.att.s-cmp .th .sd{background:#5B2E91}
+#scrView .sideh{margin-top:6px}
+table.bq tr.grp td{background:#F6F2FA}
+table.bq tr.g-omit td.amt{color:var(--bad)}
+#cmp{position:fixed;inset:0;z-index:82;background:#14130F;display:flex;flex-direction:column}
+#cmp .vh{flex:none;display:flex;align-items:center;gap:7px;padding:10px 12px;color:#F6F1E8;flex-wrap:wrap}
+#cmp .vh b{font-size:15px;margin-right:4px}
+#cmp .vb{min-width:40px;height:40px;border-radius:11px;border:1px solid #4A463C;background:#26241F;color:#F6F1E8;padding:0 11px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+#cmp .vb.on{background:#C9A961;border-color:#C9A961;color:#1C1B18}#cmp .vb.gold{border-color:#C9A961;color:#E8D3A0}
+#cmp .seg{display:inline-flex;gap:4px}
+#cmp .cs{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;min-width:0}
+#cmp .cs span{font-weight:700;border-radius:7px;padding:2px 7px;color:#fff}#cmp .cs.od span{background:#B4442E}#cmp .cs.nw span{background:#1F5FBF}
+#cmp .cs select{max-width:190px;height:40px;border-radius:10px;border:1px solid #4A463C;background:#26241F;color:#F6F1E8;padding:0 8px;font-size:13px}
+#cmpStage{flex:1;position:relative;overflow:hidden;touch-action:none;cursor:grab;min-height:200px}
+#cmpCv{display:block}
+#cmp .vf{flex:none;color:#B9B19F;font-size:12.5px;padding:8px 12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+#cmp .lg{display:flex;gap:12px;flex-wrap:wrap;flex:1}
+#cmp .ng button{min-width:32px;height:30px;border-radius:8px;border:1px solid #4A463C;background:#26241F;color:#F6F1E8;margin-left:3px}
+#cmpAi{flex:none;max-height:32vh;overflow:auto;padding:0 12px}#cmpAi:empty{display:none}#cmpAi .ai{margin-bottom:10px}
+@media(max-width:700px){#cmp [data-cv="in"],#cmp [data-cv="out"]{display:none}#cmp .vh{gap:5px;padding:8px}#cmp .cs select{max-width:120px}#cmp .vb{min-width:36px;height:36px;padding:0 8px;font-size:13px}}
 /* กล่องถาม / ยืนยัน */
 #dlg{position:fixed;inset:0;z-index:90;background:rgba(28,27,24,.5);display:flex;align-items:center;justify-content:center;padding:16px}
 #dlg .bx{background:var(--card);border-radius:18px;padding:18px;width:min(520px,100%);max-height:88vh;overflow:auto;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
@@ -254,7 +285,7 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
 .drop{transition:border-color .2s,background .2s,transform .2s}.drop:hover{border-color:var(--gold);background:#FFFBF1;transform:translateY(-1px)}
 @media(max-width:640px){#scrList .hdr .hb{display:none}.hero{padding:20px 18px 18px}.kc{padding:13px 12px 12px}.kc b{font-size:15px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001s!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001s!important}}
-@media print{.scr,#vw,#dlg,#toast{display:none!important}}
+@media print{.scr,#vw,#cmp,#dlg,#toast{display:none!important}}
 </style>
 </head>
 <body>
@@ -330,10 +361,29 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
             <label class="f w2"><span>รายละเอียดงาน / ขอบเขตโดยย่อ (ผู้อนุมัติและ AI อ่านส่วนนี้)</span><textarea id="edDesc" maxlength="2000" placeholder="เช่น รื้อฝ้าเดิม ทำฝ้ายิปซัมใหม่ ผนังกรุไม้วีเนียร์ด้าน A ตามรูปด้าน EL-02 ตู้บิวท์อินยาว 3.20 ม."></textarea></label>
           </div>
         </div>
+        <div class="card dco" id="dcoCard" hidden>
+          <div class="h"><span class="n" style="background:#5B2E91">✎</span>ข้อมูลคำสั่งเปลี่ยนแบบ<small>ใครสั่ง · อ้างเอกสารอะไร · ทำไม · งานเดิมไปถึงไหน</small></div>
+          <div class="grid">
+            <label class="f"><span>ผู้สั่งเปลี่ยนแบบ <i style="color:var(--bad)">*</i></span><select id="dcBy"></select></label>
+            <label class="f"><span>ชื่อผู้สั่ง / ตำแหน่ง</span><input id="dcByName" maxlength="120" placeholder="เช่น คุณเอ — Interior Designer"></label>
+            <label class="f"><span>เอกสารอ้างอิง</span><select id="dcRef"></select></label>
+            <label class="f"><span>เลขที่เอกสาร</span><input id="dcRefNo" maxlength="60" placeholder="เช่น SI-012 · RFI-034 · MOM 05/11"></label>
+            <label class="f"><span>วันที่ / เวลาได้รับคำสั่ง <i style="color:var(--bad)">*</i></span><input id="dcRefAt" type="datetime-local"></label>
+            <label class="f"><span>เหตุผลที่เปลี่ยน <i style="color:var(--bad)">*</i></span><select id="dcWhy"></select></label>
+            <label class="f w2"><span>รายละเอียดการเปลี่ยนแบบ (พิมพ์ในเอกสารลูกค้า)</span><textarea id="dcWhyNote" maxlength="1000" placeholder="เช่น เปลี่ยนตู้ TV จากยาว 2.40 ม. เป็น 3.20 ม. และเปลี่ยนวีเนียร์จาก Walnut เป็น Oak ตาม SI-012"></textarea></label>
+            <label class="f"><span>สถานะงานเดิม ณ วันที่ได้รับคำสั่ง</span><select id="dcState"></select></label>
+            <label class="f"><span>ขอขยายเวลา (วัน)</span><input id="dcEot" type="number" min="0" max="365" inputmode="numeric" placeholder="0"></label>
+            <label class="f"><span>Lead time วัสดุใหม่ (วัน)</span><input id="dcMlead" type="number" min="0" max="365" inputmode="numeric"></label>
+            <label class="f"><span>ต้องได้คำตอบจากลูกค้าภายใน</span><input id="dcReply" type="date"></label>
+          </div>
+          <div id="dcNote" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div class="info">ต้องได้รับ <b>VO ที่ลูกค้าลงนาม</b> ก่อนเริ่มงานเปลี่ยนแบบ (No Signed VO = No Additional Work) · แจ้ง VO ภายใน 48 ชม. นับจากได้รับคำสั่ง · เมื่ออนุมัติแล้วกด “ส่งต่อเป็น VO ในโครงการ” ได้</div>
+        </div>
         <div class="card">
           <div class="h"><span class="n">2</span>แบบแนบ<small>ผัง · รูปด้าน · รูปตัด · Perspective · สเปก · รูปถ่ายหน้างาน</small></div>
           <div class="drop" id="edDrop">📎 กดเพื่อเลือกไฟล์ หรือลากไฟล์มาวาง — รูป (JPG / PNG) หรือ PDF<br><small>กดที่รูปเพื่อซูม และ "ตีกรอบพื้นที่" ให้ผู้อนุมัติเห็นว่าเสนอราคาส่วนไหน</small></div>
           <input id="edFile" type="file" accept="image/*,application/pdf" multiple hidden>
+          <div class="sidebar dcoOnly" id="edSideBar"><span>แนบเป็น:</span><button class="chip" data-side="old">แบบเดิม <small>ก่อนเปลี่ยน</small></button><button class="chip" data-side="new">แบบใหม่ <small>หลังเปลี่ยน</small></button><span class="sp"></span><button class="btn sm dk" data-act="cmp">⇆ เทียบแบบเดิม ↔ แบบใหม่</button></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" data-act="dwgAdd">📁 เลือกจากแบบก่อสร้างของโครงการ (Drawing Log)</button><button class="btn sm" data-act="tkAdd">📐 เลือกแบบจากคลังแบบ QS Take-off</button></div>
           <div class="atts" id="edAtts"></div>
         </div>
@@ -401,13 +451,25 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
   <div class="vf"><span id="vwHelp">หมุนล้อเมาส์ / ถ่างนิ้วเพื่อซูม · ลากเพื่อเลื่อน</span><span class="ml" id="vwMarks"></span><span id="vwZoom"></span></div>
 </div>
 
+<div id="cmp" hidden>
+  <div class="vh"><b>⇆ เทียบแบบ</b>
+    <label class="cs od"><span>แบบเดิม</span><select id="cmpO"></select></label><label class="cs nw"><span>แบบใหม่</span><select id="cmpN"></select></label>
+    <span class="seg"><button class="vb" data-cm="side">คู่กัน</button><button class="vb" data-cm="slide">เลื่อนเทียบ</button><button class="vb" data-cm="over">ซ้อนสี</button></span>
+    <button class="vb" data-cv="out" title="ซูมออก">−</button><button class="vb" data-cv="fit">พอดีจอ</button><button class="vb" data-cv="in" title="ซูมเข้า">＋</button>
+    <button class="vb gold" data-cv="ai" id="cmpAiB">✨ AI สรุปความต่าง</button><button class="vb" data-cv="keep" id="cmpKeep" title="เก็บภาพซ้อนสีเป็นแบบแนบ พิมพ์ท้ายเอกสารได้">📎 เก็บภาพซ้อนสี</button>
+    <button class="vb" data-cv="close">✕ ปิด</button></div>
+  <div id="cmpStage"><canvas id="cmpCv"></canvas></div>
+  <div class="vf"><span class="lg" id="cmpLeg"></span><span id="cmpNudge" class="ng">เลื่อนแบบใหม่: <button data-cv="nl" aria-label="ซ้าย">←</button><button data-cv="nu" aria-label="ขึ้น">↑</button><button data-cv="nd" aria-label="ลง">↓</button><button data-cv="nr" aria-label="ขวา">→</button><button data-cv="n0">0</button></span><span id="cmpMsg"></span><span id="cmpZoom"></span></div>
+  <div id="cmpAi"></div>
+</div>
+
 <div id="dlg" hidden><div class="bx" id="dlgBox"></div></div>
 <div id="toast" hidden></div>
 <div id="printRoot"></div>
 
 <script src="vendor/supabase.js"></script>
 <script src="wctag.js?v=1.2.2"></script>
-<script src="quotation.js?v=1.6.0"></script>
+<script src="quotation.js?v=1.7.0"></script>
 <script src="pm-nav.js?v=1.3.0"></script>
 </body>
 </html>
