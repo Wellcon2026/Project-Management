@@ -13,7 +13,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const AC_VER = 'v1.0.0';
+const AC_VER = 'v1.2.0';
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -61,6 +61,8 @@ const FEATS = [
   { sec: 'proj', name: 'Mango ERP · PR / PO', use: 'ลิงก์ระบบ ERP', keys: ['tab:mango'] },
   { sec: 'proj', name: 'ของสั่งทำ · ของนำเข้า', use: 'ของสั่งทำ · นำเข้า · ส่งของ', keys: ['tab:spo'] },
   { sec: 'proj', name: 'ออกหนังสือ / ฟอร์ม', use: 'ออกหนังสือ · แบบฟอร์มบริษัท', keys: ['tab:memo'] },
+  { sec: 'proj', name: 'PDF Maker · แก้ไขเอกสาร', use: 'อ่าน · แทรกหน้า · รวมไฟล์ · ลายเซ็น · กรอกฟอร์ม (ไม่ต้องเลือกโครงการ)', keys: ['tab:pdf'] },
+  { sec: 'proj', name: 'Photo Editor · แต่งรูปผลงาน', use: 'ครอป · หมุน · ดัดเส้นตรง · เอฟเฟกต์ (ไม่ต้องเลือกโครงการ)', keys: ['tab:photo'] },
   { sec: 'nav', name: 'Design Home', use: 'ภาพรวมงานออกแบบ', keys: ['dhome'] },
   { sec: 'nav', name: 'Home · ภาพรวมทุกโครงการ', use: 'Dashboard ผู้บริหาร', keys: ['nav:dashboard'] },
   { sec: 'nav', name: 'QS Tracking', use: 'งานประมูล · VO รายโครงการ', keys: ['nav:qstrack'] },
@@ -86,13 +88,13 @@ const GROUPS = [
 ];
 const ALL_ROLES = GROUPS.flatMap(g => g.roles);
 const WORK_DEF = {   // ชุดเริ่มต้นของแอปหลัก (ใช้เมื่อตำแหน่งนั้นยังไม่เคยตั้งค่า)
-  proc: ['tab:apr', 'tab:mango', ...MAT, 'tab:spo', 'tab:subcon', 'tab:changes', 'nav:procurement', 'nav:subcon'],
-  store: [...MAT, 'tab:spo', 'tab:mango', 'tab:daily', 'tab:cal', 'nav:procurement'],
-  factory: ['tab:prod', 'tab:dwg', 'tab:skp', ...MAT, 'tab:qc', 'tab:plan', 'tab:cal'],
-  driver: ['tab:cal', 'tab:spo', ...MAT, 'tab:daily'],
-  site: ['tab:daily', 'tab:qc', 'tab:dwg', 'tab:plan', 'tab:apr', 'tab:qm', 'tab:delay', 'tab:cal'],
-  safety: ['tab:daily', 'tab:qc', 'tab:delay', 'tab:claim', 'tab:plan', 'tab:cal', 'tab:docs', 'tab:memo', 'nav:library', 'nav:training'],
-  office: ['tab:docs', 'tab:memo', 'tab:daily', 'tab:cal', 'tab:rfi', 'tab:dwg', 'tab:changes', 'tab:claim', 'tab:handover', 'tab:mango', 'nav:library'],
+  proc: ['tab:apr', 'tab:mango', ...MAT, 'tab:spo', 'tab:subcon', 'tab:changes', 'nav:procurement', 'nav:subcon', 'tab:pdf', 'tab:photo'],
+  store: [...MAT, 'tab:spo', 'tab:mango', 'tab:daily', 'tab:cal', 'nav:procurement', 'tab:pdf', 'tab:photo'],
+  factory: ['tab:prod', 'tab:dwg', 'tab:skp', ...MAT, 'tab:qc', 'tab:plan', 'tab:cal', 'tab:pdf', 'tab:photo'],
+  driver: ['tab:cal', 'tab:spo', ...MAT, 'tab:daily', 'tab:pdf', 'tab:photo'],
+  site: ['tab:daily', 'tab:qc', 'tab:dwg', 'tab:plan', 'tab:apr', 'tab:qm', 'tab:delay', 'tab:cal', 'tab:pdf', 'tab:photo'],
+  safety: ['tab:daily', 'tab:qc', 'tab:delay', 'tab:claim', 'tab:plan', 'tab:cal', 'tab:docs', 'tab:memo', 'nav:library', 'nav:training', 'tab:pdf', 'tab:photo'],
+  office: ['tab:docs', 'tab:memo', 'tab:daily', 'tab:cal', 'tab:rfi', 'tab:dwg', 'tab:changes', 'tab:claim', 'tab:handover', 'tab:mango', 'nav:library', 'tab:pdf', 'tab:photo'],
 };
 const MONEY_DEF = ['superadmin', 'director', 'pm', 'pm_mgr', 'qs', 'qs_mgr', 'fin', 'fin_mgr', 'proc', 'design_mgr'];
 

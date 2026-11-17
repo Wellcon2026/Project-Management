@@ -168,6 +168,8 @@ node scripts/patch-rfi-issue.js     # RFI / RFA: ออกเอกสารถ�
 node scripts/patch-top-fit.js       # จอคอม: แถบปุ่มด้านบนย่อป้ายปุ่มทีละขั้นให้พอดีจอ — หน้าไม่เลื่อนแนวนอน (มือถือ / แท็บเล็ตไม่เปลี่ยน)
 node scripts/patch-quotation-menu.js   # การ์ด / เมนู "Quotation Maker" → เปิดหน้าแยก quotation.html (QS · QS Manager · Director)
 node scripts/patch-access-page.js      # ตั้งค่าระบบ: ปุ่ม "ตารางสิทธิ์ตามตำแหน่ง" → access.html · สิทธิ์พิเศษรายคน (app_state workUserAdd)
+node scripts/patch-pdf-menu.js         # การ์ด / เมนู "PDF Maker" → เปิดหน้าแยก pdf.html (ทุกตำแหน่ง · ไม่ต้องเลือกโครงการ)
+node scripts/patch-photo-menu.js       # การ์ด / เมนู "Photo Editor" → เปิดหน้าแยก photo.html (ทุกตำแหน่ง · ไม่ต้องเลือกโครงการ)
 ```
 ```bash
 node scripts/patch-proc-sheet.js
@@ -210,6 +212,22 @@ node scripts/patch-layboard-th.js   # ข้อความ Layboard เป็�
 - **มีอะไรใหม่**: หลังเข้าสู่ระบบ ถ้าเวอร์ชันบนสุดยังไม่เคยเห็นในเครื่องนั้น (localStorage `wellcon_pm_news_seen`) → แสดง 1 ครั้ง · กดป้ายเลขเวอร์ชันเพื่อดูย้อนหลัง
 - **ทุกครั้งที่ขึ้นงาน**: ① เพิ่มรายการบนสุดใน `whatsnew.json` (ภาษาที่ผู้ใช้อ่านเข้าใจ · ไม่มีราคา / ต้นทุน) ② `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"` — เปลี่ยนป้ายเวอร์ชัน + เลขใน `wcnews.js?v=` และเตือนถ้า `whatsnew.json` ยังไม่มีเวอร์ชันนั้น
 - ไม่เกี่ยวกับ `APP_VER()` (ตัวล็อกเวอร์ชันเก่าห้ามเขียนข้อมูล — แถบสีส้ม) ซึ่งยังทำงานตามเดิม
+
+## Photo Editor · แต่งรูปผลงาน (ตั้งแต่ 17/11/2026 · PM v1.420.0)
+- หน้าแยก `photo.html` + `photoedit.js` (`?env=staging` = ข้อมูลทดสอบ) — เปิดจากการ์ด / เมนู "Photo Editor" (`scripts/patch-photo-menu.js`) · ติดตั้งเป็นไอคอนแยกได้ (`photo.webmanifest`) แต่ใช้การเข้าสู่ระบบของ Wellcon PM
+- ทำงานในเบราว์เซอร์ทั้งหมด (canvas + JS ล้วน) — รูปไม่ถูกอัปโหลด · บันทึกลงเครื่องเท่านั้น (ผู้บริหารเลือก 17/11/2026)
+- สิทธิ์: การ์ด `tab:photo` (ไม่ต้องเลือกโครงการ · ชุดเริ่มต้นทุกตำแหน่ง) · ปิดทั้งระบบ = `featGlobal['tab:photo']=false`
+- เรขาคณิต: หน่วยสัมพัทธ์ (ศูนย์กลางภาพ = 0 · ด้านยาว = 1) · oriented (หมุน 90° / กลับด้าน) → เส้นนำ (homography) → ปรับมุมมองเอง → ปรับเอียง → ครอป · ไฟล์จริงวาดใหม่จากต้นฉบับ (ไม่ขยายจากภาพตัวอย่าง)
+- ชุดทดสอบเรียกใช้ `window.__PE` (APP · geo · cropRect · buildJpeg · autoAngle · guidedG)
+
+## PDF Maker · แก้ไขเอกสาร PDF (ตั้งแต่ 17/11/2026 · PM v1.419.0)
+- หน้าแยก `pdf.html` + `pdfmaker.js` (`?env=staging` = ข้อมูลทดสอบ) — เปิดจากการ์ด / เมนู "PDF Maker" (`scripts/patch-pdf-menu.js`) · ติดตั้งเป็นไอคอนแยกได้ (`pdf.webmanifest` · ไอคอน `pdf-icon*.png/svg`) แต่ใช้การเข้าสู่ระบบของ Wellcon PM
+- ทำงานในเบราว์เซอร์ทั้งหมด: pdf.js (แสดงหน้า) + pdf-lib (`vendor/pdf-lib.min.js` · สร้างไฟล์) — ไฟล์ไม่ถูกอัปโหลด · ไม่มีตาราง / bucket ใหม่
+- สิทธิ์: การ์ด `tab:pdf` (ไม่ต้องเลือกโครงการ · อยู่ในชุดเริ่มต้นทุกตำแหน่ง) · ปิดทั้งระบบ = `featGlobal['tab:pdf']=false` · ตำแหน่งที่ตั้งชุดการ์ดไว้ต้องมี `tab:pdf` (หรือการ์ดรายคน / สิทธิ์พิเศษรายคน)
+- ลายเซ็น / ตรา: `localStorage['wpdf_sigs_<email>']` ในเครื่องนั้นเท่านั้น — ห้ามย้ายไปเก็บใน bucket สาธารณะ
+- ภาษาไทย: ข้อความที่พิมพ์ / ค่าในฟอร์ม วาดด้วย canvas (IBM Plex Sans Thai ×4) แล้วฝังเป็น PNG · ฟอร์มถูก flatten ตอนบันทึก
+- แก้ข้อความ = ปิดทับ · ติ๊ก "ลบข้อความเดิมจริง" = หน้านั้นบันทึกเป็นภาพ JPEG 200 dpi · metadata Subject บันทึกผู้แก้ / วันที่ / จำนวนลายเซ็น / จุดปิดทับ
+- ชุดทดสอบเรียกใช้ `window.__PDFM` (APP · buildPdf)
 
 ## ตารางสิทธิ์ตามตำแหน่ง · สิทธิ์พิเศษรายคน (ตั้งแต่ 17/11/2026 · PM v1.418.0)
 - หน้าแยก `access.html` + `access.js` (`?env=staging` = ข้อมูลทดสอบ) — เปิดจาก ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน → ปุ่ม "ตารางสิทธิ์ตามตำแหน่ง ↗" (`scripts/patch-access-page.js`)

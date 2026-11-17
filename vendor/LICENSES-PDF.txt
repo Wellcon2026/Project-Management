@@ -1,0 +1,18 @@
+ไลบรารีที่ใช้ในหน้า PDF Maker (pdf.html) — ใช้ฟรีเชิงพาณิชย์ได้ ต้องเก็บประกาศสัญญาอนุญาตไว้
+
+1) pdf.js 3.11.174 — vendor/pdf.min.js · vendor/pdf.worker.min.js
+   Copyright 2023 Mozilla Foundation · Apache License 2.0 · https://github.com/mozilla/pdf.js
+   ข้อความสัญญาอนุญาตอยู่ที่ส่วนต้นของไฟล์ · https://www.apache.org/licenses/LICENSE-2.0
+
+2) pdf-lib 1.17.1 — vendor/pdf-lib.min.js
+   Copyright (c) 2019 Andrew Dillon · MIT License · https://github.com/Hopding/pdf-lib
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+   associated documentation files (the "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+   following conditions: The above copyright notice and this permission notice shall be included in all
+   copies or substantial portions of the Software.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+
+3) ฟอนต์ IBM Plex Sans Thai — โหลดจาก Google Fonts · SIL Open Font License 1.1 (ใช้ฝังในเอกสารได้)
