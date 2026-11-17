@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.3.0';   // 1.3.0: สร้าง / แก้ไข / ลบ ชัดเจนทุกหน้า — ปุ่ม ⋯ ในรายการ (เปิดดู · แก้ไข · ทำสำเนา · ลบ) · ลบได้ทั้งร่าง / ส่งกลับ / รออนุมัติ / ยกเลิกแล้ว · ทิ้งร่างที่ยังไม่บันทึก · ปุ่มแก้ไข / ลบ / ทำสำเนาในหน้าดูใบ · 1.2.0: เปิดจากแท็บ Quotation Maker ในแอป QS Take-off — รับตั๋วเข้าสู่ระบบครั้งเดียว (?wsso=) · ?tk=<งานใน Take-off> = ผูกงานนั้นให้ (แบบ / โครงการ) · &new=1 เริ่มใบใหม่ทันที · 1.1.0: หน้าเริ่มงานใหม่ — แผงนำดำ-ทอง · ภาพเส้นแบบแปลนเคลื่อนไหว · การ์ดประเภทงานกดเริ่มได้เลย · ตัวเลขสรุปงาน
+const QM_VER = 'v1.4.0';   // 1.4.0: ภาพเคลื่อนไหวหน้าเริ่มงานแบบ A "แบบแปลนวาดตัวเอง" (มือถือเห็นภาพแล้ว · เล่นครั้งเดียวต่อการเปิดแอป) · ตัวเลขสรุป 3 ช่องแถวเดียว · 1.3.0: สร้าง / แก้ไข / ลบ ชัดเจนทุกหน้า — ปุ่ม ⋯ ในรายการ (เปิดดู · แก้ไข · ทำสำเนา · ลบ) · ลบได้ทั้งร่าง / ส่งกลับ / รออนุมัติ / ยกเลิกแล้ว · ทิ้งร่างที่ยังไม่บันทึก · ปุ่มแก้ไข / ลบ / ทำสำเนาในหน้าดูใบ · 1.2.0: เปิดจากแท็บ Quotation Maker ในแอป QS Take-off — รับตั๋วเข้าสู่ระบบครั้งเดียว (?wsso=) · ?tk=<งานใน Take-off> = ผูกงานนั้นให้ (แบบ / โครงการ) · &new=1 เริ่มใบใหม่ทันที · 1.1.0: หน้าเริ่มงานใหม่ — แผงนำดำ-ทอง · ภาพเส้นแบบแปลนเคลื่อนไหว · การ์ดประเภทงานกดเริ่มได้เลย · ตัวเลขสรุปงาน
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -263,6 +263,9 @@ const KHINT = { area: 'ห้อง / โซนเดียว — พื้น 
 function countUp(el, to) { const t0 = performance.now(), d = 700; if (!to || (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches)) { el.textContent = to; return; }
   const tick = (t) => { const k = Math.min(1, (t - t0) / d); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); }; requestAnimationFrame(tick); }
 function renderHero() { const V = visible(), n = (f) => V.filter(f).length;
+  // v1.4.0 ภาพเปิดหน้า (แบบ A) เล่นครั้งเดียวต่อการเปิดแอป — กลับมาหน้ารายการ / โหลดหน้าใหม่ในรอบเดียวกัน ไม่ต้องรอภาพเล่นซ้ำ
+  const hero = document.querySelector('.hero'); let was = APP.introDone; try { was = was || !!sessionStorage.getItem('qm_intro'); sessionStorage.setItem('qm_intro', '1'); } catch (e) {}
+  if (hero && !hero.classList.contains('seen')) { if (was) hero.classList.add('seen'); else if (!APP.introT) APP.introT = setTimeout(() => hero.classList.add('seen'), 3600); } APP.introDone = true;
   const S = [['draft', 'ร่างของฉัน', n(q => ['draft', 'returned'].includes(q.status || 'draft') && isMine(q))], ['sent', 'รออนุมัติ', n(q => q.status === 'sent')], ['approved', 'อนุมัติแล้ว', n(q => q.status === 'approved' || q.status === 'issued')]];
   const key = S.map(x => x[2]).join(',');
   if (APP.heroKey !== key) { APP.heroKey = key; $('heroStats').innerHTML = S.map(x => `<button class="hstat" data-stat="${x[0]}" title="กดเพื่อดูรายการ"><b data-n="${x[2]}">0</b><span>${x[1]}</span></button>`).join(''); $('heroStats').querySelectorAll('b').forEach(b => countUp(b, Number(b.dataset.n))); }
