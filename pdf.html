@@ -75,6 +75,8 @@ input,select,textarea{font:inherit;color:inherit}
 .tools{position:sticky;top:0;z-index:20;display:flex;gap:6px;flex-wrap:wrap;background:rgba(255,253,248,.96);border:1px solid var(--line);border-radius:14px;padding:6px;margin-bottom:12px;box-shadow:0 4px 14px rgba(0,0,0,.08)}
 .tools .sep{width:1px;background:var(--line);margin:2px 2px}
 .page{position:relative;background:#fff;box-shadow:0 6px 24px rgba(0,0,0,.18);flex:none;touch-action:none}
+@media(max-width:700px){.page{touch-action:pan-x pan-y pinch-zoom}}
+.mmenu{display:grid;gap:8px}.mmenu button{min-height:50px;border-radius:14px;border:1px solid var(--line);background:#fff;font-weight:600;font-size:15px;text-align:left;padding:0 16px;display:flex;align-items:center;gap:10px}
 .page canvas.bg{display:block}
 .ov{position:absolute;inset:0}
 .ov.mode-text,.ov.mode-cover{cursor:crosshair}
@@ -121,12 +123,43 @@ input,select,textarea{font:inherit;color:inherit}
 #busy{position:fixed;inset:0;z-index:95;background:rgba(244,239,230,.75);display:flex;align-items:center;justify-content:center;font-weight:600}
 #busy span{background:var(--dk);color:#fff;border-radius:14px;padding:12px 18px}
 @media(max-width:1100px){.ed{grid-template-columns:150px minmax(0,1fr)}.side{grid-column:1/-1;border-left:0;border-top:1px solid var(--line);max-height:42vh}}
+/* มือถือ: หน้าเอกสารเต็มจอ · แถบเครื่องมือล่าง · หน้า / ลายเซ็นเป็นแผ่นเลื่อนขึ้น (ผู้บริหารสั่ง 17/11/2026) */
+.mbar,.mnav,.msel,.mback{display:none}
 @media(max-width:700px){
-  .ed{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}
-  .strip{flex-direction:row;border-right:0;border-bottom:1px solid var(--line);overflow-x:auto;overflow-y:hidden;padding:8px}
-  .th{width:116px;flex:none}.th .acts{gap:2px}.th .acts button{width:26px;height:28px;font-size:12px}.th .n{font-size:11px}.addbar{flex-direction:column;width:112px;flex:none;gap:4px}.addbar .btn{min-height:32px}
-  .stage{padding:10px}.hdr .hb .tx{display:none}
-  .side{max-height:26vh}
+  .hdr .hb .tx{display:none} #hbNew,#hbPrint{display:none!important}
+  .ed{display:block;position:relative;flex:1;min-height:0}
+  .stage{position:absolute;inset:0;padding:10px 8px calc(150px + var(--safe-b))}
+  .stage .tools{display:none}
+  .mbar{position:fixed;left:0;right:0;bottom:0;z-index:70;display:grid;grid-template-columns:repeat(6,1fr);gap:2px;background:var(--dk);padding:6px 4px calc(6px + var(--safe-b));box-shadow:0 -6px 20px rgba(0,0,0,.18)}
+  .mbar button{border:0;background:transparent;color:#D9CFBD;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:600;padding:4px 0;border-radius:12px;min-height:54px;white-space:nowrap}
+  .mbar button i{font-style:normal;font-size:20px;line-height:1;height:22px;display:flex;align-items:center}
+  .mbar button b{font-weight:700;color:var(--gold)}
+  .mbar button.on{background:#33302A;color:var(--gold)}
+  .mnav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + var(--safe-b));z-index:30;display:flex;align-items:center;gap:2px;background:rgba(28,27,24,.88);color:#fff;border-radius:999px;padding:4px 6px;box-shadow:0 6px 18px rgba(0,0,0,.25);font-size:13px;font-weight:700}
+  .mnav button{width:40px;height:36px;border:0;background:transparent;color:#fff;font-size:19px;border-radius:999px;padding:0}
+  .mnav button:disabled{opacity:.3}
+  .mnav .sep{width:1px;height:20px;background:#5A564C;margin:0 4px}
+  .mnav span#mPg{min-width:52px;text-align:center}
+  .msel{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(124px + var(--safe-b));z-index:31;display:flex;gap:6px}
+  .msel[hidden]{display:none!important}
+  .msel button{min-height:40px;border-radius:999px;border:1px solid var(--line);background:#fff;font-weight:700;font-size:13.5px;padding:0 14px;box-shadow:0 6px 16px rgba(0,0,0,.18);white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+  .msel button.bad{color:var(--red)}
+  .msel button.dk{background:var(--dk);color:#fff;border-color:var(--dk)}
+  .mback{display:block;position:fixed;inset:0;z-index:55;background:rgba(28,27,24,.42);opacity:0;pointer-events:none;transition:opacity .2s}
+  body.m-pages .mback,body.m-side .mback{opacity:1;pointer-events:auto}
+  .strip,.side{position:fixed;left:0;right:0;bottom:0;z-index:60;max-height:74vh;background:var(--card);border:0;border-radius:22px 22px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.25);
+    transform:translateY(105%);transition:transform .25s ease;overflow:auto;-webkit-overflow-scrolling:touch;padding:8px 12px calc(86px + var(--safe-b))}
+  body.m-pages .strip,body.m-side .side{transform:none}
+  .strip::before,.side::before{content:'';display:block;width:44px;height:5px;border-radius:3px;background:#D5CBB8;margin:2px auto 10px;flex:none}
+  .strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;align-content:start}
+  .strip::before{grid-column:1/-1;order:-2}
+  .strip .addbar{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;order:-1}
+  .strip .addbar .mut{grid-column:1/-1}
+  .strip .addbar .btn{min-height:44px;font-size:13px;padding:0 6px}
+  .th{width:auto}.th .acts{gap:4px}.th .acts button{width:34px;height:34px;font-size:14px}
+  .side .box{flex:none}
+  #toast{bottom:calc(178px + var(--safe-b))}
+  .ov.mode-text,.ov.mode-cover{touch-action:none}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 @media print{body>*{display:none!important}}
@@ -180,6 +213,18 @@ input,select,textarea{font:inherit;color:inherit}
       <div class="page" id="page"><canvas class="bg" id="bg"></canvas><div class="ov" id="ov"></div></div>
     </div>
     <div class="side" id="side"></div>
+    <!-- มือถือ -->
+    <div class="mnav" id="mnav"><button data-act="mPrev" id="mPrevB" aria-label="หน้าก่อน">‹</button><span id="mPg">1 / 1</span><button data-act="mNext" id="mNextB" aria-label="หน้าถัดไป">›</button><span class="sep"></span><button data-act="zoomOut" aria-label="ซูมออก">−</button><button data-act="zoomIn" aria-label="ซูมเข้า">＋</button></div>
+    <div class="msel" id="msel" hidden><button data-act="mSide">⚙ ปรับ</button><button class="bad" data-act="delItem">🗑 ลบ</button><button class="dk" data-act="deselect">✓ เสร็จ</button></div>
+    <div class="mback" id="mback" data-act="mClose"></div>
+    <nav class="mbar" id="mbar" aria-label="เครื่องมือ">
+      <button data-mode="select" class="on"><i>↖</i>เลือก</button>
+      <button data-mode="text"><i>T</i>ข้อความ</button>
+      <button data-mode="cover"><i>▭</i>แก้ข้อความ</button>
+      <button data-act="mSig"><i>✍</i>ลายเซ็น</button>
+      <button data-act="mPages"><i>▤</i><span>หน้า <b id="mPgN"></b></span></button>
+      <button data-act="mMore"><i>⋯</i>เพิ่มเติม</button>
+    </nav>
   </div>
 </section>
 
@@ -195,7 +240,7 @@ input,select,textarea{font:inherit;color:inherit}
 <script src="wctag.js?v=1.2.2"></script>
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
-<script src="pdfmaker.js?v=1.1.0"></script>
+<script src="pdfmaker.js?v=1.2.0"></script>
 <script src="pm-nav.js?v=1.3.0"></script>
 </body>
 </html>
