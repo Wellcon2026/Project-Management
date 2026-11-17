@@ -14,7 +14,8 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.7.0';   // 1.7.0: งานเปลี่ยนแบบ — เทียบแบบเดิม ↔ แบบใหม่ · ข้อมูลคำสั่ง · ราคาเพิ่ม / ลด / รื้อ · ส่งต่อ VO
+const QM_VER = 'v1.7.1';   // 1.7.1: ส่งต่อใบเปลี่ยนแบบเข้า VO Tracker (additional_work) แทนหน้า VO / SI / EOT ที่ปิดทั้งระบบ
+//   // 1.7.0: งานเปลี่ยนแบบ — เทียบแบบเดิม ↔ แบบใหม่ · ข้อมูลคำสั่ง · ราคาเพิ่ม / ลด / รื้อ · ส่งต่อ VO
 // 1.6.0: เลือกแบบจาก Drawing Log ของโครงการ (ตาราง drawings) · ปุ่ม 🗑 ลบแบบที่มุมการ์ด (เดิม ✕ หลุดขอบ) · 1.5.0: นับสิทธิ์พิเศษรายคน (app_state workUserAdd) ตอนตรวจสิทธิ์เข้าหน้า ·   // 1.4.0: ภาพเคลื่อนไหวหน้าเริ่มงานแบบ A "แบบแปลนวาดตัวเอง" (มือถือเห็นภาพแล้ว · เล่นครั้งเดียวต่อการเปิดแอป) · ตัวเลขสรุป 3 ช่องแถวเดียว · 1.3.0: สร้าง / แก้ไข / ลบ ชัดเจนทุกหน้า — ปุ่ม ⋯ ในรายการ (เปิดดู · แก้ไข · ทำสำเนา · ลบ) · ลบได้ทั้งร่าง / ส่งกลับ / รออนุมัติ / ยกเลิกแล้ว · ทิ้งร่างที่ยังไม่บันทึก · ปุ่มแก้ไข / ลบ / ทำสำเนาในหน้าดูใบ · 1.2.0: เปิดจากแท็บ Quotation Maker ในแอป QS Take-off — รับตั๋วเข้าสู่ระบบครั้งเดียว (?wsso=) · ?tk=<งานใน Take-off> = ผูกงานนั้นให้ (แบบ / โครงการ) · &new=1 เริ่มใบใหม่ทันที · 1.1.0: หน้าเริ่มงานใหม่ — แผงนำดำ-ทอง · ภาพเส้นแบบแปลนเคลื่อนไหว · การ์ดประเภทงานกดเริ่มได้เลย · ตัวเลขสรุปงาน
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -928,7 +929,7 @@ function openView(q) { APP.view = q.id; const c = calc(q), k = kindOf(q.kind), W
   if (canApprove(q)) B.push('<button class="btn bad" data-act="ret">ส่งกลับแก้ไข</button>', '<span style="flex:1"></span>', '<button class="btn" data-act="vPrint">ดูเอกสารลูกค้า (DRAFT)</button>', '<button class="btn ok" data-act="approve">✓ อนุมัติ</button>');
   else if (q.status === 'sent') { if (isMine(q) || isBoss()) B.push('<button class="btn" data-act="recall">✏️ แก้ไข (ดึงกลับ)</button>'); B.push('<span style="flex:1"></span>', '<button class="btn" data-act="vPrint">ดูเอกสารลูกค้า (DRAFT)</button>'); if (isMine(q)) B.push('<span class="mut" style="align-self:center">รอ ' + esc(approversFor(q).map(nameOf).join(', ')) + ' อนุมัติ</span>'); }
   else if (q.status === 'approved' || q.status === 'issued') { if (isMine(q) || isBoss() || APP.me.role === 'qs_mgr') B.push('<button class="btn bad" data-act="cancel">ยกเลิกใบนี้</button>', '<button class="btn" data-act="revise">✏️ แก้ไข (สร้างฉบับ Rev.)</button>');
-    B.push('<span style="flex:1"></span>'); if (isDco(q) && q.pid && (isMine(q) || isMgr())) B.push(`<button class="btn ok" data-act="toVo">${q.dco && q.dco.voId ? '↻ อัปเดต ' + esc(q.dco.voNo || 'VO') + ' ในโครงการ' : '📤 ส่งต่อเป็น VO ในโครงการ'}</button>`); B.push('<button class="btn" data-act="copyTsv">คัดลอกตาราง (วางใน Excel)</button>'); if (q.status === 'approved') B.push('<button class="btn" data-act="issued">บันทึกว่าส่งลูกค้าแล้ว</button>'); B.push('<button class="btn pri" data-act="vPrint">พิมพ์ / PDF</button>'); }
+    B.push('<span style="flex:1"></span>'); if (isDco(q) && q.pid && (isMine(q) || isMgr())) B.push(`<button class="btn ok" data-act="toVo">${q.dco && q.dco.voId ? '↻ อัปเดต ' + esc(q.dco.voNo || 'VO') + ' ใน VO Tracker' : '📤 ส่งเข้า VO Tracker ของโครงการ'}</button>`); B.push('<button class="btn" data-act="copyTsv">คัดลอกตาราง (วางใน Excel)</button>'); if (q.status === 'approved') B.push('<button class="btn" data-act="issued">บันทึกว่าส่งลูกค้าแล้ว</button>'); B.push('<button class="btn pri" data-act="vPrint">พิมพ์ / PDF</button>'); }
   else { if (canEdit(q)) B.push('<button class="btn" data-act="vEdit">✏️ แก้ไข</button>'); B.push('<span style="flex:1"></span>', '<button class="btn" data-act="vPrint">ดูเอกสาร (DRAFT)</button>'); }
   if (!canApprove(q)) B.splice(1, 0, '<button class="btn" data-act="vDup">📄 ทำสำเนา</button>');
   if (canDelete(q)) B.unshift('<button class="btn bad" data-act="vDel">🗑 ลบ</button>');
@@ -964,26 +965,35 @@ async function del() { const q = C(); if (!q) return;
   if (!q.no) { if (!(await dlg({ title: 'ทิ้งร่างนี้?', text: 'ใบนี้ยังไม่ได้บันทึก — ข้อมูลที่กรอกไว้จะหายไป', ok: '🗑 ทิ้งร่าง', bad: true }))) return; APP.cur = null; APP.dirty = false; toast('ทิ้งร่างแล้ว'); renderList(); return; }
   removeQ(findQ(q.id) || q); }
 
-// ---------- ส่งต่อใบเปลี่ยนแบบที่อนุมัติแล้ว → รายการ VO ในหน้า VO / SI / EOT ของโครงการ (ตาราง changes) ----------
+// ---------- ส่งต่อใบเปลี่ยนแบบที่อนุมัติแล้ว → รายการในหน้า "งานเพิ่ม · VO Tracker (QS)" ของโครงการ (ตาราง additional_work) ----------
+//   v1.7.1: เดิมส่งเข้าตาราง changes (หน้า VO / SI / EOT) แต่หน้านั้นปิดทั้งระบบ — VO Tracker คือหน้าที่ทีมใช้ติดตามจริง
+//   เมื่อลูกค้าอนุมัติ ทีมกด "ลูกค้าอนุมัติ" แล้ว "ออก VO เข้าสัญญา" ในหน้า VO Tracker ตามขั้นตอนเดิม
 const todayTH = () => { const M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'], d = new Date(); return d.getDate() + ' ' + M[d.getMonth()] + ' ' + (d.getFullYear() + 543); };
+const isoDay = (v) => { const t = new Date(v).getTime(); if (!isFinite(t)) return ''; const d = new Date(t); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
 async function toVo() { const q = VQ(); if (!q || !isDco(q) || !['approved', 'issued'].includes(q.status) || APP.busy) return;
-  if (!q.pid) { await dlg({ title: 'ใช้ได้กับงานในโครงการ', text: 'ใบนี้ไม่ได้ผูกกับโครงการ — ออก VO ผ่านหน้าโครงการเอง', cancel: false, ok: 'รับทราบ' }); return; }
+  if (!q.pid) { await dlg({ title: 'ใช้ได้กับงานในโครงการ', text: 'ใบนี้ไม่ได้ผูกกับโครงการ — เพิ่มรายการในหน้า VO Tracker ของโครงการเอง', cancel: false, ok: 'รับทราบ' }); return; }
   const c = calc(q), d = q.dco || {}, p = APP.projects.find(x => x.id === q.pid) || {};
-  let R = []; try { const r = await sb.from('changes').select('id,data').eq('project', q.pid).limit(3000); if (r.error) throw r.error; R = r.data || []; }
-  catch (e) { console.error(e); toast('อ่านรายการ VO ของโครงการไม่สำเร็จ: ' + ((e && e.message) || e), 5000); return; }
-  const ex = d.voId ? R.find(x => x.id === d.voId) : null, xd = ex ? (ex.data || {}) : null;
-  if (xd && (xd.status === 'approved' || xd.status === 'rejected')) { await dlg({ title: (xd.no || 'VO') + ' ' + (xd.status === 'approved' ? 'อนุมัติแล้ว' : 'ถูกปฏิเสธแล้ว'), text: 'สถานะในหน้า VO ของโครงการเปลี่ยนไปแล้ว — แก้ไขยอดจากหน้า VO / SI / EOT ของโครงการโดยตรง (ผ่านผู้บริหาร)', cancel: false, ok: 'รับทราบ' }); return; }
-  const no = xd && xd.no ? xd.no : 'VO-' + String(projCode(p) || '').replace(/\D/g, '').slice(-4) + '-' + String(R.filter(x => (x.data || {}).type === 'VO').length + 1).padStart(3, '0');
-  const ref = [d.refNo].filter(Boolean).join(''), title = String(q.title || '').slice(0, 150) + (ref ? ' (อ้าง ' + ref + ')' : '');
-  if (!(await ask(xd ? 'อัปเดต ' + no + ' ในโครงการ?' : 'ส่งต่อเป็น ' + no + ' ในโครงการ?', title + '\nยอด ' + baht(c.net) + ' ไม่รวม VAT' + (num(d.eot) ? ' · ขอขยายเวลา ' + fq(num(d.eot)) + ' วัน' : '') + '\nโครงการ: ' + projName(p) + '\n\nสถานะในหน้า VO = “ส่งแล้ว” — รอลูกค้าลงนาม VO ก่อนเริ่มงาน (No Signed VO = No Additional Work)', xd ? '↻ อัปเดต VO' : '📤 ส่งต่อเป็น VO'))) return;
+  let R = []; try { const r = await sb.from('additional_work').select('id,data').eq('project', q.pid).limit(3000); if (r.error) throw r.error; R = r.data || []; }
+  catch (e) { console.error(e); toast('อ่านรายการ VO Tracker ของโครงการไม่สำเร็จ: ' + ((e && e.message) || e), 5000); return; }
+  const id = d.voId && /^quo_/.test(d.voId) ? d.voId : 'quo_' + q.id, ex = R.find(x => x.id === id), xd = ex ? (ex.data || {}) : null;   // ฉบับแก้ไข (Rev.) ผูกรายการเดิม
+  if (xd && (xd.status === 'approved' || xd.inContract)) { await dlg({ title: (xd.no || 'รายการนี้') + ' ลูกค้าอนุมัติแล้ว', text: 'สถานะในหน้า VO Tracker เปลี่ยนไปแล้ว — แก้ไขยอดจากหน้า VO Tracker ของโครงการโดยตรง (ผ่านผู้บริหาร)', cancel: false, ok: 'รับทราบ' }); return; }
+  const no = xd && xd.no ? xd.no : 'AW-' + String(R.length + 1).padStart(3, '0');
+  const st = xd && xd.status === 'rejected' ? 'resubmit' : xd && ['quoted', 'resubmit'].includes(xd.status) ? xd.status : (q.status === 'issued' ? 'quoted' : 'draft');   // ร่าง → ยื่นแล้ว เมื่อบันทึกส่งลูกค้า
+  const title = String(q.title || '').slice(0, 150) + ' (งานเปลี่ยนแบบ · ' + q.no + ')';
+  if (!(await ask(xd ? 'อัปเดต ' + no + ' ใน VO Tracker?' : 'ส่งเข้า VO Tracker เป็น ' + no + '?', title + '\nยอดสุทธิ ' + baht(c.net) + ' ไม่รวม VAT' + (num(d.eot) ? ' · ขอขยายเวลา ' + fq(num(d.eot)) + ' วัน' : '') + '\nโครงการ: ' + projName(p)
+    + '\nสถานะใน VO Tracker: ' + ({ draft: 'ร่าง · ยังไม่ยื่น', quoted: 'ยื่นแล้ว · รอตอบ', resubmit: 'ยื่นใหม่ · รอตอบ' }[st] || st)
+    + '\n\nเมื่อลูกค้าลงนาม ให้กด “ลูกค้าอนุมัติ” แล้ว “ออก VO เข้าสัญญา” ในหน้า VO Tracker — ห้ามเริ่มงานก่อนได้ VO ลงนาม (No Signed VO = No Additional Work)', xd ? '↻ อัปเดต' : '📤 ส่งเข้า VO Tracker'))) return;
   APP.busy = true;
-  try { const id = d.voId || ('quo_' + q.id);
-    const data = { ...(xd || {}), id, project: q.pid, type: 'VO', no, title, amount: c.net, days: num(d.eot), status: xd ? xd.status : 'submitted', submitted: xd && xd.submitted ? xd.submitted : todayTH(), by: APP.me.name,
-      note: 'จาก Quotation Maker ' + q.no + (d.reason ? ' · ' + optOf(DCO_WHY, d.reason) : '') + (d.by ? ' · สั่งโดย ' + optOf(DCO_BY, d.by) + (d.byName ? ' ' + d.byName : '') : ''), src: 'quo:' + q.id, quoNo: q.no };
-    const up = await sb.from('changes').upsert({ id, project: q.pid, data, updated_by: APP.me.email }, { onConflict: 'id' }); if (up.error) throw up.error;
-    const x = await transition(q.id, ['approved', 'issued'], (z) => { const zd = dcoOf(z); zd.voId = id; zd.voNo = no; zd.voAt = Date.now(); z.upAt = Date.now(); logIt(z, (xd ? 'อัปเดต ' : 'ส่งต่อเป็น ') + no + ' ในหน้า VO ของโครงการ', baht(c.net)); });
-    toast((xd ? 'อัปเดต ' : 'ส่งต่อเป็น ') + no + ' แล้ว — ดูได้ที่หน้า VO / SI / EOT ของโครงการ', 4500); openView(x);
-  } catch (e) { console.error(e); toast('ส่งต่อ VO ไม่สำเร็จ: ' + ((e && e.message) || e), 5000); }
+  try { const rid = id, now = todayTH();
+    const data = { ...(xd || {}), id: rid, project: q.pid, no, si: d.refNo || (xd && xd.si) || '', siDate: d.refAt ? isoDay(d.refAt) : ((xd && xd.siDate) || ''), title, qty: 1, unit: 'งาน', rate: c.net,
+      status: st, appDate: '', inContract: false, subDate: st === 'draft' ? ((xd && xd.subDate) || '') : ((xd && xd.subDate) || now),
+      note: ['จาก Quotation Maker ' + q.no, optOf(DCO_WHY, d.reason), d.by ? 'สั่งโดย ' + optOf(DCO_BY, d.by) + (d.byName ? ' ' + d.byName : '') : '', num(d.eot) ? 'ขอขยายเวลา ' + fq(num(d.eot)) + ' วัน' : ''].filter(Boolean).join(' · '),
+      hist: [...((xd && xd.hist) || []), ...(st === 'draft' || (xd && xd.status === st && Number(xd.rate) === c.net) ? [] : [{ at: now, to: st, rate: c.net, amt: c.net }])], days: num(d.eot), src: 'quo:' + q.id, quoNo: q.no };
+    if (!xd) delete data.ctrRate;
+    const up = await sb.from('additional_work').upsert({ id: rid, project: q.pid, data, updated_by: APP.me.email }, { onConflict: 'id' }); if (up.error) throw up.error;
+    const x = await transition(q.id, ['approved', 'issued'], (z) => { const zd = dcoOf(z); zd.voId = rid; zd.voNo = no; zd.voAt = Date.now(); z.upAt = Date.now(); logIt(z, (xd ? 'อัปเดต ' : 'ส่งเข้า VO Tracker เป็น ') + no, baht(c.net)); });
+    toast((xd ? 'อัปเดต ' : 'ส่งเข้า VO Tracker เป็น ') + no + ' แล้ว — ดูได้ที่หน้า “งานเพิ่ม · VO Tracker” ของโครงการ', 4500); openView(x);
+  } catch (e) { console.error(e); toast('ส่งเข้า VO Tracker ไม่สำเร็จ: ' + ((e && e.message) || e), 5000); }
   APP.busy = false; }
 
 // =====================================================================
