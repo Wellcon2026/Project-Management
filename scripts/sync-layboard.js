@@ -58,3 +58,4 @@ fs.writeFileSync(path.join(out, 'index.html'), html);
 fs.copyFileSync(path.join(src, 'support.js'), path.join(out, 'support.js'));
 fs.cpSync(path.join(src, '_ds'), path.join(out, '_ds'), { recursive: true });
 console.log('✓ คัดลอก Layboard เข้า PM แล้ว → layboard/ (ฐานข้อมูล PM · แยกตามโครงการ · ล็อกอินด้วยบัญชี PM)');
+require('./patch-layboard-photo.js');   // v1.421.0: ปุ่ม "แต่งรูป (Photo Editor)" — ใส่ซ้ำทุกครั้งที่คัดลอก Layboard ใหม่

@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const PM_VER = 'v1.0.0';
+const PM_VER = 'v1.1.0';
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -135,12 +135,52 @@ const docOf = (id) => APP.docs.find(d => d.id === id);
 const curPage = () => APP.pages[APP.cur];
 async function drawPage(p, canvas, scale, opt) {   // opt.forExport: ปิดการวาดช่องฟอร์มเดิม (ใส่ค่าใหม่เอง)
   const dpr = opt && opt.dpr || 1, W = Math.round(p.w * scale * dpr), H = Math.round(p.h * scale * dpr);
-  canvas.width = W; canvas.height = H; const g = canvas.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  canvas.width = W; canvas.height = H; const g = canvas.getContext('2d', { willReadFrequently: true });
+  const ur = p.urot || 0;
   if (p.kind === 'pdf') { const d = docOf(p.doc), pg = await d.pj.getPage(p.idx + 1);
-    await pg.render({ canvasContext: g, viewport: pg.getViewport({ scale: scale * dpr }), annotationMode: opt && opt.noForms ? pdfjsLib.AnnotationMode.DISABLE : pdfjsLib.AnnotationMode.ENABLE }).promise; }
-  else if (p.kind === 'img') { const im = await loadImage(p.img.url); const r = imgRect(p); g.drawImage(im, r.x * scale * dpr, r.y * scale * dpr, r.w * scale * dpr, r.h * scale * dpr); }
+    // พื้นใส → ซ่อมรอยต่อแถบรูป → ค่อยรองพื้นขาว (รูปจากแอปสแกน / มือถือมักเก็บเป็นแถบบาง ๆ — วาดเอียง / หมุนแล้วเห็นเส้นขาว)
+    await pg.render({ canvasContext: g, background: 'rgba(0,0,0,0)', viewport: pg.getViewport({ scale: scale * dpr, rotation: ((pg.rotate || 0) + ur) % 360 }), annotationMode: opt && opt.noForms ? pdfjsLib.AnnotationMode.DISABLE : pdfjsLib.AnnotationMode.ENABLE }).promise;
+    healSeams(g, W, H); g.save(); g.globalCompositeOperation = 'destination-over'; g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.restore(); return; }
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  if (p.kind === 'img') { const im = await loadImage(p.img.url), [bw, bh] = baseWH(p), r = imgRect(p), k = scale * dpr;
+    g.save(); g.translate(W / 2, H / 2); g.rotate(ur * Math.PI / 180); g.drawImage(im, (r.x - bw / 2) * k, (r.y - bh / 2) * k, r.w * k, r.h * k); g.restore(); }
 }
-function imgRect(p) { const m = 24, aw = p.w - m * 2, ah = p.h - m * 2, k = Math.min(aw / p.img.iw, ah / p.img.ih), w = p.img.iw * k, h = p.img.ih * k; return { x: (p.w - w) / 2, y: (p.h - h) / 2, w, h }; }
+// ---------- ซ่อมรอยต่อ: จุดโปร่ง / กึ่งโปร่งหนา 1–2 px ที่อยู่ระหว่างพื้นที่ทึบสองข้าง (ตั้งหรือนอน) → เติมสีจากสองข้าง ----------
+function healSeams(g, W, H) {
+  let im; try { im = g.getImageData(0, 0, W, H); } catch (e) { return; } const d = im.data, OP = 250; let n = 0;
+  const fill = (i0, step, k, iT, iB) => { for (let j = 1; j <= k; j++) { const o = i0 + (j - 1) * step, t = j / (k + 1);
+      for (let c = 0; c < 3; c++) d[o + c] = d[iT + c] * (1 - t) + d[iB + c] * t; d[o + 3] = 255; } n++; };
+  for (let pass = 0; pass < 2; pass++) {   // 0 = แนวตั้ง (เส้นนอน) · 1 = แนวนอน (เส้นตั้ง)
+    const stepIn = pass ? 4 : W * 4, lenA = pass ? H : W, lenB = pass ? W : H;
+    for (let a = 0; a < lenA; a++) for (let b = 1; b < lenB - 1; b++) {
+      const o = pass ? (a * W + b) * 4 : (b * W + a) * 4; if (d[o + 3] >= OP) continue;
+      const oT = o - stepIn; if (d[oT + 3] < OP) continue;
+      if (d[o + stepIn + 3] >= OP) { fill(o, stepIn, 1, oT, o + stepIn); continue; }
+      if (b < lenB - 2 && d[o + 2 * stepIn + 3] >= OP) { fill(o, stepIn, 2, oT, o + 2 * stepIn); b++; }
+    }
+  }
+  if (n) g.putImageData(im, 0, 0);
+}
+// ---------- หมุนหน้า (urot = ที่ผู้ใช้หมุนเพิ่ม 0 / 90 / 180 / 270 ตามเข็ม) ----------
+const baseWH = (p) => ((p.urot || 0) % 180) ? [p.h, p.w] : [p.w, p.h];   // ขนาดหน้าก่อนผู้ใช้หมุน
+function rotRect(r, W, H, deg) {   // กรอบในหน้าแนวเดิม (W × H) → หลังหมุนตามเข็ม deg
+  deg = ((deg % 360) + 360) % 360;
+  if (deg === 90) return { ...r, x: H - (r.y + r.h), y: r.x, w: r.h, h: r.w };
+  if (deg === 180) return { ...r, x: W - r.x - r.w, y: H - r.y - r.h };
+  if (deg === 270) return { ...r, x: r.y, y: W - (r.x + r.w), w: r.h, h: r.w };
+  return r; }
+function widgetRect(p, w) {   // ช่องฟอร์ม (พิกัดเนื้อหาไม่หมุน) → พิกัดบนจอ
+  const tot = ((p.rot || 0) + (p.urot || 0)) % 360, [W0, H0] = (tot % 180) ? [p.h, p.w] : [p.w, p.h];
+  const r = rotRect({ x: w.x, y: w.y, w: w.w, h: w.h }, W0, H0, tot); return r; }
+function rotatePage(p, deg) {   // ลายเซ็น / ข้อความที่วางแล้ว: ย้ายตำแหน่งตามหน้า (ตัวลายเซ็นยังตั้งตรง)
+  deg = ((deg % 360) + 360) % 360; if (!deg) return; const W = p.w, H = p.h;
+  p.items.forEach(it => { const cx = it.x + it.w / 2, cy = it.y + it.h / 2; let nx = cx, ny = cy;
+    if (deg === 90) { nx = H - cy; ny = cx; } else if (deg === 180) { nx = W - cx; ny = H - cy; } else { nx = cy; ny = W - cx; }
+    const nW = deg === 180 ? W : H, nH = deg === 180 ? H : W;
+    it.x = Math.max(0, Math.min(nW - it.w, nx - it.w / 2)); it.y = Math.max(0, Math.min(nH - it.h, ny - it.h / 2)); });
+  p.urot = ((p.urot || 0) + deg) % 360; if (deg !== 180) { const t = p.w; p.w = p.h; p.h = t; }
+}
+function imgRect(p) { const [bw, bh] = baseWH(p), m = 24, aw = bw - m * 2, ah = bh - m * 2, k = Math.min(aw / p.img.iw, ah / p.img.ih), w = p.img.iw * k, h = p.img.ih * k; return { x: (bw - w) / 2, y: (bh - h) / 2, w, h }; }
 function renderAll() {
   const has = APP.pages.length > 0;
   $('startPane').hidden = has; $('edPane').hidden = !has; $('hbSave').disabled = !has; $('hbPrint').disabled = !has; $('hbNew').hidden = !has;
@@ -154,10 +194,10 @@ function renderStrip() {
   S.innerHTML = APP.pages.map((p, i) => `<div class="th${i === APP.cur ? ' on' : ''}" data-pg="${i}" tabindex="0" role="button" aria-label="หน้า ${i + 1}">
       ${p.items.length ? `<span class="badge">${p.items.length}</span>` : ''}<canvas data-th="${p.id}"></canvas>
       <span class="n">หน้า ${i + 1}${p.kind === 'blank' ? ' · ว่าง' : p.kind === 'img' ? ' · รูป' : ''}</span>
-      <span class="acts"><button data-pmv="-1" data-i="${i}" title="เลื่อนขึ้น" aria-label="เลื่อนหน้า ${i + 1} ขึ้น"${i ? '' : ' disabled'}>▲</button><button data-pmv="1" data-i="${i}" title="เลื่อนลง" aria-label="เลื่อนหน้า ${i + 1} ลง"${i < n - 1 ? '' : ' disabled'}>▼</button><button data-pdel="${i}" title="ลบหน้า" aria-label="ลบหน้า ${i + 1}" style="color:var(--red)">🗑</button></span></div>`).join('')
+      <span class="acts"><button data-pmv="-1" data-i="${i}" title="เลื่อนขึ้น" aria-label="เลื่อนหน้า ${i + 1} ขึ้น"${i ? '' : ' disabled'}>▲</button><button data-pmv="1" data-i="${i}" title="เลื่อนลง" aria-label="เลื่อนหน้า ${i + 1} ลง"${i < n - 1 ? '' : ' disabled'}>▼</button><button data-prot="${i}" title="หมุนหน้านี้ตามเข็ม 90°" aria-label="หมุนหน้า ${i + 1} ตามเข็ม 90 องศา">↻</button><button data-pdel="${i}" title="ลบหน้า" aria-label="ลบหน้า ${i + 1}" style="color:var(--red)">🗑</button></span></div>`).join('')
     + `<div class="addbar"><span class="mut" style="font-weight:600">แทรกหลังหน้า ${APP.cur + 1}</span><button class="btn sm" data-act="addBlank">＋ หน้าว่าง</button><button class="btn sm" data-act="addPdf">＋ จาก PDF</button><button class="btn sm" data-act="addImg">＋ รูปถ่าย</button></div>`;
   S.querySelectorAll('canvas[data-th]').forEach(c => { const p = APP.pages.find(x => x.id === c.dataset.th); if (!p) return;
-    const key = p.id + ':' + (p.kind === 'pdf' ? p.doc + p.idx : p.kind); const cached = APP.thumbs[key];
+    const key = p.id + ':' + (p.kind === 'pdf' ? p.doc + p.idx : p.kind) + ':' + (p.urot || 0); const cached = APP.thumbs[key];
     if (cached) { c.width = cached.width; c.height = cached.height; c.getContext('2d').drawImage(cached, 0, 0); return; }
     drawPage(p, c, 150 / p.w).then(() => { const k = document.createElement('canvas'); k.width = c.width; k.height = c.height; k.getContext('2d').drawImage(c, 0, 0); APP.thumbs[key] = k; }).catch(() => {}); });
 }
@@ -176,7 +216,7 @@ function renderOverlay() {
   const p = curPage(), s = APP.s, ov = $('ov'); ov.className = 'ov mode-' + APP.mode;
   const H = [];
   // ช่องฟอร์มในไฟล์
-  if (p.kind === 'pdf') { const d = docOf(p.doc); (d.fields || []).forEach(f => f.widgets.forEach((w, wi) => { if (w.pi !== p.idx) return;
+  if (p.kind === 'pdf') { const d = docOf(p.doc); (d.fields || []).forEach(f => f.widgets.forEach((w0, wi) => { if (w0.pi !== p.idx) return; const w = widgetRect(p, w0);
     const st = `left:${w.x * s}px;top:${w.y * s}px;width:${w.w * s}px;height:${w.h * s}px`, fs = Math.max(8, Math.min(14, w.h * 0.62)) * s;
     let inner = '';
     if (f.kind === 'text') inner = f.multiline || w.h > 34 ? `<textarea data-fld="${f.key}" style="font-size:${10 * s}px" aria-label="${esc(f.name)}">${esc(f.value)}</textarea>` : `<input type="text" data-fld="${f.key}" value="${esc(f.value)}" style="font-size:${fs}px" aria-label="${esc(f.name)}">`;
@@ -349,15 +389,16 @@ async function buildPdf() {
     const p = APP.pages[i], doc = p.kind === 'pdf' ? docOf(p.doc) : null;
     const fo = doc ? (prep[doc.id] || (prep[doc.id] = await prepDoc(doc))) : null;
     const items = p.items.slice(); nSig += items.filter(x => x.type === 'img').length; nCover += items.filter(x => x.cover).length; nText += items.filter(x => x.type === 'text' && !x.cover).length;
-    const raster = p.raster || (doc && doc.enc) || (p.rot && items.length);
+    const raster = p.raster || (doc && doc.enc) || ((p.rot || p.urot) && items.length);
     if (raster) {   // วาดทั้งหน้าเป็นภาพ (ลบข้อความเดิมจริง / ไฟล์ล็อกรหัส / หน้าหมุน)
       const S = 200 / 72, c = document.createElement('canvas'); await drawPage(p, c, S, { noForms: !!(doc && doc.fields.length) }); const g = c.getContext('2d');
-      const all = [...(doc ? fieldOverlays(doc, p.idx, true) : []), ...items];
+      const all = [...(doc ? fieldOverlays(doc, p.idx, true).map(o => ({ ...o, ...widgetRect(p, o) })) : []), ...items];
       for (const it of all) { const src = it.type === 'img' ? await loadImage(it.src) : textCanvas(it, S); g.drawImage(src, it.x * S, it.y * S, it.w * S, it.h * S); }
       const pg = out.addPage([p.w, p.h]); const im = await out.embedJpg(await canvasJpg(c, 0.88)); pg.drawImage(im, { x: 0, y: 0, width: p.w, height: p.h }); continue; }
     let pg;
-    if (p.kind === 'pdf') { [pg] = await out.copyPages(fo.lib, [p.idx]); out.addPage(pg); }
-    else { pg = out.addPage([p.w, p.h]); if (p.kind === 'img') { const im = await out.embedJpg(await (await fetch(p.img.url)).arrayBuffer()), r = imgRect(p); pg.drawImage(im, { x: r.x, y: p.h - r.y - r.h, width: r.w, height: r.h }); } }
+    if (p.kind === 'pdf') { [pg] = await out.copyPages(fo.lib, [p.idx]); out.addPage(pg); if (p.urot) pg.setRotation(PDFLib.degrees(((pg.getRotation().angle || 0) + p.urot) % 360)); }
+    else if (p.kind === 'blank') pg = out.addPage([p.w, p.h]);
+    else { const [bw, bh] = baseWH(p); pg = out.addPage([bw, bh]); const im = await out.embedJpg(await (await fetch(p.img.url)).arrayBuffer()), r = imgRect(p); pg.drawImage(im, { x: r.x, y: bh - r.y - r.h, width: r.w, height: r.h }); if (p.urot) pg.setRotation(PDFLib.degrees(p.urot)); }
     const cb = pg.getCropBox(), put = async (bytes, it) => { const im = await out.embedPng(bytes); pg.drawImage(im, { x: cb.x + it.x, y: cb.y + cb.height - it.y - it.h, width: it.w, height: it.h }); };
     const all = [...(doc ? fieldOverlays(doc, p.idx, fo.fallback) : []), ...items];
     for (const it of all) { if (it.type === 'img') await put(await (await fetch(it.src)).arrayBuffer(), it); else await put(await canvasPng(textCanvas(it, K)), it); }
@@ -388,6 +429,35 @@ async function printPdf() { if (!APP.pages.length) return;
   } catch (e) { console.error(e); busy(false); toast('สร้างไฟล์ไม่สำเร็จ: ' + ((e && e.message) || e), 6000); } }
 
 // =====================================================================
+// หมุนหน้า (แบบ Acrobat: ทิศทาง · ช่วงหน้า · คู่ / คี่ · แนวหน้า)
+// =====================================================================
+function rotDlg() {
+  const n = APP.pages.length, b = $('dlgBox'), sel = (id, o) => `<select id="${id}" style="min-height:40px;border:1px solid var(--line);border-radius:10px;padding:0 8px;background:#fff;flex:1">${o.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select>`;
+  b.innerHTML = `<b class="t">⟳ หมุนหน้า</b>
+    <div class="row"><label style="width:70px;color:var(--ink)">ทิศทาง</label>${sel('rdDir', [['90', 'ตามเข็มนาฬิกา 90°'], ['270', 'ทวนเข็มนาฬิกา 90°'], ['180', '180°']])}</div>
+    <div class="box" style="gap:10px"><h3>ช่วงหน้า</h3>
+      <label class="chk2"><input type="radio" name="rdRng" value="all" checked> ทุกหน้า (${n} หน้า)</label>
+      <label class="chk2"><input type="radio" name="rdRng" value="cur"> เฉพาะหน้าที่เลือก (หน้า ${APP.cur + 1})</label>
+      <label class="chk2"><input type="radio" name="rdRng" value="rng"> หน้า จาก <input type="number" id="rdFrom" min="1" max="${n}" value="1" style="width:64px;min-height:34px;border:1px solid var(--line);border-radius:8px;padding:0 6px"> ถึง <input type="number" id="rdTo" min="1" max="${n}" value="${n}" style="width:64px;min-height:34px;border:1px solid var(--line);border-radius:8px;padding:0 6px"> จาก ${n}</label>
+      <div class="row"><label style="width:70px;color:var(--ink)">หมุน</label>${sel('rdOdd', [['both', 'หน้าคู่และหน้าคี่'], ['odd', 'เฉพาะหน้าคี่'], ['even', 'เฉพาะหน้าคู่']])}</div>
+      <div class="row"><label style="width:70px;color:var(--ink)">แนวหน้า</label>${sel('rdOri', [['any', 'ทุกแนว'], ['port', 'เฉพาะหน้าแนวตั้ง'], ['land', 'เฉพาะหน้าแนวนอน']])}</div>
+    </div>
+    <div class="mut">หมุนเฉพาะในไฟล์ที่จะบันทึก — ไฟล์ต้นฉบับไม่ถูกแก้ · ลายเซ็น / ข้อความที่วางแล้วย้ายตามหน้า</div>
+    <div class="ac"><button class="btn" data-d="no">ยกเลิก</button><button class="btn dk" data-d="ok">หมุน</button></div>`;
+  $('dlg').hidden = false;
+  b.querySelectorAll('#rdFrom,#rdTo').forEach(x => x.addEventListener('focus', () => { b.querySelector('input[name=rdRng][value=rng]').checked = true; }));
+  b.onclick = (e) => { const d = e.target.closest('[data-d]'); if (!d) return; $('dlg').hidden = true; b.onclick = null; if (d.dataset.d !== 'ok') return;
+    const deg = +$('rdDir').value, rng = b.querySelector('input[name=rdRng]:checked').value, odd = $('rdOdd').value, ori = $('rdOri').value;
+    let a = 1, z = n; if (rng === 'cur') a = z = APP.cur + 1; else if (rng === 'rng') { a = Math.max(1, Math.min(n, +$('rdFrom').value || 1)); z = Math.max(1, Math.min(n, +$('rdTo').value || n)); if (a > z) [a, z] = [z, a]; }
+    let cnt = 0; for (let i = a; i <= z; i++) { const p = APP.pages[i - 1];
+      if (odd === 'odd' && i % 2 === 0) continue; if (odd === 'even' && i % 2 === 1) continue;
+      if (ori === 'port' && p.w > p.h) continue; if (ori === 'land' && p.w <= p.h) continue;
+      rotatePage(p, deg); cnt++; }
+    if (!cnt) { toast('ไม่มีหน้าที่ตรงเงื่อนไข'); return; }
+    APP.sel = null; APP.dirty = true; renderAll(); toast('หมุน ' + cnt + ' หน้าแล้ว'); };
+}
+
+// =====================================================================
 // กล่องถาม
 // =====================================================================
 function ask(title, text, value, okTxt, bad) { return new Promise(res => { const b = $('dlgBox');
@@ -401,7 +471,8 @@ function ask(title, text, value, okTxt, bad) { return new Promise(res => { const
 // เหตุการณ์
 // =====================================================================
 document.addEventListener('click', async (e) => { const t = e.target;
-  const th = t.closest('[data-pg]'); const mv = t.closest('[data-pmv]'), pd = t.closest('[data-pdel]');
+  const th = t.closest('[data-pg]'); const mv = t.closest('[data-pmv]'), pd = t.closest('[data-pdel]'), pr = t.closest('[data-prot]');
+  if (pr) { const i = +pr.dataset.prot; rotatePage(APP.pages[i], 90); APP.cur = i; APP.sel = null; APP.dirty = true; renderAll(); return; }
   if (mv) { const i = +mv.dataset.i, j = i + +mv.dataset.pmv; if (j < 0 || j >= APP.pages.length) return; const [p] = APP.pages.splice(i, 1); APP.pages.splice(j, 0, p); APP.cur = j; APP.dirty = true; renderAll(); return; }
   if (pd) { const i = +pd.dataset.pdel; if (APP.pages.length === 1) { toast('ต้องเหลืออย่างน้อย 1 หน้า — ปิดไฟล์ได้ที่ปุ่ม ✕ ด้านบน'); return; }
     if (!(await ask('ลบหน้า ' + (i + 1) + '?', 'ลบเฉพาะในไฟล์ที่จะบันทึก — ไฟล์ต้นฉบับไม่ถูกแก้', null, 'ลบหน้า', true))) return; APP.pages.splice(i, 1); if (APP.cur >= i && APP.cur > 0) APP.cur--; APP.sel = null; APP.dirty = true; renderAll(); return; }
@@ -416,6 +487,7 @@ document.addEventListener('click', async (e) => { const t = e.target;
   else if (k === 'addBlank') addBlank(APP.cur + 1); else if (k === 'addPdf') $('fAddPdf').click(); else if (k === 'addImg') $('fAddImg').click();
   else if (k === 'sigPick') { if (!APP.sigs.length) sigNew(); else { toast('เลือกลายเซ็นทางขวา แล้วกด “วางในหน้านี้”'); const sd2 = $('side'); sd2.scrollTop = 0; } }
   else if (k === 'sigNew') sigNew();
+  else if (k === 'rotDlg') rotDlg();
   else if (k === 'delItem') { const f = APP.sel && findItem(APP.sel); if (f) { f.p.items = f.p.items.filter(x => x !== f.it); APP.sel = null; APP.dirty = true; renderOverlay(); renderSide(); renderStrip(); } }
   else if (k === 'deselect') select(null);
   else if (k === 'zoomIn') { APP.zoom = Math.min(4, APP.zoom * 1.25); renderPage(); } else if (k === 'zoomOut') { APP.zoom = Math.max(0.4, APP.zoom / 1.25); renderPage(); } else if (k === 'zoomFit') { APP.zoom = 1; renderPage(); }

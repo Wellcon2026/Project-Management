@@ -23,6 +23,19 @@
   const G = { pid, schema, url: CFG.url, key: CFG.key, sb, backUrl, email: '', table: 'layboard_kv', bucket: 'general-photo', prefix: 'layboard/' + pid + '/',
     token: async () => { try { const r = await sb.auth.getSession(); return (r && r.data && r.data.session && r.data.session.access_token) || CFG.key; } catch (e) { return CFG.key; } } };
   window.LB_PM_CFG = G;
+  // v1.421.0 แต่งรูปบนบอร์ด: เปิด Photo Editor (/photo.html?embed=1) ทับบอร์ด → ได้ Blob JPEG กลับ (null = ยกเลิก)
+  G.photoEdit = (src, opt) => new Promise((done) => {
+    let blob = null, fin = false; const wrap = document.createElement('div'), fr = document.createElement('iframe');
+    wrap.id = 'lbpm-photo'; wrap.setAttribute('style', 'position:fixed;inset:0;z-index:2147483003;background:#1C1B18');
+    fr.title = 'Photo Editor'; fr.src = '/photo.html?embed=1' + (schema === 'staging' ? '&env=staging' : ''); fr.setAttribute('style', 'border:0;width:100%;height:100%;display:block');
+    wrap.appendChild(fr); document.body.appendChild(wrap);
+    const finish = (b) => { if (fin) return; fin = true; window.removeEventListener('message', onMsg); wrap.remove(); done(b || null); };
+    const onMsg = async (e) => { if (e.origin !== location.origin || e.source !== fr.contentWindow) return; const m = e.data || {};
+      if (m.t === 'pe-ready') { try { if (!blob) blob = await (await fetch(src)).blob(); fr.contentWindow.postMessage({ t: 'pe-open', blob, name: (opt && opt.name) || 'รูปจาก Layboard' }, location.origin); }
+        catch (x) { console.error(x); alert('โหลดรูปนี้ไม่ได้ — ตรวจอินเทอร์เน็ตแล้วลองใหม่'); finish(null); } }
+      else if (m.t === 'pe-done') finish(m.blob); else if (m.t === 'pe-cancel') finish(null); };
+    window.addEventListener('message', onMsg);
+  });
   // บันทึกบอร์ดขึ้นเซิร์ฟเวอร์ไม่สำเร็จ → แจ้งผู้ใช้ (เดิมเงียบ — บอร์ดค้างอยู่ในเครื่องเดียว)
   window.addEventListener('layboard-cloud-error', () => { try { let el = document.getElementById('lbpm-err'); if (!el) { el = document.createElement('div'); el.id = 'lbpm-err'; document.body.appendChild(el);
       el.setAttribute('style', 'position:fixed;left:50%;transform:translateX(-50%);top:10px;z-index:2147483001;max-width:92vw;background:#B4332A;color:#fff;border-radius:12px;padding:10px 14px;font:600 14px "IBM Plex Sans Thai",system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25)'); }

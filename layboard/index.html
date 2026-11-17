@@ -590,6 +590,7 @@ a{color:var(--color-accent-700);}a:hover{color:var(--color-accent-800);}
                   <button class="btn btn-secondary" onClick="{{ replaceSel }}">แทนที่</button>
                   <button class="btn btn-secondary" onClick="{{ resetImage }}">รีเซ็ต</button>
                   <button class="btn btn-secondary" onClick="{{ setAsBg }}">ตั้งเป็นพื้นหลัง</button>
+                  <button class="btn btn-primary" onClick="{{ editPhoto }}" style="grid-column:1/-1;" title="ครอป · หมุน · ดัดเส้นตรง · เอฟเฟกต์ แล้วแทนที่รูปนี้">✦ แต่งรูป (Photo Editor)</button>
                 </div>
                 <sc-if value="{{ sel.isLinked }}"><div style="display:flex;flex-direction:column;gap:6px;padding:10px 14px;border-radius:12px;background:var(--color-accent-2-100);font-size:13px;"><strong>Live drawing · {{ sel.linkName }}</strong><span style="color:var(--color-neutral-800);">Updates automatically when the drawing is edited.</span><div style="display:flex;gap:10px;"><a onClick="{{ openLinked }}" style="cursor:pointer;font-weight:600;">Open drawing ↗</a><a onClick="{{ unlinkPlan }}" style="cursor:pointer;font-weight:600;">ยกเลิกลิงก์</a></div></div></sc-if>
                 <div style="display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-radius:12px;background:{{ sel.dpiBg }};font-size:13px;"><strong>Print quality · {{ sel.dpiLabel }}</strong><span style="color:var(--color-neutral-800);">{{ sel.dpiNote }}</span></div>
@@ -4297,6 +4298,21 @@ class Component extends DCLogic {
     const placed = this.layoutPics(have, mode, fit), map = Object.fromEntries(placed.map(e => [e.id, e]));
     this.setEls(els => els.map(e => map[e.id] || e)); this.setState({ picArr: { ...pa, mode, fit }, multi: pa.ids.length > 1 ? pa.ids : [], sel: pa.ids[0] });
   }
+  async editPhoto(id = this.state.sel) {   // v1.421.0 layboard-photo: Wellcon PM Photo Editor → แทนที่รูปเดิม
+    const el = this.findEl(id); if (!el || el.type !== 'image' || !el.src) return;
+    if (this.readOnly()) return this.showToast('You have view-only access');
+    if (el.locked) return this.showToast('รูปนี้ล็อกอยู่ — ปลดล็อกก่อนแต่งรูป');
+    if (el.planRef || el.model || el.vec || el.plot) return this.showToast('รูปที่ลิงก์กับแบบ / โมเดล 3D แต่งด้วย Photo Editor ไม่ได้');
+    if (!window.LB_PM || !window.LB_PM.photoEdit) return this.showToast('Photo Editor ใช้ได้เมื่อเปิด Layboard จาก Wellcon PM');
+    let out = null; try { out = await window.LB_PM.photoEdit(el.src, { name: el.name || el.mname || '' }); } catch (e) { console.error(e); return this.showToast('เปิด Photo Editor ไม่ได้'); }
+    if (!out) return;
+    let a; try { a = await LB.processImage(out); } catch (e) { console.error(e); return this.showToast('อ่านรูปที่แต่งแล้วไม่ได้'); }
+    if (!this.findEl(id)) return this.showToast('รูปนี้ถูกลบไปแล้ว — ไม่ได้แทนที่');
+    const e0 = this.findEl(id), geo = {};   // สัดส่วนรูปเปลี่ยน (หมุน / ครอป) → ปรับกรอบให้เห็นทั้งรูป ภายในกรอบเดิม · ตรงกลางเดิม
+    if (e0 && e0.iw && e0.ih && Math.abs(a.iw / a.ih - e0.iw / e0.ih) > 0.02 && !e0.rot) { const k = Math.min(e0.w / a.iw, e0.h / a.ih), w = Math.round(a.iw * k), h = Math.round(a.ih * k); Object.assign(geo, { x: Math.round(e0.x + (e0.w - w) / 2), y: Math.round(e0.y + (e0.h - h) / 2), w, h }); }
+    this.patchEl({ src: a.src, iw: a.iw, ih: a.ih, alpha: a.alpha, cz: 1, cx: 0.5, cy: 0.5, ...geo }, id);
+    this.setState({ sel: id, crop: null }); this.showToast('แทนที่ด้วยรูปที่แต่งแล้ว (Undo เพื่อย้อน)');
+  }
   fillWith(id, a) {
     const src = this.asset(a).src;
     this.loadImg(src).then(img => {
@@ -4846,6 +4862,7 @@ class Component extends DCLogic {
       I('Border', null, { children: borderKids(el) })];
     if (isI) specific = [SEP, H('Image'),
       I(this.state.crop === el.id ? 'Finish cropping' : 'Crop image', () => this.state.crop === el.id ? this.setState({ crop: null }) : this.startCrop(el.id), { key: 'Dbl-click', disabled: L }),
+      I('แต่งรูป (Photo Editor)…', () => this.editPhoto(el.id), { disabled: L }),
       I('Replace image', null, { children: [I('Upload from computer…', () => this.pickPicture(el.id)), I('Paste from clipboard', () => this.pasteSystem({ target: el.id, imageOnly: true }))] }),
       I('Reset image', () => this.resetImage(el.id)), I('Set image as background', () => this.setAsBg(el.id)),
       I(el.fit === 'contain' ? 'Fill frame (crop)' : 'Show whole image', () => this.patchEl({ fit: el.fit === 'contain' ? 'cover' : 'contain' })),
@@ -5545,7 +5562,7 @@ class Component extends DCLogic {
       toggleCrop: () => s.crop ? this.setState({ crop: null }) : this.startCrop(sel.id), cropLabel: s.crop ? 'Done cropping' : 'Crop',
       cropZoom: sel && sel.cz ? sel.cz : 1, cropZoomPct: Math.round(((sel && sel.cz) || 1) * 100),
       setCropZoom: e => { const el = this.selEl(); const p = { cz: +e.target.value }; if (el.fit === 'contain') p.fit = 'cover'; if (!el.iw) return this.startCrop(el.id); this.patchEl(p); },
-      replaceSel: () => this.pickPicture(sel.id), pasteIntoSel: () => this.pasteSystem({ target: sel.id, imageOnly: true }), resetImage: () => this.resetImage(), setAsBg: () => this.setAsBg(),
+      replaceSel: () => this.pickPicture(sel.id), pasteIntoSel: () => this.pasteSystem({ target: sel.id, imageOnly: true }), resetImage: () => this.resetImage(), setAsBg: () => this.setAsBg(), editPhoto: () => this.editPhoto(sel.id),
       fonts: [...Object.keys(Component.FONTS), ...this.customFonts.map(x => x.name)].map(x => ({ label: x, value: x })), setFont: e => this.patchEl({ font: e.target.value }), selFontCss: sel ? this.fontCss(sel.font) : 'inherit',
       onFontFile: e => { const x = e.target.files[0]; if (x) this.uploadFont(x); e.target.value = ''; },
       aligns: [['Left', 'left'], ['Center', 'center'], ['Right', 'right']].map(([l, v]) => opt(l, sel && sel.align === v, () => this.patchEl({ align: v }))),

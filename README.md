@@ -170,6 +170,7 @@ node scripts/patch-quotation-menu.js   # การ์ด / เมนู "Quotati
 node scripts/patch-access-page.js      # ตั้งค่าระบบ: ปุ่ม "ตารางสิทธิ์ตามตำแหน่ง" → access.html · สิทธิ์พิเศษรายคน (app_state workUserAdd)
 node scripts/patch-pdf-menu.js         # การ์ด / เมนู "PDF Maker" → เปิดหน้าแยก pdf.html (ทุกตำแหน่ง · ไม่ต้องเลือกโครงการ)
 node scripts/patch-photo-menu.js       # การ์ด / เมนู "Photo Editor" → เปิดหน้าแยก photo.html (ทุกตำแหน่ง · ไม่ต้องเลือกโครงการ)
+node scripts/patch-layboard-photo.js    # Layboard: ปุ่ม "แต่งรูป (Photo Editor)" (แก้ layboard/index.html · sync-layboard.js เรียกให้อัตโนมัติ)
 ```
 ```bash
 node scripts/patch-proc-sheet.js
@@ -218,6 +219,7 @@ node scripts/patch-layboard-th.js   # ข้อความ Layboard เป็�
 - ทำงานในเบราว์เซอร์ทั้งหมด (canvas + JS ล้วน) — รูปไม่ถูกอัปโหลด · บันทึกลงเครื่องเท่านั้น (ผู้บริหารเลือก 17/11/2026)
 - สิทธิ์: การ์ด `tab:photo` (ไม่ต้องเลือกโครงการ · ชุดเริ่มต้นทุกตำแหน่ง) · ปิดทั้งระบบ = `featGlobal['tab:photo']=false`
 - เรขาคณิต: หน่วยสัมพัทธ์ (ศูนย์กลางภาพ = 0 · ด้านยาว = 1) · oriented (หมุน 90° / กลับด้าน) → เส้นนำ (homography) → ปรับมุมมองเอง → ปรับเอียง → ครอป · ไฟล์จริงวาดใหม่จากต้นฉบับ (ไม่ขยายจากภาพตัวอย่าง)
+- โหมดฝัง `photo.html?embed=1` (จาก Layboard · `layboard/pm-gate.js` `LB_PM.photoEdit`): parent ส่ง `{t:'pe-open', blob, name}` หลังได้ `pe-ready` · ได้ `pe-done` (blob JPEG) / `pe-cancel` · ตรวจ origin เดียวกันทุกข้อความ
 - ชุดทดสอบเรียกใช้ `window.__PE` (APP · geo · cropRect · buildJpeg · autoAngle · guidedG)
 
 ## PDF Maker · แก้ไขเอกสาร PDF (ตั้งแต่ 17/11/2026 · PM v1.419.0)
