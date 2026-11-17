@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.5.0';   // 1.5.0: นับสิทธิ์พิเศษรายคน (app_state workUserAdd) ตอนตรวจสิทธิ์เข้าหน้า ·   // 1.4.0: ภาพเคลื่อนไหวหน้าเริ่มงานแบบ A "แบบแปลนวาดตัวเอง" (มือถือเห็นภาพแล้ว · เล่นครั้งเดียวต่อการเปิดแอป) · ตัวเลขสรุป 3 ช่องแถวเดียว · 1.3.0: สร้าง / แก้ไข / ลบ ชัดเจนทุกหน้า — ปุ่ม ⋯ ในรายการ (เปิดดู · แก้ไข · ทำสำเนา · ลบ) · ลบได้ทั้งร่าง / ส่งกลับ / รออนุมัติ / ยกเลิกแล้ว · ทิ้งร่างที่ยังไม่บันทึก · ปุ่มแก้ไข / ลบ / ทำสำเนาในหน้าดูใบ · 1.2.0: เปิดจากแท็บ Quotation Maker ในแอป QS Take-off — รับตั๋วเข้าสู่ระบบครั้งเดียว (?wsso=) · ?tk=<งานใน Take-off> = ผูกงานนั้นให้ (แบบ / โครงการ) · &new=1 เริ่มใบใหม่ทันที · 1.1.0: หน้าเริ่มงานใหม่ — แผงนำดำ-ทอง · ภาพเส้นแบบแปลนเคลื่อนไหว · การ์ดประเภทงานกดเริ่มได้เลย · ตัวเลขสรุปงาน
+const QM_VER = 'v1.6.0';   // 1.6.0: เลือกแบบจาก Drawing Log ของโครงการ (ตาราง drawings) · ปุ่ม 🗑 ลบแบบที่มุมการ์ด (เดิม ✕ หลุดขอบ) · 1.5.0: นับสิทธิ์พิเศษรายคน (app_state workUserAdd) ตอนตรวจสิทธิ์เข้าหน้า ·   // 1.4.0: ภาพเคลื่อนไหวหน้าเริ่มงานแบบ A "แบบแปลนวาดตัวเอง" (มือถือเห็นภาพแล้ว · เล่นครั้งเดียวต่อการเปิดแอป) · ตัวเลขสรุป 3 ช่องแถวเดียว · 1.3.0: สร้าง / แก้ไข / ลบ ชัดเจนทุกหน้า — ปุ่ม ⋯ ในรายการ (เปิดดู · แก้ไข · ทำสำเนา · ลบ) · ลบได้ทั้งร่าง / ส่งกลับ / รออนุมัติ / ยกเลิกแล้ว · ทิ้งร่างที่ยังไม่บันทึก · ปุ่มแก้ไข / ลบ / ทำสำเนาในหน้าดูใบ · 1.2.0: เปิดจากแท็บ Quotation Maker ในแอป QS Take-off — รับตั๋วเข้าสู่ระบบครั้งเดียว (?wsso=) · ?tk=<งานใน Take-off> = ผูกงานนั้นให้ (แบบ / โครงการ) · &new=1 เริ่มใบใหม่ทันที · 1.1.0: หน้าเริ่มงานใหม่ — แผงนำดำ-ทอง · ภาพเส้นแบบแปลนเคลื่อนไหว · การ์ดประเภทงานกดเริ่มได้เลย · ตัวเลขสรุปงาน
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -335,9 +335,9 @@ function guessKind(name, isImg) { const n = norm(name);
   if (/plan|ผัง|layout|แปลน/.test(n)) return 'plan'; return isImg && /^(img|dsc|pxl|photo|line_|\d{8})/.test(n) ? 'photo' : 'plan'; }
 const markHtml = (a, lab) => (a.marks || []).map(m => `<div class="mk" style="left:${m.x * 100}%;top:${m.y * 100}%;width:${m.w * 100}%;height:${m.h * 100}%">${lab && m.t ? `<span>${esc(m.t)}</span>` : ''}</div>`).join('');
 function renderAtts() { const q = C();
-  $('edAtts').innerHTML = (q.atts || []).map((a, i) => `<div class="att" data-att="${esc(a.id)}"><div class="th" data-zoom="${esc(a.id)}" title="กดเพื่อซูม / ตีกรอบพื้นที่"><img src="${esc(a.url)}" alt="" loading="lazy">${markHtml(a)}<span class="zb">🔍 ${(a.marks || []).length ? 'ตีกรอบ ' + a.marks.length + ' จุด' : 'ซูม / ตีกรอบ'}</span></div>
-    <div class="bd"><select data-ak="${esc(a.id)}" aria-label="ชนิดแบบ">${AKINDS.map(k => `<option value="${k[0]}"${a.kind === k[0] ? ' selected' : ''}>${k[1]}</option>`).join('')}</select><div class="nm" title="${esc(a.name)}">แบบที่ ${i + 1}${a.src ? ' · Take-off' : ''} · ${esc(a.name)}</div>
-    <div class="r"><label><input type="checkbox" data-aai="${esc(a.id)}"${a.inAi !== false ? ' checked' : ''}> ให้ AI อ่าน</label><label><input type="checkbox" data-apr="${esc(a.id)}"${a.inPrint !== false ? ' checked' : ''}> แนบท้ายเอกสาร</label><button class="x" data-adel="${esc(a.id)}" title="เอาแบบนี้ออก" aria-label="เอาแบบนี้ออก">✕</button></div></div></div>`).join('');
+  $('edAtts').innerHTML = (q.atts || []).map((a, i) => `<div class="att" data-att="${esc(a.id)}"><button class="del" data-adel="${esc(a.id)}" title="ลบแบบนี้ออกจากใบเสนอราคา" aria-label="ลบแบบที่ ${i + 1}">🗑</button><div class="th" data-zoom="${esc(a.id)}" title="กดเพื่อซูม / ตีกรอบพื้นที่"><img src="${esc(a.url)}" alt="" loading="lazy">${markHtml(a)}<span class="zb">🔍 ${(a.marks || []).length ? 'ตีกรอบ ' + a.marks.length + ' จุด' : 'ซูม / ตีกรอบ'}</span></div>
+    <div class="bd"><select data-ak="${esc(a.id)}" aria-label="ชนิดแบบ">${AKINDS.map(k => `<option value="${k[0]}"${a.kind === k[0] ? ' selected' : ''}>${k[1]}</option>`).join('')}</select><div class="nm" title="${esc(a.name)}">แบบที่ ${i + 1}${/^dwg:/.test(a.src || '') ? ' · Drawing Log' : a.src ? ' · Take-off' : ''} · ${esc(a.name)}</div>
+    <div class="r"><label><input type="checkbox" data-aai="${esc(a.id)}"${a.inAi !== false ? ' checked' : ''}> ให้ AI อ่าน</label><label><input type="checkbox" data-apr="${esc(a.id)}"${a.inPrint !== false ? ' checked' : ''}> แนบท้ายเอกสาร</label></div></div></div>`).join('');
 }
 function bmpOf(blob) { return window.createImageBitmap ? createImageBitmap(blob) : new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(blob); }); }
 function toJpeg(src, sx, sy, sw, sh, edge, q) { const k = Math.min(1, edge / Math.max(sw, sh)); const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(sw * k)); c.height = Math.max(1, Math.round(sh * k));
@@ -398,6 +398,36 @@ async function pickTakeoff() { const q = C(); if (!q || APP.busy) return;
   try { toast('กำลังดึงแบบจาก QS Take-off …', 8000); const d = await sb.storage.from(TK_BUCKET).download(r.f.storage_path); if (d.error) throw d.error;
     q.tk = r.root.id; await ingest(d.data, r.f.file_name || 'drawing.pdf', { title: tkTitle(r.f), mime: r.f.mime_type || '', kind: guessKind([r.f.sheet_type, r.f.sheet_title, r.f.file_name].join(' '), false), src: 'tko:' + r.f.id });
     toast('แนบแบบจาก QS Take-off แล้ว');
+  } catch (e) { console.error(e); toast('ดึงแบบไม่สำเร็จ: ' + ((e && e.message) || e), 5000); }
+  APP.busy = false; renderAtts();
+}
+// ---------- แบบก่อสร้างของโครงการ (Drawing Log ใน Wellcon PM · ตาราง drawings · อ่านอย่างเดียว) ----------
+const DWG_ST = { approved: 'อนุมัติแล้ว', submitted: 'ส่งแล้ว', pending: 'รอส่ง', revise: 'แก้ไข', rejected: 'ไม่อนุมัติ' };
+async function pickDwgLog() { const q = C(); if (!q || APP.busy) return;
+  const projs = APP.projects.slice().sort((a, b) => projName(a).localeCompare(projName(b), 'th'));
+  if (!projs.length) { toast('ไม่พบโครงการที่คุณเข้าถึงได้'); return; }
+  let pid = q.pid && projs.some(p => p.id === q.pid) ? q.pid : projs[0].id, D = [];
+  const p = dlg({ title: 'เลือกแบบจากแบบก่อสร้างของโครงการ', text: 'แบบที่อัปโหลดไว้ในหน้า “แบบก่อสร้าง (Drawing Log)” — กดแบบที่ต้องการ ระบบคัดลอกมาแนบ (แบบต้นฉบับไม่เปลี่ยน)', ok: false, cancel: 'ปิด',
+    html: `<select id="dlP" style="border:1.5px solid var(--line);border-radius:11px;padding:8px 11px;min-height:44px;width:100%;background:#fff">${projs.map(x => `<option value="${esc(x.id)}"${x.id === pid ? ' selected' : ''}>${esc(projName(x))}</option>`).join('')}</select><input id="dlQ" placeholder="ค้นหาเลขที่แบบ / ชื่อแบบ / ชื่อไฟล์" style="border:1.5px solid var(--line);border-radius:11px;padding:9px 11px;min-height:44px;width:100%"><div class="pl" id="dlL"><p class="empty">กำลังโหลด…</p></div>` });
+  const box = $('dlgBox');
+  const title = (d) => [d.no, d.name].filter(Boolean).join(' · ') + (d.rev ? ' · ' + d.rev : '');
+  const draw = () => { const t = norm($('dlQ').value); const L = D.filter(d => !t || norm([title(d), d.fileName, d.zone, d.disc].join(' ')).includes(t)).slice(0, 150);
+    $('dlL').innerHTML = L.length ? L.map(d => `<button data-dl="${esc(d.id)}"><span><b>${esc(title(d) || d.fileName || 'แบบ')}</b><br><small>${esc([d.fileName, d.zone, DWG_ST[d.status] || d.status].filter(Boolean).join(' · '))}</small></span><small>${/\.pdf($|\?)/i.test(d.fileName || d.file) ? 'PDF' : 'รูป'}</small></button>`).join('')
+      : '<p class="empty">ยังไม่มีแบบที่แนบไฟล์ในโครงการนี้ — อัปโหลดที่หน้า “แบบก่อสร้าง (Drawing Log)” ของโครงการก่อน</p>'; };
+  const load = async () => { $('dlL').innerHTML = '<p class="empty">กำลังโหลด…</p>';
+    try { const r = await sb.from('drawings').select('id,data').eq('project', pid).limit(2000); if (r.error) throw r.error;
+      D = (r.data || []).map(x => ({ ...(x.data || {}), id: x.id })).filter(d => !d.deleted && !d.del && (d.file || d.pic) && !/^data:/.test(d.file || ''))
+        .sort((a, b) => String(a.no || a.name || '').localeCompare(String(b.no || b.name || ''), 'th', { numeric: true })); }
+    catch (e) { console.error(e); D = []; toast('โหลดรายการแบบไม่สำเร็จ: ' + ((e && e.message) || e), 5000); }
+    if ($('dlL')) draw(); };
+  $('dlP').onchange = (e) => { pid = e.target.value; load(); }; $('dlQ').oninput = draw;
+  $('dlL').onclick = (e) => { const b = e.target.closest('[data-dl]'); if (b) box._pick(D.find(x => x.id === b.dataset.dl)); };
+  load(); const d = await p; if (!d) return;
+  APP.busy = true;
+  try { toast('กำลังดึงแบบจาก Drawing Log …', 8000); const url = d.file || d.pic, res = await fetch(url); if (!res.ok) throw new Error('ดาวน์โหลดไม่ได้ (' + res.status + ')');
+    const blob = await res.blob(), fname = d.fileName || (String(url).split('/').pop() || 'drawing').split('?')[0];
+    await ingest(blob, fname, { title: title(d) || fname.replace(/\.[^.]+$/, ''), mime: blob.type || '', kind: guessKind([d.dtype, d.name, fname].join(' '), false), src: 'dwg:' + d.id });
+    toast('แนบแบบจาก Drawing Log แล้ว');
   } catch (e) { console.error(e); toast('ดึงแบบไม่สำเร็จ: ' + ((e && e.message) || e), 5000); }
   APP.busy = false; renderAtts();
 }
@@ -815,7 +845,7 @@ document.addEventListener('click', async (e) => {
   else if (a === 'new') openEdit(blank());
   else if (a === 'toList') $('listTop').scrollIntoView({ behavior: 'smooth', block: 'start' });
   else if (a === 'rowAdd') { const it = addRow({ sec: C().kind === 'furn' ? 'bi' : C().kind === 'damage' ? 'demo' : 'other' }); renderItems(); sumOut(); const r = $('edItems').querySelector(`[data-row="${it.id}"] textarea`); if (r) r.focus(); }
-  else if (a === 'rateAdd') pickRate(); else if (a === 'tkAdd') pickTakeoff(); else if (a === 'tqAdd') pickQty();
+  else if (a === 'rateAdd') pickRate(); else if (a === 'tkAdd') pickTakeoff(); else if (a === 'dwgAdd') pickDwgLog(); else if (a === 'tqAdd') pickQty();
   else if (a === 'aiRun') { pull(); aiRun(); } else if (a === 'aiAsk') { pull(); aiAsk(); } else if (a === 'aiAdd') aiAdd(); else if (a === 'aiTerms') aiTerms();
   else if (a === 'aiCopyQ') { const L = (C().ai && C().ai.questions) || []; try { await navigator.clipboard.writeText(L.map((x, i) => (i + 1) + '. ' + x).join('\n')); toast('คัดลอกคำถามแล้ว — นำไปออก RFI ได้'); } catch (x) { toast('คัดลอกไม่สำเร็จ'); } }
   else if (a === 'save') save(); else if (a === 'send') send(); else if (a === 'del') del();

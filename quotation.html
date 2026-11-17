@@ -80,7 +80,9 @@ input,select,textarea{font:inherit;color:inherit;font-size:15px}
 .qrow .v b{font-size:14.5px;font-variant-numeric:tabular-nums}
 /* แบบแนบ */
 .atts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
-.att{border:1.5px solid var(--line);border-radius:13px;background:#fff;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.att{position:relative;border:1.5px solid var(--line);border-radius:13px;background:#fff;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.att .del{position:absolute;top:6px;right:6px;z-index:2;width:34px;height:34px;border-radius:10px;border:1px solid #F0C9BF;background:rgba(255,255,255,.95);color:var(--red,#B42318);font-size:15px;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.att .del:hover{background:#FBEDE9}
 .att .th{position:relative;height:112px;background:#EDE7DA;cursor:zoom-in;overflow:hidden}
 .att .th img{width:100%;height:100%;object-fit:cover;display:block}
 .att .th .mk{position:absolute;border:2px solid #D2462E;background:rgba(210,70,46,.14);pointer-events:none}
@@ -88,8 +90,8 @@ input,select,textarea{font:inherit;color:inherit;font-size:15px}
 .att .bd{padding:6px 8px;display:flex;flex-direction:column;gap:5px}
 .att .bd select{border:1px solid var(--line);border-radius:8px;padding:3px 6px;font-size:12.5px;background:#fff;width:100%;min-height:30px}
 .att .bd .nm{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.att .bd .r{display:flex;gap:5px;align-items:center}
-.att .bd .r label{font-size:11.5px;display:flex;align-items:center;gap:3px;flex:1;white-space:nowrap}
+.att .bd .r{display:flex;gap:4px 8px;align-items:center;flex-wrap:wrap}
+.att .bd .r label{font-size:11.5px;display:flex;align-items:center;gap:3px;white-space:nowrap}
 .att .bd .x{border:0;background:none;color:var(--bad);font-size:15px;padding:0 4px}
 .drop{border:2px dashed var(--line);border-radius:14px;padding:16px;text-align:center;color:var(--mut);font-size:13.5px;background:#fff;cursor:pointer}
 .drop.on{border-color:var(--acc);background:var(--accT)}
@@ -332,7 +334,7 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
           <div class="h"><span class="n">2</span>แบบแนบ<small>ผัง · รูปด้าน · รูปตัด · Perspective · สเปก · รูปถ่ายหน้างาน</small></div>
           <div class="drop" id="edDrop">📎 กดเพื่อเลือกไฟล์ หรือลากไฟล์มาวาง — รูป (JPG / PNG) หรือ PDF<br><small>กดที่รูปเพื่อซูม และ "ตีกรอบพื้นที่" ให้ผู้อนุมัติเห็นว่าเสนอราคาส่วนไหน</small></div>
           <input id="edFile" type="file" accept="image/*,application/pdf" multiple hidden>
-          <div><button class="btn sm" data-act="tkAdd">📐 เลือกแบบจากคลังแบบ QS Take-off</button></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" data-act="dwgAdd">📁 เลือกจากแบบก่อสร้างของโครงการ (Drawing Log)</button><button class="btn sm" data-act="tkAdd">📐 เลือกแบบจากคลังแบบ QS Take-off</button></div>
           <div class="atts" id="edAtts"></div>
         </div>
         <div class="card">
@@ -405,7 +407,7 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
 
 <script src="vendor/supabase.js"></script>
 <script src="wctag.js?v=1.2.2"></script>
-<script src="quotation.js?v=1.5.0"></script>
+<script src="quotation.js?v=1.6.0"></script>
 <script src="pm-nav.js?v=1.3.0"></script>
 </body>
 </html>
