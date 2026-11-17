@@ -171,6 +171,7 @@ node scripts/patch-access-page.js      # ตั้งค่าระบบ: ป�
 node scripts/patch-pdf-menu.js         # การ์ด / เมนู "PDF Maker" → เปิดหน้าแยก pdf.html (ทุกตำแหน่ง · ไม่ต้องเลือกโครงการ)
 node scripts/patch-photo-menu.js       # การ์ด / เมนู "Photo Editor" → เปิดหน้าแยก photo.html (ทุกตำแหน่ง · ไม่ต้องเลือกโครงการ)
 node scripts/patch-layboard-photo.js    # Layboard: ปุ่ม "แต่งรูป (Photo Editor)" (แก้ layboard/index.html · sync-layboard.js เรียกให้อัตโนมัติ)
+node scripts/patch-sess-guard.js        # หลายหน้าต่างในเครื่องเดียว = ผู้ใช้คนเดียว · กันหน้าต่างอื่นเขียนทับผู้ใช้ (แก้ออกจากระบบแล้วเข้าเป็นคนอื่น)
 ```
 ```bash
 node scripts/patch-proc-sheet.js
@@ -220,6 +221,8 @@ node scripts/patch-layboard-th.js   # ข้อความ Layboard เป็�
 - สิทธิ์: การ์ด `tab:photo` (ไม่ต้องเลือกโครงการ · ชุดเริ่มต้นทุกตำแหน่ง) · ปิดทั้งระบบ = `featGlobal['tab:photo']=false`
 - เรขาคณิต: หน่วยสัมพัทธ์ (ศูนย์กลางภาพ = 0 · ด้านยาว = 1) · oriented (หมุน 90° / กลับด้าน) → เส้นนำ (homography) → ปรับมุมมองเอง → ปรับเอียง → ครอป · ไฟล์จริงวาดใหม่จากต้นฉบับ (ไม่ขยายจากภาพตัวอย่าง)
 - โหมดฝัง `photo.html?embed=1` (จาก Layboard · `layboard/pm-gate.js` `LB_PM.photoEdit`): parent ส่ง `{t:'pe-open', blob, name}` หลังได้ `pe-ready` · ได้ `pe-done` (blob JPEG) / `pe-cancel` · ตรวจ origin เดียวกันทุกข้อความ
+- แสง · สี (`s.lc`): `applyLC()` ก่อน `applyFx()` · แปลงไฟล์ / ย่อรูป: `BT` · `decodeAny()` (PSD เอง · TIFF ด้วย `vendor/utif.js` + `vendor/pako_inflate.min.js`) · ZIP `makeZip()` · ตั้งค่าจำใน `localStorage.wpe_batch_v1`
+- Layboard แอปแยกใช้สำเนา: `node scripts/sync-photo-to-layboard.js <โฟลเดอร์ repo layboard>` (สร้าง photo-editor.html โหมด SOLO) — แก้ photo.html / photoedit.js แล้วต้องคัดลอกใหม่
 - ชุดทดสอบเรียกใช้ `window.__PE` (APP · geo · cropRect · buildJpeg · autoAngle · guidedG)
 
 ## PDF Maker · แก้ไขเอกสาร PDF (ตั้งแต่ 17/11/2026 · PM v1.419.0)
