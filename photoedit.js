@@ -703,8 +703,8 @@ function btAddFiles(files) {
 function btItemHtml(it) {
   const bg = it.thumb || it.url, st = it.status === 'ok' ? 'ok' : it.status === 'bad' ? 'bad' : it.status === 'run' ? 'run' : '';
   return `<div class="bi" data-bi="${it.id}"><span class="tn" style="${bg ? `background-image:url('${bg}')` : ''}">${bg ? '' : esc(it.kind)}</span>
-    <span style="min-width:0"><b title="${esc(it.name)}">${esc(it.name)}</b><small>${esc(it.kind)} · ${esc(it.status ? (it.src || '') : it.msg)}</small></span>
-    <span style="display:flex;align-items:center;gap:4px"><span class="st ${st}">${st ? esc(it.msg) : ''}</span>${BT.running ? '' : `<button class="x" data-btx="${it.id}" aria-label="เอาออก ${esc(it.name)}" title="เอาออก">✕</button>`}</span></div>`;
+    <span style="min-width:0"><b title="${esc(it.name)}">${esc(it.name)}</b><small${st === 'bad' ? ' style="color:var(--red)"' : ''}>${esc(it.kind)} · ${esc(st === 'bad' ? it.msg.replace(/^✗ /, '') : it.status ? (it.src || '') : it.msg)}</small></span>
+    <span style="display:flex;align-items:center;gap:4px"><span class="st ${st}">${st === 'bad' ? '✗ ไม่สำเร็จ' : st ? esc(it.msg) : ''}</span>${BT.running ? '' : `<button class="x" data-btx="${it.id}" aria-label="เอาออก ${esc(it.name)}" title="เอาออก">✕</button>`}</span></div>`;
 }
 function paintItem(it) { const el = document.querySelector(`[data-bi="${it.id}"]`); if (el) el.outerHTML = btItemHtml(it); }
 function btOutName(it) { return (it.name + (BT.suffix || '')).replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.' + BT_EXT[BT.fmt]; }
