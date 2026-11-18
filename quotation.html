@@ -384,7 +384,7 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
           <div class="drop" id="edDrop">📎 กดเพื่อเลือกไฟล์ หรือลากไฟล์มาวาง — รูป (JPG / PNG) หรือ PDF<br><small>กดที่รูปเพื่อซูม และ "ตีกรอบพื้นที่" ให้ผู้อนุมัติเห็นว่าเสนอราคาส่วนไหน</small></div>
           <input id="edFile" type="file" accept="image/*,application/pdf" multiple hidden>
           <div class="sidebar dcoOnly" id="edSideBar"><span>แนบเป็น:</span><button class="chip" data-side="old">แบบเดิม <small>ก่อนเปลี่ยน</small></button><button class="chip" data-side="new">แบบใหม่ <small>หลังเปลี่ยน</small></button><span class="sp"></span><button class="btn sm dk" data-act="cmp">⇆ เทียบแบบเดิม ↔ แบบใหม่</button></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" data-act="dwgAdd">📁 เลือกจากแบบก่อสร้างของโครงการ (Drawing Log)</button><button class="btn sm" data-act="tkAdd">📐 เลือกแบบจากคลังแบบ QS Take-off</button></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" data-act="dwgAdd">📁 เลือกจากแบบก่อสร้างของโครงการ (Drawing Log)</button><button class="btn sm" data-act="tkAdd">📐 เลือกแบบจากคลังแบบ QS Take-off</button><button class="btn sm" data-act="clmAdd" title="เรื่องที่ลูกค้าจะจ้างเราซ่อม / ทำเอง">🛠 ดึงจากเรื่องใน Claim</button></div>
           <div class="atts" id="edAtts"></div>
         </div>
         <div class="card">
@@ -469,7 +469,7 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
 
 <script src="vendor/supabase.js"></script>
 <script src="wctag.js?v=1.2.2"></script>
-<script src="quotation.js?v=1.8.0"></script>
+<script src="quotation.js?v=1.9.0"></script>
 <script src="pm-nav.js?v=1.3.0"></script>
 </body>
 </html>
