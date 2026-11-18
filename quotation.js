@@ -14,7 +14,8 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.8.0';   // 1.8.0: เปิดใบใหม่ตามประเภทงานจากลิงก์ (?new=1&kind=) · งานซ่อม = ลูกค้าจ้าง (คนอื่นทำเสียหาย ใช้ Claim)
+const QM_VER = 'v1.9.0';   // 1.9.0: ดึงข้อมูลจากเรื่องใน Claim (ปุ่ม + ลิงก์ ?claim=) — เรื่อง · รูป · แบบที่ตีกรอบ · รายการราคา
+//   // 1.8.0: เปิดใบใหม่ตามประเภทงานจากลิงก์ (?new=1&kind=) · งานซ่อม = ลูกค้าจ้าง (คนอื่นทำเสียหาย ใช้ Claim)
 //   // 1.7.1: ส่งต่อใบเปลี่ยนแบบเข้า VO Tracker (additional_work) แทนหน้า VO / SI / EOT ที่ปิดทั้งระบบ
 //   // 1.7.0: งานเปลี่ยนแบบ — เทียบแบบเดิม ↔ แบบใหม่ · ข้อมูลคำสั่ง · ราคาเพิ่ม / ลด / รื้อ · ส่งต่อ VO
 // 1.6.0: เลือกแบบจาก Drawing Log ของโครงการ (ตาราง drawings) · ปุ่ม 🗑 ลบแบบที่มุมการ์ด (เดิม ✕ หลุดขอบ) · 1.5.0: นับสิทธิ์พิเศษรายคน (app_state workUserAdd) ตอนตรวจสิทธิ์เข้าหน้า ·   // 1.4.0: ภาพเคลื่อนไหวหน้าเริ่มงานแบบ A "แบบแปลนวาดตัวเอง" (มือถือเห็นภาพแล้ว · เล่นครั้งเดียวต่อการเปิดแอป) · ตัวเลขสรุป 3 ช่องแถวเดียว · 1.3.0: สร้าง / แก้ไข / ลบ ชัดเจนทุกหน้า — ปุ่ม ⋯ ในรายการ (เปิดดู · แก้ไข · ทำสำเนา · ลบ) · ลบได้ทั้งร่าง / ส่งกลับ / รออนุมัติ / ยกเลิกแล้ว · ทิ้งร่างที่ยังไม่บันทึก · ปุ่มแก้ไข / ลบ / ทำสำเนาในหน้าดูใบ · 1.2.0: เปิดจากแท็บ Quotation Maker ในแอป QS Take-off — รับตั๋วเข้าสู่ระบบครั้งเดียว (?wsso=) · ?tk=<งานใน Take-off> = ผูกงานนั้นให้ (แบบ / โครงการ) · &new=1 เริ่มใบใหม่ทันที · 1.1.0: หน้าเริ่มงานใหม่ — แผงนำดำ-ทอง · ภาพเส้นแบบแปลนเคลื่อนไหว · การ์ดประเภทงานกดเริ่มได้เลย · ตัวเลขสรุปงาน
@@ -257,6 +258,7 @@ async function boot() {
     renderList();
     if (APP.tkRoot && !qid) { if (P.get('new')) openEdit(blank()); else toast('เปิดจาก QS Take-off — งาน “' + (APP.tkRoot.name || '') + '” · เลือกแบบของงานนี้ได้จากปุ่ม “เลือกแบบจากคลังแบบ QS Take-off”', 5200); }
     if (qid) { const q = findQ(qid); if (q && canSee(q)) openQ(q.id); else toast('ไม่พบใบเสนอราคาตามลิงก์ หรือคุณไม่มีสิทธิ์เปิด'); }
+    else if (!APP.tkRoot && P.get('claim') && pid) { openEdit(blank()); try { const c = (await clmLoad(pid)).find(x => x.id === P.get('claim')); if (c) await importClaim(c); else toast('ไม่พบเรื่องใน Claim ตามลิงก์'); } catch (e) { console.error(e); toast('อ่านเรื่องใน Claim ไม่สำเร็จ', 5000); } }   // v1.9.0 ลิงก์จาก Claim: ?pid=&claim=<id>
     else if (!APP.tkRoot && P.get('new')) { const n = blank(), k = P.get('kind'); if (KINDS.some(x => x[0] === k)) n.kind = k; openEdit(n); }   // v1.8.0 จากการ์ด "ทำราคา" ใน PM: เริ่มใบใหม่ตามประเภทงาน
   } catch (e) {
     console.error(e);
@@ -380,7 +382,7 @@ function guessKind(name, isImg) { const n = norm(name);
   if (/plan|ผัง|layout|แปลน/.test(n)) return 'plan'; return isImg && /^(img|dsc|pxl|photo|line_|\d{8})/.test(n) ? 'photo' : 'plan'; }
 const markHtml = (a, lab) => (a.marks || []).map(m => `<div class="mk" style="left:${m.x * 100}%;top:${m.y * 100}%;width:${m.w * 100}%;height:${m.h * 100}%">${lab && m.t ? `<span>${esc(m.t)}</span>` : ''}</div>`).join('');
 const attCard = (q, a, i) => `<div class="att${isDco(q) ? ' s-' + sideOf(a) : ''}" data-att="${esc(a.id)}"><button class="del" data-adel="${esc(a.id)}" title="ลบแบบนี้ออกจากใบเสนอราคา" aria-label="ลบแบบที่ ${i + 1}">🗑</button><div class="th" data-zoom="${esc(a.id)}" title="กดเพื่อซูม / ตีกรอบพื้นที่"><img src="${esc(a.url)}" alt="" loading="lazy">${markHtml(a)}<span class="zb">🔍 ${(a.marks || []).length ? 'ตีกรอบ ' + a.marks.length + ' จุด' : 'ซูม / ตีกรอบ'}</span>${isDco(q) ? `<span class="sd">${esc(SIDES.find(x => x[0] === sideOf(a))[1])}</span>` : ''}</div>
-    <div class="bd">${isDco(q) ? `<select data-aside="${esc(a.id)}" aria-label="แบบเดิม / แบบใหม่">${SIDES.map(x => `<option value="${x[0]}"${sideOf(a) === x[0] ? ' selected' : ''}>${x[1]} (${x[2]})</option>`).join('')}</select>` : ''}<select data-ak="${esc(a.id)}" aria-label="ชนิดแบบ">${AKINDS.map(k => `<option value="${k[0]}"${a.kind === k[0] ? ' selected' : ''}>${k[1]}</option>`).join('')}</select><div class="nm" title="${esc(a.name)}">แบบที่ ${i + 1}${/^dwg:/.test(a.src || '') ? ' · Drawing Log' : a.src === 'cmp' ? ' · ภาพเทียบ' : a.src ? ' · Take-off' : ''} · ${esc(a.name)}</div>
+    <div class="bd">${isDco(q) ? `<select data-aside="${esc(a.id)}" aria-label="แบบเดิม / แบบใหม่">${SIDES.map(x => `<option value="${x[0]}"${sideOf(a) === x[0] ? ' selected' : ''}>${x[1]} (${x[2]})</option>`).join('')}</select>` : ''}<select data-ak="${esc(a.id)}" aria-label="ชนิดแบบ">${AKINDS.map(k => `<option value="${k[0]}"${a.kind === k[0] ? ' selected' : ''}>${k[1]}</option>`).join('')}</select><div class="nm" title="${esc(a.name)}">แบบที่ ${i + 1}${/^dwg:/.test(a.src || '') ? ' · Drawing Log' : /^clm:/.test(a.src || '') ? ' · Claim' : a.src === 'cmp' ? ' · ภาพเทียบ' : a.src ? ' · Take-off' : ''} · ${esc(a.name)}</div>
     <div class="r"><label><input type="checkbox" data-aai="${esc(a.id)}"${a.inAi !== false ? ' checked' : ''}> ให้ AI อ่าน</label><label><input type="checkbox" data-apr="${esc(a.id)}"${a.inPrint !== false ? ' checked' : ''}> แนบท้ายเอกสาร</label></div></div></div>`;
 function renderAtts() { const q = C(), A = q.atts || [];
   if (!isDco(q)) { $('edAtts').innerHTML = A.map((a, i) => attCard(q, a, i)).join(''); return; }
@@ -489,6 +491,51 @@ async function pickDwgLog() { const q = C(); if (!q || APP.busy) return;
   } catch (e) { console.error(e); toast('ดึงแบบไม่สำเร็จ: ' + ((e && e.message) || e), 5000); }
   APP.busy = false; renderAtts();
 }
+// ---------- v1.9.0 เชื่อม Claim (แอป Site Work · app_state.damageClaims — อ่านอย่างเดียว) ----------
+//   เรื่องใน Claim ที่ลูกค้าจะจ้างเราซ่อม / ทำเอง → ทำใบเสนอราคาใน Quotation Maker (มีขั้นอนุมัติ · เอกสารแบบฟอร์ม Wellcon)
+//   ดึง: เรื่อง · พื้นที่ · รายละเอียด · รูปหน้างาน · แบบที่ตีกรอบ · รายการค่าแรง / วัสดุ / อื่น ๆ (ราคาเรียกเก็บลูกค้าตามอัตรากลาง) · OH&P %
+const CLM_KIND = { dmg: ['💥', 'ความเสียหาย'], obs: ['🚧', 'ติดงานผู้อื่น · เสนอราคาทำแทน'], quo: ['💰', 'เสนอราคา'] };
+const CLM_ST = { draft: 'ร่าง', notified: 'แจ้งแล้ว', submitted: 'ส่งเคลมแล้ว', approved: 'อนุมัติแล้ว', invoiced: 'วางบิลแล้ว', paid: 'รับเงินแล้ว', rejected: 'ถูกปฏิเสธ' };
+const clmAmt = (l) => l.t === 'lab' ? num(l.men) * num(l.days) * num(l.rate) : (l.t === 'mat' || l.rc) ? num(l.qty) * num(l.price) : num(l.amt);
+const clmTotal = (c) => { const sub = (c.lines || []).reduce((a, l) => a + clmAmt(l), 0); return r2(sub * (1 + num(c.ohp) / 100)); };
+const clmKindOf = (c) => { const k = c.kind || 'dmg'; return k === 'quo' ? (c.cause === 'design_chg' ? 'dco' : /built|เฟอร์นิ/i.test((c.works || []).join(' ')) ? 'furn' : 'area') : 'damage'; };
+async function clmLoad(pid) { const v = await stGet('damageClaims'); const L = (v && Array.isArray(v[pid])) ? v[pid] : []; return L.filter(c => c && c.id && !c.deleted && !c.del); }
+async function pickClaim() { const q = C(); if (!q || APP.busy) return;
+  if (!q.pid) { await dlg({ title: 'ใช้ได้กับงานในโครงการ', text: 'เลือก “ใช้กับ: ในโครงการ …” ในการ์ด 1 ก่อน — ระบบจะแสดงเรื่องใน Claim ของโครงการนั้น', cancel: false, ok: 'รับทราบ' }); return; }
+  let L = []; try { L = await clmLoad(q.pid); } catch (e) { console.error(e); toast('อ่านเรื่องใน Claim ไม่สำเร็จ: ' + ((e && e.message) || e), 5000); return; }
+  if (!L.length) { await dlg({ title: 'ยังไม่มีเรื่องใน Claim', text: 'โครงการนี้ยังไม่มีเรื่องในหน้า Claim · เคลมความเสียหาย (แอป Site Work)', cancel: false, ok: 'รับทราบ' }); return; }
+  L.sort((a, b) => String(b.at || b.t || '').localeCompare(String(a.at || a.t || '')));
+  const p = dlg({ title: 'ดึงข้อมูลจากเรื่องใน Claim', text: 'ใช้เมื่อลูกค้าจะจ้างเราซ่อม / ทำงานนั้นเอง — ระบบคัดลอกเรื่อง รูป แบบที่ตีกรอบ และรายการราคามาใส่ใบนี้ (เรื่องใน Claim ไม่เปลี่ยน)', ok: false, cancel: 'ปิด',
+    html: `<div class="pl" id="clL">${L.map(c => { const k = CLM_KIND[c.kind || 'dmg'] || CLM_KIND.dmg; return `<button data-clm="${esc(c.id)}"><span><b>${esc(c.no || '')} · ${esc(c.title || '(ไม่มีชื่อเรื่อง)')}</b><br><small>${k[0]} ${esc(k[1])} · ${esc(c.area || '-')} · ${esc(CLM_ST[c.st] || c.st || '')} · รูป ${((c.photos || {}).before || []).length} · ${(c.lines || []).length} รายการ</small></span><small>${baht(clmTotal(c))}<br>ไม่รวม VAT</small></button>`; }).join('')}</div>` });
+  $('clL').onclick = (e) => { const b = e.target.closest('[data-clm]'); if (b) $('dlgBox')._pick(L.find(x => x.id === b.dataset.clm)); };
+  const c = await p; if (c) await importClaim(c);
+}
+async function importClaim(c) { const q = C(); if (!q || !c) return; APP.busy = true;
+  try { const fresh = !(q.items || []).length && !(q.atts || []).length;
+    if (fresh) { q.kind = clmKindOf(c); $('edKind').querySelectorAll('.chip').forEach(b => b.classList.toggle('on', b.dataset.kind === q.kind)); dcoFill(); }
+    const set = (k, id, v) => { if (!String(q[k] || '').trim() && v) { q[k] = String(v); $(id).value = q[k]; } };
+    set('title', 'edTitleIn', c.title); set('area', 'edArea', c.area);
+    const ref = 'อ้างอิง ' + (c.no || 'Claim') + (c.party ? ' · ผู้เกี่ยวข้อง: ' + c.party : '') + (c.desc ? ' — ' + c.desc : '');
+    if (!String(q.desc || '').includes(c.no || '\u0000')) { q.desc = [q.desc, ref].filter(Boolean).join('\n'); $('edDesc').value = q.desc; }
+    if (!has(q.ohpPct) && has(c.ohp)) q.ohpPct = String(num(c.ohp));
+    let n = 0; (c.lines || []).forEach(l => { const nm = String(l.n || '').trim();
+      if (l.t === 'lab') addRow({ sec: 'demo', desc: 'ค่าแรง ' + (nm || 'ช่าง') + ' (' + fq(num(l.men)) + ' คน × ' + fq(num(l.days)) + ' วัน)', unit: 'คน-วัน', qty: r2(num(l.men) * num(l.days)) || '', rate: num(l.rate) || '', src: 'clm' });
+      else if (l.t === 'mat' || l.rc) addRow({ sec: secGuess(nm), desc: nm || 'วัสดุ', unit: l.unit || '', qty: num(l.qty) || '', rate: num(l.price) || '', src: 'clm' });
+      else addRow({ sec: 'other', desc: nm || 'ค่าใช้จ่ายอื่น', unit: 'เหมา', qty: 1, rate: num(l.amt) || '', src: 'clm' });
+      n++; });
+    q.clm = { id: c.id, no: c.no || '', kind: c.kind || 'dmg', at: Date.now() }; logIt(q, 'ดึงข้อมูลจาก ' + (c.no || 'Claim')); touch();
+    renderItems(); renderSum(); let ph = 0;
+    const urls = [...((c.photos || {}).before || []), ...((c.photos || {}).after || [])].filter(u => /^https?:/.test(u));
+    const pl = c.plan && /^https?:/.test(c.plan.url || '') ? c.plan : null;
+    if (pl) { try { toast('กำลังดึงแบบที่ตีกรอบ …', 6000); const r = await fetch(pl.url); if (r.ok) { const b = await r.blob(), before = (q.atts || []).length;
+        if ((await ingest(b, (pl.name || 'แบบ') + '.jpg', { title: (pl.name || 'แบบประกอบ') + ' · ' + (c.no || ''), mime: b.type || 'image/jpeg', kind: 'plan', src: 'clm:' + c.id })) !== false && q.atts.length > before) {
+          const a = q.atts[q.atts.length - 1]; a.marks = (pl.boxes || []).map(x => ({ x: Math.min(x.x1, x.x2) / 100, y: Math.min(x.y1, x.y2) / 100, w: Math.abs(x.x2 - x.x1) / 100, h: Math.abs(x.y2 - x.y1) / 100, t: c.area || 'พื้นที่' })).filter(m => m.w > 0 && m.h > 0); ph++; } } } catch (e) { console.warn(e); } }
+    let pn = 0; for (const u of urls) { if ((q.atts || []).length >= MAX_ATT) break; try { const r = await fetch(u); if (!r.ok) continue; const b = await r.blob();
+        if ((await ingest(b, 'photo.jpg', { title: 'รูปหน้างาน ' + (++pn) + ' · ' + (c.no || ''), mime: b.type || 'image/jpeg', kind: 'photo', src: 'clm:' + c.id })) === false) break; ph++; } catch (e) { console.warn(e); } }
+    const oh = has(c.ohp) && has(q.ohpPct) && num(c.ohp) !== num(q.ohpPct) ? ' · Claim ใช้ OH&P ' + fq(num(c.ohp)) + '% ใบนี้ใช้ ' + fq(num(q.ohpPct)) + '% (แก้ได้ในการ์ด 5)' : '';
+    renderAtts(); renderSum(); toast('ดึงจาก ' + (c.no || 'Claim') + ' แล้ว: ' + n + ' รายการ · ' + ph + ' ภาพ' + oh + ' — ตรวจราคาและใส่ Preliminary ก่อนส่งอนุมัติ', 7000);
+  } catch (e) { console.error(e); toast('ดึงข้อมูลจาก Claim ไม่สำเร็จ: ' + ((e && e.message) || e), 5000); }
+  APP.busy = false; }
 // ปริมาณที่ QS ส่งต่อจาก Take-off (ช่องทาง takeoff_pm_feed — ไม่มีราคา) → เพิ่มเป็นรายการ
 async function pickQty() { const q = C(); if (!q) return;
   if (!q.pid) { await dlg({ title: 'ใช้ได้กับงานในโครงการ', text: 'ปริมาณจาก QS Take-off ผูกกับโครงการใน Wellcon PM — งานนอกโครงการให้เลือกแบบจากคลังแบบ แล้วให้ AI อ่านหรือกรอกปริมาณเอง', cancel: false, ok: 'รับทราบ' }); return; }
@@ -655,7 +702,7 @@ async function cmpKeep() { const q = CMP.q; if (!CMP.d || APP.busy) return; cons
 function itemRow(q, r, n) { const it = r.it, dco = isDco(q), g = r.g;
   return `<tr data-row="${esc(it.id)}"${dco ? ` class="g-${g}"` : ''}><td class="no">${n}</td><td>
         <div style="display:flex;gap:6px;align-items:center;padding:0 2px;flex-wrap:wrap">${dco ? `<select data-k="grp" style="width:auto;font-size:12px;font-weight:600;padding:2px 4px;color:${GRPS.find(x => x[0] === g)[4]}" aria-label="กลุ่มงาน">${GRPS.map(x => `<option value="${x[0]}"${g === x[0] ? ' selected' : ''}>${x[1]}</option>`).join('')}</select>` : ''}<select data-k="sec" style="width:auto;font-size:12px;color:var(--mut);padding:2px 4px" aria-label="หมวดงาน">${SECS.map(x => `<option value="${x[0]}"${(it.sec || 'other') === x[0] ? ' selected' : ''}>${esc(x[1])}</option>`).join('')}</select>
-          ${it.ai ? `<label style="font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap"><span class="aib ${it.chk ? 'ok' : it.ai.conf === 'low' ? 'low' : ''}">AI${it.ai.conf === 'low' ? ' · ไม่แน่ใจ' : ''}</span><input type="checkbox" data-k="chk"${it.chk ? ' checked' : ''} style="width:auto"> ตรวจแล้ว</label>` : ''}${it.rk ? '<span class="aib ok" title="ราคาจากอัตรากลาง">อัตรากลาง</span>' : ''}${it.src === 'tko' ? '<span class="aib" title="ปริมาณจาก QS Take-off">Take-off</span>' : ''}${it.src === 'boq' ? `<span class="aib ok" title="${esc(it.boqRef || '')}">BOQ สัญญา</span>` : ''}</div>
+          ${it.ai ? `<label style="font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap"><span class="aib ${it.chk ? 'ok' : it.ai.conf === 'low' ? 'low' : ''}">AI${it.ai.conf === 'low' ? ' · ไม่แน่ใจ' : ''}</span><input type="checkbox" data-k="chk"${it.chk ? ' checked' : ''} style="width:auto"> ตรวจแล้ว</label>` : ''}${it.rk ? '<span class="aib ok" title="ราคาจากอัตรากลาง">อัตรากลาง</span>' : ''}${it.src === 'tko' ? '<span class="aib" title="ปริมาณจาก QS Take-off">Take-off</span>' : ''}${it.src === 'clm' ? '<span class="aib" title="รายการจากเรื่องใน Claim">Claim</span>' : ''}${it.src === 'boq' ? `<span class="aib ok" title="${esc(it.boqRef || '')}">BOQ สัญญา</span>` : ''}</div>
         <textarea data-k="desc" rows="1" placeholder="รายการ" maxlength="300">${esc(it.desc)}</textarea><input data-k="spec" placeholder="สเปก / วัสดุ / ขนาด (ตามแบบ)" maxlength="300" value="${esc(it.spec)}" style="font-size:12.5px;color:var(--ink2)">
         ${it.ai && it.ai.basis ? `<div class="basis">ที่มา (AI): ${esc(it.ai.basis)}</div>` : ''}</td>
         <td><input data-k="unit" list="unitL" value="${esc(it.unit)}" maxlength="20" aria-label="หน่วย"></td>
@@ -910,7 +957,7 @@ function openView(q) { APP.view = q.id; const c = calc(q), k = kindOf(q.kind), W
       ${q.status === 'returned' ? `<div class="warn bad"><b>ส่งกลับแก้ไข:</b> ${esc(q.retNote || '')} — ${esc(q.retBy || '')} ${dmyhm(q.retAt)}</div>` : ''}
       ${q.status === 'cancelled' ? `<div class="warn bad"><b>ยกเลิก:</b> ${esc(q.cancelNote || '')} — ${esc(q.cancelBy || '')} ${dmyhm(q.cancelAt)}</div>` : ''}
       ${q.status === 'approved' || q.status === 'issued' ? `<div class="info">อนุมัติโดย ${esc(q.apBy || '')} ${dmyhm(q.apAt)}${q.apNote ? ' — ' + esc(q.apNote) : ''}${q.issuedAt ? ' · บันทึกส่งลูกค้า ' + dmyhm(q.issuedAt) : ''}${q.kind === 'dco' ? '<br>งานเปลี่ยนแบบ: ต้องมี VO ลงนามจากลูกค้าก่อนเริ่มงานเพิ่ม (No Signed VO = No Additional Work)' : '<br>เริ่มผลิต / ทำงานได้เมื่อลูกค้าลงนามยืนยัน (No Signature = No Production)'}</div>` : ''}
-      <div class="vgrid">${vf('ใช้กับ', scopeName(q))}${vf('ลูกค้า / ผู้ว่าจ้าง', q.cust)}${vf('เรียน', q.attn)}${vf('พื้นที่ / ห้อง', q.area)}${vf('สถานที่', q.site)}${vf('ผู้จัดทำ', (q.by || '') + (q.byTitle ? ' · ' + q.byTitle : ''))}${vf('ส่งขออนุมัติ', dmyhm(q.sentAt))}${vf('ยืนราคา', q.valid ? q.valid + ' วัน' : '')}${vf('ระยะเวลาดำเนินการ', q.lead)}</div>
+      <div class="vgrid">${vf('ใช้กับ', scopeName(q))}${vf('ลูกค้า / ผู้ว่าจ้าง', q.cust)}${vf('เรียน', q.attn)}${vf('พื้นที่ / ห้อง', q.area)}${vf('สถานที่', q.site)}${vf('ผู้จัดทำ', (q.by || '') + (q.byTitle ? ' · ' + q.byTitle : ''))}${vf('ส่งขออนุมัติ', dmyhm(q.sentAt))}${vf('ยืนราคา', q.valid ? q.valid + ' วัน' : '')}${vf('ระยะเวลาดำเนินการ', q.lead)}${q.clm ? vf('อ้างอิงเรื่องใน Claim', q.clm.no) : ''}</div>
       ${q.desc ? `<div><small class="mut">รายละเอียดงาน</small><div style="white-space:pre-line">${esc(q.desc)}</div></div>` : ''}
       ${q.memo ? `<div class="info"><b>หมายเหตุถึงผู้อนุมัติ:</b> ${esc(q.memo)}</div>` : ''}</div>
     ${dcoView(q)}
@@ -1123,7 +1170,7 @@ document.addEventListener('click', async (e) => {
   else if (a === 'toList') $('listTop').scrollIntoView({ behavior: 'smooth', block: 'start' });
   else if (a === 'rowAdd' || a === 'rowAddG') { const g = a === 'rowAddG' ? b.dataset.g : 'add', it = addRow({ sec: C().kind === 'furn' ? 'bi' : C().kind === 'damage' ? 'demo' : g === 'abort' ? 'demo' : 'other', ...(isDco(C()) ? { grp: g } : {}) }); renderItems(); sumOut(); const r = $('edItems').querySelector(`[data-row="${it.id}"] textarea`); if (r) r.focus(); }
   else if (a === 'boqOmit') pickBoqOmit(); else if (a === 'cmp') { pull(); openCmp(C(), true); } else if (a === 'vCmp') { const q = VQ(); if (q) openCmp(q, false); } else if (a === 'toVo') toVo();
-  else if (a === 'rateAdd') pickRate(); else if (a === 'tkAdd') pickTakeoff(); else if (a === 'dwgAdd') pickDwgLog(); else if (a === 'tqAdd') pickQty();
+  else if (a === 'rateAdd') pickRate(); else if (a === 'tkAdd') pickTakeoff(); else if (a === 'dwgAdd') pickDwgLog(); else if (a === 'clmAdd') { pull(); pickClaim(); } else if (a === 'tqAdd') pickQty();
   else if (a === 'aiRun') { pull(); aiRun(); } else if (a === 'aiAsk') { pull(); aiAsk(); } else if (a === 'aiAdd') aiAdd(); else if (a === 'aiTerms') aiTerms();
   else if (a === 'aiCopyQ') { const L = (C().ai && C().ai.questions) || []; try { await navigator.clipboard.writeText(L.map((x, i) => (i + 1) + '. ' + x).join('\n')); toast('คัดลอกคำถามแล้ว — นำไปออก RFI ได้'); } catch (x) { toast('คัดลอกไม่สำเร็จ'); } }
   else if (a === 'save') save(); else if (a === 'send') send(); else if (a === 'del') del();
