@@ -14,7 +14,8 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.7.1';   // 1.7.1: ส่งต่อใบเปลี่ยนแบบเข้า VO Tracker (additional_work) แทนหน้า VO / SI / EOT ที่ปิดทั้งระบบ
+const QM_VER = 'v1.8.0';   // 1.8.0: เปิดใบใหม่ตามประเภทงานจากลิงก์ (?new=1&kind=) · งานซ่อม = ลูกค้าจ้าง (คนอื่นทำเสียหาย ใช้ Claim)
+//   // 1.7.1: ส่งต่อใบเปลี่ยนแบบเข้า VO Tracker (additional_work) แทนหน้า VO / SI / EOT ที่ปิดทั้งระบบ
 //   // 1.7.0: งานเปลี่ยนแบบ — เทียบแบบเดิม ↔ แบบใหม่ · ข้อมูลคำสั่ง · ราคาเพิ่ม / ลด / รื้อ · ส่งต่อ VO
 // 1.6.0: เลือกแบบจาก Drawing Log ของโครงการ (ตาราง drawings) · ปุ่ม 🗑 ลบแบบที่มุมการ์ด (เดิม ✕ หลุดขอบ) · 1.5.0: นับสิทธิ์พิเศษรายคน (app_state workUserAdd) ตอนตรวจสิทธิ์เข้าหน้า ·   // 1.4.0: ภาพเคลื่อนไหวหน้าเริ่มงานแบบ A "แบบแปลนวาดตัวเอง" (มือถือเห็นภาพแล้ว · เล่นครั้งเดียวต่อการเปิดแอป) · ตัวเลขสรุป 3 ช่องแถวเดียว · 1.3.0: สร้าง / แก้ไข / ลบ ชัดเจนทุกหน้า — ปุ่ม ⋯ ในรายการ (เปิดดู · แก้ไข · ทำสำเนา · ลบ) · ลบได้ทั้งร่าง / ส่งกลับ / รออนุมัติ / ยกเลิกแล้ว · ทิ้งร่างที่ยังไม่บันทึก · ปุ่มแก้ไข / ลบ / ทำสำเนาในหน้าดูใบ · 1.2.0: เปิดจากแท็บ Quotation Maker ในแอป QS Take-off — รับตั๋วเข้าสู่ระบบครั้งเดียว (?wsso=) · ?tk=<งานใน Take-off> = ผูกงานนั้นให้ (แบบ / โครงการ) · &new=1 เริ่มใบใหม่ทันที · 1.1.0: หน้าเริ่มงานใหม่ — แผงนำดำ-ทอง · ภาพเส้นแบบแปลนเคลื่อนไหว · การ์ดประเภทงานกดเริ่มได้เลย · ตัวเลขสรุปงาน
 const CFG = {
@@ -35,7 +36,7 @@ const DEF_ROLES = ['qs', 'qs_mgr', 'director'];              // ตำแหน�
 const APPROVER_R = ['qs_mgr', 'director', 'superadmin'];
 const VAT = 7, PRELIM_RANGE = [8, 20], OHP_RANGE = [10, 15]; // มาตรฐานบริษัท: Preliminary 8–20% · OH&P 10–15%
 const MAX_ATT = 12, MAX_AI_IMG = 8, AI_EDGE = 1568, KEEP_EDGE = 2800;
-const KINDS = [['area', '🏠', 'พื้นที่เดียว', 'ห้อง / โซนเดียว'], ['furn', '🪑', 'เฟอร์นิเจอร์', 'Built-in / Loose'], ['damage', '🛠', 'งานซ่อมความเสียหาย', 'ซ่อม / เปลี่ยนของเสียหาย'], ['dco', '✏️', 'งานเปลี่ยนแบบ', 'Design Change Order']];
+const KINDS = [['area', '🏠', 'พื้นที่เดียว', 'ห้อง / โซนเดียว'], ['furn', '🪑', 'เฟอร์นิเจอร์', 'Built-in / Loose'], ['damage', '🛠', 'งานซ่อมความเสียหาย', 'ลูกค้าจ้างซ่อม / เปลี่ยนของเสียหาย'], ['dco', '✏️', 'งานเปลี่ยนแบบ', 'Design Change Order']];
 const SECS = [['floor', 'งานพื้น', 'Flooring Works'], ['ceil', 'งานฝ้าเพดาน', 'Ceiling Works'], ['wall', 'งานผนัง', 'Wall Works'], ['bi', 'FF&E — เฟอร์นิเจอร์ Built-in', 'FF&E — Built-in Furniture'],
   ['loose', 'FF&E — เฟอร์นิเจอร์ลอยตัว (Loose)', 'FF&E — Loose Furniture'], ['mep', 'งานระบบ (MEP)', 'MEP Works'], ['demo', 'งานรื้อถอน / ซ่อมแซม', 'Demolition / Repair Works'], ['other', 'งานอื่น ๆ', 'Other Works']];
 const AKINDS = [['plan', 'ผัง (Plan)'], ['elev', 'รูปด้าน (Elevation)'], ['sect', 'รูปตัด / ดีเทล (Section / Detail)'], ['persp', 'Perspective'], ['spec', 'สเปก (Specification)'], ['photo', 'รูปถ่ายหน้างาน'], ['other', 'อื่น ๆ']];
@@ -256,6 +257,7 @@ async function boot() {
     renderList();
     if (APP.tkRoot && !qid) { if (P.get('new')) openEdit(blank()); else toast('เปิดจาก QS Take-off — งาน “' + (APP.tkRoot.name || '') + '” · เลือกแบบของงานนี้ได้จากปุ่ม “เลือกแบบจากคลังแบบ QS Take-off”', 5200); }
     if (qid) { const q = findQ(qid); if (q && canSee(q)) openQ(q.id); else toast('ไม่พบใบเสนอราคาตามลิงก์ หรือคุณไม่มีสิทธิ์เปิด'); }
+    else if (!APP.tkRoot && P.get('new')) { const n = blank(), k = P.get('kind'); if (KINDS.some(x => x[0] === k)) n.kind = k; openEdit(n); }   // v1.8.0 จากการ์ด "ทำราคา" ใน PM: เริ่มใบใหม่ตามประเภทงาน
   } catch (e) {
     console.error(e);
     msg(card('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', esc((e && e.message) || e), '<button class="btn pri" onclick="location.reload()">ลองใหม่</button>'));
@@ -289,7 +291,7 @@ function renderList() {
 // ---------- หน้าเริ่มงาน: ตัวเลขสรุป (นับขึ้น) + การ์ดประเภทงาน ----------
 const KIC = { area: ['#B8582A', 'M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zM9 21v-7h6v7'], furn: ['#0D5C63', 'M5 11V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4M3 11h18v6H3zM5 17v3M19 17v3'],
   damage: ['#A16207', 'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z'], dco: ['#5B2E91', 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z'] };
-const KHINT = { area: 'ห้อง / โซนเดียว — พื้น ฝ้า ผนัง ครบในใบเดียว', furn: 'Built-in / Loose ตามรูปด้านและรูปตัด', damage: 'ซ่อม / เปลี่ยนของเสียหาย แนบรูปถ่ายหน้างาน', dco: 'Design Change — เทียบแบบเดิมกับแบบใหม่' };
+const KHINT = { area: 'ห้อง / โซนเดียว — พื้น ฝ้า ผนัง ครบในใบเดียว', furn: 'Built-in / Loose ตามรูปด้านและรูปตัด', damage: 'ลูกค้าจ้างซ่อม / เปลี่ยนของเสียหาย แนบรูปถ่ายหน้างาน — คนอื่นทำเสียหายแล้วจะเรียกเก็บ ใช้ Claim', dco: 'Design Change — เทียบแบบเดิมกับแบบใหม่' };
 function countUp(el, to) { const t0 = performance.now(), d = 700; if (!to || (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches)) { el.textContent = to; return; }
   const tick = (t) => { const k = Math.min(1, (t - t0) / d); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); }; requestAnimationFrame(tick); }
 function renderHero() { const V = visible(), n = (f) => V.filter(f).length;

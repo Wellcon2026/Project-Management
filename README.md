@@ -170,6 +170,7 @@ node scripts/patch-quotation-menu.js   # การ์ด / เมนู "Quotati
 node scripts/patch-access-page.js      # ตั้งค่าระบบ: ปุ่ม "ตารางสิทธิ์ตามตำแหน่ง" → access.html · สิทธิ์พิเศษรายคน (app_state workUserAdd)
 node scripts/patch-pdf-menu.js         # การ์ด / เมนู "PDF Maker" → เปิดหน้าแยก pdf.html (ทุกตำแหน่ง · ไม่ต้องเลือกโครงการ)
 node scripts/patch-photo-menu.js       # การ์ด / เมนู "Photo Editor" → เปิดหน้าแยก photo.html (ทุกตำแหน่ง · ไม่ต้องเลือกโครงการ)
+node scripts/patch-price-hub.js        # การ์ด / เมนู "ทำราคา · เลือกเครื่องมือ" → หน้าต่างเลือก วัด → ทำราคา → เคลม → ติดตาม VO (v1.429.0)
 node scripts/patch-layboard-photo.js    # Layboard: ปุ่ม "แต่งรูป (Photo Editor)" (แก้ layboard/index.html · sync-layboard.js เรียกให้อัตโนมัติ)
 node scripts/patch-sess-guard.js        # หลายหน้าต่างในเครื่องเดียว = ผู้ใช้คนเดียว · กันหน้าต่างอื่นเขียนทับผู้ใช้ (แก้ออกจากระบบแล้วเข้าเป็นคนอื่น)
 ```
@@ -241,6 +242,10 @@ node scripts/patch-layboard-th.js   # ข้อความ Layboard เป็�
 - ตาราง: กลุ่มเหมือนไฟล์ Excel (PM = pm + pm_mgr · Designer = designer + design_mgr · QS = qs + qs_mgr · Finance = fin + fin_mgr · HR = hr + hr_mgr · Admin = office) — กดครั้งเดียวมีผลทั้งกลุ่ม · ◐ = บางตำแหน่งในกลุ่ม · ติ๊ก "แยกทุกตำแหน่ง" = 19 ตำแหน่งแยกกัน (รวมจัดซื้อ · สโตร์ · โรงงาน · หัวหน้าช่าง · จป. · คนขับรถ) · Material Log = คู่ `tab:mat` / `tab:procm`
 - Excel: ดาวน์โหลด (ชีต "ตำแหน่ง × ฟีเจอร์" · ✓ / ○ / – / ◐) · นำเข้า: อ่านชีตที่มี "ตำแหน่ง × ฟีเจอร์" จับคู่ตามชื่อฟีเจอร์ + หัวคอลัมน์ตำแหน่ง → แสดงรายการที่จะเปลี่ยน → ยืนยันจึงบันทึก (◐ และเมนูหลักที่เว้นว่าง = ไม่แตะ · รับไฟล์ `Wellcon_PM_Feature_by_Position_DRAFT.xlsx` ที่ผู้บริหารอนุมัติได้ตรง ๆ)
 - แอปหลัก: Layboard ไม่เติมการ์ดให้เองแล้ว ถ้าตำแหน่งนั้นตั้งชุดการ์ดไว้ (ตารางเป็นตัวกำหนด) · Quotation Maker (v1.5.0) นับสิทธิ์พิเศษรายคนตอนตรวจสิทธิ์เข้าหน้า
+
+## ทำราคา · เลือกเครื่องมือ (ตั้งแต่ 18/11/2026 · PM v1.429.0)
+- การ์ด / เมนูในโครงการ `tab:price` → `_priceHub(pid)` (`scripts/patch-price-hub.js`) — ทางเข้าเดียวของงานทำราคา ไม่รวมแอป: ① วัดปริมาณ (Takeoff · วัดหน้างาน · QS Take-off แอปแยก) ② ทำราคาเสนอลูกค้า = **Quotation Maker ที่เดียว** (`/quotation.html?pid=&new=1&kind=`) ③ เรียกเก็บค่าเสียหายจากผู้ทำ = Claim ④ ติดตามจนเข้าสัญญา = VO Tracker
+- กติกา: ลูกค้าจ้างซ่อม → Quotation Maker (งานซ่อม) · คนอื่นทำเสียหาย → Claim · งานใหญ่ / ประมูล → BOQ Excel กับฝ่ายประมาณราคา · หน้า VO / SI / EOT และฟอร์มใบเสนอราคาในหน้าออกหนังสือปิดทั้งระบบ (ไม่ใช้ทำราคาแล้ว)
 
 ## Quotation Maker · ใบเสนอราคาด่วนสำหรับ QS (ตั้งแต่ 16/11/2026 · PM v1.414.0)
 - หน้าแยก `quotation.html` + `quotation.js` (`&env=staging` = ข้อมูลทดสอบ) — เปิดจากการ์ด / เมนู "Quotation Maker" (`scripts/patch-quotation-menu.js`) · `?pid=<id>` งานในโครงการ · ไม่มี `pid` = เลือกเอง / งานใหม่นอกโครงการ · `?q=<id>` เปิดใบตรง ๆ (ลิงก์แจ้งเตือน) · `?tk=<root folder id>` ผูกงานในแอป QS Take-off (โครงการ PM → แสดงใบของโครงการนั้น · งาน Tender → งานใหม่นอกโครงการ · `&new=1` เริ่มใบใหม่ทันที) · `?wsso=<ตั๋ว>` เข้าสู่ระบบครั้งเดียวจากแอป QS Take-off (v1.2.0 · `sso_redeem` ชุดเดียวกับ PM ⇄ Site Work — ตั๋วใช้ครั้งเดียว อายุ 2 นาที · เครื่องที่ยังไม่เคยเปิด Wellcon PM ต้องเปิด PM หนึ่งครั้งก่อน) · แท็บ "Quotation Maker ↗" อยู่ใน repository wellcon-qs-takeoff v1.8.0 (`openQuo()`)
