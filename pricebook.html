@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="th" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1C1B18">
+<meta name="google" content="notranslate">
+<title>ราคากลาง · Wellcon PM</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ราคากลาง v1.0.0 — หน้าตาเดียวกับ Quotation Maker (แถบหัวมาตรฐาน 60px · pm-nav.js ใส่ 🏠 ให้) */
+:root{--bg:#F4EFE6;--card:#FFFDF8;--line:#E3DACB;--ink:#22231C;--ink2:#4A4840;--mut:#6B6758;--dk:#1C1B18;--hd:#D9CFBD;--gold:#C9A961;--ok:#2E7D46;--warn:#8A6D10;--warnB:#FAF1D6;--bad:#B4442E;--safe-b:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Thai',system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+input,select,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+.stg{background:#F4D35E;color:#3A2F00;font-size:12px;text-align:center;padding:2px 8px;font-weight:500}
+.hdr{position:sticky;top:0;z-index:20;background:var(--dk);color:#F6F1E8;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;min-height:60px;display:flex;align-items:center;gap:10px}
+.hdr .tt{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.hdr .tt b{font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .tt span{font-size:12px;color:var(--hd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.body{padding:14px 14px calc(90px + var(--safe-b))}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.h{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;flex-wrap:wrap}.h small{font-weight:500;color:var(--mut);font-size:12.5px}.sp{flex:1}
+.mut{color:var(--mut);font-size:13px}
+.btn{min-height:44px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:600;padding:0 15px;font-size:14.5px;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:var(--ink);white-space:nowrap}
+.btn.sm{min-height:38px;border-radius:11px;font-size:13.5px;padding:0 12px}
+.btn.pri{border:0;background:#B8582A;color:#fff}.btn.ok{border:0;background:var(--ok);color:#fff}.btn.dk{border:0;background:var(--dk);color:#fff}.btn.gold{border:0;background:var(--gold);color:var(--dk)}.btn.bad{border-color:#EBC3B8;color:var(--bad)}
+.warn{background:var(--warnB);color:var(--warn);border-radius:11px;padding:8px 12px;font-size:13px}.warn.bad{background:#FBEDE9;color:var(--bad)}.warn a{color:inherit;font-weight:700}
+.info{background:#EEF3F8;color:#2B4A6B;border-radius:11px;padding:8px 12px;font-size:13px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tb{min-height:42px;border-radius:999px;border:1.5px solid var(--line);background:#fff;padding:0 16px;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.tb.on{background:var(--dk);border-color:var(--dk);color:#E2BC66}.tb i{font-style:normal;background:#B4442E;color:#fff;border-radius:999px;font-size:11px;padding:0 7px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bar input,.bar select{min-height:40px;border:1.5px solid var(--line);border-radius:11px;padding:6px 10px;background:#fff;min-width:0}
+.bar input[type=search]{flex:1 1 220px}
+.tbw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff;-webkit-overflow-scrolling:touch}
+table.pt{border-collapse:collapse;width:100%;min-width:980px;font-size:13.5px}
+table.pt th{background:#F3EDE1;font-size:12px;font-weight:600;color:var(--ink2);padding:7px 8px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line);position:sticky;top:0}
+table.pt td{padding:6px 8px;border-bottom:1px solid #F0E9DC;vertical-align:top}
+table.pt td small{display:block;color:var(--mut);font-size:12px}
+table.pt .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}table.pt .c{text-align:center}
+table.pt .cd{font-weight:700;color:#8A6D3B;white-space:nowrap}
+table.pt tr.off td{color:#9A958A}table.pt tr.chg td{background:#FFF8E6}
+table.pt input,table.pt select{border:1px solid var(--line);border-radius:7px;padding:4px 6px;background:#fff;font-size:13px;max-width:100%}
+table.pt input.num{text-align:right}
+table.pt .bad,.bad{color:var(--bad)}
+table.df{min-width:640px}table.df .fd{font-size:12.5px}table.df .fd span{color:var(--mut)}table.df s{color:#9A958A}
+table.df tr.mid td{background:#FFF8E6}table.df tr.big td{background:#FBEDE9}
+.pc{font-style:normal;font-weight:700;color:#8A6D10}tr.big .pc{color:var(--bad)}
+.op{font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px;white-space:nowrap}.op-add{background:#E6EFE0;color:#2E7D46}.op-chg{background:#FAF1D6;color:#8A6D10}.op-off{background:#ECEAE4;color:#6B6758}
+.pill{font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 9px;white-space:nowrap}.pill.on{background:#E6EFE0;color:#2E7D46}.pill.off{background:#ECEAE4;color:#8A8375}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px}
+.f{display:flex;flex-direction:column;gap:3px;min-width:0}.f>span{font-size:12px;color:var(--mut);font-weight:500}
+.f input,.f textarea,.f select{border:1.5px solid var(--line);border-radius:11px;padding:8px 11px;background:#fff;min-height:42px;width:100%}
+.f textarea{min-height:74px;resize:vertical}
+.sticky{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--card);border-top:1px solid var(--line);padding:10px 14px calc(10px + var(--safe-b));display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rq{display:flex;gap:10px;align-items:center;text-align:left;background:#fff;border:1px solid var(--line);border-radius:13px;padding:10px 12px;width:100%}
+.rq:hover{border-color:var(--gold)}.rq .m{flex:1;min-width:0;display:flex;flex-direction:column}.rq .m b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rq .m small{color:var(--mut);font-size:12.5px}
+.st{display:inline-flex;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sp2{border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;background:#fff}
+.sp2 i{font-style:normal;width:24px;height:24px;border-radius:50%;background:#ECEAE4;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.sp2.done i{background:var(--ok);color:#fff}.sp2.cur{border-color:var(--gold);background:#FFFBF1}.sp2.cur i{background:var(--dk);color:#E2BC66}
+.sp2 b{font-size:13.5px}.sp2 small{font-size:11.5px;color:var(--mut)}
+.log{font-size:12.5px;color:var(--ink2);display:flex;flex-direction:column;gap:3px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.empty{color:var(--mut);text-align:center;padding:22px 10px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{border:1px solid var(--line);border-radius:999px;padding:3px 11px;font-size:13px;background:#fff}.chip.mid{background:#FAF1D6}.chip.bad{background:#FBEDE9;color:var(--bad)}
+#dlg{position:fixed;inset:0;z-index:90;background:rgba(28,27,24,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+#dlg .bx{background:var(--card);border-radius:18px;padding:18px;width:min(520px,100%);max-height:88vh;overflow:auto;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+#dlg .bx.wide{width:min(980px,100%)}#dlg .bx b{font-size:16px}#dlg .bx .ac{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+#dlg textarea{border:1.5px solid var(--line);border-radius:11px;padding:9px 11px;min-height:90px;width:100%}
+#toast{position:fixed;left:50%;bottom:calc(84px + var(--safe-b));transform:translateX(-50%);background:var(--dk);color:#fff;border-radius:12px;padding:10px 16px;font-size:14px;z-index:99;max-width:92vw;text-align:center}
+@media(max-width:640px){.steps{grid-template-columns:1fr}.btn{min-height:42px}}
+</style>
+</head>
+<body>
+<div id="app"><p class="empty" style="margin-top:60px">กำลังโหลด…</p></div>
+<div id="dlg" hidden><div class="bx" id="dlgBox"></div></div>
+<div id="toast" hidden></div>
+<script src="vendor/supabase.js"></script>
+<script src="wctag.js?v=1.2.2"></script>
+<script src="pricebook.js?v=1.0.0"></script>
+<script src="pm-nav.js?v=1.3.0"></script>
+</body>
+</html>
