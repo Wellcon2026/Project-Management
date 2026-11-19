@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* =====================================================================
-   v1.433.0 card-gate — หน้าแรก: ไม่โชว์การ์ดที่ Admin ปิด แม้ข้อมูลสิทธิ์ยังโหลดไม่เสร็จ (ผู้บริหารแจ้ง 20/11/2026)
+   v1.434.0 card-gate — หน้าแรก: ไม่โชว์การ์ดที่ Admin ปิด แม้ข้อมูลสิทธิ์ยังโหลดไม่เสร็จ (ผู้บริหารแจ้ง 20/11/2026)
      node scripts/patch-card-gate.js        (รันหลัง patch-pricebook-menu.js)
    ปัญหา: มือถือ PM เห็นการ์ด แจ้งล่าช้า · Handover · ออกหนังสือ · ปฏิทิน ที่ "ปิดทั้งระบบ" อยู่
      — ตอนนั้นเครื่องยังไม่ได้ค่าสิทธิ์จากเซิร์ฟเวอร์ (app_state workPages / featGlobal) จึงใช้ "ชุดเริ่มต้น" ในโค้ด
@@ -22,7 +22,7 @@ if (idx < 0) { console.error('✗ ไม่พบส่วน template ใน in
 const enc = (t) => JSON.stringify(t).split('</').join('<' + BS + 'u002F');
 let t = JSON.parse(lines[idx]);
 if (enc(t) !== lines[idx]) { console.error('✗ ถอด/ประกอบ template แล้วไม่ตรงเดิม — ไม่แก้'); process.exit(2); }
-const MARK = 'v1.433.0 card-gate';
+const MARK = 'v1.434.0 card-gate';
 if (t.includes(MARK)) { console.log('✓ มีแล้ว — ไม่ต้องแก้ (card-gate)'); process.exit(0); }
 if (!t.includes('v1.432.0 pricebook')) { console.error('✗ ต้องรัน scripts/patch-pricebook-menu.js ก่อน'); process.exit(1); }
 
