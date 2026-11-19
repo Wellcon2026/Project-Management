@@ -3,13 +3,14 @@
    ---------------------------------------------------------------------
    • ครอป (สัดส่วน · ปรับเอียง + อัตโนมัติ · เส้นตาราง) · หมุน 90° / กลับด้าน · ดัดเส้นตรง (เส้นนำ Guided + ปรับเอง)
      · เอฟเฟกต์: พื้นผิว (Texture) · ความคมชัด (Clarity) · ลดหมอก (Dehaze) · ขอบมืด (Vignette) · เกรน (Grain)
+   • เปลี่ยนชื่อหลายรูป (v1.4.0): ชื่อ + เลขรัน — เลือกโฟลเดอร์ในเครื่อง (เปลี่ยนชื่อไฟล์จริง · ย้อนกลับได้ · Chrome / Edge บนคอม) หรือเลือกรูป → ZIP ชื่อใหม่
    • ทำงานในเบราว์เซอร์ทั้งหมด (ไม่มีไลบรารีเพิ่ม) — รูปไม่ถูกอัปโหลด · ไฟล์ต้นฉบับไม่ถูกแก้ (บันทึกเป็น JPEG ไฟล์ใหม่)
    • ตำแหน่งทั้งหมดเก็บเป็นหน่วยสัมพัทธ์ (ไม่ขึ้นกับความละเอียด) → ภาพตัวอย่าง (≤1600 px) กับไฟล์ที่บันทึก (เต็มความละเอียด) ตรงกัน
    • ใช้การเข้าสู่ระบบของ Wellcon PM · สิทธิ์ = การ์ด 'tab:photo' (ชุดเดียวกับแอปหลัก)
    ===================================================================== */
 (() => {
 'use strict';
-const PE_VER = 'v1.3.0';
+const PE_VER = 'v1.4.0';
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -432,7 +433,9 @@ let VIEW = null;   // { rect, cw, ch } — ขนาดที่แสดง
 function fitSize(aw, ah, rw, rh) { const k = Math.min(aw / rw, ah / rh); return [Math.max(1, Math.floor(rw * k)), Math.max(1, Math.floor(rh * k))]; }
 function renderAll() {
   const has = APP.photos.length > 0;
-  $('batchPane').hidden = APP.view !== 'batch'; $('hbSave').hidden = APP.view === 'batch'; $('btBatch').hidden = EMBED; $('tbBatch').hidden = EMBED;
+  $('batchPane').hidden = APP.view !== 'batch'; $('renamePane').hidden = APP.view !== 'rename'; $('hbSave').hidden = APP.view !== 'edit'; $('btBatch').hidden = EMBED; $('btRename').hidden = EMBED; $('tbBatch').hidden = EMBED;
+  if (APP.view === 'rename') { $('startPane').hidden = true; $('edPane').hidden = true; $('hbClose').hidden = true;
+    $('docTitle').textContent = 'เปลี่ยนชื่อหลายรูป'; $('docSub').textContent = RN.dir ? 'โฟลเดอร์ “' + RN.dirName + '” · ' + RN.items.length + ' รูป' : 'ตั้งชื่อ + เลขรัน ทีละหลายรูป'; renderRename(); return; }
   if (APP.view === 'batch') { $('startPane').hidden = true; $('edPane').hidden = true; $('hbClose').hidden = true;
     $('docTitle').textContent = 'แปลงไฟล์ · ย่อรูป'; $('docSub').textContent = BT.fromEd ? 'รูปที่เปิดใน Photo Editor · ' + BT.items.length + ' รูป' : 'PSD · TIFF · PNG ฯลฯ → JPEG · ย่อขนาดทีละหลายรูป'; renderBatch(); return; }
   $('startPane').hidden = has; $('edPane').hidden = !has; $('hbSave').disabled = !has; $('hbClose').hidden = !has;
@@ -808,10 +811,149 @@ async function btRun() {
 }
 
 // =====================================================================
+// เปลี่ยนชื่อรูปทีละหลายรูป (Batch Rename) — ชื่อ + เลขรัน
+//   • เลือกโฟลเดอร์ในเครื่อง (Chrome / Edge บนคอม) → เปลี่ยนชื่อไฟล์จริงในโฟลเดอร์ · ย้อนกลับชื่อเดิมได้ · ไม่ทับไฟล์ที่มีอยู่
+//   • เลือกรูป / ลากมาวาง → ดาวน์โหลดสำเนาชื่อใหม่เป็น ZIP (ไฟล์ต้นฉบับไม่ถูกแก้)
+//   • ไม่แปลง / ไม่บีบอัดรูป — เปลี่ยนเฉพาะชื่อ (นามสกุลไฟล์เดิม) · ทำในเครื่อง ไม่อัปโหลด
+// =====================================================================
+const RN_KEY = 'wpe_rename_v1';
+const RN = Object.assign({ items: [], dir: null, dirName: '', prefix: '', sep: '-', start: 1, digits: 3, sort: 'name', running: false, undo: null, forceCopy: false, sum: '' },
+  (() => { try { const o = JSON.parse(localStorage.getItem(RN_KEY) || 'null'); return o && typeof o === 'object' ? { prefix: String(o.prefix || ''), sep: ['-', '_', ' ', ''].includes(o.sep) ? o.sep : '-', start: o.start == null ? 1 : Math.max(0, Math.floor(+o.start || 0)), digits: clamp(Math.floor(+o.digits || 3), 1, 6), sort: ['name', 'old', 'new', 'add'].includes(o.sort) ? o.sort : 'name' } : {}; } catch (e) { return {}; } })());
+const RN_DIR_OK = typeof window.showDirectoryPicker === 'function' && !MOBILE && !EMBED;
+const RN_ZIP_MAX = 1024 * 1048576;   // ZIP รวมไม่เกิน ~1 GB (ทำในหน่วยความจำ)
+const rnSaveSet = () => { try { localStorage.setItem(RN_KEY, JSON.stringify({ prefix: RN.prefix, sep: RN.sep, start: RN.start, digits: RN.digits, sort: RN.sort })); } catch (e) {} };
+const rnClean = (s) => String(s || '').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, '');
+const rnExt = (n) => { const m = String(n).match(/^.+\.([^.]+)$/); return m ? m[1] : ''; };
+const natCmp = new Intl.Collator('th', { numeric: true, sensitivity: 'base' }).compare;
+const rnWeb = (ext) => !/^(psd|psb|tif|tiff|heic|heif)$/i.test(ext);
+function rnSorted() { const a = RN.items.slice();
+  if (RN.sort === 'name') a.sort((x, y) => natCmp(x.name, y.name)); else if (RN.sort === 'old') a.sort((x, y) => x.lm - y.lm || natCmp(x.name, y.name)); else if (RN.sort === 'new') a.sort((x, y) => y.lm - x.lm || natCmp(x.name, y.name));
+  return a; }   // 'add' = ตามลำดับที่เพิ่ม
+function rnPlan() {   // [{ it, from, to }] เรียงตามที่ตั้งไว้
+  const pre = rnClean(RN.prefix).trim().replace(/[. ]+$/, ''), st = Math.max(0, Math.floor(+RN.start || 0)), dg = clamp(Math.floor(+RN.digits || 1), 1, 6);
+  return rnSorted().map((it, i) => ({ it, from: it.name, to: (pre ? pre + RN.sep : '') + String(st + i).padStart(dg, '0') + (it.ext ? '.' + it.ext : '') })); }
+function rnFree() { RN.items.forEach(it => { if (it.url) URL.revokeObjectURL(it.url); }); RN.items = []; RN.dir = null; RN.dirName = ''; RN.undo = null; RN.sum = ''; }
+function rnOpen() { APP.view = 'rename'; renderAll(); }
+function rnItem(name, file, h) { const ext = rnExt(name); return { id: uid('r'), name, ext, file, h: h || null, size: file.size, lm: file.lastModified || 0, url: rnWeb(ext) ? URL.createObjectURL(file) : '' }; }
+function rnAddFiles(files) {
+  const list = [...files].filter(isImg); if (!list.length) { toast('รองรับเฉพาะไฟล์รูป (JPG · PNG · WebP · TIFF · PSD …)'); return; }
+  if (RN.dir) rnFree();   // เปลี่ยนจากโหมดโฟลเดอร์ → โหมดเลือกรูป
+  list.forEach(f => RN.items.push(rnItem(f.name, f))); RN.sum = ''; renderAll(); toast('เพิ่ม ' + list.length + ' รูป');
+}
+async function rnLoadDir(d) {   // อ่านรูปในโฟลเดอร์ (ชั้นเดียว ไม่รวมโฟลเดอร์ย่อย)
+  busy(true, 'กำลังอ่านโฟลเดอร์ “' + d.name + '”…'); await tick();
+  try { const got = []; for await (const [name, h] of d.entries()) { if (h.kind !== 'file' || !isImg({ name, type: '' }) || /^__wren/.test(name)) continue; got.push(rnItem(name, await h.getFile(), h)); }
+    rnFree(); RN.dir = d; RN.dirName = d.name; RN.items = got; busy(false); renderAll();
+    toast(got.length ? 'พบ ' + got.length + ' รูปในโฟลเดอร์ “' + d.name + '”' : 'ไม่พบไฟล์รูปในโฟลเดอร์นี้ (ไม่รวมโฟลเดอร์ย่อย)', 4000);
+  } catch (e) { console.error(e); busy(false); toast('อ่านโฟลเดอร์ไม่ได้: ' + ((e && e.message) || e), 6000); }
+}
+async function rnPickDir() {
+  if (!RN_DIR_OK) { toast('เบราว์เซอร์นี้เลือกโฟลเดอร์ไม่ได้ — ใช้ Chrome หรือ Edge บนคอม หรือกด “เลือกรูป”', 6000); return; }
+  let d = null; try { d = await window.showDirectoryPicker({ mode: 'readwrite', id: 'wpe-rename' }); } catch (e) { if (e && e.name !== 'AbortError') toast('เปิดโฟลเดอร์ไม่ได้: ' + ((e && e.message) || e), 6000); return; }
+  await rnLoadDir(d);
+}
+async function rnExists(dir, name) { try { await dir.getFileHandle(name); return true; } catch (e) { if (e && e.name === 'NotFoundError') return false; if (e && e.name === 'TypeMismatchError') return true; throw e; } }
+async function rnMove(dir, h, from, to) {   // เปลี่ยนชื่อ 1 ไฟล์ — ไม่ทับไฟล์ที่มีอยู่ · คืน handle ของไฟล์ชื่อใหม่
+  if (from.toLowerCase() === to.toLowerCase()) throw new Error('ชื่อเดิมและชื่อใหม่ซ้ำกัน: ' + to);
+  if (await rnExists(dir, to)) throw new Error('มีไฟล์ชื่อ “' + to + '” อยู่แล้ว');
+  if (!RN.forceCopy && typeof h.move === 'function') { try { await h.move(to); return await dir.getFileHandle(to); } catch (e) { if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) throw e; if (await rnExists(dir, to) && !(await rnExists(dir, from))) return await dir.getFileHandle(to); } }
+  // เบราว์เซอร์ที่เปลี่ยนชื่อตรง ๆ ไม่ได้: คัดลอกเป็นชื่อใหม่ → ตรวจขนาด → ลบไฟล์ชื่อเดิม
+  const f = await h.getFile(), nh = await dir.getFileHandle(to, { create: true }), w = await nh.createWritable(); await w.write(f); await w.close();
+  const g = await nh.getFile(); if (g.size !== f.size) { try { await dir.removeEntry(to); } catch (x) {} throw new Error('คัดลอก “' + from + '” ไม่ครบ — ไม่เปลี่ยนชื่อไฟล์นี้'); }
+  await dir.removeEntry(from); return nh;
+}
+async function rnApply(dir, pairs, onStep) {   // pairs: [{ h, from, to }] (from ≠ to) — ผิดพลาดกลางทาง = คืนชื่อเดิมทั้งหมดที่ทำไปแล้ว
+  const fromSet = new Set(pairs.map(p => p.from.toLowerCase())), seen = new Set();
+  for (const p of pairs) { const k = p.to.toLowerCase(); if (seen.has(k)) throw Object.assign(new Error('ชื่อใหม่ซ้ำกัน: ' + p.to), { rolled: true }); seen.add(k);
+    if (!fromSet.has(k) && await rnExists(dir, p.to)) throw Object.assign(new Error('มีไฟล์ชื่อ “' + p.to + '” อยู่ในโฟลเดอร์แล้ว (ไม่ใช่รูปในรายการนี้) — เปลี่ยนชื่อ หรือเลขเริ่มต้น แล้วลองใหม่'), { rolled: true }); }
+  // ชื่อใหม่ไปชนชื่อเดิมของรูปในรายการ (เช่น รันเลขใหม่ทับชุดเดิม · เปลี่ยนแค่ตัวพิมพ์เล็ก-ใหญ่) → พักเป็นชื่อชั่วคราวก่อน แล้วค่อยตั้งชื่อจริง
+  const two = pairs.some(p => fromSet.has(p.to.toLowerCase())), tag = '__wren' + Date.now().toString(36) + '_', done = [], total = pairs.length * (two ? 2 : 1); let n = 0;
+  const tmpOf = (p, i, k) => tag + k + i + (rnExt(p.from) ? '.' + rnExt(p.from) : '');
+  try {
+    if (two) for (let i = 0; i < pairs.length; i++) { const p = pairs[i], t = tmpOf(p, i, 'a'); p.h = await rnMove(dir, p.h, p.from, t); p.cur = t; done.push(p); if (onStep) await onStep(++n, total, p.from); }
+    for (const p of pairs) { p.h = await rnMove(dir, p.h, p.cur || p.from, p.to); if (!p.cur) done.push(p); p.cur = p.to; if (onStep) await onStep(++n, total, p.to); }
+  } catch (e) { console.error(e); let fail = 0;
+    if (two) for (let i = 0; i < done.length; i++) { const p = done[i]; if (p.cur.indexOf(tag) === 0) continue; try { const t = tmpOf(p, i, 'r'); p.h = await rnMove(dir, await dir.getFileHandle(p.cur), p.cur, t); p.cur = t; } catch (x) { console.error(x); fail++; } }
+    for (const p of done) { try { p.h = await rnMove(dir, await dir.getFileHandle(p.cur), p.cur, p.from); p.cur = p.from; } catch (x) { console.error(x); fail++; } }
+    const err = new Error(String((e && e.message) || e)); err.rolled = !fail; err.left = fail; throw err; }
+  return pairs;
+}
+async function rnCommit(pairs, verb) {   // เปลี่ยนชื่อจริงในโฟลเดอร์ + อัปเดตรายการ
+  RN.running = true; RN.sum = ''; renderRename(); busy(true, verb + '…');
+  try { await rnApply(RN.dir, pairs, async (i, n, nm) => { if (i % 5 === 0 || i === n) { busy(true, verb + ' ' + i + ' / ' + n + ' — ' + nm); await tick(); } });
+    for (const p of pairs) { const it = p.it; it.name = p.to; it.ext = rnExt(p.to); it.h = p.h; try { it.file = await p.h.getFile(); it.size = it.file.size; it.lm = it.file.lastModified || it.lm; } catch (x) {}
+      if (it.url) { URL.revokeObjectURL(it.url); it.url = rnWeb(it.ext) ? URL.createObjectURL(it.file) : ''; } }
+    RN.running = false; busy(false); return true;
+  } catch (e) { RN.running = false; busy(false);
+    // คืนชื่อไม่ครบ → อ่านโฟลเดอร์ใหม่ให้รายการตรงกับของจริง
+    if (!e.rolled) { const d = RN.dir; await rnLoadDir(d); }
+    RN.sum = '✗ ' + e.message + (e.rolled ? ' — ไม่มีไฟล์ใดถูกเปลี่ยนชื่อ' : ' — มี ' + e.left + ' ไฟล์ที่คืนชื่อเดิมไม่ได้ ตรวจโฟลเดอร์ (ไฟล์ชื่อขึ้นต้น __wren คือไฟล์ที่ค้าง)'); renderRename(); toast(RN.sum, 8000); return false; }
+}
+async function rnRun() {
+  if (!RN.dir || RN.running) return; const plan = rnPlan(), pairs = plan.filter(p => p.from !== p.to).map(p => ({ it: p.it, h: p.it.h, from: p.from, to: p.to }));
+  if (!pairs.length) { toast('ชื่อไฟล์ตรงกับที่ตั้งไว้อยู่แล้ว'); return; }
+  if (!(await ask('เปลี่ยนชื่อ ' + pairs.length + ' ไฟล์ในโฟลเดอร์ “' + RN.dirName + '”?', 'ไฟล์จริงในเครื่องจะถูกเปลี่ยนชื่อ เช่น\n' + pairs[0].from + '  →  ' + pairs[0].to + '\n\nกด “↶ ย้อนกลับชื่อเดิม” ได้ตราบที่ยังไม่ปิดหน้านี้', null))) return;
+  if (await rnCommit(pairs, 'กำลังเปลี่ยนชื่อ')) { RN.undo = pairs.map(p => ({ it: p.it, from: p.to, to: p.from })); RN.sum = '✓ เปลี่ยนชื่อ ' + pairs.length + ' ไฟล์ในโฟลเดอร์ “' + RN.dirName + '” แล้ว'; renderRename(); toast(RN.sum, 5000); }
+}
+async function rnUndo() {
+  if (!RN.dir || RN.running || !RN.undo) return; const pairs = RN.undo.filter(u => RN.items.indexOf(u.it) >= 0 && u.it.name === u.from).map(u => ({ it: u.it, h: u.it.h, from: u.from, to: u.to }));
+  if (!pairs.length) { RN.undo = null; renderRename(); return; }
+  if (await rnCommit(pairs, 'กำลังคืนชื่อเดิม')) { RN.undo = null; RN.sum = '↶ คืนชื่อเดิม ' + pairs.length + ' ไฟล์แล้ว'; renderRename(); toast(RN.sum, 5000); }
+}
+async function rnZip() {   // สำเนาชื่อใหม่ (ไฟล์ต้นฉบับไม่ถูกแก้)
+  if (RN.running || !RN.items.length) return; const plan = rnPlan(), tot = plan.reduce((a, p) => a + (p.it.size || 0), 0);
+  if (tot > RN_ZIP_MAX) { toast('รูปรวม ' + fmtSize(tot) + ' ใหญ่เกินกว่าจะรวมเป็น ZIP (ไม่เกิน 1 GB) — ' + (RN_DIR_OK ? 'ใช้ “เลือกโฟลเดอร์ในเครื่อง” เพื่อเปลี่ยนชื่อไฟล์จริงแทน' : 'แบ่งทำทีละชุด'), 8000); return; }
+  RN.running = true; busy(true, 'กำลังรวมเป็นไฟล์ ZIP…'); await tick();
+  try { if (plan.length === 1) downloadBlob(plan[0].it.file, plan[0].to);
+    else { const d = new Date(), z = await makeZip(plan.map(p => ({ name: p.to, blob: p.it.file })));
+      downloadBlob(z, 'Wellcon เปลี่ยนชื่อรูป ' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '-' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + ' (' + plan.length + ' รูป).zip'); }
+    RN.sum = '✓ ดาวน์โหลด ' + plan.length + ' รูปชื่อใหม่แล้ว · รวม ' + fmtSize(tot) + ' · ไฟล์ต้นฉบับไม่ถูกแก้';
+  } catch (e) { console.error(e); RN.sum = '✗ ดาวน์โหลดไม่สำเร็จ: ' + ((e && e.message) || e); }
+  RN.running = false; busy(false); renderRename(); toast(RN.sum, 5000);
+}
+function rnItemHtml(p, i) { const it = p.it, same = p.from === p.to;
+  return `<div class="bi" data-rn="${it.id}"><span class="tn">${it.url ? `<img src="${it.url}" loading="lazy" decoding="async" alt="">` : esc((it.ext || 'รูป').toUpperCase())}</span>
+    <span style="min-width:0"><b title="${esc(p.to)}">${esc(p.to)}</b><small title="${esc(p.from)}">${same ? 'ชื่อนี้อยู่แล้ว' : 'เดิม: ' + esc(p.from)} · ${fmtSize(it.size)}</small></span>
+    <span style="display:flex;align-items:center;gap:4px"><span class="st">${i + 1}</span>${RN.running ? '' : `<button class="x" data-rnx="${it.id}" aria-label="เอาออกจากรายการ ${esc(it.name)}" title="เอาออกจากรายการ (ไม่ลบไฟล์)">✕</button>`}</span></div>`;
+}
+function rnPaintNames() {   // พิมพ์ชื่อ / เลข → เปลี่ยนเฉพาะข้อความ (ไม่วาดรูปย่อใหม่)
+  const plan = rnPlan(); plan.forEach(p => { const el = document.querySelector(`[data-rn="${p.it.id}"]`); if (!el) return; const b = el.querySelector('b'), s = el.querySelector('small');
+    b.textContent = p.to; b.title = p.to; s.textContent = (p.from === p.to ? 'ชื่อนี้อยู่แล้ว' : 'เดิม: ' + p.from) + ' · ' + fmtSize(p.it.size); });
+  const ex = $('rnEx'); if (ex) ex.textContent = rnExTxt(plan);
+}
+const rnExTxt = (plan) => plan.length ? 'ตัวอย่าง: ' + plan[0].to + (plan.length > 1 ? '  …  ' + plan[plan.length - 1].to : '') : 'ตัวอย่าง: ' + ((rnClean(RN.prefix).trim() ? rnClean(RN.prefix).trim() + RN.sep : '') + String(Math.max(0, Math.floor(+RN.start || 0))).padStart(clamp(Math.floor(+RN.digits || 1), 1, 6), '0')) + '.jpg';
+function renderRename() {
+  const plan = rnPlan(), n = plan.length, chg = plan.filter(p => p.from !== p.to).length;
+  $('rnDirBtn').hidden = !RN_DIR_OK;
+  $('rnDropTx').textContent = RN.dir ? '📁 โฟลเดอร์ “' + RN.dirName + '” · ' + n + ' รูป (ไม่รวมโฟลเดอร์ย่อย)' : RN_DIR_OK ? 'เลือกโฟลเดอร์ในเครื่อง = เปลี่ยนชื่อไฟล์จริงในโฟลเดอร์ · เลือกรูป / ลากรูปมาวาง = ได้สำเนาชื่อใหม่เป็น ZIP' : 'เลือกรูป หรือลากรูปมาวาง → ได้สำเนาชื่อใหม่เป็น ZIP (เปลี่ยนชื่อไฟล์จริงในโฟลเดอร์ ใช้ Chrome / Edge บนคอม)';
+  $('rnList').innerHTML = n ? plan.map(rnItemHtml).join('') : '<div class="mut" style="text-align:center;padding:18px">ยังไม่มีรูป — เลือกโฟลเดอร์ เลือกรูป หรือลากรูปมาวางด้านบน</div>';
+  const dis = n && !RN.running ? '' : ' disabled';
+  $('rnSet').innerHTML = `<h3>✎ ตั้งชื่อใหม่<small>${n} รูป</small></h3>
+    <div class="row"><label style="color:var(--ink)">ชื่อ</label><input type="text" id="rnPre" maxlength="80" placeholder="เช่น MVC-Lobby" value="${esc(RN.prefix)}" style="flex:1;width:auto"></div>
+    <div style="font-size:13px;font-weight:600">ตัวคั่นระหว่างชื่อกับเลข</div>
+    <div class="chips">${[['-', 'ขีด -'], ['_', 'ขีดล่าง _'], [' ', 'เว้นวรรค'], ['', 'ไม่มี']].map(([k, t]) => `<button data-rnsep="${esc(k)}" class="${RN.sep === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+    <div class="row"><label style="color:var(--ink)">เลขเริ่มต้น</label><input type="number" id="rnStart" min="0" step="1" value="${RN.start}"></div>
+    <div style="font-size:13px;font-weight:600">จำนวนหลักของเลข</div>
+    <div class="chips">${[1, 2, 3, 4, 5].map(v => `<button data-rndig="${v}" class="${+RN.digits === v ? 'on' : ''}">${v} หลัก (${String(1).padStart(v, '0')})</button>`).join('')}</div>
+    <div class="row"><label style="color:var(--ink)">เรียงลำดับ</label><select id="rnSort" style="min-height:36px;border:1px solid var(--line);border-radius:10px;padding:0 8px;background:#fff;flex:1">${[['name', 'ตามชื่อเดิม (ก-ฮ · 1-9)'], ['old', 'วันที่ของไฟล์ เก่า → ใหม่'], ['new', 'วันที่ของไฟล์ ใหม่ → เก่า'], ['add', 'ตามลำดับที่เพิ่ม']].map(([k, t]) => `<option value="${k}"${RN.sort === k ? ' selected' : ''}>${t}</option>`).join('')}</select></div>
+    <div class="mut" id="rnEx">${esc(rnExTxt(plan))}</div>
+    <div class="info">เปลี่ยนเฉพาะชื่อไฟล์ — ไม่แปลง ไม่ย่อ ไม่บีบอัดรูป · นามสกุลไฟล์เดิม · ทำในเครื่องคุณ ไม่อัปโหลด${RN.dir ? ' · ไม่ทับไฟล์ที่มีอยู่ในโฟลเดอร์ · ไม่แตะโฟลเดอร์ย่อยและไฟล์ที่ไม่ใช่รูป' : ' · ไฟล์ต้นฉบับไม่ถูกแก้'}</div>
+    ${RN.dir ? `<button class="btn teal" data-act="rnRun" style="width:100%;min-height:46px;font-size:15px"${chg && !RN.running ? '' : ' disabled'}>✎ เปลี่ยนชื่อในโฟลเดอร์ (${chg} ไฟล์)</button>
+    ${RN.undo ? `<button class="btn" data-act="rnUndo" style="width:100%"${RN.running ? ' disabled' : ''}>↶ ย้อนกลับชื่อเดิม (${RN.undo.length} ไฟล์)</button>` : ''}
+    <button class="btn sm" data-act="rnZip" style="width:100%"${dis}>⬇ ดาวน์โหลดสำเนาชื่อใหม่เป็น ZIP แทน</button>`
+    : `<button class="btn teal" data-act="rnZip" style="width:100%;min-height:46px;font-size:15px"${dis}>⬇ ดาวน์โหลดชื่อใหม่ (${n} รูป${n > 1 ? ' · ZIP' : ''})</button>`}
+    <div class="row">${RN_DIR_OK ? '<button class="btn sm" data-act="rnDir">📁 เลือกโฟลเดอร์</button>' : ''}<button class="btn sm" data-act="rnAdd">＋ เลือกรูป</button>${n ? '<button class="btn sm" data-act="rnClear">ล้างรายการ</button>' : ''}</div>
+    <div id="rnSum" class="mut"${/^✗/.test(RN.sum) ? ' style="color:var(--red)"' : ''}>${esc(RN.sum)}</div>`;
+}
+
+// =====================================================================
 // เหตุการณ์
 // =====================================================================
 document.addEventListener('click', async (e) => { const t = e.target;
   const bx = t.closest('[data-btx]'); if (bx) { const i = BT.items.findIndex(x => x.id === bx.dataset.btx); if (i >= 0) { const [it] = BT.items.splice(i, 1); if (it.url) URL.revokeObjectURL(it.url); } renderBatch(); return; }
+  const rx = t.closest('[data-rnx]'); if (rx) { if (RN.running) return; const i = RN.items.findIndex(x => x.id === rx.dataset.rnx); if (i >= 0) { const [it] = RN.items.splice(i, 1); if (it.url) URL.revokeObjectURL(it.url); } RN.sum = ''; renderAll(); return; }
+  const rs = t.closest('[data-rnsep]'); if (rs) { RN.sep = rs.dataset.rnsep; rnSaveSet(); renderRename(); return; }
+  const rd = t.closest('[data-rndig]'); if (rd) { RN.digits = +rd.dataset.rndig; rnSaveSet(); renderRename(); return; }
   const bf2 = t.closest('[data-btfmt]'); if (bf2) { BT.fmt = bf2.dataset.btfmt; btSaveSet(); renderBatch(); return; }
   const bp = t.closest('[data-btpre]'); if (bp) { BT.val = +bp.dataset.btpre; btSaveSet(); renderBatch(); return; }
   const px = t.closest('[data-phx]'); if (px) { e.stopPropagation(); const i = +px.dataset.phx, p = APP.photos[i];
@@ -822,6 +964,14 @@ document.addEventListener('click', async (e) => { const t = e.target;
   const pn = t.closest('[data-panel]'); if (pn) { APP.panel = pn.dataset.panel; APP.guideMode = false; APP.wbPick = false; renderAll(); return; }
   const a = t.closest('[data-act]'); if (!a) return; const k = a.dataset.act, p = cur();
   if (k === 'toPm' && APP.view === 'batch') { if (BT.running) return; APP.view = 'edit'; renderAll(); return; }
+  if (k === 'toPm' && APP.view === 'rename') { if (RN.running) return; APP.view = 'edit'; renderAll(); return; }
+  if (k === 'renameOpen') { rnOpen(); return; }
+  if (k === 'rnDir') { if (!RN.running) rnPickDir(); return; }
+  if (k === 'rnAdd') { if (!RN.running) $('fRename').click(); return; }
+  if (k === 'rnRun') { rnRun(); return; }
+  if (k === 'rnUndo') { rnUndo(); return; }
+  if (k === 'rnZip') { rnZip(); return; }
+  if (k === 'rnClear') { if (RN.running) return; rnFree(); renderAll(); return; }
   if (k === 'batchOpen') { btOpen(false); return; }
   if (k === 'batchFromEd') { if (!APP.photos.length) return; btOpen(true); return; }
   if (k === 'btAdd') { $('fBatch').click(); return; }
@@ -860,6 +1010,8 @@ document.addEventListener('input', (e) => { const t = e.target;
   if (t.id === 'btQ') { BT.q = +t.value; $('btQv').textContent = BT.q; btSaveSet(); return; }
   if (t.id === 'btVal') { BT.val = Math.max(1, +t.value || 1); btSaveSet(); document.querySelectorAll('[data-btpre]').forEach(b => b.classList.toggle('on', +b.dataset.btpre === +BT.val)); return; }
   if (t.id === 'btMax') { BT.maxKB = t.value; btSaveSet(); return; }
+  if (t.id === 'rnPre') { const v = rnClean(t.value); if (v !== t.value) t.value = v; RN.prefix = v; RN.sum = ''; rnSaveSet(); rnPaintNames(); return; }
+  if (t.id === 'rnStart') { RN.start = Math.max(0, Math.floor(+t.value || 0)); RN.sum = ''; rnSaveSet(); rnPaintNames(); return; }
   if (t.id === 'btSuf') { BT.suffix = t.value.replace(/[\/:*?"<>|]+/g, ''); btSaveSet(); const ex = $('btEx'); if (ex) ex.textContent = 'ตัวอย่าง: ' + (BT.items.length ? btOutName(BT.items[0]) : 'ชื่อเดิม' + BT.suffix + '.' + BT_EXT[BT.fmt]); return; }
   const p = cur(); if (!p) return;
   if (t.dataset.lc || t.dataset.mix) { const key = t.dataset.lc || t.dataset.mix, v = +t.value; if (sliding !== t) { pushHist(p); sliding = t; }
@@ -874,6 +1026,9 @@ document.addEventListener('input', (e) => { const t = e.target;
 document.addEventListener('change', (e) => { const t = e.target, p = cur(); sliding = null;
   if (t.id === 'fOpen') { const F = [...t.files]; t.value = ''; if (F.length) addFiles(F); return; }
   if (t.id === 'fBatch') { const F = [...t.files]; t.value = ''; if (F.length) btAddFiles(F); return; }
+  if (t.id === 'fRename') { const F = [...t.files]; t.value = ''; if (F.length) rnAddFiles(F); return; }
+  if (t.id === 'rnSort') { RN.sort = t.value; rnSaveSet(); renderRename(); return; }
+  if (t.id === 'rnPre' || t.id === 'rnStart') return;
   if (t.id === 'btMode') { BT.mode = t.value; if (BT.mode === 'pct' && +BT.val > 100) BT.val = 50; if (BT.mode !== 'pct' && +BT.val <= 100) BT.val = 2048; btSaveSet(); renderBatch(); return; }
   if (t.id === 'btNoUp') { BT.noUp = t.checked; btSaveSet(); return; }
   if (t.id === 'btEdits') { BT.useEdits = t.checked; return; }
@@ -898,9 +1053,16 @@ document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.
   ['dragleave', 'drop'].forEach(k => d.addEventListener(k, (e) => { e.preventDefault(); d.classList.remove('on'); })); d.addEventListener('drop', (e) => addFiles([...(e.dataTransfer.files || [])]));
   const bd = $('btDrop'); ['dragenter', 'dragover'].forEach(k => bd.addEventListener(k, (e) => { e.preventDefault(); bd.classList.add('on'); }));
   ['dragleave', 'drop'].forEach(k => bd.addEventListener(k, (e) => { e.preventDefault(); bd.classList.remove('on'); })); bd.addEventListener('drop', (e) => btAddFiles([...(e.dataTransfer.files || [])]));
+  const rdz = $('rnDrop'); ['dragenter', 'dragover'].forEach(k => rdz.addEventListener(k, (e) => { e.preventDefault(); rdz.classList.add('on'); }));
+  ['dragleave', 'drop'].forEach(k => rdz.addEventListener(k, (e) => { e.preventDefault(); rdz.classList.remove('on'); }));
+  rdz.addEventListener('drop', async (e) => { if (RN.running) return; const dt = e.dataTransfer, F = [...(dt.files || [])], it0 = dt.items && dt.items.length === 1 ? dt.items[0] : null;
+    if (RN_DIR_OK && it0 && it0.getAsFileSystemHandle) {   // ลากโฟลเดอร์มาวาง = โหมดโฟลเดอร์ (ขอสิทธิ์เขียนก่อน)
+      let h = null; try { h = await it0.getAsFileSystemHandle(); } catch (x) {}
+      if (h && h.kind === 'directory') { try { if ((await h.requestPermission({ mode: 'readwrite' })) !== 'granted') { toast('ไม่ได้รับอนุญาตให้แก้ไขโฟลเดอร์นี้'); return; } } catch (x) { toast('ไม่ได้รับอนุญาตให้แก้ไขโฟลเดอร์นี้'); return; } await rnLoadDir(h); return; } }
+    if (F.length) rnAddFiles(F); });
   $('view').addEventListener('dragover', (e) => e.preventDefault()); $('view').addEventListener('drop', (e) => { e.preventDefault(); const F = [...(e.dataTransfer.files || [])]; if (F.length) addFiles(F); }); })();
 let rzT = null; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (APP.photos.length) draw(); }, 120); });
 window.addEventListener('beforeunload', (e) => { if (!EMBED && APP.photos.some(x => x.edited) && APP.dirty) { e.preventDefault(); e.returnValue = ''; } });
-window.__PE = { APP, BT, applyLC, autoTone, geo, cropRect, buildJpeg, autoAngle, guidedG, makeZip, ver: PE_VER };   // ใช้ตรวจสอบในชุดทดสอบ
+window.__PE = { APP, BT, RN, rnPlan, rnLoadDir, rnAddFiles, rnRun, rnUndo, rnApply, renderRename, applyLC, autoTone, geo, cropRect, buildJpeg, autoAngle, guidedG, makeZip, ver: PE_VER };   // ใช้ตรวจสอบในชุดทดสอบ
 boot();
 })();

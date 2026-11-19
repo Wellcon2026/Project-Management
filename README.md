@@ -226,7 +226,8 @@ node scripts/patch-layboard-th.js   # ข้อความ Layboard เป็�
 - โหมดฝัง `photo.html?embed=1` (จาก Layboard · `layboard/pm-gate.js` `LB_PM.photoEdit`): parent ส่ง `{t:'pe-open', blob, name}` หลังได้ `pe-ready` · ได้ `pe-done` (blob JPEG) / `pe-cancel` · ตรวจ origin เดียวกันทุกข้อความ
 - แสง · สี (`s.lc`): `applyLC()` ก่อน `applyFx()` · แปลงไฟล์ / ย่อรูป: `BT` · `decodeAny()` (PSD เอง · TIFF ด้วย `vendor/utif.js` + `vendor/pako_inflate.min.js`) · ZIP `makeZip()` · ตั้งค่าจำใน `localStorage.wpe_batch_v1`
 - Layboard แอปแยกใช้สำเนา: `node scripts/sync-photo-to-layboard.js <โฟลเดอร์ repo layboard>` (สร้าง photo-editor.html โหมด SOLO) — แก้ photo.html / photoedit.js แล้วต้องคัดลอกใหม่
-- ชุดทดสอบเรียกใช้ `window.__PE` (APP · geo · cropRect · buildJpeg · autoAngle · guidedG)
+- เปลี่ยนชื่อหลายรูป (v1.4.0): `RN` · `rnPlan()` (ชื่อ + เลขรัน) · โหมดโฟลเดอร์ `rnPickDir()` → `rnLoadDir()` → `rnApply()` / `rnMove()` (File System Access API · Chrome / Edge บนคอม · ไม่ทับไฟล์ · คืนชื่อเดิมเมื่อผิดพลาด · `rnUndo()`) · โหมดเลือกรูป `rnZip()` (ZIP ชื่อใหม่)
+- ชุดทดสอบเรียกใช้ `window.__PE` (APP · geo · cropRect · buildJpeg · autoAngle · guidedG · RN · rnPlan · rnLoadDir · rnApply)
 
 ## PDF Maker · แก้ไขเอกสาร PDF (ตั้งแต่ 17/11/2026 · PM v1.419.0)
 - หน้าแยก `pdf.html` + `pdfmaker.js` (`?env=staging` = ข้อมูลทดสอบ) — เปิดจากการ์ด / เมนู "PDF Maker" (`scripts/patch-pdf-menu.js`) · ติดตั้งเป็นไอคอนแยกได้ (`pdf.webmanifest` · ไอคอน `pdf-icon*.png/svg`) แต่ใช้การเข้าสู่ระบบของ Wellcon PM
