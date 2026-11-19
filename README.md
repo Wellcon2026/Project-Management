@@ -171,6 +171,7 @@ node scripts/patch-access-page.js      # ตั้งค่าระบบ: ป�
 node scripts/patch-pdf-menu.js         # การ์ด / เมนู "PDF Maker" → เปิดหน้าแยก pdf.html (ทุกตำแหน่ง · ไม่ต้องเลือกโครงการ)
 node scripts/patch-photo-menu.js       # การ์ด / เมนู "Photo Editor" → เปิดหน้าแยก photo.html (ทุกตำแหน่ง · ไม่ต้องเลือกโครงการ)
 node scripts/patch-price-hub.js        # การ์ด / เมนู "ทำราคา · เลือกเครื่องมือ" → หน้าต่างเลือก วัด → ทำราคา → เคลม → ติดตาม VO (v1.429.0)
+node scripts/patch-pricing-principles.js   # ตั้งค่าระบบ → อัตรากลาง: กล่องเตือน + "อ่านหลักการคิดราคา" (app_state pricingPrinciples) (v1.431.0)
 node scripts/patch-layboard-photo.js    # Layboard: ปุ่ม "แต่งรูป (Photo Editor)" (แก้ layboard/index.html · sync-layboard.js เรียกให้อัตโนมัติ)
 node scripts/patch-sess-guard.js        # หลายหน้าต่างในเครื่องเดียว = ผู้ใช้คนเดียว · กันหน้าต่างอื่นเขียนทับผู้ใช้ (แก้ออกจากระบบแล้วเข้าเป็นคนอื่น)
 ```
@@ -242,6 +243,11 @@ node scripts/patch-layboard-th.js   # ข้อความ Layboard เป็�
 - ตาราง: กลุ่มเหมือนไฟล์ Excel (PM = pm + pm_mgr · Designer = designer + design_mgr · QS = qs + qs_mgr · Finance = fin + fin_mgr · HR = hr + hr_mgr · Admin = office) — กดครั้งเดียวมีผลทั้งกลุ่ม · ◐ = บางตำแหน่งในกลุ่ม · ติ๊ก "แยกทุกตำแหน่ง" = 19 ตำแหน่งแยกกัน (รวมจัดซื้อ · สโตร์ · โรงงาน · หัวหน้าช่าง · จป. · คนขับรถ) · Material Log = คู่ `tab:mat` / `tab:procm`
 - Excel: ดาวน์โหลด (ชีต "ตำแหน่ง × ฟีเจอร์" · ✓ / ○ / – / ◐) · นำเข้า: อ่านชีตที่มี "ตำแหน่ง × ฟีเจอร์" จับคู่ตามชื่อฟีเจอร์ + หัวคอลัมน์ตำแหน่ง → แสดงรายการที่จะเปลี่ยน → ยืนยันจึงบันทึก (◐ และเมนูหลักที่เว้นว่าง = ไม่แตะ · รับไฟล์ `Wellcon_PM_Feature_by_Position_DRAFT.xlsx` ที่ผู้บริหารอนุมัติได้ตรง ๆ)
 - แอปหลัก: Layboard ไม่เติมการ์ดให้เองแล้ว ถ้าตำแหน่งนั้นตั้งชุดการ์ดไว้ (ตารางเป็นตัวกำหนด) · Quotation Maker (v1.5.0) นับสิทธิ์พิเศษรายคนตอนตรวจสิทธิ์เข้าหน้า
+
+## หลักการคิดราคาของระบบ (ตั้งแต่ 19/11/2026 · PM v1.431.0)
+- ต้นฉบับ: `docs/pricing-principles.md` (ไม่ deploy — `.vercelignore`) · ฉบับในแอป: app_state `pricingPrinciples` = `{ v:{ ver, at, md } }` (อ่านได้เฉพาะผู้ที่เข้าสู่ระบบ)
+- แสดงที่: ตั้งค่าระบบ → อัตรากลาง (กล่องเตือน + ปุ่ม "อ่านหลักการ") · หน้าต่าง "ทำราคา · เลือกเครื่องมือ" (ลิงก์สำหรับผู้มีสิทธิ์ตัวเลขเงิน) — `_pricingDoc()` (`scripts/patch-pricing-principles.js`)
+- แก้เนื้อหา: แก้ไฟล์ .md (ผ่านผู้บริหาร + บันทึกในส่วนประวัติการตัดสินใจ) แล้วอัปเดตแถว: `update public.app_state set data = jsonb_build_object('v', jsonb_build_object('ver','<ฉบับ>','at','<DD/MM/YYYY>','md', <เนื้อหาไฟล์>)) where id = 'pricingPrinciples';`
 
 ## ทำราคา · เลือกเครื่องมือ (ตั้งแต่ 18/11/2026 · PM v1.429.0)
 - การ์ด / เมนูในโครงการ `tab:price` → `_priceHub(pid)` (`scripts/patch-price-hub.js`) — ทางเข้าเดียวของงานทำราคา ไม่รวมแอป: ① วัดปริมาณ (Takeoff · วัดหน้างาน · QS Take-off แอปแยก) ② ทำราคาเสนอลูกค้า = **Quotation Maker ที่เดียว** (`/quotation.html?pid=&new=1&kind=`) ③ เรียกเก็บค่าเสียหายจากผู้ทำ = Claim ④ ติดตามจนเข้าสัญญา = VO Tracker
