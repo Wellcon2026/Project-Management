@@ -305,7 +305,7 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
       <div>
         <div class="kk"><i></i>QUOTATION MAKER · WELLCON QS</div>
         <h1>จากแบบ สู่ใบเสนอราคา<br><em>ในหน้าเดียว</em></h1>
-        <p class="hlead">แนบผัง · รูปด้าน · Perspective · สเปก ให้ AI ช่วยถอดรายการ ใส่ราคาจากอัตรากลาง แล้วส่งขออนุมัติ — สำหรับงานที่ไม่ซับซ้อน ทั้งในโครงการและงานใหม่</p>
+        <p class="hlead">แนบผัง · รูปด้าน · Perspective · สเปก ให้ AI ช่วยถอดรายการ ใส่ราคาจากราคากลาง แล้วส่งขออนุมัติ — สำหรับงานที่ไม่ซับซ้อน ทั้งในโครงการและงานใหม่</p>
         <div class="cta"><button class="go" data-act="new">เริ่มใบเสนอราคาใหม่ <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
           <button class="gh" data-act="toList">ดูใบที่ทำไว้ ↓</button></div>
         <div class="hstats" id="heroStats"></div>
@@ -325,7 +325,7 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
     </div>
     <div class="sech">เริ่มจากประเภทงาน<i></i></div>
     <div class="kinds" id="heroKinds"></div>
-    <div class="steps"><div class="stp"><b>แนบแบบ · ตีกรอบพื้นที่</b>จากเครื่อง หรือคลังแบบ QS Take-off</div><div class="stp"><b>AI ถอดรายการ</b>ปริมาณ + ที่มา · QS ตรวจทุกรายการ</div><div class="stp"><b>ใส่ราคา</b>จากอัตรากลาง · รวม VAT ให้</div><div class="stp"><b>ส่งขออนุมัติ</b>อนุมัติแล้วพิมพ์ / PDF ส่งลูกค้า</div></div>
+    <div class="steps"><div class="stp"><b>แนบแบบ · ตีกรอบพื้นที่</b>จากเครื่อง หรือคลังแบบ QS Take-off</div><div class="stp"><b>AI ถอดรายการ</b>ปริมาณ + ที่มา · QS ตรวจทุกรายการ</div><div class="stp"><b>ใส่ราคา</b>จากราคากลาง · รวม VAT ให้</div><div class="stp"><b>ส่งขออนุมัติ</b>อนุมัติแล้วพิมพ์ / PDF ส่งลูกค้า</div></div>
     <div class="sech" id="listTop">ใบเสนอราคาของงาน<i></i><button class="btn sm pri" data-act="new">＋ สร้างใบใหม่</button></div>
     <div class="card">
       <div class="grid">
@@ -389,7 +389,7 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
         </div>
         <div class="card">
           <div class="h"><span class="n">3</span>ผู้ช่วย AI อ่านแบบ<small>ถอดรายการและปริมาณจากแบบที่ติ๊ก "ให้ AI อ่าน"</small></div>
-          <div class="info">AI อ่านผัง · รูปด้าน · รูปตัด · Perspective · สเปก แล้วเสนอ <b>รายการ + ปริมาณ + ที่มาของตัวเลข</b> — <b>AI ไม่ใส่ราคา</b> ราคามาจากอัตรากลางหรือ QS กรอกเอง · ตัวเลขจาก AI ต้องตรวจกับแบบทุกรายการก่อนส่งอนุมัติ</div>
+          <div class="info">AI อ่านผัง · รูปด้าน · รูปตัด · Perspective · สเปก แล้วเสนอ <b>รายการ + ปริมาณ + ที่มาของตัวเลข</b> — <b>AI ไม่ใส่ราคา</b> ราคามาจากราคากลางหรือ QS กรอกเอง · ตัวเลขจาก AI ต้องตรวจกับแบบทุกรายการก่อนส่งอนุมัติ</div>
           <label class="f"><span>บอก AI เพิ่มเติม (ไม่บังคับ)</span><input id="edAiHint" maxlength="300" placeholder="เช่น คิดเฉพาะผนังด้าน A และตู้ · ความสูงฝ้า 2.70 ม."></label>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn dk" id="edAiRun" data-act="aiRun">✨ ให้ AI อ่านแบบและเสนอรายการ</button>
@@ -401,7 +401,7 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
       <div class="col">
         <div class="card">
           <div class="h"><span class="n">4</span>รายการและราคา<small>ราคา / หน่วย = ราคาเรียกเก็บลูกค้า ไม่รวม VAT</small><span class="sp"></span>
-            <button class="btn sm" data-act="tqAdd">📏 ดึงปริมาณจาก QS Take-off</button><button class="btn sm" data-act="rateAdd">＋ เลือกจากอัตรากลาง</button><button class="btn sm" data-act="rowAdd">＋ เพิ่มรายการ</button></div>
+            <button class="btn sm" data-act="tqAdd">📏 ดึงปริมาณจาก QS Take-off</button><button class="btn sm" data-act="rateAdd">＋ เลือกจากราคากลาง</button><button class="btn sm" data-act="rowAdd">＋ เพิ่มรายการ</button></div>
           <div class="tbw"><table class="bq"><thead><tr><th style="width:38px">ที่</th><th>รายการ / สเปก</th><th style="width:112px">หน่วย</th><th style="width:100px" class="num">จำนวน</th><th style="width:122px" class="num">ราคา / หน่วย</th><th style="width:128px" class="num">รวม (฿)</th><th style="width:30px"></th></tr></thead><tbody id="edItems"></tbody></table></div>
           <div id="edItemWarn"></div>
         </div>
@@ -469,7 +469,7 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
 
 <script src="vendor/supabase.js"></script>
 <script src="wctag.js?v=1.2.2"></script>
-<script src="quotation.js?v=1.9.0"></script>
+<script src="quotation.js?v=1.10.0"></script>
 <script src="pm-nav.js?v=1.3.0"></script>
 </body>
 </html>

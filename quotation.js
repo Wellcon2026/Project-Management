@@ -14,7 +14,8 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.9.0';   // 1.9.0: ดึงข้อมูลจากเรื่องใน Claim (ปุ่ม + ลิงก์ ?claim=) — เรื่อง · รูป · แบบที่ตีกรอบ · รายการราคา
+const QM_VER = 'v1.10.0';   // 1.10.0: ราคากลาง — เลือกจากราคากลาง (รหัส · สเปก · หมวดอัตโนมัติ) · ปรับราคาจากฐานได้ ระบบแสดง % ที่ปรับให้ผู้อนุมัติเห็น
+// 1.9.0: ดึงข้อมูลจากเรื่องใน Claim (ปุ่ม + ลิงก์ ?claim=) — เรื่อง · รูป · แบบที่ตีกรอบ · รายการราคา
 //   // 1.8.0: เปิดใบใหม่ตามประเภทงานจากลิงก์ (?new=1&kind=) · งานซ่อม = ลูกค้าจ้าง (คนอื่นทำเสียหาย ใช้ Claim)
 //   // 1.7.1: ส่งต่อใบเปลี่ยนแบบเข้า VO Tracker (additional_work) แทนหน้า VO / SI / EOT ที่ปิดทั้งระบบ
 //   // 1.7.0: งานเปลี่ยนแบบ — เทียบแบบเดิม ↔ แบบใหม่ · ข้อมูลคำสั่ง · ราคาเพิ่ม / ลด / รื้อ · ส่งต่อ VO
@@ -43,6 +44,11 @@ const SECS = [['floor', 'งานพื้น', 'Flooring Works'], ['ceil', '�
 const AKINDS = [['plan', 'ผัง (Plan)'], ['elev', 'รูปด้าน (Elevation)'], ['sect', 'รูปตัด / ดีเทล (Section / Detail)'], ['persp', 'Perspective'], ['spec', 'สเปก (Specification)'], ['photo', 'รูปถ่ายหน้างาน'], ['other', 'อื่น ๆ']];
 const UNITS = ['ตร.ม.', 'ม.', 'ชุด', 'ชิ้น', 'ตัว', 'จุด', 'แผ่น', 'บาน', 'เหมา', 'วัน', 'คน-วัน', 'เที่ยว', 'ครั้ง'];
 const RATE_G = { labor: 'ค่าแรงช่าง', mat: 'วัสดุมาตรฐาน', staff: 'บุคลากรควบคุมงาน', doc: 'งานแบบและเอกสาร', trans: 'เดินทางและขนส่ง', tool: 'เครื่องมือและอุปกรณ์', site: 'ค่าใช้จ่ายหน้างาน', prot: 'งานป้องกันและตัวอย่าง' };
+// v1.10.0 ราคากลาง: ราคาฐานของรายการ (เก็บไว้ตอนเลือก · ใบเก่าใช้ราคากลางปัจจุบัน) · % ที่ปรับจากฐาน (ปรับตามเงื่อนไขงานได้ — ผู้อนุมัติเห็น)
+const gLabel = (g) => RATE_G[g] || ((SECS.find(s => s[0] === g) || [])[1]) || '';
+const rkBase = (it) => { if (!it || !it.rk) return 0; if (num(it.rkBase) > 0) return num(it.rkBase); const r = APP.rates.find(y => y.k === it.rk); return r ? num(r.rate) : 0; };
+const rkPct = (it) => { const b = rkBase(it); return b > 0 && has(it.rate) ? Math.round((num(it.rate) - b) / b * 1000) / 10 : 0; };
+const rkBadge = (it) => { const p = rkPct(it), b = rkBase(it); return `<span class="aib ${p ? '' : 'ok'}" data-rkb title="ราคากลาง ${b > 0 ? baht(b) : ''}"${p ? ' style="background:#FAF1D6;color:#8A6D10"' : ''}>ราคากลาง${p ? ' ' + (p > 0 ? '+' : '') + p + '%' : ''}</span>`; };
 const STS = { draft: ['ร่าง', '#F3EDE1', '#6B6758'], sent: ['รออนุมัติ', '#FAF1D6', '#8A6D10'], returned: ['ส่งกลับแก้ไข', '#FBEDE9', '#B4442E'], approved: ['อนุมัติแล้ว', '#E6EFE0', '#2E7D46'],
   issued: ['ส่งลูกค้าแล้ว', '#E1EEF4', '#2A7DA3'], cancelled: ['ยกเลิก', '#ECEAE4', '#8A8375'] };
 // ---------- งานเปลี่ยนแบบ (kind 'dco') v1.7.0 ----------
@@ -199,7 +205,8 @@ function warnsOf(q) { const W = [], c = calc(q);
   if (!has(q.ohpPct)) W.push(['bad', 'ยังไม่ได้ใส่ OH&P % (มาตรฐานบริษัท ' + OHP_RANGE[0] + '–' + OHP_RANGE[1] + '%)']);
   else if (c.ohp < OHP_RANGE[0] || c.ohp > OHP_RANGE[1]) W.push(['', 'OH&P ' + fq(c.ohp) + '% อยู่นอกช่วงมาตรฐานบริษัท ' + OHP_RANGE[0] + '–' + OHP_RANGE[1] + '% — ผู้อนุมัติจะเห็นข้อความนี้']);
   if (c.disc > 0) W.push(['', 'มีส่วนลด ' + baht(c.disc) + ' — ผู้อนุมัติต้องเห็นชอบส่วนลดนี้']);
-  const man = (q.items || []).filter(i => !i.rk).length; if (man) W.push(['', man + ' รายการใช้ราคาที่ QS กรอกเอง (ไม่ได้มาจากอัตรากลาง) — ตรวจกับฝ่ายประมาณราคา']);
+  const man = (q.items || []).filter(i => !i.rk).length; if (man) W.push(['', man + ' รายการใช้ราคาที่ QS กรอกเอง (ไม่ได้มาจากราคากลาง) — ตรวจกับฝ่ายประมาณราคา']);
+  const adj = (q.items || []).filter(i => i.rk && rkPct(i)).length; if (adj) W.push(['', adj + ' รายการปรับราคาจากราคากลาง (ตามเงื่อนไขงาน) — ดู % ที่ปรับในตารางรายการ']);
   const ai = (q.items || []).filter(i => i.ai && !i.chk).length; if (ai) W.push(['bad', ai + ' รายการมาจาก AI และยังไม่ได้ติ๊ก "ตรวจแล้ว"']);
   if (isDco(q)) { const d = q.dco || {}, I = q.items || [];
     const om = I.filter(i => grpOf(q, i) === 'omit' && i.src !== 'boq').length; if (om) W.push(['', om + ' รายการงานลดไม่ได้ดึงจาก BOQ สัญญา — ตรวจว่าราคาต่อหน่วยตรงกับสัญญา']);
@@ -248,7 +255,8 @@ async function boot() {
     // อัตรากลาง (ราคาเรียกเก็บลูกค้า ไม่รวม VAT) — ค่าแรงช่าง + รายการทุกหมวด
     const RC = sv('claimRates'); APP.ohp = has(RC.ohp) ? num(RC.ohp) : null; APP.rates = [];
     (Array.isArray(RC.trades) ? RC.trades : []).forEach(x => { if (x && String(x.n || '').trim()) APP.rates.push({ k: 't:' + String(x.n).trim(), g: 'labor', n: 'ค่าแรง ' + String(x.n).trim(), u: 'คน-วัน', rate: num(x.rate) }); });
-    (Array.isArray(RC.items) ? RC.items : []).forEach(x => { if (x && String(x.n || '').trim()) APP.rates.push({ k: 'i:' + (x.id || x.n), g: x.g || 'site', n: String(x.n).trim(), u: x.u || 'เหมา', rate: num(x.rate) }); });
+    (Array.isArray(RC.items) ? RC.items : []).forEach(x => { if (x && String(x.n || '').trim()) APP.rates.push({ k: 'i:' + (x.id || x.n), g: x.g || 'site', n: String(x.n).trim(), u: x.u || 'เหมา', rate: num(x.rate), code: x.code || '', spec: x.spec || '' }); });
+    (Array.isArray(RC.trades) ? RC.trades : []).forEach(x => { const r = APP.rates.find(y => y.k === 't:' + String(x.n || '').trim()); if (r) r.code = x.code || ''; });   // v1.10.0 รหัสราคากลาง
     await loadAll();
     const P = new URLSearchParams(location.search), pid = P.get('pid'), qid = P.get('q');
     if (pid && projOff(pid)) { msg(card('ผู้ดูแลระบบปิด “Quotation Maker” ของโครงการนี้ไว้', 'ถ้าต้องการใช้งาน แจ้ง Admin เปิดที่ ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน → รายโครงการ', back)); return; }
@@ -702,7 +710,7 @@ async function cmpKeep() { const q = CMP.q; if (!CMP.d || APP.busy) return; cons
 function itemRow(q, r, n) { const it = r.it, dco = isDco(q), g = r.g;
   return `<tr data-row="${esc(it.id)}"${dco ? ` class="g-${g}"` : ''}><td class="no">${n}</td><td>
         <div style="display:flex;gap:6px;align-items:center;padding:0 2px;flex-wrap:wrap">${dco ? `<select data-k="grp" style="width:auto;font-size:12px;font-weight:600;padding:2px 4px;color:${GRPS.find(x => x[0] === g)[4]}" aria-label="กลุ่มงาน">${GRPS.map(x => `<option value="${x[0]}"${g === x[0] ? ' selected' : ''}>${x[1]}</option>`).join('')}</select>` : ''}<select data-k="sec" style="width:auto;font-size:12px;color:var(--mut);padding:2px 4px" aria-label="หมวดงาน">${SECS.map(x => `<option value="${x[0]}"${(it.sec || 'other') === x[0] ? ' selected' : ''}>${esc(x[1])}</option>`).join('')}</select>
-          ${it.ai ? `<label style="font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap"><span class="aib ${it.chk ? 'ok' : it.ai.conf === 'low' ? 'low' : ''}">AI${it.ai.conf === 'low' ? ' · ไม่แน่ใจ' : ''}</span><input type="checkbox" data-k="chk"${it.chk ? ' checked' : ''} style="width:auto"> ตรวจแล้ว</label>` : ''}${it.rk ? '<span class="aib ok" title="ราคาจากอัตรากลาง">อัตรากลาง</span>' : ''}${it.src === 'tko' ? '<span class="aib" title="ปริมาณจาก QS Take-off">Take-off</span>' : ''}${it.src === 'clm' ? '<span class="aib" title="รายการจากเรื่องใน Claim">Claim</span>' : ''}${it.src === 'boq' ? `<span class="aib ok" title="${esc(it.boqRef || '')}">BOQ สัญญา</span>` : ''}</div>
+          ${it.ai ? `<label style="font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap"><span class="aib ${it.chk ? 'ok' : it.ai.conf === 'low' ? 'low' : ''}">AI${it.ai.conf === 'low' ? ' · ไม่แน่ใจ' : ''}</span><input type="checkbox" data-k="chk"${it.chk ? ' checked' : ''} style="width:auto"> ตรวจแล้ว</label>` : ''}${it.rk ? rkBadge(it) : ''}${it.src === 'tko' ? '<span class="aib" title="ปริมาณจาก QS Take-off">Take-off</span>' : ''}${it.src === 'clm' ? '<span class="aib" title="รายการจากเรื่องใน Claim">Claim</span>' : ''}${it.src === 'boq' ? `<span class="aib ok" title="${esc(it.boqRef || '')}">BOQ สัญญา</span>` : ''}</div>
         <textarea data-k="desc" rows="1" placeholder="รายการ" maxlength="300">${esc(it.desc)}</textarea><input data-k="spec" placeholder="สเปก / วัสดุ / ขนาด (ตามแบบ)" maxlength="300" value="${esc(it.spec)}" style="font-size:12.5px;color:var(--ink2)">
         ${it.ai && it.ai.basis ? `<div class="basis">ที่มา (AI): ${esc(it.ai.basis)}</div>` : ''}</td>
         <td><input data-k="unit" list="unitL" value="${esc(it.unit)}" maxlength="20" aria-label="หน่วย"></td>
@@ -718,7 +726,7 @@ function renderItems() { const q = C(), c = calc(q); let n = 0; const H = [];
   else SECS.forEach(s => { const L = c.rows.filter(r => (r.it.sec || 'other') === s[0]); if (!L.length) return;
     H.push(`<tr class="sec"><td colspan="5">${esc(s[1])} <small>${L.length} รายการ</small></td><td class="amt" colspan="2" data-secamt="${s[0]}">${f2(L.reduce((a, r) => a + r.baseAmt, 0))}</td></tr>`);
     L.forEach(r => { n++; H.push(itemRow(q, r, n)); }); });
-  $('edItems').innerHTML = H.join('') || '<tr><td colspan="7" class="empty">ยังไม่มีรายการ — ให้ AI อ่านแบบ · เลือกจากอัตรากลาง · หรือกด “＋ เพิ่มรายการ”</td></tr>';
+  $('edItems').innerHTML = H.join('') || '<tr><td colspan="7" class="empty">ยังไม่มีรายการ — ให้ AI อ่านแบบ · เลือกจากราคากลาง · หรือกด “＋ เพิ่มรายการ”</td></tr>';
   if (!$('unitL')) { const d = document.createElement('datalist'); d.id = 'unitL'; d.innerHTML = UNITS.map(u => `<option value="${u}">`).join(''); document.body.appendChild(d); }
   $('edItems').querySelectorAll('textarea').forEach(grow); itemsFoot();
 }
@@ -781,14 +789,14 @@ function sumOut() { const q = C(), c = calc(q); $('sBase').textContent = baht(c.
 }
 function addRow(o) { const q = C(); const it = { id: uid('i'), sec: 'other', desc: '', spec: '', unit: '', qty: '', rate: '', rk: '', ai: null, chk: false, ...(o || {}) }; q.items = [...(q.items || []), it]; touch(); return it; }
 async function pickRate() {
-  if (!APP.rates.length) { await dlg({ title: 'ยังไม่มีอัตรากลาง', text: 'ผู้บริหาร / QS Manager ตั้งอัตราได้ที่ Wellcon PM → ตั้งค่าระบบ → อัตรากลาง\nระหว่างนี้กด “＋ เพิ่มรายการ” แล้วกรอกราคาเองได้', cancel: false, ok: 'รับทราบ' }); return; }
-  const list = (f) => { const t = norm(f); const L = APP.rates.filter(r => !t || norm(r.n + ' ' + (RATE_G[r.g] || '')).includes(t)).slice(0, 80);
-    return L.length ? L.map(r => `<button data-rk="${esc(r.k)}"><span><b>${esc(r.n)}</b><br><small>${esc(RATE_G[r.g] || '')}</small></span><small>${r.rate > 0 ? baht(r.rate) + ' / ' + esc(r.u) : 'ยังไม่ใส่อัตรา'}</small></button>`).join('') : '<p class="empty">ไม่พบรายการ</p>'; };
-  const p = dlg({ title: 'เลือกจากอัตรากลาง', text: 'ราคาเรียกเก็บลูกค้า ไม่รวม VAT — กดรายการเพื่อเพิ่ม (เพิ่มได้หลายรายการ)', html: `<input id="rkQ" placeholder="ค้นหา เช่น ยิปซัม · ช่างไม้" style="border:1.5px solid var(--line);border-radius:11px;padding:9px 11px;min-height:44px;width:100%"><div class="pl" id="rkL">${list('')}</div>`, ok: false, cancel: 'เสร็จ' });
+  if (!APP.rates.length) { await dlg({ title: 'ยังไม่มีราคากลาง', text: 'QS ตั้งราคาได้ที่ Wellcon PM → การ์ด “ราคากลาง” (ผ่าน Director / Admin อนุมัติ)\nระหว่างนี้กด “＋ เพิ่มรายการ” แล้วกรอกราคาเองได้', cancel: false, ok: 'รับทราบ' }); return; }
+  const list = (f) => { const t = norm(f); const L = APP.rates.filter(r => !t || norm([r.code, r.n, r.spec, gLabel(r.g)].join(' ')).includes(t)).slice(0, 120);
+    return L.length ? L.map(r => `<button data-rk="${esc(r.k)}"><span><b>${r.code ? esc(r.code) + ' · ' : ''}${esc(r.n)}</b><br><small>${esc([gLabel(r.g), r.spec].filter(Boolean).join(' · '))}</small></span><small>${r.rate > 0 ? baht(r.rate) + ' / ' + esc(r.u) : 'ยังไม่ใส่ราคา'}</small></button>`).join('') : '<p class="empty">ไม่พบรายการ</p>'; };
+  const p = dlg({ title: 'เลือกจากราคากลาง', text: 'ราคาเรียกเก็บลูกค้า ไม่รวม VAT — กดรายการเพื่อเพิ่ม (เพิ่มได้หลายรายการ)', html: `<input id="rkQ" placeholder="ค้นหา เช่น ยิปซัม · ช่างไม้" style="border:1.5px solid var(--line);border-radius:11px;padding:9px 11px;min-height:44px;width:100%"><div class="pl" id="rkL">${list('')}</div>`, ok: false, cancel: 'เสร็จ' });
   const b = $('dlgBox'); let n = 0;
   $('rkQ').oninput = (e) => { $('rkL').innerHTML = list(e.target.value); };
   $('rkL').onclick = (e) => { const x = e.target.closest('[data-rk]'); if (!x) return; const r = APP.rates.find(y => y.k === x.dataset.rk); if (!r) return;
-    addRow({ desc: r.n, unit: r.u, rate: r.rate > 0 ? r.rate : '', rk: r.k, sec: r.g === 'labor' ? 'other' : secGuess(r.n) }); n++; x.style.background = '#E6EFE0'; toast('เพิ่ม “' + r.n + '” แล้ว'); };
+    addRow({ desc: r.n, spec: r.spec || '', unit: r.u, rate: r.rate > 0 ? r.rate : '', rk: r.k, rkBase: r.rate > 0 ? r.rate : '', sec: SECS.some(s => s[0] === r.g) ? r.g : r.g === 'labor' ? 'other' : secGuess(r.n) }); n++; x.style.background = '#E6EFE0'; toast('เพิ่ม “' + r.n + '” แล้ว'); };
   await p; if (n) { renderItems(); sumOut(); } void b;
 }
 function secGuess(t) { const n = norm(t);
@@ -808,7 +816,7 @@ const AI_SYS = `คุณเป็นผู้ช่วย QS (ผู้ปร�
 5. ถ้าผู้ใช้ตีกรอบพื้นที่ไว้ ให้ถอดเฉพาะงานในกรอบนั้น
 6. รวมงานชนิดเดียวกันเป็นรายการเดียว ไม่เกิน 30 รายการ
 7. sec เลือกจาก: floor (พื้น) ceil (ฝ้า) wall (ผนัง) bi (เฟอร์นิเจอร์ Built-in) loose (เฟอร์นิเจอร์ลอยตัว) mep (งานระบบ) demo (รื้อถอน / ซ่อม) other
-8. rk: ถ้ารายการตรงกับรายการใน "อัตรากลาง" ที่ให้มา ใส่รหัสของรายการนั้น ไม่ตรงให้ใส่ ""
+8. rk: ถ้ารายการตรงกับรายการใน "ราคากลาง" ที่ให้มา ใส่รหัสของรายการนั้น ไม่ตรงให้ใส่ ""
 9. conf: "high" = อ่านระยะได้ชัดจากแบบ · "mid" = อนุมานจากสเกลหรือแบบประกอบ · "low" = ไม่แน่ใจ
 ตอบเป็น JSON อย่างเดียว ไม่มีข้อความอื่น ไม่มี markdown ตามรูปแบบนี้:
 {"summary":"สรุปขอบเขตงานที่เห็นจากแบบ 2-4 ประโยค","items":[{"sec":"wall","desc":"ชื่อรายการ","spec":"สเปกตามแบบ","unit":"ตร.ม.","qty":12.5,"basis":"แบบที่ 2 รูปด้าน A: 4.20 x 2.70 ม. หักประตู 0.90 x 2.10","conf":"high","rk":""}],"assume":["ข้อสมมติฐานที่ใช้"],"excl":["งานที่ไม่รวม"],"questions":["คำถามที่ต้องถามผู้ออกแบบ / ลูกค้าก่อนยืนยันราคา"]}`;
@@ -854,7 +862,7 @@ async function aiRun() { const q = C(); if (APP.aiBusy) return;
   APP.aiBusy = true; APP.aiErr = ''; renderAi();
   try { const blocks = await aiBlocks(q);
     const rates = APP.rates.slice(0, 160).map(r => r.k + ' = ' + r.n + ' (' + r.u + ')').join('\n');
-    blocks.push({ type: 'text', text: jobText(q) + '\n\nอัตรากลาง (รหัส = ชื่อรายการ (หน่วย)) — ใช้จับคู่ rk เท่านั้น:\n' + (rates || '(ยังไม่มี)') + '\n\nถอดรายการและปริมาณจากแบบข้างบน แล้วตอบเป็น JSON ตามรูปแบบที่กำหนด' });
+    blocks.push({ type: 'text', text: jobText(q) + '\n\nราคากลาง (รหัส = ชื่อรายการ (หน่วย)) — ใช้จับคู่ rk เท่านั้น:\n' + (rates || '(ยังไม่มี)') + '\n\nถอดรายการและปริมาณจากแบบข้างบน แล้วตอบเป็น JSON ตามรูปแบบที่กำหนด' });
     const r = parseAi(await aiCall(isDco(q) ? AI_DCO : AI_SYS, blocks, 4000));
     q.ai = { at: Date.now(), by: APP.me.name, n: A.length, ...r, pick: r.items.map(x => x.qty != null) }; touch();
   } catch (e) { console.error(e); APP.aiErr = (e && e.message) || String(e); }
@@ -891,7 +899,7 @@ function renderAi() { const q = C(), o = $('edAiOut'); if (!q) return; const H =
 function aiAdd() { const q = C(), a = q.ai; if (!a) return; a.added = a.added || []; let n = 0;
   a.items.forEach((x, i) => { if (!(a.pick || [])[i] || a.added[i]) return; const r = x.rk ? APP.rates.find(y => y.k === x.rk) : null;
     const om = isDco(q) && x.grp === 'omit', rr = om ? null : r;   // งานลดใช้ราคาสัญญา ไม่ใช้อัตรากลาง
-    addRow({ ...(isDco(q) ? { grp: x.grp || 'add' } : {}), sec: x.sec, desc: x.desc, spec: x.spec, unit: x.unit || (rr ? rr.u : ''), qty: x.qty == null ? '' : x.qty, rate: rr && rr.rate > 0 ? rr.rate : '', rk: rr ? rr.k : '', ai: { conf: x.conf, basis: x.basis }, chk: false }); a.added[i] = true; a.pick[i] = false; n++; });
+    addRow({ ...(isDco(q) ? { grp: x.grp || 'add' } : {}), sec: x.sec, desc: x.desc, spec: x.spec, unit: x.unit || (rr ? rr.u : ''), qty: x.qty == null ? '' : x.qty, rate: rr && rr.rate > 0 ? rr.rate : '', rk: rr ? rr.k : '', rkBase: rr && rr.rate > 0 ? rr.rate : '', ai: { conf: x.conf, basis: x.basis }, chk: false }); a.added[i] = true; a.pick[i] = false; n++; });
   if (!n) { toast('ติ๊กรายการที่ต้องการก่อน'); return; } renderItems(); sumOut(); renderAi(); toast('เพิ่ม ' + n + ' รายการแล้ว — ตรวจปริมาณกับแบบ ใส่ราคา แล้วติ๊ก “ตรวจแล้ว”', 4500); }
 function aiTerms() { const q = C(), a = q.ai; if (!a) return; const add = (cur, L) => { const have = lines(cur); L.forEach(x => { if (!have.includes(x)) have.push(x); }); return have.join('\n'); };
   q.assume = add(q.assume, a.assume); q.excl = add(q.excl, a.excl); $('edAssume').value = q.assume; $('edExcl').value = q.excl; touch(); toast('ใส่ลงเงื่อนไขแล้ว — ตรวจข้อความก่อนส่ง'); }
@@ -931,7 +939,7 @@ async function send() { const q = pull(); const miss = [];
 // ดู / อนุมัติ
 // =====================================================================
 function itemsTable(q, c, internal) { let n = 0; const H = [], val = (r, f) => (r.g === 'omit' && r[f] ? '−' : '') + f2(r[f]);
-  const rowsOf = (L) => L.forEach(r => { n++; const it = r.it; H.push(`<tr><td>${n}</td><td>${esc(it.desc)}${it.spec ? `<small>${esc(it.spec)}</small>` : ''}${internal && it.ai ? `<small><span class="aib ${it.chk ? 'ok' : 'low'}">AI${it.chk ? ' · QS ตรวจแล้ว' : ' · ยังไม่ตรวจ'}</span>${esc(it.ai.basis || '')}</small>` : ''}${internal && it.src === 'boq' ? `<small>ราคาตาม BOQ สัญญา · ${esc(it.boqRef || '')}</small>` : internal && !it.rk ? `<small>${r.g === 'omit' ? 'ราคางานลด QS กรอกเอง — ตรวจกับสัญญา' : 'ราคา QS กรอกเอง'}</small>` : ''}</td>
+  const rowsOf = (L) => L.forEach(r => { n++; const it = r.it; H.push(`<tr><td>${n}</td><td>${esc(it.desc)}${it.spec ? `<small>${esc(it.spec)}</small>` : ''}${internal && it.ai ? `<small><span class="aib ${it.chk ? 'ok' : 'low'}">AI${it.chk ? ' · QS ตรวจแล้ว' : ' · ยังไม่ตรวจ'}</span>${esc(it.ai.basis || '')}</small>` : ''}${internal && it.src === 'boq' ? `<small>ราคาตาม BOQ สัญญา · ${esc(it.boqRef || '')}</small>` : internal && !it.rk ? `<small>${r.g === 'omit' ? 'ราคางานลด QS กรอกเอง — ตรวจกับสัญญา' : 'ราคา QS กรอกเอง'}</small>` : internal && it.rk ? `<small>ราคากลาง ${rkBase(it) > 0 ? baht(rkBase(it)) : '—'}${rkPct(it) ? ' · ปรับ ' + (rkPct(it) > 0 ? '+' : '') + rkPct(it) + '% ตามเงื่อนไขงาน' : ''}</small>` : ''}</td>
       <td>${esc(it.unit)}</td><td class="r">${fq(r.qty)}</td><td class="r">${f2(internal ? r.base : r.price)}</td><td class="r">${val(r, internal ? 'baseAmt' : 'amt')}</td></tr>`); });
   const bySec = (L) => SECS.reduce((a, s) => a.concat(L.filter(r => (r.it.sec || 'other') === s[0])), []);
   if (isDco(q)) GRPS.forEach(g => { const L = bySec(c.rows.filter(r => r.g === g[0])); if (!L.length) return; const t = L.reduce((a, r) => a + (internal ? r.baseAmt : r.amt), 0);
@@ -1187,7 +1195,7 @@ document.addEventListener('input', (e) => { const t = e.target, q = C();
   if (t.id === 'sPre') { q.prelimPct = t.value; touch(); sumOut(); return; } if (t.id === 'sOhp') { q.ohpPct = t.value; touch(); sumOut(); return; } if (t.id === 'sDisc') { q.discount = t.value; touch(); sumOut(); return; }
   const row = t.closest('[data-row]'); if (row && t.dataset.k) { const it = q.items.find(i => i.id === row.dataset.row); if (!it) return; const k = t.dataset.k;
     if (k === 'chk') it.chk = t.checked; else it[k] = t.value;
-    if (k === 'rate' && it.rk) { it.rk = ''; const bd = [...row.querySelectorAll('.aib')].find(x => x.textContent === 'อัตรากลาง'); if (bd) bd.remove(); }   // แก้ราคาเอง = ไม่ใช่ราคาอัตรากลางแล้ว
+    if (k === 'rate' && it.rk) { if (!(num(it.rkBase) > 0)) it.rkBase = rkBase(it); const bd = row.querySelector('[data-rkb]'); if (bd) bd.outerHTML = rkBadge(it); }   // v1.10.0 ปรับจากราคากลางได้ — แสดง % ที่ปรับ (เดิม: ล้างการอ้างอิง)
     if (t.tagName === 'TEXTAREA') grow(t);
     if (k === 'qty' || k === 'rate') { const v = r2(num(it.qty) * num(it.rate)); row.querySelector('[data-amt]').textContent = (grpOf(q, it) === 'omit' && v ? '−' : '') + f2(v); itemsFoot(); sumOut(); }
     if (k === 'chk') { const bd = row.querySelector('.aib'); if (bd) { bd.classList.toggle('ok', it.chk); bd.classList.toggle('low', !it.chk && it.ai && it.ai.conf === 'low'); } }

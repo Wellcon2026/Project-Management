@@ -172,6 +172,7 @@ node scripts/patch-pdf-menu.js         # การ์ด / เมนู "PDF Mak
 node scripts/patch-photo-menu.js       # การ์ด / เมนู "Photo Editor" → เปิดหน้าแยก photo.html (ทุกตำแหน่ง · ไม่ต้องเลือกโครงการ)
 node scripts/patch-price-hub.js        # การ์ด / เมนู "ทำราคา · เลือกเครื่องมือ" → หน้าต่างเลือก วัด → ทำราคา → เคลม → ติดตาม VO (v1.429.0)
 node scripts/patch-pricing-principles.js   # ตั้งค่าระบบ → อัตรากลาง: กล่องเตือน + "อ่านหลักการคิดราคา" (app_state pricingPrinciples) (v1.431.0)
+node scripts/patch-pricebook-menu.js      # ราคากลาง: การ์ด tab:pbook → /pricebook.html · อัตรากลางในตั้งค่าระบบดูได้อย่างเดียว · แถวในหน้าต่างทำราคา
 node scripts/patch-layboard-photo.js    # Layboard: ปุ่ม "แต่งรูป (Photo Editor)" (แก้ layboard/index.html · sync-layboard.js เรียกให้อัตโนมัติ)
 node scripts/patch-sess-guard.js        # หลายหน้าต่างในเครื่องเดียว = ผู้ใช้คนเดียว · กันหน้าต่างอื่นเขียนทับผู้ใช้ (แก้ออกจากระบบแล้วเข้าเป็นคนอื่น)
 ```
@@ -243,6 +244,16 @@ node scripts/patch-layboard-th.js   # ข้อความ Layboard เป็�
 - ตาราง: กลุ่มเหมือนไฟล์ Excel (PM = pm + pm_mgr · Designer = designer + design_mgr · QS = qs + qs_mgr · Finance = fin + fin_mgr · HR = hr + hr_mgr · Admin = office) — กดครั้งเดียวมีผลทั้งกลุ่ม · ◐ = บางตำแหน่งในกลุ่ม · ติ๊ก "แยกทุกตำแหน่ง" = 19 ตำแหน่งแยกกัน (รวมจัดซื้อ · สโตร์ · โรงงาน · หัวหน้าช่าง · จป. · คนขับรถ) · Material Log = คู่ `tab:mat` / `tab:procm`
 - Excel: ดาวน์โหลด (ชีต "ตำแหน่ง × ฟีเจอร์" · ✓ / ○ / – / ◐) · นำเข้า: อ่านชีตที่มี "ตำแหน่ง × ฟีเจอร์" จับคู่ตามชื่อฟีเจอร์ + หัวคอลัมน์ตำแหน่ง → แสดงรายการที่จะเปลี่ยน → ยืนยันจึงบันทึก (◐ และเมนูหลักที่เว้นว่าง = ไม่แตะ · รับไฟล์ `Wellcon_PM_Feature_by_Position_DRAFT.xlsx` ที่ผู้บริหารอนุมัติได้ตรง ๆ)
 - แอปหลัก: Layboard ไม่เติมการ์ดให้เองแล้ว ถ้าตำแหน่งนั้นตั้งชุดการ์ดไว้ (ตารางเป็นตัวกำหนด) · Quotation Maker (v1.5.0) นับสิทธิ์พิเศษรายคนตอนตรวจสิทธิ์เข้าหน้า
+
+## ราคากลาง · Price Book (ตั้งแต่ 19/11/2026 · PM v1.432.0)
+- หน้าแยก `pricebook.html` + `pricebook.js` (`?env=staging` = ข้อมูลทดสอบ) · ExcelJS 4.4.0 ที่ `vendor/exceljs.min.js` (MIT · `vendor/LICENSES-EXCEL.txt`) โหลดเมื่อกด Excel
+- ข้อมูลชุดเดียวของบริษัท (รวมอัตรากลางเดิม): app_state `priceBook` = `{ v:{ ver, eff, pubAt, pubBy, cfg:{ ohp, ot }, items:[{ id, code, kind, g, n, spec, u, mat, lab, rate, t, eff, rev, src, srcNote, st }] } }` · `priceBookReq` (คำขอแก้ / นำเข้า) · `priceBookHist` (ฉบับเก่า 20 ฉบับ)
+- ครั้งแรกที่เปิด: ย้ายจาก `claimRates` (ค่าแรงช่าง + รายการ) เป็นฉบับ 1 อัตโนมัติ
+- เปลี่ยนราคา: แก้ในหน้า / นำเข้า Excel → คำขอ → QS → Director → Admin (Super Admin) → เผยแพร่ฉบับใหม่ + วันที่มีผล · แจ้งเตือนผ่านระบบแท็ก (`ref_type` `pbreq`)
+- เผยแพร่แล้วเขียน `claimRates` รูปแบบเดิม (เฉพาะรายการที่ใช้อยู่ + `code` / `spec`) → แอปหลัก / Quotation Maker / Claim (Site Work) / OT อ่านได้โดยไม่ต้องแก้
+- สิทธิ์: ตารางสิทธิ์ตามตำแหน่ง / รายคน แถว "ราคากลาง" (`tab:pbook`) · ปิดทั้งระบบที่สวิตช์ `tab:pbook`
+- Quotation Maker v1.10.0: เลือกจากราคากลาง (รหัส · สเปก · หมวด) · ปรับราคาได้ ระบบเก็บราคาฐาน (`rkBase`) และแสดง "ราคากลาง ±x%" ให้ผู้อนุมัติเห็น
+- หลักการ: `docs/pricing-principles.md` ข้อ 2.2 (ฉบับ 2) · คำตอบผู้บริหาร: `docs/pricebook-decisions.md`
 
 ## หลักการคิดราคาของระบบ (ตั้งแต่ 19/11/2026 · PM v1.431.0)
 - ต้นฉบับ: `docs/pricing-principles.md` (ไม่ deploy — `.vercelignore`) · ฉบับในแอป: app_state `pricingPrinciples` = `{ v:{ ver, at, md } }` (อ่านได้เฉพาะผู้ที่เข้าสู่ระบบ)

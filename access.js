@@ -13,7 +13,8 @@
    ===================================================================== */
 (() => {
 'use strict';
-const AC_VER = 'v1.3.0';   // 1.3.0: การ์ด "ทำราคา · เลือกเครื่องมือ" (tab:price)
+const AC_VER = 'v1.4.0';   // 1.4.0: การ์ด "ราคากลาง" (tab:pbook)
+// 1.3.0:   // 1.3.0: การ์ด "ทำราคา · เลือกเครื่องมือ" (tab:price)
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -50,6 +51,7 @@ const FEATS = [
   { sec: 'proj', name: 'ทะเบียนรับ-ส่งเอกสาร', use: 'ทะเบียนเอกสารเข้า-ออก', keys: ['tab:docs'] },
   { sec: 'proj', name: 'งานเพิ่ม · VO Tracker (QS)', use: 'ติดตามมูลค่างานเพิ่ม-ลด', keys: ['tab:aw'], money: true },
   { sec: 'proj', name: 'ทำราคา · เลือกเครื่องมือ', use: 'ทางเข้าเดียว: วัด → ทำราคา → เคลม → ติดตาม VO', keys: ['tab:price'] },
+  { sec: 'proj', name: 'ราคากลาง', use: 'ราคาชุดเดียวของบริษัท · Excel ออก-เข้า · ขอแก้ผ่าน QS → Director → Admin (ไม่ต้องเลือกโครงการ)', keys: ['tab:pbook'], money: true },
   { sec: 'proj', name: 'Quotation Maker', use: 'ใบเสนอราคาด่วน · AI อ่านแบบ', keys: ['tab:quo'], money: true },
   { sec: 'proj', name: 'SketchUp Design (3D)', use: 'โมเดล 3D', keys: ['tab:skp'] },
   { sec: 'proj', name: 'Layboard · บอร์ดนำเสนองาน', use: 'Mood / Material board', keys: ['tab:lay'] },
