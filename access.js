@@ -13,7 +13,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const AC_VER = 'v1.4.0';   // 1.4.0: การ์ด "ราคากลาง" (tab:pbook)
+const AC_VER = 'v1.5.0';   // 1.5.0: การ์ด "ตั้งค่าโครงการ" (tab:setup) · 1.4.0: การ์ด "ราคากลาง" (tab:pbook)
 // 1.3.0:   // 1.3.0: การ์ด "ทำราคา · เลือกเครื่องมือ" (tab:price)
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -38,6 +38,7 @@ function toast(m, ms) { const t = $('toast'); t.textContent = m; t.hidden = fals
 // ---------- ฟีเจอร์ (ชื่อตรงกับไฟล์ Excel — ใช้จับคู่ตอนนำเข้า) ----------
 const MAT = ['tab:mat', 'tab:procm'];   // Material Log = คู่ mat / procm เหมือนแอปหลัก
 const FEATS = [
+  { sec: 'proj', name: 'ตั้งค่าโครงการ', use: 'ข้อมูลหลัก · คู่สัญญา · วางบิล · เอกสารสัญญา · AI อ่านเอกสาร (ตั้งต้น: PM · QS · Director)', keys: ['tab:setup'] },   // v1.5.0
   { sec: 'proj', name: 'แผนงาน · ความคืบหน้า', use: 'แผนงาน Gantt · % ความคืบหน้า', keys: ['tab:plan'] },
   { sec: 'proj', name: 'รายงานประจำวัน (Site)', use: 'บันทึกงาน · คน · OT · รูปหน้างาน', keys: ['tab:daily'] },
   { sec: 'proj', name: 'Site Work · Defect / Survey', use: 'ปักหมุด Defect บนแบบ · Survey · Scope', keys: ['tab:qc'] },
