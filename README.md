@@ -182,6 +182,7 @@ node scripts/patch-delta-sync.js          # ซิงก์รอบต่อไ
 node scripts/patch-note-hub.js            # การ์ด "บันทึก · งานของฉัน" ทุกตำแหน่ง (wcnote.js) · โน้ตลงปฏิทิน / เชื่อมแผนงาน · ลิงก์ ?wnote=
 node scripts/patch-search-hl.js           # ไฮไลต์คำค้นทุกหน้า (wchl.js · CSS Highlight API) — หน้าแยกใส่ <script src="/wchl.js"> ในไฟล์
 node scripts/patch-note-time.js           # ปฏิทินแสดงเวลาของบันทึก (HH:MM · ข้อความ) — ฟอร์มเวลาอยู่ใน wcnote.js
+node scripts/patch-ux-mobile.js           # มือถือ: ออกจากระบบอยู่ในเมนู ⋮ · ชื่อหน้า 2 บรรทัด · หน้าแรกกะทัดรัด · ตัวหนังสือ ≥ 12 px · ข้อความผิดพลาดภาษาไทย
 node scripts/patch-layboard-photo.js    # Layboard: ปุ่ม "แต่งรูป (Photo Editor)" (แก้ layboard/index.html · sync-layboard.js เรียกให้อัตโนมัติ)
 node scripts/patch-sess-guard.js        # หลายหน้าต่างในเครื่องเดียว = ผู้ใช้คนเดียว · กันหน้าต่างอื่นเขียนทับผู้ใช้ (แก้ออกจากระบบแล้วเข้าเป็นคนอื่น)
 ```
