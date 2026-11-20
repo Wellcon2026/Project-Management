@@ -15,7 +15,7 @@
 (function () {
   'use strict';
   if (window.WCNote) return;
-  const VER = '1.0.0';
+  const VER = '1.0.1';   // 1.0.1: ค้นหาแล้วไฮไลต์คำที่พบ (สีเหลือง) + บอกจำนวนที่พบ
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const norm = (s) => String(s || '').trim().toLowerCase();
   const pad = (n) => String(n).padStart(2, '0');
@@ -28,6 +28,11 @@
   const dueChip = (iso, done) => { const d = daysTo(iso); if (d == null) return ''; const cls = done ? 'ok' : d < 0 ? 'late' : d <= 2 ? 'soon' : '';
     const tx = done ? 'เสร็จแล้ว' : d < 0 ? 'เลยกำหนด ' + (-d) + ' วัน' : d === 0 ? 'วันนี้' : d === 1 ? 'พรุ่งนี้' : 'อีก ' + d + ' วัน';
     return `<span class="wn-tg ${cls}">⏰ ${esc(dmy(iso))} · ${tx}</span>`; };
+  // ไฮไลต์คำค้นในข้อความ (ตัด / escape ทีละช่วง — ไม่แทรก HTML ในข้อความผู้ใช้)
+  const hl = (s) => { const t = String(s == null ? '' : s), q = String(S.q || '').trim(); if (!q) return esc(t);
+    const lt = t.toLowerCase(), lq = q.toLowerCase(); let out = '', i = 0, j;
+    while ((j = lt.indexOf(lq, i)) >= 0) { out += esc(t.slice(i, j)) + '<mark class="wn-hl">' + esc(t.slice(j, j + q.length)) + '</mark>'; i = j + q.length; }
+    return out + esc(t.slice(i)); };
   const first = (s, n) => { const t = String(s || '').trim().split('\n')[0]; return t.length > (n || 80) ? t.slice(0, n || 80) + '…' : t; };
 
   const CSS = `
@@ -75,6 +80,8 @@
 .wn-seg .on{background:#1C1B18;border-color:#1C1B18;color:#E2BC66}
 .wn-box{background:#FFFDF8;border:1px solid #E3DACB;border-radius:13px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
 .wn-hint{font-size:12px;color:#8A8375;line-height:1.5}
+.wn-hl{background:#FFE066;color:#22231C;border-radius:3px;padding:0 1px;box-shadow:0 0 0 1px #F2C200}
+.wn-cnt{font-size:12.5px;color:#6B6758;padding:2px 2px 0}
 .wn-toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#1C1B18;color:#fff;border-radius:12px;padding:10px 16px;font:14px 'IBM Plex Sans Thai',system-ui,sans-serif;z-index:2147483600;max-width:90vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.25)}
 @media print{.wn-ov,.wn-toast{display:none!important}}`;
   function css() { if (document.getElementById('wn-css')) return; const s = document.createElement('style'); s.id = 'wn-css'; s.textContent = CSS; document.head.appendChild(s); }
@@ -124,24 +131,24 @@
     if (n.cal && n.due && n._pid !== '_gen') acts.push(`<button class="wn-b" data-cal="${esc(n._pid)}|${esc(n.due)}">📅 ปฏิทิน</button>`);
     if (n.plan && n.plan.id && n._pid !== '_gen') acts.push(`<button class="wn-b" data-plan="${esc(n._pid)}">🗓 แผนงาน</button>`);
     if (can) acts.push(`<button class="wn-b bad" data-del="${esc(n._k)}|${esc(n.id)}">ลบ</button>`);
-    return `<div class="wn-it${n.done ? ' done' : ''}${S.focus === n.id ? ' foc' : ''}" data-nid="${esc(n.id)}"><div class="wn-t">${esc(n.text || '')}</div>
-      <div class="wn-m">${chips.join('')}</div><div class="wn-m"><span>โดย <b style="color:#22231C">${esc(by)}</b> · ${esc(when(n.editedAt || n.at))}${n.editedAt ? ' · แก้ไขแล้ว' : ''}</span></div>
+    return `<div class="wn-it${n.done ? ' done' : ''}${S.focus === n.id ? ' foc' : ''}" data-nid="${esc(n.id)}"><div class="wn-t">${hl(n.text || '')}</div>
+      <div class="wn-m">${chips.join('')}</div><div class="wn-m"><span>โดย <b style="color:#22231C">${hl(by)}</b> · ${esc(when(n.editedAt || n.at))}${n.editedAt ? ' · แก้ไขแล้ว' : ''}</span></div>
       ${acts.length ? '<div class="wn-a">' + acts.join('') + '</div>' : ''}</div>`;
   }
   function tagCard(x) {
     const ap = x.kind === 'approve';
     return `<div class="wn-it${x.seen_at ? '' : ' new'}"><div class="wn-m">${ap ? '<span class="wn-tg soon">✍️ ขออนุมัติ</span>' : '<span class="wn-tg">🏷 แท็ก</span>'}${x.project ? '<span>📁 ' + esc(pname(x.project)) + '</span>' : ''}<span style="margin-left:auto">${esc(when(x.created_at))}</span></div>
-      <div class="wn-t" style="font-weight:600">${esc(x.title || '(ไม่มีชื่อเรื่อง)')}</div>
-      <div class="wn-m">จาก <b style="color:#22231C">${esc(x.from_name || x.from_email || '—')}</b></div>${x.note ? '<div class="wn-t" style="background:#F3EEE3;border-radius:10px;padding:7px 10px;font-size:14px">' + esc(x.note) + '</div>' : ''}
+      <div class="wn-t" style="font-weight:600">${hl(x.title || '(ไม่มีชื่อเรื่อง)')}</div>
+      <div class="wn-m">จาก <b style="color:#22231C">${hl(x.from_name || x.from_email || '—')}</b></div>${x.note ? '<div class="wn-t" style="background:#F3EEE3;border-radius:10px;padding:7px 10px;font-size:14px">' + hl(x.note) + '</div>' : ''}
       <div class="wn-a">${x.url ? `<button class="wn-b p" data-tgo="${esc(x.id)}">เปิดเรื่อง</button>` : ''}<button class="wn-b" data-tdone="${esc(x.id)}">✓ ${ap ? 'จัดการแล้ว' : 'รับทราบ'}</button></div></div>`;
   }
   function remCard(r) {
     return `<div class="wn-it"><label class="wn-ck"><input type="checkbox" data-rem="${esc(r.pid)}|${esc(r.id)}"><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
-      <span class="wn-t">${esc(r.text || '')}</span><span class="wn-m"><span class="wn-tg">📋 งานคงค้างโครงการ</span><span>📁 ${esc(pname(r.pid))}</span>${r.due ? dueChip(r.due, false) : ''}${r.by ? '<span>มอบหมายโดย ' + esc(r.by) + '</span>' : ''}</span></span></label></div>`;
+      <span class="wn-t">${hl(r.text || '')}</span><span class="wn-m"><span class="wn-tg">📋 งานคงค้างโครงการ</span><span>📁 ${esc(pname(r.pid))}</span>${r.due ? dueChip(r.due, false) : ''}${r.by ? '<span>มอบหมายโดย ' + esc(r.by) + '</span>' : ''}</span></span></label></div>`;
   }
   function todoNote(n, d) {
     return `<div class="wn-it${S.focus === n.id ? ' foc' : ''}"><label class="wn-ck"><input type="checkbox" data-done="${esc(n._k)}|${esc(n.id)}"><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
-      <span class="wn-t">${esc(n.text || '')}</span><span class="wn-m"><span class="wn-tg">📝 โน้ต</span><span>📁 ${esc(pname(n._pid))}</span>${n.due ? dueChip(n.due, false) : ''}${norm(n.email) !== d.em ? '<span>จาก ' + esc(n.by || S.B.nameOf(n.email)) + '</span>' : ''}${n.plan && n.plan.t ? '<span class="wn-tg pl">🗓 ' + esc(first(n.plan.t, 30)) + '</span>' : ''}</span></span></label></div>`;
+      <span class="wn-t">${hl(n.text || '')}</span><span class="wn-m"><span class="wn-tg">📝 โน้ต</span><span>📁 ${esc(pname(n._pid))}</span>${n.due ? dueChip(n.due, false) : ''}${norm(n.email) !== d.em ? '<span>จาก ' + esc(n.by || S.B.nameOf(n.email)) + '</span>' : ''}${n.plan && n.plan.t ? '<span class="wn-tg pl">🗓 ' + esc(first(n.plan.t, 30)) + '</span>' : ''}</span></span></label></div>`;
   }
 
   // ---------- หน้าหลัก ----------
@@ -149,7 +156,7 @@
     if (!S.ov || !S.B) return; const d = data(); const bx = S.ov.querySelector('.wn-bx');
     const T = [['mine', '📝 บันทึกของฉัน', d.mineN.filter(n => !n.done).length, 0], ['proj', '👥 บันทึกโครงการ', d.projN.length, 0],
       ['tag', '🏷 แท็กถึงฉัน', d.tags.length + d.toMeN.filter(n => !n.done).length, d.unseen], ['todo', '✅ งานค้าง', d.todo.length, d.late]];
-    const q = norm(S.q), match = (s) => !q || norm(s).includes(q);
+    const q = norm(S.q).trim(), match = (s) => !q || norm(s).includes(q);
     let body = '', chips = '';
     const projChips = (L) => { const ids = [...new Set(L.map(n => n._pid))]; if (ids.length < 2) return '';
       return `<div class="wn-chips"><button class="wn-chip${!S.proj ? ' on' : ''}" data-pj="">ทุกโครงการ</button>${ids.map(id => `<button class="wn-chip${S.proj === id ? ' on' : ''}" data-pj="${esc(id)}">${esc(pname(id))}</button>`).join('')}</div>`; };
@@ -176,9 +183,10 @@
     bx.innerHTML = `<div class="wn-hd"><span class="ic">📝</span><b>บันทึก · งานของฉัน<small>${esc(d.me.name || '')} · บันทึกส่วนตัว / โครงการ · แท็ก · งานค้าง</small></b><button class="wn-x" data-x aria-label="ปิด">✕</button></div>
       <div class="wn-tabs">${T.map(t => `<button class="wn-tab${S.tab === t[0] ? ' on' : ''}" data-tab="${t[0]}">${t[1]}${t[2] ? ' <i' + (t[3] ? ' class="u"' : '') + '>' + t[2] + '</i>' : ''}</button>`).join('')}</div>
       <div class="wn-bar"><input class="wn-in" type="search" data-q placeholder="ค้นหาในบันทึก…" value="${esc(S.q)}" autocomplete="off">${S.tab === 'tag' && window.WCTag ? '<button class="wn-b" data-tagall>🔔 แท็กทั้งหมด</button>' : ''}</div>
-      ${chips}<div class="wn-bd">${body}</div>
+      ${chips}<div class="wn-bd">${q ? '<div class="wn-cnt">🔎 คำว่า “<b>' + esc(S.q.trim()) + '</b>” พบ ' + (body.split('<mark class="wn-hl">').length - 1) + ' จุด ใน ' + (body.split('class="wn-it').length - 1) + ' รายการ</div>' : ''}${body}</div>
       <div class="wn-ft"><button class="wn-b big" data-x>ปิด</button><button class="wn-b g big" data-new>＋ บันทึกใหม่</button></div>`;
     S.sig = sig();
+    if (q && !S.focus) { const m = bx.querySelector('.wn-hl'); if (m) { try { m.scrollIntoView({ block: 'nearest' }); } catch (e) {} } }   // ข้อความยาว → เลื่อนให้เห็นคำแรกที่พบ
     if (S.focus) { const f = bx.querySelector('.wn-it.foc'); if (f) { try { f.scrollIntoView({ block: 'center' }); } catch (e) {} } }
   }
   function sig() { try { const B = S.B; return JSON.stringify([B.notes(), B.rem(), window.WCTag && WCTag._S ? WCTag._S.open.map(x => x.id + (x.seen_at || '')) : []]).length + ':' + JSON.stringify(B.notes()).slice(-200); } catch (e) { return ''; } }

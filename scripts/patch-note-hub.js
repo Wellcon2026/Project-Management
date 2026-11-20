@@ -25,7 +25,10 @@ const enc = (t) => JSON.stringify(t).split('</').join('<' + BS + 'u002F');
 let t = JSON.parse(lines[idx]);
 if (enc(t) !== lines[idx]) { console.error('✗ ถอด/ประกอบ template แล้วไม่ตรงเดิม — ไม่แก้'); process.exit(2); }
 const MARK = 'v1.438.0 note-hub';
-if (t.includes(MARK)) { console.log('✓ มีแล้ว — ไม่ต้องแก้ (note-hub)'); process.exit(0); }
+// เลขเวอร์ชัน wcnote.js (ล้างแคชเครื่องผู้ใช้) — เปลี่ยนทุกครั้งที่แก้ wcnote.js แล้วรันสคริปต์นี้ซ้ำ
+const NOTE_VER = '1.0.1';   // 1.0.1: ไฮไลต์คำค้น
+if (t.includes(MARK)) { const re = /\/wcnote\.js\?v=[0-9.]+/g; const n = (t.match(re) || []).length; const t2 = t.replace(re, '/wcnote.js?v=' + NOTE_VER);
+  if (t2 !== t) { lines[idx] = enc(t2); fs.writeFileSync(file, lines.join(nl)); console.log('✓ note-hub มีแล้ว · อัปเดต wcnote.js?v=' + NOTE_VER + ' (' + n + ' จุด)'); } else console.log('✓ มีแล้ว — ไม่ต้องแก้ (note-hub)'); process.exit(0); }
 if (!t.includes('v1.437.0 delta-sync')) { console.error('✗ ต้องรัน scripts/patch-delta-sync.js ก่อน'); process.exit(1); }
 
 const HELP = `  _noteKey(scope,id){ return scope+':'+id; }
@@ -74,7 +77,7 @@ const HELP = `  _noteKey(scope,id){ return scope+':'+id; }
 `;
 
 const R = [
-  ['โหลด wcnote.js', '<script src="/wctag.js?v=1.2.2"></script>', '<script src="/wctag.js?v=1.2.3"></script>\n<script src="/wcnote.js?v=1.0.0"></script><!-- ' + MARK + ' -->'],
+  ['โหลด wcnote.js', '<script src="/wctag.js?v=1.2.2"></script>', '<script src="/wctag.js?v=1.2.3"></script>\n<script src="/wcnote.js?v=' + NOTE_VER + '"></script><!-- ' + MARK + ' -->'],
   ['ตัวช่วยบันทึก', "  _noteKey(scope,id){ return scope+':'+id; }\n", HELP],
   ['การ์ดหน้าแรก', 'const tiles0=(_permWait?[]:list).map(info)', 'const tiles0=[...this._noteTile(I,CT), ...(_permWait?[]:list).map(info)]'],
   ['สีการ์ด', "'nav:ai':'#A21CAF'};", "'nav:ai':'#A21CAF','note':'#9A3412'};"],
