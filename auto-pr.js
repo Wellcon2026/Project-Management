@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const APR_VER = 'v1.9.4';   // 1.9.4: แถบหัวมาตรฐานเดียวกันทุกแอป — 🏠 หน้าแรกอยู่มุมบนซ้าย (pm-nav.js 1.3.0) · 1.9.3: ปิดหน้านี้ "แยกรายโครงการ" ได้ (ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน → รายโครงการ) · 1.9.2: ตัวเลือกหลายข้อเป็นเมนูดรอปดาวน์ (พื้นที่ / งาน เมื่อเกิน 5 ข้อ · งานในตัวคำนวณปริมาณ) · 1.9.1: แถบบน / พื้นหลังสีเดียวกับแอปหลัก · 1.9.0: ห้ามอนุมัติใบของตัวเอง · ผู้บริหารอนุมัติแทนต้องใส่เหตุผล + แจ้งผู้ถูกข้าม · เลขที่ไม่ซ้ำ (ฐานข้อมูลกัน) · ป้าย Takeoff ที่ QS ยังไม่ตรวจ · สั่งของ / รับของ → อัปเดต Material Log ในระบบ · 1.8.0: รายการวัสดุ — ดึงจาก Material Log ในระบบ / ใช้ลิงก์ Google Sheet ของโครงการ (ชุดเดียวกับแอปหลัก) · บอกวันที่อัปเดต · กลับ Wellcon PM = โครงการเดิม · 1.7.1: จัดซื้อเปิดใบของโครงการที่ยังไม่มีจัดซื้อในทีมได้ (เดิมได้รับแจ้งแต่เปิดไม่ได้) · ปิดฟังก์ชันทั้งระบบแล้วเข้าหน้านี้ไม่ได้ · 1.7.0: Phase 3 — คำนวณปริมาณจากพื้นที่ / ความยาว / Takeoff (แม่แบบ ยิปซัม · กระเบื้อง · สี · วอลเปเปอร์ · พื้น · บัว · กำหนดเอง) · 1.6.0: เก็บใบในตาราง apr_requests (1 ใบ = 1 แถว · กันอนุมัติพร้อมกันแล้วหาย · โหลดเฉพาะที่เปลี่ยน) — ยังไม่รัน SQL ใช้แบบเดิม · 1.5.0: ลบร่าง / ยกเลิกใบตามสถานะ (ต้องใส่เหตุผล · เก็บประวัติ) · เลือกเอกสาร ใบขอซื้อ / ใบขอจ้าง — เลขที่ PR- / WO- · หน้าจอภาษาไทย · หัวใบ · ประเภทงาน · ข้อความทุกขั้นตอนตามเอกสาร · 1.4.0: ② PM และ QS อนุมัติครบทั้งสองคนก่อนส่งจัดซื้อ (ลำดับไหนก่อนก็ได้ · ใครส่งกลับก็ได้ · ช่องลงนาม ผู้จัดการโครงการ = PM ที่อนุมัติ) · 1.3.2: ช่องผู้ขาย / ชื่อแทนผู้รับเหมา (ไม่บังคับ · เลือกจากที่เคยใช้) · 1.3.1: ใบ PR เหลือช่องลงนาม 3 ช่อง (ผู้ขอซื้อ · ผู้จัดการโครงการ · ผู้อนุมัติ QS) · 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
+const APR_VER = 'v1.10.0';   // 1.10.0: ข้อ 3 เลือกของจาก “ราคากลาง” ได้ (ชื่อ · สเปก · หน่วย · รหัส — ไม่ดึงราคา เพราะราคากลาง = ราคาขาย ใบขอซื้อ = ต้นทุน) · หน้าข้อ 3 ใหม่: ช่องค้นหาค้นราคากลางด้วย · ปุ่มแหล่งของ 3 ปุ่ม · ของใช้บ่อยแถวเดียวเลื่อนได้ · 1.9.4: 1.9.4: แถบหัวมาตรฐานเดียวกันทุกแอป — 🏠 หน้าแรกอยู่มุมบนซ้าย (pm-nav.js 1.3.0) · 1.9.3: ปิดหน้านี้ "แยกรายโครงการ" ได้ (ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน → รายโครงการ) · 1.9.2: ตัวเลือกหลายข้อเป็นเมนูดรอปดาวน์ (พื้นที่ / งาน เมื่อเกิน 5 ข้อ · งานในตัวคำนวณปริมาณ) · 1.9.1: แถบบน / พื้นหลังสีเดียวกับแอปหลัก · 1.9.0: ห้ามอนุมัติใบของตัวเอง · ผู้บริหารอนุมัติแทนต้องใส่เหตุผล + แจ้งผู้ถูกข้าม · เลขที่ไม่ซ้ำ (ฐานข้อมูลกัน) · ป้าย Takeoff ที่ QS ยังไม่ตรวจ · สั่งของ / รับของ → อัปเดต Material Log ในระบบ · 1.8.0: รายการวัสดุ — ดึงจาก Material Log ในระบบ / ใช้ลิงก์ Google Sheet ของโครงการ (ชุดเดียวกับแอปหลัก) · บอกวันที่อัปเดต · กลับ Wellcon PM = โครงการเดิม · 1.7.1: จัดซื้อเปิดใบของโครงการที่ยังไม่มีจัดซื้อในทีมได้ (เดิมได้รับแจ้งแต่เปิดไม่ได้) · ปิดฟังก์ชันทั้งระบบแล้วเข้าหน้านี้ไม่ได้ · 1.7.0: Phase 3 — คำนวณปริมาณจากพื้นที่ / ความยาว / Takeoff (แม่แบบ ยิปซัม · กระเบื้อง · สี · วอลเปเปอร์ · พื้น · บัว · กำหนดเอง) · 1.6.0: เก็บใบในตาราง apr_requests (1 ใบ = 1 แถว · กันอนุมัติพร้อมกันแล้วหาย · โหลดเฉพาะที่เปลี่ยน) — ยังไม่รัน SQL ใช้แบบเดิม · 1.5.0: ลบร่าง / ยกเลิกใบตามสถานะ (ต้องใส่เหตุผล · เก็บประวัติ) · เลือกเอกสาร ใบขอซื้อ / ใบขอจ้าง — เลขที่ PR- / WO- · หน้าจอภาษาไทย · หัวใบ · ประเภทงาน · ข้อความทุกขั้นตอนตามเอกสาร · 1.4.0: ② PM และ QS อนุมัติครบทั้งสองคนก่อนส่งจัดซื้อ (ลำดับไหนก่อนก็ได้ · ใครส่งกลับก็ได้ · ช่องลงนาม ผู้จัดการโครงการ = PM ที่อนุมัติ) · 1.3.2: ช่องผู้ขาย / ชื่อแทนผู้รับเหมา (ไม่บังคับ · เลือกจากที่เคยใช้) · 1.3.1: ใบ PR เหลือช่องลงนาม 3 ช่อง (ผู้ขอซื้อ · ผู้จัดการโครงการ · ผู้อนุมัติ QS) · 1.3.0: Phase 2 — นำเข้า Material Log / ใบเสนอราคา (Excel · Google Sheet) เป็นรายการวัสดุโครงการ · เลือกจากรายการ · เตือนขอเกิน BOQ · ไม่อ่านราคา · 1.2.0: ใบ PR รูปแบบ Mango (ใบขอซื้อ/ขอจ้าง) · รหัสต้นทุน / รหัสวัสดุ · ผู้ขาย · สถานที่ส่งของ · ส่งออก Excel คอลัมน์ Mango · 1.1.0: ขั้นตอนอนุมัติ QS → จัดซื้อ → รับของ · ติดตามสถานะ · งานที่รอคุณ · แจ้งเตือนแท็ก + LINE · SLA 24 ชม.
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvdGVjbXpzaHViZmxva2tkYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MDYyNDIsImV4cCI6MjEwMDk4MjI0Mn0.30LVGfjbT1TcZSBszenrZcNp3_k1oZpPNMbmSrF1rzo'
@@ -62,8 +62,8 @@ const pmUrl = () => '/' + (IS_STG ? '?env=staging' : '');
 let toastT = null;
 function toast(m, ms) { const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms || 2600); }
 
-const APP = { acc: null, me: null, accounts: [], projects: [], pid: '', proj: null, all: {}, cfg: {}, cat: { sources: [], items: [] }, imp: null, catPick: null, catQ: '', catTab: '', rooms: [], pr: null, screen: 'msg', pushed: 0, filt: 'all' };
-const SCR = ['msg', 'proj', 'list', 'edit', 'view', 'cat', 'calc'];
+const APP = { pb: null, pbPick: null, pbQ: '', pbTab: null, acc: null, me: null, accounts: [], projects: [], pid: '', proj: null, all: {}, cfg: {}, cat: { sources: [], items: [] }, imp: null, catPick: null, catQ: '', catTab: '', rooms: [], pr: null, screen: 'msg', pushed: 0, filt: 'all' };
+const SCR = ['msg', 'proj', 'list', 'edit', 'view', 'cat', 'calc', 'pb'];
 function show(s, push) {
   SCR.forEach(k => { $('scr' + k[0].toUpperCase() + k.slice(1)).hidden = k !== s; });
   if (push) { history.pushState({ apr: s }, ''); APP.pushed++; }
@@ -72,7 +72,7 @@ function show(s, push) {
 window.addEventListener('popstate', (e) => {
   const s = (e.state && e.state.apr) || (APP.pid ? 'list' : (APP.acc ? 'proj' : 'msg'));
   if (APP.pushed > 0) APP.pushed--;
-  show(s, false); if (s === 'list') renderList(); if (s === 'edit') renderEdit(); if (s === 'proj') renderProjects(); if (s === 'cat') renderCat(); if (s === 'calc') renderCalc();
+  show(s, false); if (s === 'list') renderList(); if (s === 'edit') renderEdit(); if (s === 'proj') renderProjects(); if (s === 'cat') renderCat(); if (s === 'calc') renderCalc(); if (s === 'pb') renderPb();
 });
 function toPm() { if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1 && !APP.pushed) history.back(); else location.href = pmUrl() + '#/work'; }   // เปิดจากลิงก์ / แจ้งเตือน (ไม่มีหน้าก่อน) → หน้าแรกของฉัน โครงการเดิม — ที่เดียวกับปุ่ม 🏠
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (!b) return;
@@ -606,6 +606,158 @@ function addFromCat(ids) {
       remark: [c.area || pr.area || '', c.code ? 'อ้างอิง ' + c.code : ''].filter(Boolean).join(' · ') }); n++; });
   return n;
 }
+// ----- v1.10.0 ราคากลาง (app_state 'priceBook' ฉบับเผยแพร่) — ใช้เฉพาะ ชื่อ · สเปก · หน่วย · รหัส · หมวด -----
+// docs/pricing-principles.md 2.1: ราคากลาง = ราคาขาย · ใบขอซื้อ / ใบขอจ้าง = ต้นทุน → ไม่อ่าน / ไม่เก็บ / ไม่แสดงราคาในหน้านี้
+const PB_G = [['labor', 'ค่าแรงช่าง'], ['floor', 'งานพื้น'], ['ceil', 'งานฝ้าเพดาน'], ['wall', 'งานผนัง'], ['bi', 'Built-in'], ['loose', 'เฟอร์นิเจอร์ลอยตัว'], ['mep', 'งานระบบ (MEP)'],
+  ['demo', 'รื้อถอน / ซ่อมแซม'], ['mat', 'วัสดุมาตรฐาน'], ['staff', 'บุคลากรควบคุมงาน'], ['doc', 'งานแบบและเอกสาร'], ['trans', 'เดินทางและขนส่ง'], ['tool', 'เครื่องมือและอุปกรณ์'],
+  ['site', 'ค่าใช้จ่ายหน้างาน'], ['prot', 'งานป้องกันและตัวอย่าง'], ['other', 'อื่น ๆ']];
+const pbGL = (g) => (PB_G.find(x => x[0] === g) || ['', 'อื่น ๆ'])[1];
+const PB_PR = ['mat', 'floor', 'ceil', 'wall', 'bi', 'loose', 'mep', 'prot', 'tool', 'demo', 'site', 'trans', 'other', 'labor', 'staff', 'doc'];   // ใบขอซื้อ: วัสดุขึ้นก่อน
+const PB_WO = ['labor', 'demo', 'floor', 'ceil', 'wall', 'bi', 'loose', 'mep', 'prot', 'site', 'trans', 'staff', 'doc', 'tool', 'mat', 'other'];   // ใบขอจ้าง: ค่าแรงขึ้นก่อน
+async function loadPb() { if (APP.pb) return APP.pb;
+  try { const r = await sb.from('app_state').select('data').eq('id', 'priceBook').maybeSingle(); const v = (!r.error && r.data && r.data.data && r.data.data.v) || {};
+    APP.pb = (Array.isArray(v.items) ? v.items : []).filter(x => x && x.st !== 'off' && String(x.n || '').trim())
+      .map(x => ({ id: String(x.id), code: String(x.code || ''), g: x.g || 'other', n: String(x.n).trim(), spec: String(x.spec || '').trim(), u: String(x.u || '').trim() }));   // ไม่เก็บ mat / lab / rate
+    APP.pbVer = v.ver || ''; } catch (e) { APP.pb = []; }
+  return APP.pb; }
+const pbItem = (id) => (APP.pb || []).find(x => x.id === id);
+const pbLabel = (x) => x.n + (x.spec ? ' · ' + x.spec : '');
+const pbOrder = () => isWo(APP.pr) ? PB_WO : PB_PR;
+function addFromPb(list) {   // list = [[id, qty]]
+  const pr = APP.pr; let n = 0;
+  list.forEach(([id, q]) => { const x = pbItem(id); if (!x) return; const nm = pbLabel(x).slice(0, 200);
+    const ex = pr.items.find(i => i.pbId === id || norm(i.name) === norm(nm));
+    if (ex) { ex.qty = String((parseFloat(ex.qty) || 0) + (Number(q) || 1)); n++; return; }
+    const c = L ? L.codesOf(nm) : { code: '', mat: '' };
+    pr.items.push({ name: nm, qty: String(Number(q) || 1), unit: x.u || (L && L.unitOf(nm)) || 'ชุด', code: c.code || '', mat: c.mat || '', pbId: x.id, pbCode: x.code, need: defNeed(), remark: pr.area || '' }); n++; });
+  return n; }
+function renderPb() {
+  const P = APP.pb || [], pick = APP.pbPick || new Map(), ord = pbOrder(), h = [];
+  const gs = ord.filter(g => P.some(x => x.g === g)); if (APP.pbTab == null || (APP.pbTab && !gs.includes(APP.pbTab))) APP.pbTab = gs[0] || '';
+  const tab = APP.pbTab, q = norm(APP.pbQ);
+  $('pbTitle').textContent = 'เลือกจากราคากลาง'; $('pbSub').textContent = (APP.pbVer ? 'ฉบับ ' + APP.pbVer + ' · ' : '') + P.length + ' รายการมาตรฐานบริษัท';
+  if (!P.length) { $('pbBody').innerHTML = '<div class="card" style="align-items:center;text-align:center;padding:24px 16px"><div style="font-size:38px">📗</div><b>ยังไม่มีราคากลางที่เผยแพร่</b><span class="s">ให้ QS / Admin เผยแพร่ราคากลางในการ์ด “ราคากลาง” ก่อน</span></div>'; $('pbFoot').hidden = true; return; }
+  h.push('<p class="pbinfo">ใช้ชื่อ · สเปก · หน่วย มาตรฐานของบริษัท — <b>ไม่มีราคาในใบ' + (isWo(APP.pr) ? 'ขอจ้าง' : 'ขอซื้อ') + '</b> (จัดซื้อใส่ราคาซื้อจริงใน Mango)</p>');
+  h.push(`<div class="search"><input id="pbQ" type="search" value="${esc(APP.pbQ)}" placeholder="ค้นหา ชื่อ · สเปก · รหัส เช่น ยิปซัม / LB-001" autocomplete="off"></div>`);
+  if (!q) h.push('<div class="chips pbtabs">' + gs.map(g => `<button class="chip${g === tab ? ' on' : ''}" data-pbtab="${g}">${esc(pbGL(g))} <small>${P.filter(x => x.g === g).length}</small></button>`).join('') + '</div>');
+  const Lp = P.filter(x => q ? norm(x.n + ' ' + x.spec + ' ' + x.code + ' ' + pbGL(x.g)).includes(q) : x.g === tab).slice(0, 300);
+  h.push('<div class="cl">' + (Lp.length ? Lp.map(x => { const on = pick.has(x.id), inPr = APP.pr.items.some(i => i.pbId === x.id);
+    return `<div class="ci pbi${on ? ' on' : ''}" data-pbrow="${esc(x.id)}"><span class="t"><b>${esc(x.n)}</b>${x.spec ? `<small>${esc(x.spec)}</small>` : ''}<small>${esc([x.code, q ? pbGL(x.g) : '', x.u ? 'หน่วย: ' + x.u : ''].filter(Boolean).join(' · '))}${inPr ? ' · <i class="tagin">อยู่ในใบแล้ว</i>' : ''}</small></span>
+      ${on ? `<span class="pq"><button data-pbq="-1" aria-label="ลด">−</button><input data-pbqv inputmode="decimal" value="${esc(pick.get(x.id))}" aria-label="จำนวน"><button data-pbq="1" aria-label="เพิ่ม">＋</button><small>${esc(x.u || '')}</small></span>` : ''}
+      <button class="pk" data-pbpk aria-label="${on ? 'เอาออก' : 'เลือก'}">${on ? '✓' : '＋'}</button></div>`; }).join('') + (Lp.length >= 300 ? '<p class="empty">แสดง 300 รายการแรก — พิมพ์ค้นหาเพื่อหาเพิ่ม</p>' : '') : `<p class="empty">ไม่พบ “${esc(APP.pbQ)}” ในราคากลาง — กลับไปพิมพ์ชื่อของเองได้</p>`) + '</div>');
+  $('pbBody').innerHTML = h.join('');
+  $('pbFoot').hidden = false; const n = pick.size; $('btnPbAdd').disabled = !n; $('btnPbAdd').textContent = n ? '✓ เพิ่ม ' + n + ' รายการเข้า' + docTh(APP.pr) : 'แตะ ＋ เพื่อเลือกรายการ';
+}
+async function openPb() { APP.pbPick = new Map(); APP.pbQ = ''; APP.pbTab = null; show('pb', true); $('pbBody').innerHTML = '<p class="empty">กำลังโหลดราคากลาง…</p>'; await loadPb(); renderPb(); }
+$('pbBody').addEventListener('click', (e) => {
+  const t = e.target.closest('[data-pbtab]'); if (t) { APP.pbTab = t.dataset.pbtab; renderPb(); return; }
+  const row = e.target.closest('[data-pbrow]'); if (!row) return; const id = row.dataset.pbrow, pick = APP.pbPick;
+  if (e.target.closest('[data-pbqv]')) return;
+  const qb = e.target.closest('[data-pbq]'); if (qb) { const v = Math.max(1, (parseFloat(pick.get(id)) || 1) + Number(qb.dataset.pbq)); pick.set(id, String(v)); renderPb(); return; }
+  if (pick.has(id)) pick.delete(id); else pick.set(id, '1'); renderPb(); });
+$('pbBody').addEventListener('change', (e) => { const inp = e.target.closest('[data-pbqv]'); if (!inp) return; const id = inp.closest('[data-pbrow]').dataset.pbrow; const v = parseFloat(inp.value); APP.pbPick.set(id, String(v > 0 ? v : 1)); });
+$('pbBody').addEventListener('input', (e) => { if (e.target.id !== 'pbQ') return; APP.pbQ = e.target.value; clearTimeout(APP._pqT); APP._pqT = setTimeout(() => { const pos = e.target.selectionStart; renderPb(); const q = $('pbQ'); if (q) { q.focus(); try { q.setSelectionRange(pos, pos); } catch (x) {} } }, 200); });
+$('btnPbAdd').addEventListener('click', () => { const n = addFromPb([...APP.pbPick.entries()]); APP.pbPick = null; draftSave();
+  if (APP.pushed > 0) history.back(); else show('edit', false);
+  setTimeout(() => { renderEdit(); toast('เพิ่ม ' + n + ' รายการจากราคากลางแล้ว — ตรวจจำนวน / ยี่ห้อ / ขนาดอีกครั้ง', 3000); }, 60); });
+// ----- v1.10.0 อัปโหลด BOQ → AI แยกรายการวัสดุของโครงการ (ผู้บริหารสั่ง 20/11/2026) -----
+//   ใช้ "รายการวัสดุโครงการ" ชุดเดิม (app_state autoPRCat_<pid>) — ไม่สร้างที่เก็บใหม่ · หน้างานเลือกจากรายการนี้ · เตือนขอเกินจำนวนใน BOQ เหมือนเดิม
+//   รับ Excel / CSV / PDF / รูป · หรือใช้ "BOQ อ้างอิง" ที่อัปโหลดไว้ใน Wellcon PM (app_state projRefBoq) — ไม่ต้องอัปโหลดซ้ำ
+//   ไม่เก็บราคา: ตัดคอลัมน์ราคา / มูลค่า ก่อนส่ง AI · AI ตอบเฉพาะ ชื่อ สเปก หน่วย จำนวน พื้นที่ รหัส หมวด · QS ตรวจแก้ก่อนบันทึก
+const AI_EDGE = 1568, AI_ROWS = 150, AI_MAX_ROWS = 2400, AI_PAGES = 3, AI_MAX_PAGES = 24;
+const PRICE_H = /ราคา|price|rate|amount|มูลค่า|total|รวมเงิน|cost|ต้นทุน|ส่วนลด|discount|vat|ภาษี|baht|บาท/i;
+const AI_SYS = `คุณเป็นผู้ช่วย QS ของบริษัทรับเหมาตกแต่งภายใน อ่าน BOQ / ใบเสนอราคา แล้วแยก "รายการวัสดุ / ของ ที่หน้างานต้องขอซื้อหรือสั่งทำ" ให้อยู่ในรูปแบบมาตรฐานสำหรับทีมหน้างาน
+กติกา:
+1. เอาเฉพาะรายการที่เป็นวัสดุ อุปกรณ์ เฟอร์นิเจอร์ Built-in / ลอยตัว สุขภัณฑ์ ฮาร์ดแวร์ งานสั่งทำ งานระบบที่เป็นของ — ข้ามหัวข้อหมวด ยอดรวม ค่าดำเนินการ (Preliminary) OH&P VAT หมายเหตุ เงื่อนไข และรายการที่เป็นค่าแรงล้วน
+2. ห้ามใส่ราคา ต้นทุน มูลค่า หรือส่วนลดใด ๆ ในคำตอบ
+3. name = ชื่อของตามเอกสาร (ภาษาเดิม) สั้น กระชับ · spec = ยี่ห้อ รุ่น ขนาด สี เกรด ที่ระบุในเอกสาร (ไม่มีให้ "") ห้ามแต่งขึ้นเอง
+4. unit = หน่วยภาษาไทย: ตร.ม. · ม. · ชิ้น · ชุด · ตัว · แผ่น · บาน · จุด · กล่อง · ม้วน · ลิตร · กก. · เหมา (sqm/m2→ตร.ม. · m/lm→ม. · pcs/nos/ea/no.→ชิ้น · set→ชุด · lot/ls→เหมา)
+5. qty = จำนวนตาม BOQ เป็นตัวเลข (ไม่มีให้ null) · area = พื้นที่ / ห้อง / ชั้น ที่ระบุ · code = รหัสรายการ / Item no. / Drawing code ถ้ามี · cat = หมวดงานตามหัวข้อใน BOQ (เช่น งานพื้น งานผนัง งานฝ้า Built-in สุขภัณฑ์ ประตู)
+6. รายการเดียวกันแต่คนละพื้นที่ ให้แยกแถวตามพื้นที่ · อ่านไม่ออกให้ข้าม แล้วบอกใน notes
+ตอบเป็น JSON อย่างเดียว ไม่มีข้อความอื่น: {"items":[{"cat":"","name":"","spec":"","unit":"","qty":0,"area":"","code":""}],"notes":[""]}`;
+async function aiCall(system, content, maxTok) {
+  const res = await fetch(CFG.url + '/functions/v1/ai-assistant', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: CFG.anonKey, Authorization: 'Bearer ' + CFG.anonKey },
+    body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTok || 8000, system, messages: [{ role: 'user', content }], staffId: (APP.acc && APP.acc.id) || null, staffName: APP.me.name, projectId: APP.pid || null }) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { const map = { unauthorized: 'ต้องเข้าสู่ระบบก่อนใช้ผู้ช่วย AI', ai_disabled_for_user: 'บัญชีนี้ยังไม่ได้เปิดสิทธิ์ใช้ผู้ช่วย AI — แจ้งผู้ดูแลระบบ', daily_limit_reached: 'ใช้ครบโควตา AI ของวันนี้แล้ว', too_many_requests: 'ถามถี่เกินไป รอสักครู่แล้วลองใหม่', server_not_configured: 'ยังไม่ได้เปิดใช้งานผู้ช่วย AI บนเซิร์ฟเวอร์', upstream_error: 'ผู้ช่วย AI อ่านไฟล์ชุดนี้ไม่ได้ — ลองแยกไฟล์ให้เล็กลง หรือลองใหม่อีกครั้ง' };
+    throw new Error(res.status === 404 ? 'ยังไม่ได้เปิดใช้งานผู้ช่วย AI บนเซิร์ฟเวอร์' : (map[data.error] || 'เชื่อมต่อผู้ช่วย AI ไม่สำเร็จ')); }
+  return String(data.text || ''); }
+function aiParse(t) { const s = String(t || ''); const a = s.indexOf('{'), b = s.lastIndexOf('}'); if (a < 0 || b <= a) throw new Error('AI ตอบไม่ครบ — ลองใหม่อีกครั้ง');
+  let o; try { o = JSON.parse(s.slice(a, b + 1)); } catch (e) { throw new Error('AI ตอบไม่ครบ — ลองแยกไฟล์ให้เล็กลง หรือลองใหม่'); }
+  const S = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
+  const items = (Array.isArray(o.items) ? o.items : []).map(x => { const q = Number(String(x && x.qty != null ? x.qty : '').replace(/,/g, ''));
+    return { cat: S(x.cat, 60) || 'BOQ', name: S(x.name, 200), spec: S(x.spec, 200), unit: S(x.unit, 20), qty: isFinite(q) && q > 0 ? Math.round(q * 1000) / 1000 : null, area: S(x.area, 80), code: S(x.code, 40), on: true }; }).filter(x => x.name);
+  return { items, notes: (Array.isArray(o.notes) ? o.notes : []).map(n => S(n, 200)).filter(Boolean).slice(0, 6) }; }
+// ตาราง (แถว × คอลัมน์) → บรรทัดข้อความ · ตัดคอลัมน์ราคา / มูลค่า และช่องที่มี ฿ / บาท
+function aoaLines(aoa) {
+  const rows = (aoa || []).map(r => (Array.isArray(r) ? r : []).map(c => c == null ? '' : String(c instanceof Date ? isoOf(c) : c).replace(/\s+/g, ' ').trim()));
+  let hi = -1; const pc = new Set();
+  for (let i = 0; i < Math.min(rows.length, 40); i++) { const r = rows[i]; const hit = r.map((c, j) => PRICE_H.test(c) && c.length < 40 ? j : -1).filter(j => j >= 0); if (hit.length && r.filter(Boolean).length >= 3) { hi = i; hit.forEach(j => pc.add(j)); break; } }
+  const out = []; rows.forEach(r => { const c = r.map((x, j) => pc.has(j) || /฿|THB|บาท/i.test(x) ? '' : x); while (c.length && !c[c.length - 1]) c.pop(); if (c.filter(Boolean).length) out.push(c.join(' | ')); });
+  return { head: hi >= 0 ? rows[hi].map((x, j) => pc.has(j) ? '' : x).join(' | ') : '', lines: out }; }
+function textChunks(label, sheets) {   // sheets = [{ n, aoa }] → [content]
+  const out = []; let total = 0;
+  sheets.forEach(sh => { const t = aoaLines(sh.aoa); for (let i = 0; i < t.lines.length && total < AI_MAX_ROWS; i += AI_ROWS) { const L = t.lines.slice(i, i + AI_ROWS); total += L.length;
+    out.push([{ type: 'text', text: 'ไฟล์: ' + label + ' · แท็บ: ' + sh.n + (t.head ? '\nหัวตาราง: ' + t.head : '') + '\nแถวที่ ' + (i + 1) + '–' + (i + L.length) + ':\n' + L.join('\n') }]); } });
+  return { chunks: out, cut: sheets.reduce((n, sh) => n + aoaLines(sh.aoa).lines.length, 0) > AI_MAX_ROWS }; }
+async function pdfLib() { if (window.pdfjsLib) return window.pdfjsLib;
+  await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'vendor/pdf.min.js'; sc.onload = ok; sc.onerror = () => no(new Error('โหลดตัวอ่าน PDF ไม่สำเร็จ')); document.head.appendChild(sc); });
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js'; return window.pdfjsLib; }
+const cvJpeg = (c) => c.toDataURL('image/jpeg', 0.82).split(',')[1];
+async function pdfImages(buf) { const lib = await pdfLib(); const doc = await lib.getDocument({ data: buf }).promise; const out = [];
+  for (let i = 1; i <= Math.min(doc.numPages, AI_MAX_PAGES); i++) { const pg = await doc.getPage(i); const v = pg.getViewport({ scale: 1 }); const vp = pg.getViewport({ scale: Math.min(2.5, AI_EDGE / Math.max(v.width, v.height)) });
+    const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height); const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    await pg.render({ canvasContext: g, viewport: vp }).promise; out.push(cvJpeg(c)); }
+  return { imgs: out, total: doc.numPages }; }
+async function imgJpeg(file) { const bm = await createImageBitmap(file); const k = Math.min(1, AI_EDGE / Math.max(bm.width, bm.height)); const c = document.createElement('canvas'); c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(bm, 0, 0, c.width, c.height); return cvJpeg(c); }
+const imgChunks = (label, imgs, from) => { const out = []; for (let i = 0; i < imgs.length; i += AI_PAGES) { const part = imgs.slice(i, i + AI_PAGES); const blk = [];
+  part.forEach((d, j) => { blk.push({ type: 'text', text: 'ไฟล์: ' + label + ' · หน้า ' + ((from || 1) + i + j) }); blk.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: d } }); }); out.push(blk); } return out; };
+async function aiRunChunks(label, chunks, extraNote) {
+  if (APP.ai && APP.ai.busy) return; if (!chunks.length) { toast('ไม่พบข้อมูลในไฟล์นี้'); return; }
+  APP.ai = { label, busy: true, step: 'AI กำลังอ่าน 0/' + chunks.length, items: [], notes: extraNote ? [extraNote] : [], err: '' }; renderCat();
+  const M = new Map(); let fail = 0;
+  for (let i = 0; i < chunks.length; i++) { APP.ai.step = 'AI กำลังอ่าน ' + (i + 1) + '/' + chunks.length + ' ส่วน… (ปิดหน้านี้ไม่ได้)'; renderCat();
+    try { const o = aiParse(await aiCall(AI_SYS, chunks[i], 8000)); o.notes.forEach(n => { if (!APP.ai.notes.includes(n)) APP.ai.notes.push(n); });
+      o.items.forEach(x => { const k = [x.cat, x.name, x.spec, x.unit, x.area, x.code].map(norm).join('|'); const e = M.get(k); if (e) { if (x.qty != null) e.qty = Math.round(((e.qty || 0) + x.qty) * 1000) / 1000; } else M.set(k, x); }); }
+    catch (e) { fail++; APP.ai.err = String((e && e.message) || e); if (/สิทธิ์|โควตา|เปิดใช้งาน|เข้าสู่ระบบ/.test(APP.ai.err)) break; } }
+  APP.ai.items = [...M.values()]; APP.ai.busy = false; APP.ai.fail = fail; APP.ai.parts = chunks.length; renderCat();
+  toast(APP.ai.items.length ? 'AI แยกได้ ' + APP.ai.items.length + ' รายการ — ตรวจแล้วกด “บันทึก”' : (APP.ai.err || 'AI ไม่พบรายการวัสดุในไฟล์นี้'), 4200); }
+async function aiFromFile(f) {
+  if (!f) return; if (f.size > 25 * 1024 * 1024) { toast('ไฟล์ใหญ่เกิน 25 MB — แยกไฟล์ให้เล็กลง'); return; }
+  const label = f.name; try {
+    if (/\.pdf$/i.test(f.name) || f.type === 'application/pdf') { toast('กำลังเตรียมหน้า PDF…', 2000); const r = await pdfImages(new Uint8Array(await f.arrayBuffer()));
+      await aiRunChunks(label, imgChunks(label, r.imgs), r.total > AI_MAX_PAGES ? 'ไฟล์มี ' + r.total + ' หน้า — อ่าน ' + AI_MAX_PAGES + ' หน้าแรก · แยกไฟล์ส่วนที่เหลือแล้วอัปโหลดอีกครั้ง' : ''); return; }
+    if (/^image\//.test(f.type)) { await aiRunChunks(label, imgChunks(label, [await imgJpeg(f)])); return; }
+    const X = await xlsxLib(); const wb = X.read(new Uint8Array(await f.arrayBuffer()), { type: 'array', cellDates: true });
+    const r = textChunks(label, wb.SheetNames.map(n => ({ n, aoa: X.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: false, defval: '' }) })));
+    await aiRunChunks(label, r.chunks, r.cut ? 'ไฟล์ยาวมาก — อ่าน ' + AI_MAX_ROWS + ' แถวแรก · แยกไฟล์ส่วนที่เหลือแล้วอัปโหลดอีกครั้ง' : '');
+  } catch (e) { if (APP.ai) APP.ai.busy = false; toast('อ่านไฟล์ไม่สำเร็จ — ' + ((e && e.message) || e), 4200); renderCat(); } }
+async function pmBoqLoad() { if (APP.pmBoq && APP.pmBoq.pid === APP.pid) return APP.pmBoq.v;
+  try { const r = await sb.from('app_state').select('data').eq('id', 'projRefBoq').maybeSingle(); const v = (!r.error && r.data && r.data.data && r.data.data.v && r.data.data.v[APP.pid]) || null;
+    APP.pmBoq = { pid: APP.pid, v: v && Array.isArray(v.sheets) && v.sheets.length ? { fileName: v.fileName || 'BOQ อ้างอิง', sheets: v.sheets } : null }; } catch (e) { APP.pmBoq = { pid: APP.pid, v: null }; }
+  return APP.pmBoq.v; }
+async function aiFromPmBoq() { const v = await pmBoqLoad(); if (!v) { toast('โครงการนี้ยังไม่มี BOQ อ้างอิงใน Wellcon PM'); return; }
+  const r = textChunks(v.fileName, v.sheets.map((s, i) => ({ n: s.name || s.n || ('แท็บ ' + (i + 1)), aoa: s.grid || s.aoa || [] })));
+  await aiRunChunks(v.fileName + ' (BOQ ใน Wellcon PM)', r.chunks, r.cut ? 'BOQ ยาวมาก — อ่าน ' + AI_MAX_ROWS + ' แถวแรก' : ''); }
+function aiHtml() { const A = APP.ai; if (!A) return '';
+  if (A.busy) return `<div class="card aic"><div class="h"><span class="n">🤖</span>${esc(A.label)}</div><div class="aibusy"><i></i><b>${esc(A.step)}</b></div><span class="s">BOQ ยาวใช้เวลาประมาณ 20–40 วินาทีต่อส่วน · ไม่มีการเก็บราคา</span></div>`;
+  const on = A.items.filter(x => x.on).length, cats = [...new Set(A.items.map(x => x.cat))];
+  return `<div class="card aic"><div class="h"><span class="n">✓</span>ตรวจรายการที่ AI แยกจาก ${esc(A.label)} <small>${A.items.length} รายการ${A.fail ? ' · อ่านไม่สำเร็จ ' + A.fail + '/' + A.parts + ' ส่วน' : ''}</small></div>
+    <div class="warn">AI อาจอ่านผิด — ตรวจชื่อ สเปก หน่วย จำนวน ก่อนบันทึก · ติ๊กออกรายการที่ไม่ใช่ของที่ต้องซื้อ · ไม่มีราคาในรายการนี้</div>
+    ${A.notes.length ? `<ul class="ainote">${A.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}${A.err && !A.items.length ? `<div class="warn bad">${esc(A.err)}</div>` : ''}
+    ${cats.map(c => `<div class="aicat">${esc(c)} <small>${A.items.filter(x => x.cat === c).length}</small></div>` + A.items.map((x, i) => x.cat !== c ? '' : `<div class="air${x.on ? '' : ' off'}" data-ai-i="${i}"><input type="checkbox" data-aion${x.on ? ' checked' : ''} aria-label="ใช้รายการนี้">
+      <input class="n" data-aif="name" value="${esc(x.name)}" placeholder="ชื่อของ"><input class="sp" data-aif="spec" value="${esc(x.spec)}" placeholder="สเปก / ยี่ห้อ / ขนาด">
+      <input class="q" data-aif="qty" inputmode="decimal" value="${x.qty == null ? '' : esc(x.qty)}" placeholder="จำนวน"><input class="u" data-aif="unit" value="${esc(x.unit)}" placeholder="หน่วย"><input class="ar" data-aif="area" value="${esc(x.area)}" placeholder="พื้นที่"></div>`).join('')).join('')}
+    <div class="b2"><button class="btn ok" data-c="aisave"${on ? '' : ' disabled'}>✓ บันทึก ${on} รายการเป็นวัสดุโครงการ</button><button class="btn" data-c="aicancel">ยกเลิก</button></div></div>`; }
+async function aiSave() { const A = APP.ai; if (!A) return; const items0 = A.items.filter(x => x.on && String(x.name).trim()); if (!items0.length) return;
+  const srcId = 'ai_' + hashId(A.label); const seen = {};
+  const items = items0.map(x => { const base = hashId(srcId + '|' + [x.cat, x.name, x.spec, x.code, x.area].map(norm).join('|')); seen[base] = (seen[base] || 0) + 1;
+    return { id: seen[base] > 1 ? base + '_' + seen[base] : base, src: srcId, cat: x.cat, name: String(x.name).trim(), spec: String(x.spec || '').trim(), code: x.code || '', area: String(x.area || '').trim(), qty: numOf(x.qty), unit: String(x.unit || '').trim() }; });
+  try { await saveCat(APP.pid, v => { v.sources = (v.sources || []).filter(s0 => s0.id !== srcId); v.items = (v.items || []).filter(i => i.src !== srcId).concat(items);
+      v.sources.push({ id: srcId, name: A.label + ' (AI)', kind: 'ai', url: '', file: A.label, count: items.length, tabs: [...new Set(items.map(i => i.cat))], at: Date.now(), by: APP.me.name }); });
+    APP.ai = null; renderCat(); toast('บันทึก ' + items.length + ' รายการแล้ว — ทีมหน้างานเลือกได้ที่ข้อ 3 “วัสดุโครงการ” ทันที', 3800);
+  } catch (e) { toast('บันทึกไม่สำเร็จ — ' + ((e && e.message) || e), 4200); } }
 // ----- หน้าจอ: รายการวัสดุโครงการ (ดู · นำเข้า · เลือกใส่ใบ PR) -----
 function renderCat() {
   const C = APP.cat || { sources: [], items: [] }, pick = APP.catPick, h = [];
@@ -613,6 +765,9 @@ function renderCat() {
   $('catFoot').hidden = !pick; if (pick) $('btnCatAdd').textContent = pick.size ? '✓ เพิ่ม ' + pick.size + ' รายการเข้า' + docTh(APP.pr) : 'แตะ ＋ เพื่อเลือกของ';
   $('btnCatAdd').disabled = !pick || !pick.size;
   if (canCfg() && !pick) {
+    if (APP.ai) h.push(aiHtml()); else h.push(`<div class="card aic"><div class="h"><span class="n">🤖</span>อัปโหลด BOQ — AI แยกรายการวัสดุให้ <small>QS · PM · Director · Admin</small></div>
+      <span class="s">รองรับ Excel · CSV · PDF · รูปถ่าย — AI อ่านเฉพาะ ชื่อ · สเปก · หน่วย · จำนวน · พื้นที่ แล้วจัดเป็นรายการให้หน้างานเลือกใส่${docTh(APP.pr || {})} · <b>ไม่เก็บราคา</b> · ตรวจแก้ก่อนบันทึก</span>
+      <div class="b2"><label class="btn pri" style="cursor:pointer">📤 อัปโหลด BOQ<input type="file" id="aiFile" accept=".xlsx,.xls,.csv,.pdf,image/*" hidden></label>${APP.pmBoq && APP.pmBoq.pid === APP.pid && APP.pmBoq.v ? `<button class="btn" data-c="aipm">📚 ใช้ BOQ ที่อยู่ใน Wellcon PM: ${esc(String(APP.pmBoq.v.fileName).slice(0, 40))}</button>` : ''}</div></div>`);
     h.push(`<div class="card"><div class="h"><span class="n">📥</span>นำเข้า Material Log / ใบเสนอราคา <small>QS · PM · จัดซื้อ</small></div>
       ${APP.mlN || (APP.pSheets || []).length ? `<div class="b2">${APP.mlN ? `<button class="btn ok" data-c="mlog">📚 ดึงจาก Material Log ในระบบ (${APP.mlN} รายการ)</button>` : ''}${(APP.pSheets || []).map((x, i) => `<button class="btn" data-c="psheet" data-i="${i}">🔗 ลิงก์ของโครงการ: ${esc(String(x.name || 'Google Sheet').slice(0, 40))}</button>`).join('')}</div><span class="s">ใช้ข้อมูลชุดเดียวกับหน้า Material Log · จัดซื้อ ใน Wellcon PM — ไม่ต้องอัปโหลด / วางลิงก์ซ้ำ</span>` : ''}
       <div class="b2"><label class="btn dk" style="cursor:pointer">📄 อัปโหลด Excel / CSV<input type="file" id="catFile" accept=".xlsx,.xls,.csv" hidden></label><button class="btn" data-c="url">🔗 วางลิงก์ Google Sheet</button></div>
@@ -633,7 +788,7 @@ function renderCat() {
       <span class="q">${c.qty != null ? `<b>${fmtN(c.qty)} ${esc(c.unit || '')}</b><small class="${left != null && left <= 0 ? 'bad' : ''}">${used ? 'ขอแล้ว ' + fmtN(used) + ' · ' : ''}เหลือ ${fmtN(left)}</small>` : `<small>${esc(c.unit || '')}</small>`}</span>
       ${pick ? (inPr ? '<span class="tagin">อยู่ในใบแล้ว</span>' : `<button class="pk" data-pk="${esc(c.id)}">${on ? '✓' : '＋'}</button>`) : ''}</div>`; }).join('') + (L.length > 300 ? '<p class="empty">แสดง 300 รายการแรก — พิมพ์ค้นหาเพื่อหาเพิ่ม</p>' : '') : '<p class="empty">ไม่พบรายการ</p>') + '</div>');
   $('catBody').innerHTML = h.join('');
-  const f = $('catFile'); if (f) f.onchange = (e) => { importFile(e.target.files[0]); e.target.value = ''; };
+  // v1.10.0 ปุ่มอัปโหลด (catFile / aiFile) ผูกที่ catBody 'change' — เดิมผูกท้ายฟังก์ชัน โครงการที่ยังไม่มีรายการจึงอัปโหลดไม่ได้
 }
 function impHtml(im) {
   return `<div class="card imp"><div class="h"><span class="n">✓</span>ตรวจก่อนนำเข้า — ${esc(im.label)} <small>เลือกแท็บ · ตรวจคอลัมน์ · ดูตัวอย่าง</small></div>` + im.sheets.map((x, si) => {
@@ -652,6 +807,7 @@ $('catBody').addEventListener('click', async (e) => {
   if (t) { APP.catTab = t.dataset.tab; renderCat(); return; }
   if (pk) { const id = pk.dataset.pk; APP.catPick.has(id) ? APP.catPick.delete(id) : APP.catPick.add(id); renderCat(); return; }
   if (!c) return; const a = c.dataset.c;
+  if (a === 'aipm') { aiFromPmBoq(); return; } if (a === 'aisave') { aiSave(); return; } if (a === 'aicancel') { if (APP.ai && !APP.ai.busy && confirm('ทิ้งรายการที่ AI แยกไว้?')) { APP.ai = null; renderCat(); } return; }
   if (a === 'url') { const u = prompt('วางลิงก์ Google Sheet (Material Log / ใบเสนอราคา)\nต้องแชร์ “ทุกคนที่มีลิงก์ดูได้”', ''); if (u) importSheetUrl(u); }
   else if (a === 'psheet') { const x = (APP.pSheets || [])[+c.dataset.i]; if (x) importSheetUrl(x.url); }
   else if (a === 'mlog') { c.disabled = true; await importMlog(); }
@@ -662,6 +818,9 @@ $('catBody').addEventListener('click', async (e) => {
     try { await saveCat(APP.pid, v => { v.sources = (v.sources || []).filter(x => x.id !== s0.id); v.items = (v.items || []).filter(i => i.src !== s0.id); }); renderCat(); toast('ลบแล้ว'); } catch (x) { toast('ลบไม่สำเร็จ: ' + ((x && x.message) || x)); } }
 });
 $('catBody').addEventListener('change', (e) => {
+  if (e.target.id === 'catFile') { const x = e.target.files[0]; e.target.value = ''; importFile(x); return; }
+  if (e.target.id === 'aiFile') { const x = e.target.files[0]; e.target.value = ''; aiFromFile(x); return; }
+  const ar = e.target.closest('[data-ai-i]'); if (ar && APP.ai) { const x = APP.ai.items[+ar.dataset.aiI]; if (e.target.hasAttribute('data-aion')) { x.on = e.target.checked; renderCat(); } else if (e.target.dataset.aif) x[e.target.dataset.aif] = e.target.value; return; }
   const si = e.target.dataset.si; if (si == null || !APP.imp) return; const x = APP.imp.sheets[+si], k = e.target.dataset.k;
   if (k === 'on') x.on = e.target.checked; else if (k === 'start') { x.start = Math.max(0, (parseInt(e.target.value, 10) || 1) - 1); const d = detectSheet(x.aoa.slice(x.start)); if (d && d.row === 0) { x.map = { ...d.map }; x.price = d.price; } }
   else x.map[k] = parseInt(e.target.value, 10);
@@ -671,7 +830,7 @@ $('catBody').addEventListener('input', (e) => { if (e.target.id !== 'catQ') retu
 $('btnCatAdd').addEventListener('click', () => { const n = addFromCat([...APP.catPick]); APP.catPick = null; draftSave();
   if (APP.pushed > 0) history.back(); else show('edit', false);
   setTimeout(() => { renderEdit(); toast('เพิ่ม ' + n + ' รายการจาก Material Log แล้ว — ตรวจจำนวนอีกครั้ง', 3000); }, 60); });
-function openCat(pickMode) { APP.catPick = pickMode ? new Set() : null; APP.catQ = ''; renderCat(); show('cat', true); }
+function openCat(pickMode) { APP.catPick = pickMode ? new Set() : null; APP.catQ = ''; renderCat(); show('cat', true); if (!pickMode && canCfg()) pmBoqLoad().then(() => { if (APP.screen === 'cat') renderCat(); }); }
 
 // =====================================================================
 // สร้าง / แก้ไข
@@ -714,11 +873,18 @@ function renderEdit() {
     fS = `<label class="af"><small>ชื่อแทนผู้รับเหมา</small><input data-af="subName" list="subList" value="${esc(pr.subName || '')}" placeholder="เว้นว่างได้" autocomplete="off"></label>`;
   $('optBox').innerHTML = isWo(pr) ? fS + fV : fV + fS;   // WO: ผู้รับเหมาขึ้นก่อน
   $('typeBox').innerHTML = TYPES.filter(([k]) => D.types.includes(k) || pr.types.includes(k)).map(([k, l]) => `<button class="chip${pr.types.includes(k) ? ' on' : ''}" data-ty="${k}">${pr.types.includes(k) ? '✓ ' : ''}${l}</button>`).join('');
-  const nc = (APP.cat.items || []).length; $('catBtn').innerHTML = (nc ? `<button class="btn dk" data-catpick style="width:100%">📚 เลือกจากรายการวัสดุโครงการ (${nc} รายการ)</button>` : '')
-    + `<button class="btn" data-calc style="width:100%;margin-top:${nc ? 8 : 0}px">📐 คำนวณปริมาณจากพื้นที่ / ความยาว${(APP.tko || []).length ? ' · Takeoff ' + APP.tko.length + ' รายการ' : ''}</button>`;
+  const nc = (APP.cat.items || []).length, npb = (APP.pb || []).length;   // v1.10.0 ปุ่มแหล่งของ (ราคากลาง · รายการวัสดุโครงการ · คำนวณปริมาณ)
+  $('catBtn').innerHTML = `<button class="src prj${nc ? '' : ' empty'}" data-catpick><i>📋</i><b>วัสดุโครงการ (BOQ)</b><small>${nc ? nc + ' รายการ · QS ตั้งไว้ให้โครงการนี้' : canCfg() ? 'ยังไม่มี — แตะเพื่ออัปโหลด BOQ' : 'ยังไม่มี — ให้ QS / PM อัปโหลด BOQ'}</small></button>`
+    + `<button class="src pb" data-pbpick><i>📗</i><b>ราคากลาง (QS)</b><small>${APP.pb ? npb + ' รายการมาตรฐาน' : 'รายการมาตรฐานบริษัท'} · ชุดเดียวกับ Quotation Maker</small></button>`
+    + `<button class="src" data-calc><i>📐</i><b>คำนวณปริมาณ</b><small>${(APP.tko || []).length ? 'Takeoff ' + APP.tko.length + ' รายการ' : 'จากพื้นที่ / ความยาว'}</small></button>`;
+  $('boqBtn').hidden = !canCfg(); $('boqBtn').innerHTML = '📤 อัปโหลด / อัปเดต BOQ ของโครงการ — AI แยกรายการวัสดุให้หน้างาน <small>(QS · PM · Director · Admin)</small>';
+  if (!APP.pb) loadPb().then(() => { if (APP.screen === 'edit') { const s0 = document.querySelector('#catBtn [data-pbpick] small'); if (s0) s0.textContent = (APP.pb || []).length + ' รายการมาตรฐาน'; renderSug(); } });
   renderArea(); renderFav(); renderItems(); renderSug(); preview();
 }
-$('catBtn').addEventListener('click', (e) => { if (e.target.closest('[data-catpick]')) openCat(true); if (e.target.closest('[data-calc]')) openCalc(); });
+$('catBtn').addEventListener('click', (e) => { if (e.target.closest('[data-pbpick]')) openPb();
+  if (e.target.closest('[data-catpick]')) { if ((APP.cat.items || []).length) openCat(true); else if (canCfg()) openCat(false); else toast('ยังไม่มีรายการวัสดุของโครงการนี้ — แจ้ง QS / PM อัปโหลด BOQ', 3600); }
+  if (e.target.closest('[data-calc]')) openCalc(); });
+$('boqBtn').addEventListener('click', () => openCat(false));
 function renderArea() {
   const pr = APP.pr, A = L.areas.slice(); if (pr.area && !A.some(a => norm(a) === norm(pr.area))) A.unshift(pr.area);
   // v1.9.2 ตัวเลือกเกิน 5 ข้อ → เมนูดรอปดาวน์ (ผู้บริหารสั่ง 14/11/2026: ตัวเลือกหลายข้อใช้ดรอปดาวน์ ประหยัดพื้นที่จอมือถือ)
@@ -732,11 +898,11 @@ function renderFav() {
 }
 function renderItems() {
   const pr = APP.pr;
-  $('itemCount').textContent = pr.items.length ? pr.items.length + ' รายการ' : 'ยังไม่มีรายการ';
-  if (!pr.items.length) { $('items').innerHTML = '<p class="empty">ยังไม่มีรายการ — พิมพ์ชื่อของด้านบน หรือแตะ “ของที่ใช้บ่อย”</p>'; return; }
+  $('itemCount').textContent = pr.items.length ? pr.items.length + ' รายการ' : 'ยังไม่มีรายการ'; $('ilh').textContent = 'รายการในใบ' + (pr.items.length ? ' (' + pr.items.length + ')' : '');
+  if (!pr.items.length) { $('items').innerHTML = '<p class="empty">ยังไม่มีรายการ — พิมพ์ชื่อของ · เลือกจากราคากลาง · หรือแตะของที่ใช้บ่อยด้านบน</p>'; return; }
   $('items').innerHTML = pr.items.map((it, i) => {
     const us = UNITS.includes(it.unit) || !it.unit ? UNITS : [it.unit, ...UNITS];
-    return `<div class="it" data-i="${i}"><div class="r1"><span class="no">${i + 1}</span><input class="nm" data-f="name" value="${esc(it.name)}" placeholder="ชื่อของ ยี่ห้อ / รุ่น / ขนาด"><button class="del" data-del title="ลบรายการ">✕</button></div>
+    return `<div class="it" data-i="${i}"><div class="r1"><span class="no">${i + 1}</span><input class="nm" data-f="name" value="${esc(it.name)}" placeholder="ชื่อของ ยี่ห้อ / รุ่น / ขนาด"><button class="del" data-del title="ลบรายการ">✕</button></div>${it.pbId ? `<div class="pbt">📗 ราคากลาง${it.pbCode ? ' ' + esc(it.pbCode) : ''}</div>` : ''}
       <div class="r2"><div class="qty"><button data-q="-1" aria-label="ลด">−</button><input data-f="qty" inputmode="decimal" value="${esc(it.qty)}"><button data-q="1" aria-label="เพิ่ม">＋</button></div>
         <select data-f="unit">${us.map(u => `<option${u === it.unit ? ' selected' : ''}>${esc(u)}</option>`).join('')}</select>
         <label>ต้องการของวันที่<input type="date" data-f="need" value="${esc(it.need)}"></label></div>
@@ -750,9 +916,10 @@ function renderSug() {
   const q = norm($('q').value); const box = $('sug');
   if (!q) { box.innerHTML = ''; return; }
   const ch = (APP.cat.items || []).filter(c => norm(c.name + ' ' + c.spec + ' ' + c.code).includes(q) && !APP.pr.items.some(i => i.catId === c.id)).slice(0, 4);
+  const pbh = (APP.pb || []).filter(x => norm(x.n + ' ' + x.spec + ' ' + x.code).includes(q) && !APP.pr.items.some(i => i.pbId === x.id)).sort((a, b) => pbOrder().indexOf(a.g) - pbOrder().indexOf(b.g)).slice(0, 4);   // v1.10.0
   const hit = L.items.filter(i => norm(i.name).includes(q)).slice(0, ch.length ? 3 : 5);
   const exact = hit.some(i => norm(i.name) === q);
-  box.innerHTML = ch.map(c => `<button data-cpick="${esc(c.id)}"><b>📚 ${esc(c.name)}</b><small>${esc([c.spec, c.cat, c.qty != null ? 'เหลือ ' + fmtN(c.qty - usedOf(c.id, APP.pr.id)) + ' ' + (c.unit || '') : ''].filter(Boolean).join(' · '))}</small><span style="color:var(--acc);font-weight:700">＋ เพิ่ม</span></button>`).join('') + hit.map(i => `<button data-pick="${esc(i.name)}"><b>${esc(i.name)}</b><small>${esc(i.unit || '')}</small><span style="color:var(--acc);font-weight:700">＋ เพิ่ม</span></button>`).join('')
+  box.innerHTML = pbh.map(x => `<button data-pbadd="${esc(x.id)}"><b>📗 ${esc(x.n)}</b><small>${esc([x.spec, x.code, x.u].filter(Boolean).join(' · '))}</small><span style="color:var(--acc);font-weight:700">＋ เพิ่ม</span></button>`).join('') + ch.map(c => `<button data-cpick="${esc(c.id)}"><b>📚 ${esc(c.name)}</b><small>${esc([c.spec, c.cat, c.qty != null ? 'เหลือ ' + fmtN(c.qty - usedOf(c.id, APP.pr.id)) + ' ' + (c.unit || '') : ''].filter(Boolean).join(' · '))}</small><span style="color:var(--acc);font-weight:700">＋ เพิ่ม</span></button>`).join('') + hit.map(i => `<button data-pick="${esc(i.name)}"><b>${esc(i.name)}</b><small>${esc(i.unit || '')}</small><span style="color:var(--acc);font-weight:700">＋ เพิ่ม</span></button>`).join('')
     + (exact ? '' : `<button data-pick="${esc($('q').value.trim())}"><b>＋ เพิ่ม “${esc($('q').value.trim())}”</b><small>ของใหม่</small></button>`);
 }
 function addItem(name) {
@@ -785,7 +952,7 @@ $('areaBox').addEventListener('change', (e) => { if (e.target.id !== 'areaSel') 
   pr.area = a; pr.items.forEach(it => { if (!it.remark || norm(it.remark) === norm(old)) it.remark = a; });
   renderArea(); renderItems(); preview(); draftSave(); });
 $('favBox').addEventListener('click', (e) => { const b = e.target.closest('[data-fav]'); if (b) addItem(b.dataset.fav); });
-$('sug').addEventListener('click', (e) => { const cb = e.target.closest('[data-cpick]'); if (cb) { addFromCat([cb.dataset.cpick]); $('q').value = ''; renderSug(); renderFav(); renderItems(); preview(); draftSave(); return; } const b = e.target.closest('[data-pick]'); if (b) addItem(b.dataset.pick); });
+$('sug').addEventListener('click', (e) => { const pb = e.target.closest('[data-pbadd]'); if (pb) { addFromPb([[pb.dataset.pbadd, 1]]); $('q').value = ''; renderSug(); renderFav(); renderItems(); preview(); draftSave(); return; } const cb = e.target.closest('[data-cpick]'); if (cb) { addFromCat([cb.dataset.cpick]); $('q').value = ''; renderSug(); renderFav(); renderItems(); preview(); draftSave(); return; } const b = e.target.closest('[data-pick]'); if (b) addItem(b.dataset.pick); });
 $('q').addEventListener('input', renderSug);
 $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); const f = document.querySelector('#sug [data-pick]'); if (f) addItem(f.dataset.pick); } });
 $('items').addEventListener('click', (e) => {
