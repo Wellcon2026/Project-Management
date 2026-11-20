@@ -12,13 +12,13 @@
 (function () {
   'use strict';
   if (window.WCSetup) return;
-  const VER = '1.1.0';   // 1.1.0: ที่อยู่หน้างาน / สถานที่ส่งของ (ใช้ในใบขอซื้อ · ใบเสนอราคา)
+  const VER = '1.2.0';   // 1.2.0: ใบเสนอราคา / สัญญา / BOQ → ปุ่ม “ใช้เป็นวัสดุในใบขอซื้อ” · 1.1.0:   // 1.1.0: ที่อยู่หน้างาน / สถานที่ส่งของ (ใช้ในใบขอซื้อ · ใบเสนอราคา)
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const pad = (n) => String(n).padStart(2, '0');
   const dmy = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; };
   const money = (n) => '฿' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const DOCK = [['contract', 'สัญญาจ้าง', 'ใช้: AI อ่านคู่สัญญา · เงื่อนไขวางบิล · มูลค่า · วันที่'], ['loa', 'LOA / LOI', 'หนังสือแจ้งรับงาน — วันเริ่ม · มูลค่า · ผู้ลงนาม'],
-    ['quote', 'ใบเสนอราคา (ฉบับที่ลูกค้ารับ)', 'อ้างอิงขอบเขตงาน · งานเพิ่ม-ลด'], ['tor', 'TOR / เงื่อนไขประกวดราคา', 'ขอบเขต · เงื่อนไขพิเศษ']];
+    ['quote', 'ใบเสนอราคา (ฉบับที่ลูกค้ารับ)', 'อ้างอิงขอบเขตงาน · งานเพิ่ม-ลด · ใบขอซื้อ (AI แยกรายการวัสดุ)'], ['tor', 'TOR / เงื่อนไขประกวดราคา', 'ขอบเขต · เงื่อนไขพิเศษ']];
   const USES = [['หนังสือ / แบบฟอร์มบริษัท', 'ชื่อ · ที่อยู่ Owner / Consult บนหัวจดหมาย'], ['RFI / RFA', 'ผู้รับ = Consult / Designer'], ['VO / SI / EOT · งานเพิ่ม', 'ผู้อนุมัติฝ่าย Owner · วันส่งมอบตามสัญญา'],
     ['ใบเสนอราคา (แอปหลัก)', 'ชื่อลูกค้า · ที่อยู่ · เลขผู้เสียภาษี'], ['ส่งมอบงาน · Handover', 'ผู้รับมอบ · วันส่งมอบ'], ['วางบิล · งวดเงิน', 'เงื่อนไขวางบิล · Retention · ฝ่ายบัญชีลูกค้า'],
     ['ใบขอซื้อ / ใบขอจ้าง', 'สถานที่ส่งของ = ที่อยู่หน้างาน · BOQ อ้างอิง → AI แยกรายการวัสดุ'], ['Quotation Maker', 'ลูกค้า · เรียน · ที่อยู่ · เลขผู้เสียภาษี (Owner)'], ['Claim (Site Work)', 'หนังสือเคลมถึง Owner · เรียน Consult'], ['ระยะถัดไป', 'งานเพิ่ม · VO Tracker · งวดเบิก ดึงเงื่อนไขวางบิลจากหน้านี้']];
@@ -115,9 +115,9 @@
       ${DOCK.map(([k, l, u]) => { const L = docs.filter(f => f.kind === k); const need = k === 'contract' || k === 'loa';
         return `<div class="ws-doc"><div class="t"><b>${esc(l)}</b>${L.length ? `<span class="ws-st ok">✓ ${L.length} ไฟล์</span>` : need ? '<span class="ws-st no">ยังไม่มี</span>' : '<span class="ws-st opt">ถ้ามี</span>'}<small>${esc(u)}</small></div>
           ${L.slice(0, 5).map(f => `<div class="f"><span>📄</span><a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.file)}</a><small>${esc(dmy(f.created))}</small></div>`).join('')}
-          ${can ? `<label class="ws-b" style="align-self:flex-start;cursor:pointer">📤 อัปโหลด${esc(l.split(' ')[0])}<input type="file" data-up="${k}" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx,.xls" multiple hidden></label>` : ''}</div>`; }).join('')}
+          <div style="display:flex;gap:8px;flex-wrap:wrap">${can ? `<label class="ws-b" style="cursor:pointer">📤 อัปโหลด${esc(l.split(' ')[0])}<input type="file" data-up="${k}" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx,.xls" multiple hidden></label>` : ''}${can && L.length && (k === 'quote' || k === 'contract') ? '<button class="ws-b ai" data-mat>📋 ใช้เป็นวัสดุในใบขอซื้อ ↗</button>' : ''}</div></div>`; }).join('')}
       <div class="ws-doc"><div class="t"><b>BOQ อ้างอิง</b>${rb ? '<span class="ws-st ok">✓ มีแล้ว</span>' : '<span class="ws-st no">ยังไม่มี</span>'}<small>ใช้: วิเคราะห์ขอบเขตงาน · ใบขอซื้อ (AI แยกรายการวัสดุให้หน้างาน)</small></div>
-        ${rb ? `<div class="f"><span>📊</span><span style="flex:1">${esc(rb.fileName || 'BOQ')}</span></div>` : ''}<button class="ws-b" data-boq style="align-self:flex-start">${rb ? 'ดู / เปลี่ยน BOQ ที่หน้าภาพรวมโครงการ ↗' : '📤 อัปโหลด BOQ ที่หน้าภาพรวมโครงการ ↗'}</button></div>
+        ${rb ? `<div class="f"><span>📊</span><span style="flex:1">${esc(rb.fileName || 'BOQ')}</span></div>` : ''}<div style="display:flex;gap:8px;flex-wrap:wrap">${rb && can ? '<button class="ws-b ai" data-mat>📋 ใช้เป็นวัสดุในใบขอซื้อ ↗</button>' : ''}<button class="ws-b" data-boq>${rb ? 'ดู / เปลี่ยน BOQ ที่หน้าภาพรวมโครงการ ↗' : '📤 อัปโหลด BOQ ที่หน้าภาพรวมโครงการ ↗'}</button></div></div>
       <div class="ws-hint">🔒 ไฟล์สัญญามีตัวเลขเงิน — อย่าส่งลิงก์ไฟล์ให้บุคคลภายนอก</div></div>`);
     // 5 ทีมงาน
     const T = B.team(pid);
@@ -152,6 +152,8 @@
     const pt = t.closest('[data-party]'); if (pt) { S.party = pt.dataset.party; render(); const c = S.ov.querySelector('#ws-party'); if (c && t.closest('[data-go]')) c.scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
     const go = t.closest('[data-go]'); if (go) { const c = S.ov.querySelector('#ws-' + go.dataset.go); if (c) c.scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
     if (t.closest('[data-ai]')) { close(); B.openAi(S.pid); return; }
+    if (t.closest('[data-mat]')) { const h = location.hostname, stg = /[?&]env=staging/.test(location.search) || /staging/i.test(h) || (h !== '' && !/vercel\.app$/i.test(h));   // v1.2.0 กติกาเดียวกับแอปหลัก
+      location.href = '/auto-pr.html?pid=' + encodeURIComponent(S.pid) + '&cat=1' + (stg ? '&env=staging' : ''); return; }
     if (t.closest('[data-boq]') || t.closest('[data-proj]')) { close(); B.openProject(S.pid); return; } }
   function onKey(e) { if (e.key === 'Escape' && S.ov) close(); }
   function open(bridge, pid) { css(); if (!bridge) return; S.B = bridge; const P = bridge.projects(); S.pid = (pid && P.some(x => x.id === pid)) ? pid : ((P[0] || {}).id || '');
