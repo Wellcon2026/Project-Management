@@ -177,6 +177,7 @@ node scripts/patch-card-gate.js           # หน้าแรก: รอสิ�
 node scripts/patch-photo-storage.js       # รูป Defect / รายงานประจำวัน / รายการทั่วไป ขึ้นคลังไฟล์ · Word ดึงรูปจากลิงก์
 node scripts/patch-perm-early.js          # โหลดสิทธิ์ (app_state) เสร็จก่อน → หน้าแรกไม่ต้องรอตารางใหญ่
 node scripts/patch-perm-fetch.js          # รอสิทธิ์เกิน 2 วินาที → ดึงค่าสิทธิ์จาก app_state ตรง · ปุ่มลองอีกครั้ง
+node scripts/patch-img-shrink.js          # ย่อรูป > 500 KB ก่อนอัปโหลด (ไฟล์แนบทั่วไป / ทะเบียนเอกสาร / คลังความรู้)
 node scripts/patch-layboard-photo.js    # Layboard: ปุ่ม "แต่งรูป (Photo Editor)" (แก้ layboard/index.html · sync-layboard.js เรียกให้อัตโนมัติ)
 node scripts/patch-sess-guard.js        # หลายหน้าต่างในเครื่องเดียว = ผู้ใช้คนเดียว · กันหน้าต่างอื่นเขียนทับผู้ใช้ (แก้ออกจากระบบแล้วเข้าเป็นคนอื่น)
 ```
