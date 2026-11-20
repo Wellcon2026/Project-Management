@@ -15,7 +15,7 @@
 (function () {
   'use strict';
   if (window.WCNote) return;
-  const VER = '1.0.1';   // 1.0.1: ค้นหาแล้วไฮไลต์คำที่พบ (สีเหลือง) + บอกจำนวนที่พบ
+  const VER = '1.1.0';   // 1.1.0: แยกแท็บ 🔒 ส่วนตัว / 👥 สาธารณะ (โครงการ) ชัดเจน + ตัวกรอง “เฉพาะของฉัน” · 1.0.1: ค้นหาแล้วไฮไลต์คำที่พบ (สีเหลือง) + บอกจำนวนที่พบ
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const norm = (s) => String(s || '').trim().toLowerCase();
   const pad = (n) => String(n).padStart(2, '0');
@@ -89,7 +89,7 @@
   function toast(m, ms) { css(); let t = document.querySelector('.wn-toast'); if (!t) { t = document.createElement('div'); t.className = 'wn-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
     t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms || 2600); }
 
-  const S = { B: null, ov: null, tab: 'mine', q: '', proj: '', focus: '', sig: '', timer: 0 };
+  const S = { B: null, ov: null, tab: 'mine', q: '', proj: '', who: '', focus: '', sig: '', timer: 0 };
 
   // ---------- รวบรวมข้อมูล ----------
   function allNotes() {
@@ -101,14 +101,15 @@
   function data() {
     const B = S.B, me = B.me(), em = norm(me.email), notes = allNotes();
     const mineN = notes.filter(n => norm(n.email) === em);
-    const projN = notes.filter(n => n._pid !== '_gen' && (n.vis || 'public') === 'public');
+    const projN = notes.filter(n => (n.vis || 'public') === 'public');   // สาธารณะ: ทีมโครงการเห็น (รวมโน้ตทั่วไปแบบเดิมที่ทุกคนเห็น)
+    const privN = mineN.filter(n => (n.vis || 'public') !== 'public');   // ส่วนตัว: เห็นคนเดียว / แชร์เฉพาะคน
     const toMeN = notes.filter(n => norm(n.email) !== em && (norm(n.asg) === em || (n.vis === 'people' && (n.shareTo || []).map(norm).includes(em))));
     const tags = (window.WCTag && WCTag._S && Array.isArray(WCTag._S.open)) ? WCTag._S.open.slice() : [];
     const rem = (B.rem() || []).filter(r => !r.done).map(r => ({ ...r, _rem: true }));
     const todoN = notes.filter(n => !n.done && ((norm(n.asg) === em) || (norm(n.email) === em && n.due && !n.asg)));
     const todo = [...rem, ...todoN].sort((a, b) => String(a.due || '9999').localeCompare(String(b.due || '9999')));
     const late = todo.filter(x => { const d = daysTo(x.due); return d != null && d < 0; }).length;
-    return { me, em, notes, mineN, projN, toMeN, tags, todo, late, unseen: tags.filter(x => !x.seen_at).length };
+    return { me, em, notes, mineN, privN, projN, toMeN, tags, todo, late, unseen: tags.filter(x => !x.seen_at).length };
   }
   const pname = (pid) => pid === '_gen' ? 'ทั่วไป (ไม่ระบุโครงการ)' : ((S.B.projects().find(p => p.id === pid) || {}).name || S.B.projName(pid) || 'โครงการ');
 
@@ -154,7 +155,7 @@
   // ---------- หน้าหลัก ----------
   function render() {
     if (!S.ov || !S.B) return; const d = data(); const bx = S.ov.querySelector('.wn-bx');
-    const T = [['mine', '📝 บันทึกของฉัน', d.mineN.filter(n => !n.done).length, 0], ['proj', '👥 บันทึกโครงการ', d.projN.length, 0],
+    const T = [['mine', '🔒 ส่วนตัว', d.privN.filter(n => !n.done).length, 0], ['proj', '👥 สาธารณะ · โครงการ', d.projN.filter(n => !n.done).length, 0],
       ['tag', '🏷 แท็กถึงฉัน', d.tags.length + d.toMeN.filter(n => !n.done).length, d.unseen], ['todo', '✅ งานค้าง', d.todo.length, d.late]];
     const q = norm(S.q).trim(), match = (s) => !q || norm(s).includes(q);
     let body = '', chips = '';
@@ -162,14 +163,17 @@
       return `<div class="wn-chips"><button class="wn-chip${!S.proj ? ' on' : ''}" data-pj="">ทุกโครงการ</button>${ids.map(id => `<button class="wn-chip${S.proj === id ? ' on' : ''}" data-pj="${esc(id)}">${esc(pname(id))}</button>`).join('')}</div>`; };
     const byProj = (L) => L.filter(n => !S.proj || n._pid === S.proj);
     const newest = (a, b) => String(b.editedAt || b.at || '').localeCompare(String(a.editedAt || a.at || ''));
+    const listDone = (L, em) => { const open = L.filter(n => !n.done), dn = L.filter(n => n.done);
+      return open.length || dn.length ? open.map(n => noteCard(n, d)).join('') + (dn.length ? '<div class="wn-sec">เสร็จแล้ว</div>' + dn.slice(0, 30).map(n => noteCard(n, d)).join('') : '') : em; };
     if (S.tab === 'mine') {
-      const L = byProj(d.mineN).filter(n => match(n.text)).sort(newest); chips = projChips(d.mineN);
-      const open = L.filter(n => !n.done), dn = L.filter(n => n.done);
-      body = open.length || dn.length ? open.map(n => noteCard(n, d)).join('') + (dn.length ? '<div class="wn-sec">เสร็จแล้ว</div>' + dn.slice(0, 30).map(n => noteCard(n, d)).join('') : '')
-        : '<div class="wn-em">ยังไม่มีบันทึก<br>กด “＋ บันทึกใหม่” — จดเรื่องที่ต้องจำ เลือกเก็บไว้คนเดียว หรือให้ทีมโครงการเห็น<br>ใส่วันที่แล้วให้ขึ้นในปฏิทินโครงการได้</div>';
+      const L = byProj(d.privN).filter(n => match(n.text)).sort(newest); chips = projChips(d.privN);
+      body = '<div class="wn-hint" style="padding:2px 2px 0">🔒 บันทึกส่วนตัว — เห็นเฉพาะคุณ (👤 = แชร์เฉพาะคนที่แท็ก)</div>' + listDone(L, '<div class="wn-em">ยังไม่มีบันทึกส่วนตัว<br>กด “＋ บันทึกใหม่” แล้วเลือก “🔒 ส่วนตัว” — เห็นคนเดียว<br>ใส่วันที่แล้วขึ้นในแท็บ “งานค้าง” / ลงปฏิทินได้</div>');
     } else if (S.tab === 'proj') {
-      const L = byProj(d.projN).filter(n => match(n.text + ' ' + (n.by || ''))).sort(newest); chips = projChips(d.projN);
-      body = L.length ? L.map(n => noteCard(n, d)).join('') : '<div class="wn-em">ยังไม่มีบันทึกที่ทีมโครงการเห็น<br>(โน้ตสาธารณะของโครงการที่คุณอยู่ในทีม จะขึ้นที่นี่)</div>';
+      const base = d.projN.filter(n => S.who !== 'me' || norm(n.email) === d.em);
+      const L = byProj(base).filter(n => match(n.text + ' ' + (n.by || ''))).sort(newest);
+      const nMe = d.projN.filter(n => norm(n.email) === d.em).length;
+      chips = `<div class="wn-chips"><button class="wn-chip${S.who !== 'me' ? ' on' : ''}" data-who="">👥 ทุกคน (${d.projN.length})</button><button class="wn-chip${S.who === 'me' ? ' on' : ''}" data-who="me">✍️ เฉพาะของฉัน (${nMe})</button></div>` + projChips(base);
+      body = '<div class="wn-hint" style="padding:2px 2px 0">👥 บันทึกสาธารณะ — ทีมโครงการเห็นทุกคน</div>' + listDone(L, '<div class="wn-em">ยังไม่มีบันทึกสาธารณะ<br>(บันทึกที่เลือก “👥 ทีมโครงการเห็น” ของโครงการที่คุณอยู่ในทีม จะขึ้นที่นี่)</div>');
     } else if (S.tab === 'tag') {
       const tg = d.tags.filter(x => match(x.title + ' ' + (x.note || '') + ' ' + (x.from_name || ''))), nn = d.toMeN.filter(n => match(n.text)).sort(newest);
       body = (tg.length ? '<div class="wn-sec">มีคนแท็กคุณ (' + tg.length + ')</div>' + tg.map(tagCard).join('') : '')
@@ -197,6 +201,7 @@
     if (t === S.ov || t.closest('[data-x]')) { close(); return; }
     const tb = t.closest('[data-tab]'); if (tb) { S.tab = tb.dataset.tab; S.proj = ''; render(); return; }
     const pj = t.closest('[data-pj]'); if (pj) { S.proj = pj.dataset.pj; render(); return; }
+    const wh = t.closest('[data-who]'); if (wh) { S.who = wh.dataset.who; S.proj = ''; render(); return; }
     if (t.closest('[data-new]')) { editor(null); return; }
     if (t.closest('[data-tagall]')) { close(); WCTag.open(); return; }
     const ed = t.closest('[data-edit]'); if (ed) { const f = findNote(ed.dataset.edit); if (f.n) editor({ ...f.n, _pid: f.k.slice(5), _k: f.k }); return; }
@@ -265,8 +270,8 @@
       if (isNew) n = B.add(f.pid, patch);
       else if (f.pid !== n0._pid) { B.del(n0._k, n0.id); n = B.add(f.pid, { ...patch, asg: n0.asg || '', done: !!n0.done, at: n0.at, editedAt: new Date().toISOString() }); }
       else { B.update(n0._k, n0.id, { ...patch, editedAt: new Date().toISOString(), editedBy: me.name || '' }); n = { ...n0, ...patch }; }
-      done(); if (!n) return; S.focus = n.id; S.tab = 'mine'; S.proj = '';
-      toast(isNew ? (patch.vis === 'private' ? 'บันทึกแล้ว — เห็นเฉพาะคุณ' : 'บันทึกแล้ว — ทีมโครงการเห็น') + (patch.cal ? ' · ขึ้นในปฏิทินแล้ว' : '') : 'แก้ไขบันทึกแล้ว');
+      done(); if (!n) return; S.focus = n.id; S.tab = patch.vis === 'public' ? 'proj' : 'mine'; S.proj = ''; S.who = '';
+      toast(isNew ? (patch.vis === 'public' ? 'บันทึกแล้ว — ทีมโครงการเห็น (แท็บสาธารณะ)' : 'บันทึกแล้ว — เห็นเฉพาะคุณ (แท็บส่วนตัว)') + (patch.cal ? ' · ขึ้นในปฏิทินแล้ว' : '') : 'แก้ไขบันทึกแล้ว');
       setTimeout(() => { render(); if (sv.dataset.save === 'tag') tagNote('proj:' + f.pid, { ...n, ...patch }); }, 80);
     });
     draw(); setTimeout(() => { const ta = bx.querySelector('textarea'); if (ta && isNew) ta.focus(); }, 50);
@@ -274,8 +279,8 @@
 
   // ---------- เปิด / ปิด ----------
   function open(bridge, o) {
-    css(); o = o || {}; if (!bridge) return; S.B = bridge; if (o.tab) S.tab = o.tab; S.focus = o.focus || ''; S.q = ''; S.proj = '';
-    if (S.focus) { const n = allNotes().find(x => x.id === S.focus); if (n) { const em = norm(bridge.me().email); S.tab = norm(n.email) === em ? 'mine' : (n.vis === 'public' && n._pid !== '_gen' && norm(n.asg) !== em) ? 'proj' : 'tag'; } else toast('ไม่พบบันทึกนี้ — อาจถูกลบ หรือคุณไม่มีสิทธิ์เห็น', 3500); }
+    css(); o = o || {}; if (!bridge) return; S.B = bridge; if (o.tab) S.tab = o.tab; S.focus = o.focus || ''; S.q = ''; S.proj = ''; S.who = '';
+    if (S.focus) { const n = allNotes().find(x => x.id === S.focus); if (n) { const em = norm(bridge.me().email); S.tab = (n.vis || 'public') === 'public' && norm(n.asg) !== em ? 'proj' : norm(n.email) === em ? 'mine' : 'tag'; } else toast('ไม่พบบันทึกนี้ — อาจถูกลบ หรือคุณไม่มีสิทธิ์เห็น', 3500); }
     if (!S.ov) { S.ov = document.createElement('div'); S.ov.className = 'wn-ov'; S.ov.setAttribute('translate', 'no'); S.ov.innerHTML = '<div class="wn-bx" role="dialog" aria-modal="true" aria-label="บันทึก · งานของฉัน"></div>';
       S.ov.addEventListener('click', onClick);
       S.ov.addEventListener('input', (e) => { if (e.target.matches('[data-q]')) { S.q = e.target.value; const pos = e.target.selectionStart; render(); const q = S.ov.querySelector('[data-q]'); if (q) { q.focus(); try { q.setSelectionRange(pos, pos); } catch (x) {} } } });
