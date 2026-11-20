@@ -2,6 +2,11 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด · เพิ่มรายการบนสุดใน `whatsnew.json` (ข้อความที่ผู้ใช้เห็นในหน้าต่าง "มีอะไรใหม่") · และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## 🩹 กันหน้าแรกค้างอีกชั้น · PM v1.435.2 · 20/11/2026
+- `scripts/patch-perm-fetch.js` (MARK `v1.435.2 perm-fetch`): `_permFetch()` ดึงเฉพาะค่าสิทธิ์จาก app_state ตรง ๆ (ไม่ขึ้นกับรอบซิงก์) — อัตโนมัติเมื่อรอเกิน 2 วินาที + ปุ่ม "ลองอีกครั้ง" · ได้ค่าว่าง = บอกให้ออกจากระบบแล้วเข้าใหม่ (ไม่โชว์ชุดเริ่มต้น) · `_permEarly` นับว่าได้สิทธิ์เฉพาะเมื่อมี workPages / featGlobal
+- ย้ายรูปเสร็จ: punch_log 46 MB → 0.2 MB · daily_reports 4.6 MB → 7 KB (133 แถว · ไม่มีล้มเหลว) · ลบ token แล้ว · สำรอง `punch_log_bak_20261120` / `daily_reports_bak_20261120`
+- ผลทดสอบ: card-gate 9 ข้อ
+
 ## 🩹 แก้หน้าแรกค้าง "กำลังโหลดสิทธิ์…" · PM v1.435.1 · 20/11/2026
 - ผู้บริหารแจ้ง 20/11/2026 (มือถือ PM): หน้าแรกค้าง "กำลังโหลดสิทธิ์…" — card-gate รอ `sbPull` จบทั้งรอบ ซึ่งรอตาราง `punch_log` ที่ยังหนัก
 - `scripts/patch-perm-early.js` (MARK `v1.435.1 perm-early`): ผลดึง app_state มาถึง → `_permEarly` ใส่ workPages · featGlobal · featRole · featProj · workUser · workUserAdd ทันที + `_permOk` → หน้าแรกแสดงการ์ด
