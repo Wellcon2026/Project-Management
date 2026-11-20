@@ -2,6 +2,17 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด · เพิ่มรายการบนสุดใน `whatsnew.json` (ข้อความที่ผู้ใช้เห็นในหน้าต่าง "มีอะไรใหม่") · และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## ⚡ รูปขึ้นคลังไฟล์ (Storage) — ตาราง Defect / รายงานประจำวันเบาลง · PM v1.435.0 · Site Work v1.52.0 · 20/11/2026
+- ผู้บริหารสั่ง 20/11/2026 ("หาทางให้ทำงานได้เร็วขึ้น"): `punch_log` (Defect) 141 แถว 46 MB · `daily_reports` 7 แถว 4.6 MB เพราะรูปเป็น dataURL → แอปหลักดึง `punch_log` ไม่ทัน (statement timeout ของ anon 3 วินาที) ทุกรอบซิงก์
+- `scripts/patch-photo-storage.js` (MARK `v1.435.0 photo-storage`):
+  · `_picUrl(d, tag)` อัปโหลดด้วย `uploadPic` เดิม (bucket `general-photo`) · อัปโหลดไม่ได้ = เก็บ dataURL
+  · `soPhoto` (รูปในรายการทั่วไป) · `_dfxPhoto` (Defect) · `soPhotosMulti` (รายงานประจำวัน) เก็บลิงก์
+  · Word รายงานประจำวัน / RFI: `_picPrefetch` โหลดรูปจากลิงก์เป็น dataURL ก่อนฝัง (`_picData`) · Excel Defect ใช้ fetch อยู่แล้ว · PDF / หน้าจอใช้ `<img>`
+- `api/photo-migrate.js` (Vercel · service key): ย้ายรูปเดิม — คิว `photo_mig_queue` · token ใน app_state `photoMigrateToken` (หมดอายุ / ลบหลังใช้) · ไฟล์ `mig/<tbl>/<sha1>.jpg` · ย้าย key `photoFrame` / `photoRaw` ตาม `frKey` · บันทึกแบบมีเงื่อนไข `updated_at`
+- Site Work v1.52.0 (repository wellcon-defect-check): `picToUrl` รูปใหม่ขึ้นคลังไฟล์ · `loadImg` crossOrigin → วาด markup บนรูปจากคลังไฟล์ได้
+- ผลทดสอบ: ตัวย้าย (จำลองฐานข้อมูล + คลังไฟล์) 9 ข้อ · แอปหลัก 5 ข้อ (อัปโหลด · ลิงก์เดิม · ออฟไลน์ · Defect · Word ฝังรูปจากลิงก์) · Site Work 4 ข้อ
+- ยังไม่แก้: หน้าผู้รับเหมา (`sub.js`) ยังส่งรูปเป็น dataURL (น้อย) — รันตัวย้ายซ้ำได้
+
 ## 🔒 หน้าแรก: ไม่โชว์การ์ดที่ Admin ปิด · PM v1.434.0 · 20/11/2026
 - ผู้บริหารแจ้ง 20/11/2026: มือถือ PM เห็นการ์ด แจ้งล่าช้า · Handover · ออกหนังสือ · ปฏิทิน ที่ "ปิดทั้งระบบ" อยู่ (featGlobal)
 - ตรวจแล้ว: ค่าในระบบถูกต้อง (workPages pm · featGlobal) — แต่การ์ดบนมือถือเรียงตาม "ชุดเริ่มต้นในโค้ด" (WORK_DEF pm) แปลว่าตอนนั้นเครื่องยังไม่ได้ค่าสิทธิ์จาก app_state แอปจึงโชว์ชุดเริ่มต้นที่ไม่ผ่านสวิตช์ปิด

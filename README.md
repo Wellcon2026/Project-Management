@@ -174,6 +174,7 @@ node scripts/patch-price-hub.js        # การ์ด / เมนู "ทำ�
 node scripts/patch-pricing-principles.js   # ตั้งค่าระบบ → อัตรากลาง: กล่องเตือน + "อ่านหลักการคิดราคา" (app_state pricingPrinciples) (v1.431.0)
 node scripts/patch-pricebook-menu.js      # ราคากลาง: การ์ด tab:pbook → /pricebook.html · อัตรากลางในตั้งค่าระบบดูได้อย่างเดียว · แถวในหน้าต่างทำราคา
 node scripts/patch-card-gate.js           # หน้าแรก: รอสิทธิ์จากเซิร์ฟเวอร์ก่อนแสดงการ์ด · ตรวจสวิตช์ปิดทั้งระบบทุกการ์ด
+node scripts/patch-photo-storage.js       # รูป Defect / รายงานประจำวัน / รายการทั่วไป ขึ้นคลังไฟล์ · Word ดึงรูปจากลิงก์
 node scripts/patch-layboard-photo.js    # Layboard: ปุ่ม "แต่งรูป (Photo Editor)" (แก้ layboard/index.html · sync-layboard.js เรียกให้อัตโนมัติ)
 node scripts/patch-sess-guard.js        # หลายหน้าต่างในเครื่องเดียว = ผู้ใช้คนเดียว · กันหน้าต่างอื่นเขียนทับผู้ใช้ (แก้ออกจากระบบแล้วเข้าเป็นคนอื่น)
 ```
