@@ -179,6 +179,7 @@ node scripts/patch-perm-early.js          # โหลดสิทธิ์ (app_
 node scripts/patch-perm-fetch.js          # รอสิทธิ์เกิน 2 วินาที → ดึงค่าสิทธิ์จาก app_state ตรง · ปุ่มลองอีกครั้ง
 node scripts/patch-img-shrink.js          # ย่อรูป > 500 KB ก่อนอัปโหลด (ไฟล์แนบทั่วไป / ทะเบียนเอกสาร / คลังความรู้)
 node scripts/patch-delta-sync.js          # ซิงก์รอบต่อไปดึงเฉพาะแถวที่เปลี่ยน (id + updated_at) แล้วประกอบชุดเต็มให้ _liveMerge
+node scripts/patch-note-hub.js            # การ์ด "บันทึก · งานของฉัน" ทุกตำแหน่ง (wcnote.js) · โน้ตลงปฏิทิน / เชื่อมแผนงาน · ลิงก์ ?wnote=
 node scripts/patch-layboard-photo.js    # Layboard: ปุ่ม "แต่งรูป (Photo Editor)" (แก้ layboard/index.html · sync-layboard.js เรียกให้อัตโนมัติ)
 node scripts/patch-sess-guard.js        # หลายหน้าต่างในเครื่องเดียว = ผู้ใช้คนเดียว · กันหน้าต่างอื่นเขียนทับผู้ใช้ (แก้ออกจากระบบแล้วเข้าเป็นคนอื่น)
 ```

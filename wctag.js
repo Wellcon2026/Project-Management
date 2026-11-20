@@ -13,7 +13,7 @@
 (function () {
   'use strict';
   if (window.WCTag) return;
-  const VER = '1.2.2';   // 1.2.2: ปิดหน้าต่างเลือกคน (✕) แล้วผู้อนุมัติที่ระบบกำหนดยังได้รับแจ้ง · 1.2.1: ผู้บริหาร / ผู้จัดการฝ่าย (เห็นทุกโครงการตามตำแหน่ง) แท็กได้ในทุกโครงการ — เดิมต้องติ๊ก "เห็นทุกโครงการ" เอง · 1.2.0: แท็กในโครงการ = เลือกได้เฉพาะทีมที่ได้รับมอบหมายในโครงการนั้น (+ ผู้บริหารที่ตั้งให้เห็นทุกโครงการ) · 1.1.0: เข้าสู่ระบบครั้งเดียว ข้ามแอป (ตั๋วใช้ครั้งเดียว ?wsso=)
+  const VER = '1.2.3';   // 1.2.3: ส่งออก markDone / go ให้หน้า “บันทึก · งานของฉัน” (wcnote.js) ใช้ · 1.2.2: ปิดหน้าต่างเลือกคน (✕) แล้วผู้อนุมัติที่ระบบกำหนดยังได้รับแจ้ง · 1.2.1: ผู้บริหาร / ผู้จัดการฝ่าย (เห็นทุกโครงการตามตำแหน่ง) แท็กได้ในทุกโครงการ — เดิมต้องติ๊ก "เห็นทุกโครงการ" เอง · 1.2.0: แท็กในโครงการ = เลือกได้เฉพาะทีมที่ได้รับมอบหมายในโครงการนั้น (+ ผู้บริหารที่ตั้งให้เห็นทุกโครงการ) · 1.1.0: เข้าสู่ระบบครั้งเดียว ข้ามแอป (ตั๋วใช้ครั้งเดียว ?wsso=)
   const ROLE = { pm: 'PM', pm_mgr: 'PM Manager', qs: 'QS', qs_mgr: 'QS Manager', sitemgr: 'Site Manager', site: 'หัวหน้าช่าง', safety: 'Safety', designer: 'Designer',
     design_mgr: 'Design Manager', director: 'Director', superadmin: 'Admin', admin: 'Admin', proc: 'จัดซื้อ', proc_mgr: 'จัดซื้อ', store: 'Store', fin: 'การเงิน', fin_mgr: 'การเงิน',
     hr: 'HR', hr_mgr: 'HR', factory: 'โรงงาน', office: 'Office', driver: 'คนขับรถ' };
@@ -267,5 +267,5 @@
   }
   function reset() { S.me = null; S.open = []; S.sent = []; S.shown = {}; clearInterval(S.timer); emit(); }
   window.WCTag = { VER, setup, reset, pick, send, tag, close, byRole, check, ssoTake, ticketUrl, isApp, refresh, open, bell, toast, people: () => S.people.slice(), person, onChange: (f) => { S.subs.push(f); f(S.open.length, S.open.filter(x => !x.seen_at).length); },
-    count: () => S.open.length, ROLE, _S: S };
+    count: () => S.open.length, ROLE, _S: S, markDone: (ids) => mark(ids || [], 'done'), go };
 })();
