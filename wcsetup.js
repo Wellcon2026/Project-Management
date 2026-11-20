@@ -12,7 +12,7 @@
 (function () {
   'use strict';
   if (window.WCSetup) return;
-  const VER = '1.0.0';
+  const VER = '1.1.0';   // 1.1.0: ที่อยู่หน้างาน / สถานที่ส่งของ (ใช้ในใบขอซื้อ · ใบเสนอราคา)
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const pad = (n) => String(n).padStart(2, '0');
   const dmy = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; };
@@ -21,7 +21,7 @@
     ['quote', 'ใบเสนอราคา (ฉบับที่ลูกค้ารับ)', 'อ้างอิงขอบเขตงาน · งานเพิ่ม-ลด'], ['tor', 'TOR / เงื่อนไขประกวดราคา', 'ขอบเขต · เงื่อนไขพิเศษ']];
   const USES = [['หนังสือ / แบบฟอร์มบริษัท', 'ชื่อ · ที่อยู่ Owner / Consult บนหัวจดหมาย'], ['RFI / RFA', 'ผู้รับ = Consult / Designer'], ['VO / SI / EOT · งานเพิ่ม', 'ผู้อนุมัติฝ่าย Owner · วันส่งมอบตามสัญญา'],
     ['ใบเสนอราคา (แอปหลัก)', 'ชื่อลูกค้า · ที่อยู่ · เลขผู้เสียภาษี'], ['ส่งมอบงาน · Handover', 'ผู้รับมอบ · วันส่งมอบ'], ['วางบิล · งวดเงิน', 'เงื่อนไขวางบิล · Retention · ฝ่ายบัญชีลูกค้า'],
-    ['ใบขอซื้อ / ใบขอจ้าง', 'BOQ อ้างอิง → AI แยกรายการวัสดุให้หน้างาน'], ['ระยะถัดไป', 'Quotation Maker · Claim · ใบขอซื้อ ดึงชื่อ / ที่อยู่ลูกค้าจากหน้านี้']];
+    ['ใบขอซื้อ / ใบขอจ้าง', 'สถานที่ส่งของ = ที่อยู่หน้างาน · BOQ อ้างอิง → AI แยกรายการวัสดุ'], ['Quotation Maker', 'ลูกค้า · เรียน · ที่อยู่ · เลขผู้เสียภาษี (Owner)'], ['Claim (Site Work)', 'หนังสือเคลมถึง Owner · เรียน Consult'], ['ระยะถัดไป', 'งานเพิ่ม · VO Tracker · งวดเบิก ดึงเงื่อนไขวางบิลจากหน้านี้']];
 
   const CSS = `
 .ws-ov{position:fixed;inset:0;z-index:2147482500;background:rgba(20,19,16,.55);display:flex;align-items:flex-end;justify-content:center;font-family:'IBM Plex Sans Thai','Noto Sans Thai',system-ui,sans-serif;color:#22231C;-webkit-text-size-adjust:100%}
@@ -92,6 +92,7 @@
     h.push(`<div class="ws-card" id="ws-main"><div class="ws-h"><span class="n">1</span>ข้อมูลหลักของโครงการ <small>ดึงจาก Mango ตอนสร้างโครงการ — แก้ให้ตรงสัญญาได้</small></div><div class="ws-g">
       ${field('p', 'name', 'ชื่อโครงการ', p.name, { need: true })}${field('p', 'code', 'รหัสโครงการ (WLC)', p.code || p.wlcCode)}${field('p', 'contractNo', 'เลขที่สัญญา / PO ลูกค้า', p.contractNo, { need: true })}
       ${field('p', 'client', 'ลูกค้า (ชื่อย่อในระบบ)', p.client, { need: true })}
+      ${field('p', 'siteAddr', 'ที่อยู่หน้างาน / สถานที่ส่งของ', p.siteAddr, { need: true, wide: true, ph: 'เช่น อาคาร A ชั้น 12 เลขที่ … ถนน … (ใส่ชื่อผู้รับของหน้างานได้)', hint: 'ใช้: ใบขอซื้อ (สถานที่ส่งของ) · ใบเสนอราคา (สถานที่)' })}
       ${field('p', 'startISO', 'วันเริ่มงานตามสัญญา', p.startISO, { type: 'date', need: true })}
       ${field('p', 'endISO', 'วันส่งมอบตามสัญญา', p.endISO, { type: 'date', need: true, hint: eff && eff !== p.endISO ? 'วันส่งมอบหลังขยายเวลา (EOT ที่อนุมัติ): <b>' + esc(dmy(eff)) + '</b>' : '' })}
       ${mon ? field('p', 'value', 'มูลค่าสัญญา (บาท · ไม่รวม VAT)', p.value || '', { need: true, hint: p.value ? esc(money(p.value)) + ' · ไม่รวม VAT' : '' }) : '<div class="ws-lock">🔒 มูลค่าสัญญา — เห็นเฉพาะผู้มีสิทธิ์ตัวเลขเงิน</div>'}
