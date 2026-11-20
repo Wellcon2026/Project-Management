@@ -2,6 +2,12 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด · เพิ่มรายการบนสุดใน `whatsnew.json` (ข้อความที่ผู้ใช้เห็นในหน้าต่าง "มีอะไรใหม่") · และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## 🩹 แก้หน้าแรกค้าง "กำลังโหลดสิทธิ์…" · PM v1.435.1 · 20/11/2026
+- ผู้บริหารแจ้ง 20/11/2026 (มือถือ PM): หน้าแรกค้าง "กำลังโหลดสิทธิ์…" — card-gate รอ `sbPull` จบทั้งรอบ ซึ่งรอตาราง `punch_log` ที่ยังหนัก
+- `scripts/patch-perm-early.js` (MARK `v1.435.1 perm-early`): ผลดึง app_state มาถึง → `_permEarly` ใส่ workPages · featGlobal · featRole · featProj · workUser · workUserAdd ทันที + `_permOk` → หน้าแรกแสดงการ์ด
+- `api/photo-migrate.js`: ทำพร้อมกัน 4 แถว · อัปโหลดพร้อมกันครั้งละ 4 รูป · รอบละ 40 วินาที (`maxDuration` 60)
+- ผลทดสอบ: card-gate 7 ข้อ (เพิ่ม "สิทธิ์มาก่อนตารางใหญ่") · ตัวย้าย 9 ข้อ
+
 ## ⚡ รูปขึ้นคลังไฟล์ (Storage) — ตาราง Defect / รายงานประจำวันเบาลง · PM v1.435.0 · Site Work v1.52.0 · 20/11/2026
 - ผู้บริหารสั่ง 20/11/2026 ("หาทางให้ทำงานได้เร็วขึ้น"): `punch_log` (Defect) 141 แถว 46 MB · `daily_reports` 7 แถว 4.6 MB เพราะรูปเป็น dataURL → แอปหลักดึง `punch_log` ไม่ทัน (statement timeout ของ anon 3 วินาที) ทุกรอบซิงก์
 - `scripts/patch-photo-storage.js` (MARK `v1.435.0 photo-storage`):

@@ -9,7 +9,9 @@
 // - บันทึกแบบมีเงื่อนไข updated_at เดิม — ถ้ามีคนแก้แถวระหว่างย้าย ข้ามไปก่อน (รอบหน้าทำใหม่)
 import crypto from 'crypto';
 
+export const config = { maxDuration: 60 };
 const TABLES = ['punch_log', 'daily_reports'];
+const BUDGET = 40000, PAR = 4;   // เวลาต่อรอบ · ทำพร้อมกันกี่แถว
 const BUCKET = 'general-photo';
 // ต้องตรงกับ frKey ใน wellcon-defect-check/app.js
 const frKey = (u) => { let h = 0; for (let i = 0; i < u.length; i += 53) h = (h * 31 + u.charCodeAt(i)) | 0; return u.length.toString(36) + '-' + (h >>> 0).toString(36); };
@@ -35,12 +37,13 @@ export default async function handler(req, res) {
     if (req.query && req.query.dry) return res.status(200).json({ left: queue.length, byTable: TABLES.map((t) => [t, queue.filter((q) => q.tbl === t).length]) });
 
     const out = { done: [], skipped: [], failed: [], uploaded: 0, bytesBefore: 0, bytesAfter: 0 };
-    for (const q of queue) {
-      if (Date.now() - t0 > 7000) break;
+    let qi = 0;
+    const worker = async () => { while (qi < queue.length && Date.now() - t0 < BUDGET) { const q = queue[qi++]; await one(q); } };
+    const one = async (q) => {
       try {
         const rr = await fetch(url + '/rest/v1/' + q.tbl + '?select=id,data,updated_at&id=eq.' + encodeURIComponent(q.id), { headers: H });
         const row = rr.ok ? (await rr.json())[0] : null;
-        if (!row) { await mark(q, true, 'row gone'); out.skipped.push(q.id); continue; }
+        if (!row) { await mark(q, true, 'row gone'); out.skipped.push(q.id); return; }
         const before = JSON.stringify(row.data); out.bytesBefore += before.length;
         const map = new Map();   // dataURL → public URL
         const up = async (s) => {
@@ -53,6 +56,9 @@ export default async function handler(req, res) {
           if (!u.ok) throw new Error('upload ' + u.status + ' ' + (await u.text()).slice(0, 160));
           const pub = url + '/storage/v1/object/public/' + BUCKET + '/' + path; map.set(s, pub); out.uploaded++; return pub;
         };
+        const all = []; const scan = (v) => { if (typeof v === 'string') { if (/^data:image\//i.test(v)) all.push(v); } else if (Array.isArray(v)) v.forEach(scan); else if (v && typeof v === 'object') Object.values(v).forEach(scan); };
+        scan(row.data); const uniq = [...new Set(all)];
+        for (let i = 0; i < uniq.length; i += 4) await Promise.all(uniq.slice(i, i + 4).map(up));   // อัปโหลดพร้อมกันครั้งละ 4 รูป
         const walk = async (v) => {
           if (typeof v === 'string') return /^data:image\//i.test(v) ? await up(v) : v;
           if (Array.isArray(v)) { const a = []; for (const x of v) a.push(await walk(x)); return a; }
@@ -60,7 +66,7 @@ export default async function handler(req, res) {
           return v;
         };
         const data = await walk(row.data);
-        if (!map.size) { await mark(q, true, 'no image'); out.skipped.push(q.id); continue; }
+        if (!map.size) { await mark(q, true, 'no image'); out.skipped.push(q.id); return; }
         // Defect: มุมรูป / markup ผูกด้วย frKey(รูป) → ย้าย key ตามรูปใหม่
         if (q.tbl === 'punch_log') {
           const kmap = {}; map.forEach((nu, old) => { kmap[frKey(old)] = frKey(nu); });
@@ -74,11 +80,12 @@ export default async function handler(req, res) {
           method: 'PATCH', headers: { ...J, Prefer: 'return=representation' }, body: JSON.stringify({ data, updated_at: new Date().toISOString(), updated_by: 'photo-migrate' }) });
         const got = pr.ok ? await pr.json() : null;
         if (!pr.ok) throw new Error('patch ' + pr.status + ' ' + (await pr.text()).slice(0, 160));
-        if (!got || !got.length) { out.skipped.push(q.id + ' (แก้ระหว่างย้าย — รอบหน้า)'); continue; }
+        if (!got || !got.length) { out.skipped.push(q.id + ' (แก้ระหว่างย้าย — รอบหน้า)'); return; }
         await mark(q, true, map.size + ' รูป · ' + Math.round(before.length / 1024) + ' → ' + Math.round(after.length / 1024) + ' KB');
         out.done.push(q.tbl + ':' + q.id);
       } catch (e) { out.failed.push(q.tbl + ':' + q.id + ' ' + String(e && e.message || e).slice(0, 200)); await mark(q, false, String(e && e.message || e).slice(0, 300)); }
-    }
+    };
+    await Promise.all(Array.from({ length: PAR }, worker));
     const lr = await fetch(url + '/rest/v1/photo_mig_queue?select=id&done=eq.false', { headers: H });
     out.left = lr.ok ? (await lr.json()).length : null; out.ms = Date.now() - t0;
     return res.status(200).json(out);
