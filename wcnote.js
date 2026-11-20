@@ -15,7 +15,7 @@
 (function () {
   'use strict';
   if (window.WCNote) return;
-  const VER = '1.2.0';   // 1.2.0: เรียงตามวันที่จะถึงก่อน (กำลังจะถึง → เลยกำหนด → ไม่มีกำหนดวัน → เสร็จแล้ว) · 1.1.0: แยกแท็บ 🔒 ส่วนตัว / 👥 สาธารณะ (โครงการ) ชัดเจน + ตัวกรอง “เฉพาะของฉัน” · 1.0.1: ค้นหาแล้วไฮไลต์คำที่พบ (สีเหลือง) + บอกจำนวนที่พบ
+  const VER = '1.3.0';   // 1.3.0: ใส่เวลาในบันทึกได้ (time 'HH:MM') — แสดงบนป้ายวันที่ · เรียงตามเวลาในวันเดียวกัน · ขึ้นในปฏิทิน · 1.2.0: เรียงตามวันที่จะถึงก่อน (กำลังจะถึง → เลยกำหนด → ไม่มีกำหนดวัน → เสร็จแล้ว) · 1.1.0: แยกแท็บ 🔒 ส่วนตัว / 👥 สาธารณะ (โครงการ) ชัดเจน + ตัวกรอง “เฉพาะของฉัน” · 1.0.1: ค้นหาแล้วไฮไลต์คำที่พบ (สีเหลือง) + บอกจำนวนที่พบ
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const norm = (s) => String(s || '').trim().toLowerCase();
   const pad = (n) => String(n).padStart(2, '0');
@@ -28,12 +28,16 @@
   // เรียง: กำลังจะถึง (วันนี้ → ไกล) · เลยกำหนด (เพิ่งเลย → นานแล้ว) · ไม่มีกำหนดวัน (ล่าสุดก่อน)
   const byDue = (L) => { const up = [], late = [], none = [];
     L.forEach(x => { const d = daysTo(x.due); if (d == null) none.push(x); else if (d >= 0) up.push(x); else late.push(x); });
-    const ds = (a, b) => String(a.due).localeCompare(String(b.due));
+    const ds = (a, b) => (String(a.due) + ' ' + (okTime(a.time) ? a.time : '99:99')).localeCompare(String(b.due) + ' ' + (okTime(b.time) ? b.time : '99:99'));   // วันเดียวกัน: มีเวลาก่อน เรียงตามเวลา
     up.sort(ds); late.sort((a, b) => ds(b, a)); none.sort((a, b) => String(b.editedAt || b.at || '').localeCompare(String(a.editedAt || a.at || '')));
     return { up, late, none }; };
-  const dueChip = (iso, done) => { const d = daysTo(iso); if (d == null) return ''; const cls = done ? 'ok' : d < 0 ? 'late' : d <= 2 ? 'soon' : '';
-    const tx = done ? 'เสร็จแล้ว' : d < 0 ? 'เลยกำหนด ' + (-d) + ' วัน' : d === 0 ? 'วันนี้' : d === 1 ? 'พรุ่งนี้' : 'อีก ' + d + ' วัน';
-    return `<span class="wn-tg ${cls}">⏰ ${esc(dmy(iso))} · ${tx}</span>`; };
+  const okTime = (t) => /^\d{2}:\d{2}$/.test(String(t || ''));
+  const nowHM = () => { const x = new Date(); return pad(x.getHours()) + ':' + pad(x.getMinutes()); };
+  const dueChip = (iso, done, time) => { const d = daysTo(iso); if (d == null) return ''; const tm = okTime(time) ? time : '';
+    const pastT = !done && d === 0 && tm && tm < nowHM();   // วันนี้ แต่เลยเวลาแล้ว
+    const cls = done ? 'ok' : (d < 0 || pastT) ? 'late' : d <= 2 ? 'soon' : '';
+    const tx = done ? 'เสร็จแล้ว' : d < 0 ? 'เลยกำหนด ' + (-d) + ' วัน' : d === 0 ? (pastT ? 'เลยเวลาแล้ว' : 'วันนี้') : d === 1 ? 'พรุ่งนี้' : 'อีก ' + d + ' วัน';
+    return `<span class="wn-tg ${cls}">⏰ ${esc(dmy(iso))}${tm ? ' · ' + esc(tm) + ' น.' : ''} · ${tx}</span>`; };
   // ไฮไลต์คำค้นในข้อความ (ตัด / escape ทีละช่วง — ไม่แทรก HTML ในข้อความผู้ใช้)
   const hl = (s) => { const t = String(s == null ? '' : s), q = String(S.q || '').trim(); if (!q) return esc(t);
     const lt = t.toLowerCase(), lq = q.toLowerCase(); let out = '', i = 0, j;
@@ -125,7 +129,7 @@
   function noteCard(n, d) {
     const mine = norm(n.email) === d.em, admin = !!d.me.admin, can = mine || admin; const asgMe = norm(n.asg) === d.em;
     const chips = [visTag(n), `<span>📁 ${esc(pname(n._pid))}</span>`];
-    if (n.due) chips.push(dueChip(n.due, n.done)); else if (n.done) chips.push('<span class="wn-tg ok">✓ เสร็จแล้ว</span>');
+    if (n.due) chips.push(dueChip(n.due, n.done, n.time)); else if (n.done) chips.push('<span class="wn-tg ok">✓ เสร็จแล้ว</span>');
     if (n.cal && n.due && n._pid !== '_gen') chips.push('<span class="wn-tg cal">📅 อยู่ในปฏิทิน</span>');
     if (n.plan && n.plan.t) chips.push(`<span class="wn-tg pl">🗓 แผนงาน: ${esc(first(n.plan.t, 40))}</span>`);
     if (n.asg) chips.push(`<span class="wn-tg sh">📌 ${asgMe ? 'มอบหมายให้ฉัน' : 'มอบหมาย: ' + esc(S.B.nameOf(n.asg))}</span>`);
@@ -155,7 +159,7 @@
   }
   function todoNote(n, d) {
     return `<div class="wn-it${S.focus === n.id ? ' foc' : ''}"><label class="wn-ck"><input type="checkbox" data-done="${esc(n._k)}|${esc(n.id)}"><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
-      <span class="wn-t">${hl(n.text || '')}</span><span class="wn-m"><span class="wn-tg">📝 โน้ต</span><span>📁 ${esc(pname(n._pid))}</span>${n.due ? dueChip(n.due, false) : ''}${norm(n.email) !== d.em ? '<span>จาก ' + esc(n.by || S.B.nameOf(n.email)) + '</span>' : ''}${n.plan && n.plan.t ? '<span class="wn-tg pl">🗓 ' + esc(first(n.plan.t, 30)) + '</span>' : ''}</span></span></label></div>`;
+      <span class="wn-t">${hl(n.text || '')}</span><span class="wn-m"><span class="wn-tg">📝 โน้ต</span><span>📁 ${esc(pname(n._pid))}</span>${n.due ? dueChip(n.due, false, n.time) : ''}${norm(n.email) !== d.em ? '<span>จาก ' + esc(n.by || S.B.nameOf(n.email)) + '</span>' : ''}${n.plan && n.plan.t ? '<span class="wn-tg pl">🗓 ' + esc(first(n.plan.t, 30)) + '</span>' : ''}</span></span></label></div>`;
   }
 
   // ---------- หน้าหลัก ----------
@@ -238,7 +242,7 @@
   function editor(n0) {
     const B = S.B, me = B.me(), P = B.projects(); const isNew = !n0;
     const f = { text: n0 ? n0.text || '' : '', pid: n0 ? n0._pid : (S.proj && S.proj !== '_gen' ? S.proj : (B.curPid() && P.some(p => p.id === B.curPid()) ? B.curPid() : '_gen')),
-      vis: n0 ? (n0.vis || 'public') : 'private', due: n0 ? n0.due || '' : '', cal: n0 ? !!n0.cal : false, plan: n0 && n0.plan ? { ...n0.plan } : null };
+      vis: n0 ? (n0.vis || 'public') : 'private', due: n0 ? n0.due || '' : '', time: n0 && okTime(n0.time) ? n0.time : '', cal: n0 ? !!n0.cal : false, plan: n0 && n0.plan ? { ...n0.plan } : null };
     const ov = document.createElement('div'); ov.className = 'wn-ov'; ov.style.zIndex = '2147482600'; ov.setAttribute('translate', 'no');
     ov.innerHTML = '<div class="wn-bx ed" role="dialog" aria-modal="true"></div>'; document.body.appendChild(ov); const bx = ov.firstChild;
     const draw = () => {
@@ -250,7 +254,7 @@
           <label class="wn-f"><span>โครงการ</span><select class="wn-in" data-f="pid"><option value="_gen"${gen ? ' selected' : ''}>— ทั่วไป (ไม่ระบุโครงการ) —</option>${P.map(p => `<option value="${esc(p.id)}"${f.pid === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
           <div class="wn-f"><span>ใครเห็น</span><div class="wn-seg"><button class="wn-b${f.vis === 'private' ? ' on' : ''}" data-vis="private">🔒 ส่วนตัว — เห็นคนเดียว</button><button class="wn-b${f.vis === 'public' ? ' on' : ''}" data-vis="public"${gen ? ' disabled style="opacity:.45"' : ''}>👥 ทีมโครงการเห็น</button></div>
             ${f.vis === 'people' ? `<div class="wn-hint">👤 แชร์ให้ ${(n0 && n0.shareTo || []).length} คน (จากการแท็ก) · กดเลือกด้านบนเพื่อเปลี่ยน</div>` : ''}${gen ? '<div class="wn-hint">บันทึกทั่วไปเป็นแบบส่วนตัว — เลือกโครงการถ้าต้องการให้ทีมเห็น / ลงปฏิทิน</div>' : ''}</div>
-          <label class="wn-f"><span>กำหนดวัน (ไม่บังคับ) — มีวันที่ = ขึ้นในแท็บ “งานค้าง”</span><input class="wn-in" type="date" data-f="due" value="${esc(f.due)}"></label>
+          <div class="wn-f"><span>กำหนดวัน / เวลา (ไม่บังคับ) — มีวันที่ = ขึ้นในแท็บ “งานค้าง”</span><div style="display:flex;gap:8px;flex-wrap:wrap"><input class="wn-in" type="date" data-f="due" value="${esc(f.due)}" aria-label="วันที่" style="flex:1 1 170px"><input class="wn-in" type="time" data-f="time" value="${esc(f.time)}" aria-label="เวลา" style="flex:0 1 140px">${f.time ? '<button class="wn-b" data-notime type="button" title="ไม่ระบุเวลา">✕ เวลา</button>' : ''}</div></div>
           ${gen ? '' : `<div class="wn-box"><b style="font-size:14px">เชื่อมกับปฏิทิน / แผนงานโครงการ</b>
             <label class="wn-ck"><input type="checkbox" data-f="cal"${f.cal ? ' checked' : ''}><span>📅 แสดงในปฏิทินโครงการ<br><span class="wn-hint">ขึ้นในหน้า “ปฏิทิน” และปฏิทินพื้นที่ทำงาน ตามวันที่กำหนด${f.vis === 'private' ? ' · บันทึกส่วนตัว = เห็นในปฏิทินเฉพาะคุณ' : ''}</span></span></label>
             <label class="wn-f"><span>🗓 งานในแผนงาน (ไม่บังคับ)</span><select class="wn-in" data-f="plan"><option value="">— ไม่เชื่อม —</option>${plans.map(r => `<option value="${esc(r.id)}"${f.plan && f.plan.id === r.id ? ' selected' : ''}>${esc(first(r.title, 60))}${r.end ? ' · จบ ' + esc(dmy(r.end)) : ''}${r.sched && r.sched !== 'แผนงานหลัก' ? ' · ' + esc(r.sched) : ''}</option>`).join('')}</select>
@@ -259,7 +263,7 @@
         <div class="wn-ft"><button class="wn-b big" data-c>ยกเลิก</button>${window.WCTag ? '<button class="wn-b big" data-save="tag">บันทึก + 🏷 แท็กคน</button>' : ''}<button class="wn-b p big" data-save="1">บันทึก</button></div>`;
     };
     const grab = () => { const v = (k) => { const el = bx.querySelector('[data-f="' + k + '"]'); return el ? (el.type === 'checkbox' ? el.checked : el.value) : undefined; };
-      const tx = v('text'); if (tx !== undefined) f.text = tx; const pd = v('pid'); if (pd !== undefined) f.pid = pd; const du = v('due'); if (du !== undefined) f.due = du; const c = v('cal'); if (c !== undefined) f.cal = c; };
+      const tx = v('text'); if (tx !== undefined) f.text = tx; const pd = v('pid'); if (pd !== undefined) f.pid = pd; const du = v('due'); if (du !== undefined) f.due = du; const tm = v('time'); if (tm !== undefined) f.time = tm; const c = v('cal'); if (c !== undefined) f.cal = c; };
     const done = () => { ov.remove(); };
     bx.addEventListener('change', (e) => { const k = e.target.dataset && e.target.dataset.f; if (!k) return; const old = f.pid; grab();
       if (k === 'pid' && f.pid !== old) f.plan = null;
@@ -268,11 +272,13 @@
     ov.addEventListener('click', async (e) => {
       const t = e.target; if (t === ov || t.closest('[data-c]')) { done(); return; }
       const vb = t.closest('[data-vis]'); if (vb) { grab(); f.vis = vb.dataset.vis; draw(); return; }
+      if (t.closest('[data-notime]')) { grab(); f.time = ''; draw(); return; }
       if (t.closest('[data-usend]')) { grab(); f.due = String(f.plan.e).slice(0, 10); draw(); return; }
       const sv = t.closest('[data-save]'); if (!sv) return; grab();
       const text = String(f.text || '').trim(); if (!text) { toast('พิมพ์ข้อความก่อน'); return; }
       if (f.cal && !f.due) { toast('ใส่กำหนดวันก่อน — ปฏิทินต้องมีวันที่'); return; }
-      const patch = { text, vis: f.vis, due: f.due || '', cal: !!(f.cal && f.due && f.pid !== '_gen'), plan: f.pid !== '_gen' && f.plan ? f.plan : null };
+      if (f.time && !f.due) { toast('ใส่วันที่ก่อน — เวลาต้องมีวันที่'); return; }
+      const patch = { text, vis: f.vis, due: f.due || '', time: f.due && okTime(f.time) ? f.time : '', cal: !!(f.cal && f.due && f.pid !== '_gen'), plan: f.pid !== '_gen' && f.plan ? f.plan : null };
       if (f.vis !== 'people') patch.shareTo = []; else patch.shareTo = (n0 && n0.shareTo) || [];
       let n;
       if (isNew) n = B.add(f.pid, patch);

@@ -181,6 +181,7 @@ node scripts/patch-img-shrink.js          # ย่อรูป > 500 KB ก่�
 node scripts/patch-delta-sync.js          # ซิงก์รอบต่อไปดึงเฉพาะแถวที่เปลี่ยน (id + updated_at) แล้วประกอบชุดเต็มให้ _liveMerge
 node scripts/patch-note-hub.js            # การ์ด "บันทึก · งานของฉัน" ทุกตำแหน่ง (wcnote.js) · โน้ตลงปฏิทิน / เชื่อมแผนงาน · ลิงก์ ?wnote=
 node scripts/patch-search-hl.js           # ไฮไลต์คำค้นทุกหน้า (wchl.js · CSS Highlight API) — หน้าแยกใส่ <script src="/wchl.js"> ในไฟล์
+node scripts/patch-note-time.js           # ปฏิทินแสดงเวลาของบันทึก (HH:MM · ข้อความ) — ฟอร์มเวลาอยู่ใน wcnote.js
 node scripts/patch-layboard-photo.js    # Layboard: ปุ่ม "แต่งรูป (Photo Editor)" (แก้ layboard/index.html · sync-layboard.js เรียกให้อัตโนมัติ)
 node scripts/patch-sess-guard.js        # หลายหน้าต่างในเครื่องเดียว = ผู้ใช้คนเดียว · กันหน้าต่างอื่นเขียนทับผู้ใช้ (แก้ออกจากระบบแล้วเข้าเป็นคนอื่น)
 ```
