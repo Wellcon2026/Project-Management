@@ -14,7 +14,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.10.0';   // 1.10.0: ราคากลาง — เลือกจากราคากลาง (รหัส · สเปก · หมวดอัตโนมัติ) · ปรับราคาจากฐานได้ ระบบแสดง % ที่ปรับให้ผู้อนุมัติเห็น
+const QM_VER = 'v1.11.0';   // 1.11.0: ลูกค้า · เรียน · ที่อยู่ · เลขผู้เสียภาษี · สถานที่ ดึงจาก “ตั้งค่าโครงการ” (Owner) อัตโนมัติ + ปุ่มดึงใหม่ · ใบเสนอราคาแสดงที่อยู่ / เลขผู้เสียภาษีลูกค้า · 1.10.0: 1.10.0: ราคากลาง — เลือกจากราคากลาง (รหัส · สเปก · หมวดอัตโนมัติ) · ปรับราคาจากฐานได้ ระบบแสดง % ที่ปรับให้ผู้อนุมัติเห็น
 // 1.9.0: ดึงข้อมูลจากเรื่องใน Claim (ปุ่ม + ลิงก์ ?claim=) — เรื่อง · รูป · แบบที่ตีกรอบ · รายการราคา
 //   // 1.8.0: เปิดใบใหม่ตามประเภทงานจากลิงก์ (?new=1&kind=) · งานซ่อม = ลูกค้าจ้าง (คนอื่นทำเสียหาย ใช้ Claim)
 //   // 1.7.1: ส่งต่อใบเปลี่ยนแบบเข้า VO Tracker (additional_work) แทนหน้า VO / SI / EOT ที่ปิดทั้งระบบ
@@ -230,7 +230,7 @@ async function boot() {
     let ok = false; try { const r = await sb.auth.getSession(); ok = !!(r && r.data && r.data.session); } catch (e) {}
     if (!ok) { msg(card('ยังไม่ได้เชื่อมต่อ Wellcon PM ในเครื่องนี้', sso ? 'เครื่องนี้ยังไม่เคยเปิด Wellcon PM — กดปุ่มด้านล่างเพื่อเปิด Wellcon PM หนึ่งครั้ง (ระบบเข้าสู่ระบบให้อัตโนมัติ) แล้วกลับไปกดแท็บ “Quotation Maker” อีกครั้ง' : 'เข้าสู่ระบบที่ Wellcon PM ก่อน แล้วเปิด “Quotation Maker” จากหน้าโครงการ')); return; }
     const [a, p, st] = await Promise.all([sb.from('accounts').select('id,data'), sb.from('projects').select('id,project,data'),
-      sb.from('app_state').select('id,data').in('id', ['featGlobal', 'featProj', 'workPages', 'workUser', 'workUserAdd', 'claimRates'])]);
+      sb.from('app_state').select('id,data').in('id', ['featGlobal', 'featProj', 'workPages', 'workUser', 'workUserAdd', 'claimRates', 'projParties'])]);
     if (a.error) throw a.error; if (p.error) throw p.error;
     APP.accounts = (a.data || []).map(rowOf);
     const live = (p.data || []).map(rowOf).filter(x => !x.deleted && !x.del);
@@ -242,7 +242,7 @@ async function boot() {
     try { sb.rpc('usage_touch', { p_email: APP.me.email, p_app: 'quo' }).then(() => {}, () => {}); } catch (e) {}
     if (window.WCTag) WCTag.setup({ sb, app: TAG_APP, me: APP.me, accounts: actv(), projects: live });
     const sv = (id) => { const r = ((!st.error && st.data) || []).find(x => x.id === id); return (r && r.data && r.data.v) || {}; };
-    const FG = sv('featGlobal'), WP = sv('workPages'), WU = sv('workUser'), WUA = sv('workUserAdd'); APP.FP = sv('featProj');
+    const FG = sv('featGlobal'), WP = sv('workPages'), WU = sv('workUser'), WUA = sv('workUserAdd'); APP.FP = sv('featProj'); APP.parties = sv('projParties');   // v1.11.0 ตั้งค่าโครงการ
     const back = `<a class="btn pri" href="${pmUrl()}">กลับ Wellcon PM</a>`;
     if (FG[TAB] === false) { msg(card('ผู้ดูแลระบบปิด “Quotation Maker” ไว้', 'ถ้าต้องการใช้งาน แจ้ง Admin เปิดที่ ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน', back)); return; }
     // สิทธิ์เข้าหน้า = การ์ดที่เปิดให้ (ตำแหน่ง ∪ รายคน) แบบเดียวกับแอปหลัก · ชุดเริ่มต้น: QS · QS Manager · Director · Super Admin เข้าได้เสมอ
@@ -349,8 +349,11 @@ function openQ(id) { const q = findQ(id); if (!q) { toast('ไม่พบใบ
 function blank() { const pid = APP.scope !== 'all' && APP.scope !== NEW ? APP.scope : ''; const p = APP.projects.find(x => x.id === pid);
   const r = APP.tkRoot, tkOn = !!r && (tkIsPm(r) ? pid === r.pm_project_id : !pid);   // v1.2.0 งานจาก QS Take-off ที่ผูกมากับลิงก์ (?tk=)
   const o = blankBase(pid, p); if (tkOn) { o.tk = r.id; if (!pid) { o.title = r.name || ''; o.site = r.name || ''; } } return o; }
-function blankBase(pid, p) {
-  return { id: uid('q'), no: '', pid, kind: 'area', title: '', area: '', desc: '', cust: p ? (p.client || '') : '', attn: '', site: p ? projName(p) : '', atts: [], items: [], prelimPct: '', ohpPct: APP.ohp == null ? '' : APP.ohp, discount: '', ohpShow: false,
+// v1.11.0 ข้อมูลลูกค้าจาก "ตั้งค่าโครงการ" (app_state projParties · Owner) — ไม่มีให้ใช้ชื่อลูกค้า / ชื่อโครงการเดิม
+function custOf(p) { const O = (p && ((APP.parties || {})[p.id] || {}).owner) || {}; const s = (v) => String(v || '').trim();
+  return { cust: s(O.company) || s(p && p.client), attn: [s(O.contact), s(O.position)].filter(Boolean).join(' · '), custAddr: s(O.address), custTax: s(O.taxId), site: s(p && p.siteAddr) || (p ? projName(p) : '') }; }
+function blankBase(pid, p) { const K = custOf(p);
+  return { id: uid('q'), no: '', pid, kind: 'area', title: '', area: '', desc: '', cust: K.cust, attn: K.attn, custAddr: K.custAddr, custTax: K.custTax, site: K.site, atts: [], items: [], prelimPct: '', ohpPct: APP.ohp == null ? '' : APP.ohp, discount: '', ohpShow: false,
     valid: 30, lead: '', pay: '', assume: '', excl: '', memo: '', form: 'wellcon', lang: 'th', ai: null, status: 'draft', by: APP.me.name, byFull: APP.me.full, byEmail: APP.me.email, byTitle: APP.me.title, at: Date.now(), log: [] }; }
 const C = () => APP.cur;
 function touch() { APP.dirty = true; $('edSaved').textContent = 'ยังไม่ได้บันทึก'; }
@@ -362,7 +365,7 @@ function openEdit(q) {
   $('edScope').innerHTML = `<option value="">งานใหม่นอกโครงการ</option>` + APP.projects.map(p => `<option value="${esc(p.id)}">ในโครงการ: ${esc([projName(p), projCode(p)].filter(Boolean).join(' · '))}</option>`).join('');
   $('edScope').value = q.pid || '';
   const set = (id, v) => { $(id).value = v == null ? '' : v; };
-  set('edTitleIn', q.title); set('edArea', q.area); set('edCust', q.cust); set('edAttn', q.attn); set('edSite', q.site); set('edDesc', q.desc);
+  set('edTitleIn', q.title); set('edArea', q.area); set('edCust', q.cust); set('edAttn', q.attn); set('edSite', q.site); set('edCustAddr', q.custAddr); set('edCustTax', q.custTax); set('edDesc', q.desc);
   set('edValid', q.valid); set('edLead', q.lead); set('edForm', q.form || 'wellcon'); set('edLang', q.lang || 'th'); set('edPay', q.pay); set('edAssume', q.assume); set('edExcl', q.excl); set('edMemo', q.memo); set('edAiHint', q.aiHint);
   $('edDel').textContent = q.no ? '🗑 ลบร่าง' : '🗑 ทิ้งร่างนี้'; $('edSub').textContent = scopeName(q);
   $('edAiRun').disabled = APP.aiOff; $('edAiAsk').disabled = APP.aiOff;
@@ -381,7 +384,7 @@ function dcoNote() { const q = C(); if (!isDco(q)) return; const d = dcoOf(q), H
   if (num(d.mlead) > 0 && num(d.eot) < num(d.mlead)) H.push(`<div class="warn">วัสดุใหม่ใช้เวลา ${fq(num(d.mlead))} วัน แต่ขอขยายเวลา ${fq(num(d.eot))} วัน — ตรวจกับแผนงานว่ากระทบวันส่งมอบหรือไม่</div>`);
   if (d.diff && d.diff.text) H.push(`<div class="ai"><h4>✨ AI สรุปความต่างของแบบ <small class="mut" style="font-weight:500">${esc((d.diff.pair || []).join(' ↔ '))} · ${dmyhm(d.diff.at)}</small></h4><div style="white-space:pre-line;font-size:13.5px">${esc(d.diff.text)}</div><div class="mut" style="font-size:12px">ข้อมูลประกอบจาก AI — ตรวจกับแบบก่อนใช้ · ไม่พิมพ์ในเอกสารลูกค้า</div></div>`);
   $('dcNote').innerHTML = H.join(''); }
-const BIND = { edTitleIn: 'title', edArea: 'area', edCust: 'cust', edAttn: 'attn', edSite: 'site', edDesc: 'desc', edValid: 'valid', edLead: 'lead', edForm: 'form', edLang: 'lang', edPay: 'pay', edAssume: 'assume', edExcl: 'excl', edMemo: 'memo', edAiHint: 'aiHint' };
+const BIND = { edTitleIn: 'title', edArea: 'area', edCust: 'cust', edAttn: 'attn', edSite: 'site', edCustAddr: 'custAddr', edCustTax: 'custTax', edDesc: 'desc', edValid: 'valid', edLead: 'lead', edForm: 'form', edLang: 'lang', edPay: 'pay', edAssume: 'assume', edExcl: 'excl', edMemo: 'memo', edAiHint: 'aiHint' };
 
 // ---------- แบบแนบ ----------
 function guessKind(name, isImg) { const n = norm(name);
@@ -1109,7 +1112,7 @@ function docHtml(q) { const c = calc(q), en = q.lang === 'en', T = (th, e) => en
     <div class="hd"><div class="co"><b>${CO.th}</b><div>${CO.en}</div><div>${CO.addr}</div><div>${T('เลขประจำตัวผู้เสียภาษี', 'Tax ID')} ${CO.tax} · ${CO.web}</div></div>
       <div class="tt"><b>${en ? (dco ? 'CHANGE ORDER QUOTATION' : 'QUOTATION') : (dco ? 'ใบเสนอราคางานเปลี่ยนแบบ' : 'ใบเสนอราคา')}</b><div>${en ? (dco ? 'ใบเสนอราคางานเปลี่ยนแบบ' : 'ใบเสนอราคา') : (dco ? 'CHANGE ORDER QUOTATION' : 'QUOTATION')}</div><div>${T('เลขที่', 'No.')} <b style="font-size:11pt">${esc(q.no || '(ร่าง)')}</b></div><div>${T('วันที่', 'Date')} ${dmy(q.apAt || Date.now())}</div></div></div>
     ${draft ? '<div class="dr">DRAFT — ยังไม่ผ่านการอนุมัติของผู้บริหาร ห้ามส่งลูกค้า</div>' : ''}
-    <div class="inf"><div><span>${T('ลูกค้า', 'Customer')}</span><b>${esc(q.cust)}</b></div><div><span>${T('โครงการ', 'Project')}</span><b>${esc(p ? [projName(p), projCode(p)].filter(Boolean).join(' · ') : (q.site || '-'))}</b></div>
+    <div class="inf"><div><span>${T('ลูกค้า', 'Customer')}</span><b>${esc(q.cust)}${q.custAddr ? `<small style="display:block;font-weight:400">${esc(q.custAddr)}</small>` : ''}${q.custTax ? `<small style="display:block;font-weight:400">${T('เลขประจำตัวผู้เสียภาษี', 'Tax ID')} ${esc(q.custTax)}</small>` : ''}</b></div><div><span>${T('โครงการ', 'Project')}</span><b>${esc(p ? [projName(p), projCode(p)].filter(Boolean).join(' · ') : (q.site || '-'))}</b></div>
       <div><span>${T('เรียน', 'Attention')}</span><b>${esc(q.attn || '-')}</b></div><div><span>${T('สถานที่', 'Location')}</span><b>${esc(q.site || '-')}</b></div>
       <div><span>${T('เรื่อง', 'Subject')}</span><b>${esc(q.title)}</b></div><div><span>${T('พื้นที่', 'Area')}</span><b>${esc(q.area || '-')}</b></div></div>
     ${dco ? `<div class="inf dc"><div><span>${T('ผู้สั่งเปลี่ยนแบบ', 'Instructed by')}</span><b>${esc([en ? (DCO_BY.find(x => x[0] === d.by) || [])[2] : optOf(DCO_BY, d.by), d.byName].filter(Boolean).join(' · ') || '-')}</b></div><div><span>${T('อ้างอิง', 'Reference')}</span><b>${esc([en ? (DCO_REF.find(x => x[0] === d.ref) || [])[2] : optOf(DCO_REF, d.ref), d.refNo].filter(Boolean).join(' · ') || '-')}</b></div>
@@ -1160,6 +1163,14 @@ async function copyTsv(q) { const c = calc(q); let n = 0; const R = [['ที่
 async function leaveEdit() { if (APP.dirty) { const r = await dlg({ title: 'ยังไม่ได้บันทึก', text: 'บันทึกร่างก่อนออกไหม?', ok: 'บันทึกแล้วออก', cancel: 'ออกโดยไม่บันทึก' }); if (r && !(await save(true))) return false; } APP.cur = null; APP.dirty = false; return true; }
 document.addEventListener('click', async (e) => {
   const t = e.target;
+  if (t.closest('#edCustPull')) { e.preventDefault(); const q = C(); if (!q) return; const p = APP.projects.find(x => x.id === ($('edScope').value || q.pid));   // v1.11.0
+    if (!p) { toast('เลือกโครงการก่อน (งานนอกโครงการไม่มีข้อมูลตั้งค่า)'); return; } const K = custOf(p);
+    if (!K.custAddr && !K.attn && !((APP.parties || {})[p.id] || {}).owner) { toast('โครงการนี้ยังไม่ได้กรอก Owner ในหน้า “ตั้งค่าโครงการ” — ใช้ชื่อลูกค้าเดิม', 3600); }
+    const M = { cust: 'edCust', attn: 'edAttn', custAddr: 'edCustAddr', custTax: 'edCustTax', site: 'edSite' };
+    const chg = Object.keys(M).filter(k => K[k] && String(q[k] || '').trim() !== K[k]);
+    if (!chg.length) { toast('ข้อมูลตรงกับตั้งค่าโครงการแล้ว'); return; }
+    if (chg.some(k => String(q[k] || '').trim()) && !(await dlg({ title: 'ดึงข้อมูลจากตั้งค่าโครงการ', text: 'จะแทนค่าเดิม ' + chg.length + ' ช่อง:\n' + chg.map(k => '• ' + ({ cust: 'ลูกค้า', attn: 'เรียน', custAddr: 'ที่อยู่', custTax: 'เลขผู้เสียภาษี', site: 'สถานที่' }[k]) + ': ' + K[k]).join('\n'), ok: 'แทนค่า' }))) return;
+    chg.forEach(k => { q[k] = K[k]; $(M[k]).value = K[k]; }); touch(); toast('ดึงข้อมูลลูกค้าจากตั้งค่าโครงการแล้ว ' + chg.length + ' ช่อง'); return; }
   const z = t.closest('[data-zoom]'); if (z) { const q = APP.screen === 'edit' ? C() : VQ(); const a = q && (q.atts || []).find(x => x.id === z.dataset.zoom); if (a) openViewer(a, APP.screen === 'edit', APP.screen === 'edit' ? renderAtts : null); return; }
   const mn = t.closest('[data-menu]'); if (mn) { rowMenu(mn.dataset.menu); return; }
   const o = t.closest('[data-open]'); if (o) { openQ(o.dataset.open); return; }
@@ -1205,7 +1216,7 @@ document.addEventListener('change', (e) => { const t = e.target, q = C();
   if (t.id === 'fScope') { APP.scope = t.value; renderList(); return; }
   if (t.id === 'edFile') { const F = [...t.files]; t.value = ''; addFiles(F); return; }
   if (!q || APP.screen !== 'edit') return;
-  if (t.id === 'edScope') { q.pid = t.value || ''; const p = APP.projects.find(x => x.id === q.pid); if (p) { if (!String(q.cust || '').trim()) { q.cust = p.client || ''; $('edCust').value = q.cust; } if (!String(q.site || '').trim()) { q.site = projName(p); $('edSite').value = q.site; } } $('edSub').textContent = scopeName(q); touch(); return; }
+  if (t.id === 'edScope') { q.pid = t.value || ''; const p = APP.projects.find(x => x.id === q.pid); if (p) { const K = custOf(p); ['cust', 'attn', 'custAddr', 'custTax', 'site'].forEach(k => { if (!String(q[k] || '').trim() && K[k]) { q[k] = K[k]; const el = $({ cust: 'edCust', attn: 'edAttn', custAddr: 'edCustAddr', custTax: 'edCustTax', site: 'edSite' }[k]); if (el) el.value = q[k]; } }); } $('edSub').textContent = scopeName(q); touch(); return; }
   if (t.id === 'sShow') { q.ohpShow = t.checked; touch(); sumOut(); return; }
   if (t.dataset.ak) { const a = q.atts.find(x => x.id === t.dataset.ak); if (a) { a.kind = t.value; touch(); } return; }
   if (t.dataset.aai) { const a = q.atts.find(x => x.id === t.dataset.aai); if (a) { a.inAi = t.checked; touch(); } return; }

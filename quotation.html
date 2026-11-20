@@ -355,9 +355,11 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
             <label class="f w2"><span>ใช้กับ</span><select id="edScope"></select></label>
             <label class="f w2"><span>เรื่อง / ชื่องาน <i style="color:var(--bad)">*</i></span><input id="edTitleIn" maxlength="160" placeholder="เช่น งานตกแต่งห้องประชุมชั้น 3"></label>
             <label class="f"><span>พื้นที่ / ห้อง</span><input id="edArea" maxlength="120" placeholder="เช่น ห้อง 1205 · Lobby ชั้น 1"></label>
-            <label class="f"><span>ลูกค้า / ผู้ว่าจ้าง <i style="color:var(--bad)">*</i></span><input id="edCust" maxlength="160"></label>
+            <label class="f"><span>ลูกค้า / ผู้ว่าจ้าง <i style="color:var(--bad)">*</i> <button type="button" class="btn sm" id="edCustPull" style="min-height:28px;padding:0 9px;font-size:12px;margin-left:4px" title="ดึงชื่อ · ที่อยู่ · เลขผู้เสียภาษี จากหน้า “ตั้งค่าโครงการ”">↻ ดึงจากตั้งค่าโครงการ</button></span><input id="edCust" maxlength="160"></label>
             <label class="f"><span>เรียน (ผู้รับเอกสาร)</span><input id="edAttn" maxlength="120"></label>
             <label class="f"><span>สถานที่ทำงาน</span><input id="edSite" maxlength="200"></label>
+            <label class="f"><span>ที่อยู่ลูกค้า (ออกเอกสาร)</span><input id="edCustAddr" maxlength="300"></label>
+            <label class="f"><span>เลขประจำตัวผู้เสียภาษีลูกค้า</span><input id="edCustTax" maxlength="20" inputmode="numeric"></label>
             <label class="f w2"><span>รายละเอียดงาน / ขอบเขตโดยย่อ (ผู้อนุมัติและ AI อ่านส่วนนี้)</span><textarea id="edDesc" maxlength="2000" placeholder="เช่น รื้อฝ้าเดิม ทำฝ้ายิปซัมใหม่ ผนังกรุไม้วีเนียร์ด้าน A ตามรูปด้าน EL-02 ตู้บิวท์อินยาว 3.20 ม."></textarea></label>
           </div>
         </div>
@@ -469,7 +471,7 @@ table.vq td small{display:block;color:var(--mut);font-size:12px}
 
 <script src="vendor/supabase.js"></script>
 <script src="wctag.js?v=1.2.2"></script>
-<script src="quotation.js?v=1.10.0"></script>
+<script src="quotation.js?v=1.11.0"></script>
 <script src="pm-nav.js?v=1.3.0"></script>
 <script src="/wchl.js?v=1.0.0"></script><!-- v1.439.0 search-hl: ไฮไลต์คำค้น -->
 </body>
