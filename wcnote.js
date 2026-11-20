@@ -15,7 +15,7 @@
 (function () {
   'use strict';
   if (window.WCNote) return;
-  const VER = '1.1.0';   // 1.1.0: แยกแท็บ 🔒 ส่วนตัว / 👥 สาธารณะ (โครงการ) ชัดเจน + ตัวกรอง “เฉพาะของฉัน” · 1.0.1: ค้นหาแล้วไฮไลต์คำที่พบ (สีเหลือง) + บอกจำนวนที่พบ
+  const VER = '1.2.0';   // 1.2.0: เรียงตามวันที่จะถึงก่อน (กำลังจะถึง → เลยกำหนด → ไม่มีกำหนดวัน → เสร็จแล้ว) · 1.1.0: แยกแท็บ 🔒 ส่วนตัว / 👥 สาธารณะ (โครงการ) ชัดเจน + ตัวกรอง “เฉพาะของฉัน” · 1.0.1: ค้นหาแล้วไฮไลต์คำที่พบ (สีเหลือง) + บอกจำนวนที่พบ
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const norm = (s) => String(s || '').trim().toLowerCase();
   const pad = (n) => String(n).padStart(2, '0');
@@ -25,6 +25,12 @@
     const day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(); const dd = Math.round((day(t) - day(d)) / 864e5);
     return dd === 0 ? 'วันนี้ ' + hm : dd === 1 ? 'เมื่อวาน ' + hm : pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear(); };
   const daysTo = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!m) return null; const a = new Date(+m[1], +m[2] - 1, +m[3]); const t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((a - t) / 864e5); };
+  // เรียง: กำลังจะถึง (วันนี้ → ไกล) · เลยกำหนด (เพิ่งเลย → นานแล้ว) · ไม่มีกำหนดวัน (ล่าสุดก่อน)
+  const byDue = (L) => { const up = [], late = [], none = [];
+    L.forEach(x => { const d = daysTo(x.due); if (d == null) none.push(x); else if (d >= 0) up.push(x); else late.push(x); });
+    const ds = (a, b) => String(a.due).localeCompare(String(b.due));
+    up.sort(ds); late.sort((a, b) => ds(b, a)); none.sort((a, b) => String(b.editedAt || b.at || '').localeCompare(String(a.editedAt || a.at || '')));
+    return { up, late, none }; };
   const dueChip = (iso, done) => { const d = daysTo(iso); if (d == null) return ''; const cls = done ? 'ok' : d < 0 ? 'late' : d <= 2 ? 'soon' : '';
     const tx = done ? 'เสร็จแล้ว' : d < 0 ? 'เลยกำหนด ' + (-d) + ' วัน' : d === 0 ? 'วันนี้' : d === 1 ? 'พรุ่งนี้' : 'อีก ' + d + ' วัน';
     return `<span class="wn-tg ${cls}">⏰ ${esc(dmy(iso))} · ${tx}</span>`; };
@@ -163,8 +169,10 @@
       return `<div class="wn-chips"><button class="wn-chip${!S.proj ? ' on' : ''}" data-pj="">ทุกโครงการ</button>${ids.map(id => `<button class="wn-chip${S.proj === id ? ' on' : ''}" data-pj="${esc(id)}">${esc(pname(id))}</button>`).join('')}</div>`; };
     const byProj = (L) => L.filter(n => !S.proj || n._pid === S.proj);
     const newest = (a, b) => String(b.editedAt || b.at || '').localeCompare(String(a.editedAt || a.at || ''));
+    const groups = (L, card) => { const g = byDue(L), sec = (t, A) => A.length ? '<div class="wn-sec">' + t + ' (' + A.length + ')</div>' + A.map(card).join('') : '';
+      return sec('📅 กำลังจะถึง', g.up) + sec('⚠️ เลยกำหนด', g.late) + sec('🗒 ไม่มีกำหนดวัน', g.none); };
     const listDone = (L, em) => { const open = L.filter(n => !n.done), dn = L.filter(n => n.done);
-      return open.length || dn.length ? open.map(n => noteCard(n, d)).join('') + (dn.length ? '<div class="wn-sec">เสร็จแล้ว</div>' + dn.slice(0, 30).map(n => noteCard(n, d)).join('') : '') : em; };
+      return open.length || dn.length ? groups(open, n => noteCard(n, d)) + (dn.length ? '<div class="wn-sec">✓ เสร็จแล้ว</div>' + dn.slice(0, 30).map(n => noteCard(n, d)).join('') : '') : em; };
     if (S.tab === 'mine') {
       const L = byProj(d.privN).filter(n => match(n.text)).sort(newest); chips = projChips(d.privN);
       body = '<div class="wn-hint" style="padding:2px 2px 0">🔒 บันทึกส่วนตัว — เห็นเฉพาะคุณ (👤 = แชร์เฉพาะคนที่แท็ก)</div>' + listDone(L, '<div class="wn-em">ยังไม่มีบันทึกส่วนตัว<br>กด “＋ บันทึกใหม่” แล้วเลือก “🔒 ส่วนตัว” — เห็นคนเดียว<br>ใส่วันที่แล้วขึ้นในแท็บ “งานค้าง” / ลงปฏิทินได้</div>');
@@ -181,7 +189,7 @@
         || '<div class="wn-em">ไม่มีเรื่องค้าง — ยังไม่มีใครแท็กคุณ</div>';
     } else {
       const L = d.todo.filter(x => match(x.text));
-      body = L.length ? '<div class="wn-hint" style="padding:2px 2px 0">ติ๊กช่องเมื่อทำเสร็จ · เรียงตามกำหนดส่ง</div>' + L.map(x => x._rem ? remCard(x) : todoNote(x, d)).join('')
+      body = L.length ? '<div class="wn-hint" style="padding:2px 2px 0">ติ๊กช่องเมื่อทำเสร็จ · วันที่ใกล้ถึงขึ้นก่อน</div>' + groups(L, x => x._rem ? remCard(x) : todoNote(x, d))
         : '<div class="wn-em">ไม่มีงานค้าง 🎉<br>งานคงค้างที่ PM มอบหมายให้คุณ และโน้ตที่มีกำหนดวัน จะขึ้นที่นี่</div>';
     }
     bx.innerHTML = `<div class="wn-hd"><span class="ic">📝</span><b>บันทึก · งานของฉัน<small>${esc(d.me.name || '')} · บันทึกส่วนตัว / โครงการ · แท็ก · งานค้าง</small></b><button class="wn-x" data-x aria-label="ปิด">✕</button></div>
