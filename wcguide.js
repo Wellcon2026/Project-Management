@@ -14,7 +14,7 @@
 (function () {
   'use strict';
   if (window.WCGuide) return;
-  const VER = '1.0.0';
+  const VER = '1.1.0';   // 1.1.0: ปุ่ม ▶ DEMO ตำแหน่งเดียวกันทุกหน้า (ขอบขวาของจอ) — รู้เองว่าอยู่หน้าไหน · มีบทสอนจูงมือ → จูงมือ · ไม่มี → สรุปทีละขั้น
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const T = {};   // key → tour
 
@@ -63,6 +63,58 @@
     { sel: '#btnSend', t: 'ส่งขออนุมัติ', d: 'ตรวจแล้วกดส่ง → PM + QS อนุมัติ → จัดซื้อสั่งของ → หน้างานรับของ', last: true },
   ] };
 
+  // ---------- บทสอน (แอปแยก · ชุด A) ----------
+  T['tab:quo'] = { title: 'Quotation Maker · ใบเสนอราคา', steps: [
+    { sel: '[data-act="new"]', t: 'เริ่มใบเสนอราคาใหม่', d: 'กดปุ่มนี้เพื่อเริ่มใบใหม่', act: 'click', opt: true },
+    { sel: '#edKind', t: 'ประเภทงาน', d: 'พื้นที่เดียว · เฟอร์นิเจอร์ · ซ่อมความเสียหาย · งานเปลี่ยนแบบ — เลือกให้ตรงงาน' },
+    { sel: '#edTitleIn', t: 'ชื่อเรื่อง', d: 'พิมพ์ชื่องาน เช่น “ตู้ TV ผนัง A ห้อง 1205” แล้วกด ถัดไป', act: 'input' },
+    { sel: '#edCustPull', t: 'ข้อมูลลูกค้า', d: 'กดดึงชื่อ / ที่อยู่ / เลขภาษีลูกค้าจาก Project Setup ได้เลย', opt: true },
+    { sel: '#edDrop', t: 'แนบแบบ / รูป', d: 'แนบแบบแปลน · รูปด้าน · Perspective · สเปก ให้ AI อ่าน' },
+    { sel: '[data-act="aiRun"]', t: 'ให้ AI ถอดรายการ', d: 'AI ถอดรายการ + ปริมาณ + ที่มา (ไม่ใส่ราคา) — QS ตรวจทุกรายการ', opt: true },
+    { sel: '[data-act="rateAdd"]', t: 'เพิ่มจากราคากลาง', d: 'ราคาเริ่มจากราคากลาง ปรับได้ตามเงื่อนไขงาน (ระบบแสดง % ที่ปรับ)', opt: true },
+    { sel: '#edItems', t: 'ตรวจรายการ', d: 'ตรวจชื่อ · หน่วย · จำนวน · ราคา ทีละบรรทัด' },
+    { sel: '#edSum', t: 'สรุปยอด', d: 'ยอดรวม · VAT 7% (ระบุรวม / ไม่รวม VAT) · ตรวจก่อนส่ง' },
+    { sel: '[data-act="send"]', t: 'ส่งขออนุมัติ', d: 'กดส่งเมื่อพร้อม → ผู้อนุมัติตรวจ → อนุมัติแล้วพิมพ์ / PDF ส่งลูกค้า', last: true },
+  ] };
+  T['tab:qm'] = { title: 'Takeoff · วัดหน้างาน', steps: [
+    { sel: '#btnNew', t: 'เริ่มวัดใหม่', d: 'กดเพื่อเลือกแบบที่จะวัด', act: 'click', opt: true },
+    { sel: '#pickBody', t: 'เลือกแบบ', d: 'แตะเลือกแบบที่ QS เตรียมไว้ 1 แผ่น — หรืออัปโหลดแบบ / รูปเอง', act: 'click', opt: true },
+    { sel: '#mTools', t: 'เครื่องมือวัด', d: 'ความยาว · พื้นที่ · นับจำนวน — เลือกให้ตรงงาน' },
+    { sel: '#cvw || #cv', t: 'วัดบนแบบ', d: 'แตะจุดบนแบบเพื่อวัด — ตั้งสเกลก่อนวัดครั้งแรก', opt: true },
+    { sel: '#mQty', t: 'ปริมาณที่ได้', d: 'ระบบคำนวณให้ทันที', opt: true },
+    { sel: '#btnSave', t: 'บันทึกรายการ', d: 'ใส่ชื่อห้อง / งาน แล้วบันทึก', opt: true },
+    { sel: '#listBody', t: 'รายการที่วัดแล้ว', d: 'แตะรายการเพื่อแก้ไข · ↶ ย้อนได้', opt: true },
+    { sel: '[data-f="sel"]', t: 'ลบหลายรายการ', d: 'กด ☑ เลือกลบหลายรายการ แล้วแตะเลือก', opt: true },
+    { sel: '#btnSubmit', t: 'ส่งให้ QS ตรวจ', d: 'ครบแล้วส่งให้ QS ตรวจ', last: true },
+  ] };
+  T['tab:pbook'] = { title: 'Price Book · ราคากลาง', steps: [
+    { sel: '#q', t: 'ค้นหารายการ', d: 'พิมพ์รหัส / ชื่อ / สเปก', act: 'input' },
+    { sel: '.chip', t: 'หมวดงาน', d: 'แตะหมวดเพื่อกรองรายการ', opt: true },
+    { sel: '.tbw', t: 'ตารางราคากลาง', d: 'ราคาชุดเดียวของบริษัท — ใช้เป็นฐานเริ่มทำราคาขาย', opt: true },
+    { sel: '[data-act="edit"]', t: 'เสนอแก้ราคา', d: 'QS แก้ / เพิ่มรายการ แล้วส่งคำขอ → Director → Admin อนุมัติก่อนเผยแพร่', opt: true },
+    { sel: '[data-act="xlsOut"]', t: 'ดาวน์โหลด Excel', d: 'ส่งออกเป็น Excel', opt: true },
+    { sel: '[data-act="xlsIn"]', t: 'นำเข้า Excel', d: 'นำเข้าแล้วระบบแสดงรายการใหม่ / แก้ / เปลี่ยน ≥ 20% ให้ตรวจก่อน', opt: true },
+    { sel: '[data-tab="req"]', t: 'คำขอแก้ราคา', d: 'ติดตามคำขอที่รออนุมัติ · ข้อมูลราคาเป็นข้อมูลภายใน ห้ามส่งออกนอกบริษัท', last: true },
+  ] };
+  T['tab:pdf'] = { title: 'PDF Maker · แก้ไขเอกสาร', steps: [
+    { sel: '[data-act="open"] || #drop', t: 'เปิดไฟล์ PDF', d: 'กดเลือกไฟล์ หรือลากไฟล์มาวาง — เปิดไฟล์แล้วกด ถัดไป' },
+    { sel: '#strip', t: 'หน้าเอกสาร', d: 'แตะหน้าเพื่อดู · ลากสลับ · แทรก / ลบหน้า', opt: true },
+    { sel: '#side', t: 'เครื่องมือ', d: 'พิมพ์ข้อความ · ปิดทับ · ลายเซ็น · แทรกรูป / PDF', opt: true },
+    { sel: '[data-mode="text"]', t: 'พิมพ์ข้อความ / กรอกฟอร์ม', d: 'เลือก แล้วแตะบนหน้าเพื่อพิมพ์', opt: true },
+    { sel: '[data-act="sigPick"]', t: 'ลายเซ็น', d: 'ใส่ลายเซ็น / ตราประทับ', opt: true },
+    { sel: '#fAddPdf || #fAddImg', t: 'รวมไฟล์', d: 'แทรก PDF / รูปอื่นเข้ามาในเอกสาร', opt: true },
+    { sel: '#hbSave', t: 'บันทึก', d: 'บันทึกเป็นไฟล์ใหม่ — หรือ 🖨 พิมพ์', last: true },
+  ] };
+  T['tab:photo'] = { title: 'Photo Editor · แต่งรูปผลงาน', steps: [
+    { sel: '[data-act="open"] || #drop', t: 'เลือกรูป', d: 'กดเลือก หรือลากรูปมาวาง — เปิดรูปแล้วกด ถัดไป' },
+    { sel: '[data-panel="geo"]', t: 'ครอป · หมุน · ดัดเส้นตรง', d: 'จัดมุมรูปให้ตรง', opt: true },
+    { sel: '[data-panel="lc"]', t: 'แสง · สี', d: 'ปรับแสง / สีให้สวย', opt: true },
+    { sel: '[data-panel="fx"]', t: 'เอฟเฟกต์', d: 'เลือกเอฟเฟกต์', opt: true },
+    { sel: '#tbBefore', t: 'ก่อน / หลัง', d: 'กดค้างเพื่อเทียบกับรูปเดิม', opt: true },
+    { sel: '#hbSave', t: 'บันทึก', d: 'บันทึกรูปที่แต่งแล้ว', opt: true },
+    { sel: '[data-act="batchOpen"]', t: 'แต่งหลายรูปพร้อมกัน', d: 'ใช้ค่าเดียวกันกับหลายรูป · เปลี่ยนชื่อไฟล์ทีละชุดได้', last: true },
+  ] };
+
   // ---------- หน้าจอ ----------
   const CSS = `
 .wg-blk{position:fixed;z-index:2147483200;background:transparent;pointer-events:auto}
@@ -86,7 +138,10 @@
 .wg-bub .lk{display:block;margin:2px 14px 0;font-size:12.5px;color:#8A6D3B;text-decoration:underline;background:none;border:0;padding:0;cursor:pointer;font-family:inherit}
 .wg-bub.shake{animation:wgs .35s}@keyframes wgs{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 @media(max-width:600px){.wg-bub{left:12px!important;right:12px;width:auto;top:auto!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))}}
-@media print{.wg-blk,.wg-spot,.wg-hand,.wg-bub{display:none!important}}`;
+@media print{.wg-blk,.wg-spot,.wg-hand,.wg-bub,#wc-demo-tab{display:none!important}}
+#wc-demo-tab{position:fixed;right:0;top:44%;z-index:2147483150;writing-mode:vertical-rl;display:flex;align-items:center;gap:6px;border:0;border-radius:14px 0 0 14px;background:#1C1B18;color:#E2BC66;padding:14px 9px 14px 8px;font:800 13px/1 'IBM Plex Sans Thai',system-ui,sans-serif;letter-spacing:.14em;cursor:pointer;box-shadow:-4px 6px 18px rgba(0,0,0,.28);-webkit-tap-highlight-color:transparent}
+#wc-demo-tab i{writing-mode:horizontal-tb;font-style:normal;width:22px;height:22px;border-radius:50%;background:#C9A961;color:#1C1B18;display:inline-flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:0;padding-left:2px;box-sizing:border-box}
+#wc-demo-tab:hover,#wc-demo-tab:focus-visible{background:#C9A961;color:#1C1B18;outline:none}#wc-demo-tab:hover i{background:#1C1B18;color:#E2BC66}`;
   function css() { if (document.getElementById('wg-css')) return; const s = document.createElement('style'); s.id = 'wg-css'; s.textContent = CSS; document.head.appendChild(s); }
 
   const vis = (el) => { if (!el || !el.isConnected) return false; const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return false; const st = getComputedStyle(el); return st.visibility !== 'hidden' && st.display !== 'none'; };
@@ -146,5 +201,18 @@
     document.body.appendChild(d); setTimeout(() => d.remove(), 3200); }
   // ตรวจว่าจุดของแต่ละขั้นเจอบนหน้าจอตอนนี้ไหม (ชุดทดสอบใช้ตรวจหลังแก้หน้าตา)
   function check(key) { const t = T[key]; if (!t) return null; return t.steps.map((s, i) => ({ i: i + 1, t: s.t, sel: s.sel, found: !!find(s.sel), opt: !!s.opt })); }
-  window.WCGuide = { VER, start, stop, has: (k) => !!T[k], register: (k, t) => { T[k] = t; }, check, keys: () => Object.keys(T), active: () => !!G.tour, done: (k) => { try { return !!localStorage.getItem('wg_done:' + k); } catch (e) { return false; } } };
+  // ---------- ปุ่ม ▶ DEMO ที่เดียวกันทุกหน้า ----------
+  // หน้าปัจจุบัน: Notes / Project Setup ที่เปิดอยู่ → หน้าหลักบอกผ่าน window.__wcDemoKey → แอปแยกบอกผ่าน <html data-demo-key>
+  const shown = (s) => { const e = document.querySelector(s); return !!e && vis(e); };
+  function curKey() { if (shown('.wn-ov .wn-bx:not(.ed)')) return 'note'; if (shown('.ws-ov .ws-bx')) return 'tab:setup';
+    return String(window.__wcDemoKey || document.documentElement.getAttribute('data-demo-key') || ''); }
+  const slidesHas = (k) => !!(window.WCDemo && WCDemo.has && WCDemo.has(k));
+  function openDemo() { const k = curKey(); if (T[k]) start(k); else if (slidesHas(k)) WCDemo.open(k, { slides: true }); }
+  function tabTick() { if (!document.body) return; const k = curKey(); const show = !!k && (!!T[k] || slidesHas(k)) && !G.tour && !document.querySelector('.wd-ov');
+    let b = document.getElementById('wc-demo-tab');
+    if (!b) { if (!show) return; css(); b = document.createElement('button'); b.id = 'wc-demo-tab'; b.type = 'button'; b.setAttribute('translate', 'no');
+      b.innerHTML = '<i>▶</i>DEMO'; b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openDemo(); }); document.body.appendChild(b); }
+    b.style.display = show ? '' : 'none'; b.title = 'Demo — สอนวิธีใช้หน้านี้ทีละขั้น' + (T[k] ? ' (จูงมือบนหน้าจอจริง)' : ''); b.setAttribute('aria-label', 'Demo วิธีใช้หน้านี้'); }
+  setInterval(tabTick, 500);
+  window.WCGuide = { VER, start, demo: openDemo, curKey, stop, has: (k) => !!T[k], register: (k, t) => { T[k] = t; }, check, keys: () => Object.keys(T), active: () => !!G.tour, done: (k) => { try { return !!localStorage.getItem('wg_done:' + k); } catch (e) { return false; } } };
 })();

@@ -12,7 +12,7 @@
 (function () {
   'use strict';
   if (window.WCDemo) return;
-  const VER = '1.2.0';   // 1.2.0: หน้าที่มีบทสอนแบบจูงมือ (wcguide.js) → ปุ่ม ? วิธีใช้ เปิดแบบจูงมือ · 1.1.2: 1.1.2: Setup → Project Setup · 1.1.1: ชื่อเรียกใหม่ PR / WO · Schedule Maker · Drawing Log · RFI & RFA · VO Tracker Log · 1.1.0: วิธีใช้อยู่ในหน้าใช้งาน (ปุ่ม ? วิธีใช้ ที่หัวหน้า) แทนปุ่มบนการ์ด —   // 1.0.2: ปุ่มมีสีตั้งแต่โหลดหน้า · 1.0.1: Role Home รวมเข้า My Space
+  const VER = '1.3.0';   // 1.3.0: ปุ่มเดียว ▶ DEMO ขอบขวา (wcguide.js) · 1.2.0: 1.2.0: หน้าที่มีบทสอนแบบจูงมือ (wcguide.js) → ปุ่ม ? วิธีใช้ เปิดแบบจูงมือ · 1.1.2: 1.1.2: Setup → Project Setup · 1.1.1: ชื่อเรียกใหม่ PR / WO · Schedule Maker · Drawing Log · RFI & RFA · VO Tracker Log · 1.1.0: วิธีใช้อยู่ในหน้าใช้งาน (ปุ่ม ? วิธีใช้ ที่หัวหน้า) แทนปุ่มบนการ์ด —   // 1.0.2: ปุ่มมีสีตั้งแต่โหลดหน้า · 1.0.1: Role Home รวมเข้า My Space
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   // key → ขั้นตอน [หัวข้อ, คำอธิบาย]
   const D = {
@@ -467,7 +467,7 @@
     ],
   };
   // ชื่อ key อื่นที่ใช้ demo ชุดเดียวกัน
-  const ALIAS = { 'nav:work': 'nav:inbox', 'nav:note': 'note', 'tab:proc': 'tab:procm', 'tab:mat': 'tab:procm', 'nav:subcon': 'tab:subcon' };
+  const ALIAS = { 'nav:changes': 'tab:changes', 'tab:store': 'nav:store', 'tab:parties': 'tab:setup', 'nav:work': 'nav:inbox', 'nav:note': 'note', 'tab:proc': 'tab:procm', 'tab:mat': 'tab:procm', 'nav:subcon': 'tab:subcon' };
   const keyOf = (k) => { k = String(k || ''); return D[k] ? k : (ALIAS[k] && D[ALIAS[k]] ? ALIAS[k] : ''); };
   const nm = (k) => { try { return window.WCFN ? { en: window.WCFN.name(k) || '', th: window.WCFN.desc(k) || '' } : { en: '', th: '' }; } catch (e) { return { en: '', th: '' }; } };
 
@@ -550,7 +550,7 @@
   function inject() { const R = document.documentElement; const k = R.getAttribute('data-demo-key'); if (!k || !keyOf(k)) return;
     const sel = R.getAttribute('data-demo-hdr') || '.hdr', light = R.hasAttribute('data-demo-light');
     document.querySelectorAll(sel).forEach(h => { if (h.querySelector('.wcdemo-hb')) return; h.insertAdjacentHTML('beforeend', hbtn(k, light)); }); }
-  if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined') { let q = 0; const soon = () => { if (q) return; q = requestAnimationFrame(() => { q = 0; inject(); }); };
+  if (false) { let q = 0; const soon = () => { if (q) return; q = requestAnimationFrame(() => { q = 0; inject(); }); };   // 1.3.0 เลิกใส่ปุ่มที่หัวหน้า — ใช้ปุ่ม ▶ DEMO ขอบขวา (wcguide.js) ที่เดียวทุกหน้า
     const go = () => { try { new MutationObserver(soon).observe(document.body, { childList: true, subtree: true }); inject(); } catch (e) {} };
     if (document.body) go(); else document.addEventListener('DOMContentLoaded', go); }
   window.WCDemo = { VER, open, close, btn: hbtn, has: (k) => !!keyOf(k), keys: () => Object.keys(D), steps: (k) => (D[keyOf(k)] || []).slice(), list: () => Object.keys(D).map(k => ({ key: k, ...nm(k), n: D[k].length })) };
