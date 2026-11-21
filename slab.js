@@ -12,10 +12,11 @@
        · แถบซูม % · แตะ 2 ครั้ง = ซูมจุดนั้น · ซูมไปชิ้นที่เลือก · เครื่องมือวัดระยะ
    - หน่วยโลก = ซม. · รูปวางที่ (0,0) ขนาด w·cmx × h·cmy (cmx / cmy = ซม. ต่อพิกเซล แยกแกน)
    - ทำงานในเบราว์เซอร์ทั้งหมด รูปไม่ถูกอัปโหลด · งานล่าสุดเก็บในเครื่อง (IndexedDB) · บันทึก / เปิดไฟล์งาน .json
+   v2.1.0 (21/11/2026) ผู้บริหารสั่ง: "adjust opacity 0-100% individual or all of the object" — ◐ ที่แถบบน (ทุกชิ้น) · แถบล่างของชิ้นที่เลือก (รายชิ้น / หลายชิ้น)
    ===================================================================== */
 (() => {
 'use strict';
-const VER = '2.0.0';
+const VER = '2.1.0';   // 2.1.0: ความทึบ 0–100% (พื้นชิ้น / เส้นตัด) รายชิ้น · ชิ้นที่เลือก · ทุกชิ้น
 if (window.WCSlab) return;
 const $ = (s, r) => (r || document).querySelector(s);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -34,7 +35,7 @@ const S = {
   shapes: [], guides: [], sel: [], tool: 'move', next: 1,
   shape: 'rect', sides: 6, repeat: false, freeMode: 'drag', nudge: 0.5,
   grid: { on: true, step: 10 }, guidesOn: true, snap: { on: true, grid: true, guide: true, edge: true }, dims: true,
-  joint: 3, defW: 45, defH: 120, color: '#E5484D', pat: { c: 3, r: 2, fill: false, cut: true },
+  opDef: 15, lineDef: 100, joint: 3, defW: 45, defH: 120, color: '#E5484D', pat: { c: 3, r: 2, fill: false, cut: true },
   view: { z: 1, ox: 0, oy: 0 }, fitZ: 1,
   cal: [], calLen: '', calAxis: 'both', persp: [], pw: '', ph: '', drawPts: [], meas: null, act: null,
   hover: null, snapHit: null, hist: [], redo: [], prevImg: null, cursor: null, panel: true, loupe: null,
@@ -48,8 +49,8 @@ const DB = { db: null,
   async put(k, v) { const d = await this.open(); if (!d) return; try { d.transaction('kv', 'readwrite').objectStore('kv').put(v, k); } catch (e) {} } };
 let saveT = 0;
 function autosave() { clearTimeout(saveT); saveT = setTimeout(async () => { if (!S.img) return; try { const blob = await new Promise((ok) => S.img.toBlob(ok, 'image/jpeg', 0.9)); await DB.put('last', { at: new Date().toISOString(), name: S.name, blob, st: snapData() }); } catch (e) {} }, 800); }
-function snapData() { return { cmx: S.cmx, cmy: S.cmy, scaled: S.scaled, lockRatio: S.lockRatio, shapes: S.shapes, guides: S.guides, grid: S.grid, snap: S.snap, guidesOn: S.guidesOn, joint: S.joint, defW: S.defW, defH: S.defH, next: S.next, color: S.color, shape: S.shape, sides: S.sides, dims: S.dims }; }
-function applyData(d) { ['cmx', 'cmy', 'scaled', 'lockRatio', 'joint', 'defW', 'defH', 'next', 'color', 'guidesOn', 'shape', 'sides', 'dims'].forEach((k) => { if (d[k] !== undefined) S[k] = d[k]; });
+function snapData() { return { cmx: S.cmx, cmy: S.cmy, scaled: S.scaled, lockRatio: S.lockRatio, shapes: S.shapes, guides: S.guides, grid: S.grid, snap: S.snap, guidesOn: S.guidesOn, joint: S.joint, defW: S.defW, defH: S.defH, next: S.next, color: S.color, shape: S.shape, sides: S.sides, dims: S.dims, opDef: S.opDef, lineDef: S.lineDef }; }
+function applyData(d) { ['cmx', 'cmy', 'scaled', 'lockRatio', 'joint', 'defW', 'defH', 'next', 'color', 'guidesOn', 'shape', 'sides', 'dims', 'opDef', 'lineDef'].forEach((k) => { if (d[k] !== undefined) S[k] = d[k]; });
   S.shapes = (d.shapes || d.pieces || []).map((p) => ({ t: 'rect', rot: 0, ...p })); S.guides = (d.guides || []).map((g) => ({ ...g })); if (d.grid) S.grid = { ...S.grid, ...d.grid }; if (d.snap) S.snap = { ...S.snap, ...d.snap }; }
 // ---------- ย้อนกลับ / ทำซ้ำ ----------
 function push() { S.hist.push(JSON.stringify(snapData())); if (S.hist.length > 80) S.hist.shift(); S.redo = []; }
@@ -127,6 +128,9 @@ const CSS = `
 #slab .sl-menu{position:absolute;top:42px;z-index:7;background:#FFFDF8;color:#22231C;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.35);padding:8px;min-width:240px}
 #slab .sl-menu label{display:flex;align-items:center;gap:9px;padding:9px 8px;border-radius:8px;cursor:pointer;font-size:13.5px}#slab .sl-menu label:hover{background:#F3EDE2}
 #slab .sl-menu input{width:19px;height:19px;accent-color:#0E7490}
+#slab .sl-opi{display:inline-block;flex:none;width:14px;height:14px;border-radius:50%;border:1.5px solid currentColor;background:linear-gradient(90deg,currentColor 50%,transparent 50%);vertical-align:-2px}
+#slab .sl-opr{display:flex;align-items:center;gap:8px;padding:6px 8px;font-size:13px}#slab .sl-opr span{width:76px;color:#4A4840}#slab .sl-opr input{flex:1;width:auto;height:24px;accent-color:#C9A961}#slab .sl-opr b{width:40px;text-align:right}
+#slab .sl-fb input[type=range]{width:96px;height:26px;padding:0;border:0;background:transparent;accent-color:#C9A961}#slab .sl-fb .opv{min-width:34px;font-size:12px;color:#F6F1E8}
 #slab .sl-cw{flex:1;min-height:0;position:relative;background:#1E1C18;touch-action:none;overflow:hidden;user-select:none;-webkit-user-select:none}
 #slab .sl-cw canvas.main{position:absolute;inset:0;width:100%;height:100%;display:block}
 #slab .sl-loupe{position:absolute;width:150px;height:150px;border-radius:50%;border:3px solid #C9A961;box-shadow:0 8px 24px rgba(0,0,0,.55);pointer-events:none;z-index:4;background:#111}
@@ -213,8 +217,14 @@ function bar() { const g = S.grid, sn = S.snap;
     <select data-in="gstep" title="ระยะตาราง (ซม.)">${STEPS.map((v) => `<option value="${v}"${v === g.step ? ' selected' : ''}>${v} ซม.</option>`).join('')}${STEPS.indexOf(g.step) < 0 ? `<option value="${g.step}" selected>${g.step} ซม.</option>` : ''}<option value="x">กำหนดเอง…</option></select>
     <button class="sl-tg${S.guidesOn ? ' on' : ''}" data-sl="guides" title="แสดง / ซ่อนเส้นไกด์">┆ ไกด์ ${S.guides.length || ''}</button>
     <button class="sl-tg${sn.on ? ' on' : ''}" data-sl="snapmenu" data-g="sl-snap" title="ตั้งค่า Snap">🧲 Snap ${sn.on ? 'เปิด' : 'ปิด'} ▾</button>
+    <button class="sl-tg${S.opMenu ? ' on' : ''}" data-sl="opmenu" data-g="sl-op" title="ความทึบชิ้นงานทุกชิ้น"><i class="sl-opi"></i> ทึบ ${S.opDef}%</button>
     <button class="sl-tg wide${S.dims ? ' on' : ''}" data-sl="dims" title="แสดงขนาดบนชิ้นงาน">↔ ขนาด</button>
     <span class="sl-zoom" data-g="sl-zoom"><button class="sl-tg" data-sl="zout" title="ซูมออก">－</button><input type="range" data-in="zoom" min="-2" max="6" step="0.05" value="${Math.log2(S.view.z / (S.fitZ || 1))}" aria-label="ซูม"><button class="sl-tg" data-sl="zin" title="ซูมเข้า">＋</button><b id="slZp">${zoomPct()}%</b><button class="sl-tg" data-sl="fit" title="พอดีจอ">⤢</button></span>
+    ${S.opMenu ? `<div class="sl-menu sl-opm" style="left:${Math.min(S.opMenuX || 200, Math.max(8, W - 280))}px"><b style="display:flex;align-items:center;gap:6px;padding:4px 8px"><i class="sl-opi"></i> ความทึบ · ทุกชิ้น</b>
+      <div class="sl-opr"><span>พื้นชิ้นงาน</span><input type="range" min="0" max="100" step="1" data-opall="f" value="${S.opDef}"><b data-opv="f">${S.opDef}%</b></div>
+      <div class="sl-row" style="padding:0 8px">${[0, 15, 25, 50, 75, 100].map((v) => `<button class="sl-chip${S.opDef === v ? ' on' : ''}" data-oppre="${v}">${v}%</button>`).join('')}</div>
+      <div class="sl-opr"><span>เส้นตัด</span><input type="range" min="0" max="100" step="1" data-opall="l" value="${S.lineDef}"><b data-opv="l">${S.lineDef}%</b></div>
+      <div class="sl-mut" style="padding:4px 8px">0% = เห็นลายหินเต็มที่ · ปรับรายชิ้น: แตะชิ้น แล้วใช้แถบ “พื้น / เส้น” ด้านล่าง</div></div>` : ''}
     ${S.snapMenu ? `<div class="sl-menu" style="left:${Math.min(S.snapMenuX || 200, Math.max(8, W - 260))}px"><label><input type="checkbox" data-snap="on"${sn.on ? ' checked' : ''}> <b>เปิด Snap</b></label><div style="border-top:1px solid #EEE6D8;margin:4px 0"></div>
       <label><input type="checkbox" data-snap="grid"${sn.grid ? ' checked' : ''}${sn.on ? '' : ' disabled'}> ติดตาราง</label><label><input type="checkbox" data-snap="guide"${sn.guide ? ' checked' : ''}${sn.on ? '' : ' disabled'}> ติดเส้นไกด์</label>
       <label><input type="checkbox" data-snap="edge"${sn.edge ? ' checked' : ''}${sn.on ? '' : ' disabled'}> ติดขอบชิ้นงาน / ขอบแผ่น (+ ร่อง)</label><div class="sl-mut" style="padding:4px 8px">กด Alt ค้างขณะลาก = ปิด Snap ชั่วคราว</div></div>` : ''}`; }
@@ -285,8 +295,8 @@ function fbar() { const el = $('#slFb', root); if (!el) return; if (!S.img) { el
   else if (S.tool === 'gv' || S.tool === 'gh') h = `<span>${S.tool === 'gv' ? '┆ แตะเพื่อวางเส้นไกด์แนวตั้ง' : '┅ แตะเพื่อวางเส้นไกด์แนวนอน'} · ลากเส้นเพื่อย้าย · ลากออกนอกแผ่น = ลบ</span><span class="sp"></span><button data-tool="move">เสร็จ</button>`;
   else { const s = one(); const L = selected();
     if (s) h = `<span class="bx" data-g="sl-insp"><b>${esc(TNAME[s.t])} #${esc(s.n)}</b><input data-pe="w" class="sm" type="number" step="0.1" min="1" value="${fmt(s.w)}" title="กว้าง (ซม.)"${s.lock ? ' disabled' : ''}>${s.t === 'sq' || s.t === 'circle' ? '' : `<span>×</span><input data-pe="h" class="sm" type="number" step="0.1" min="1" value="${fmt(s.h)}" title="ยาว (ซม.)"${s.lock ? ' disabled' : ''}>`}<span class="lb">ซม.</span><input data-pe="rot" class="sm" type="number" step="1" value="${Math.round(s.rot || 0)}" title="มุม (องศา)"${s.lock ? ' disabled' : ''}><span class="lb">°</span></span>
-      <span class="bx"><button data-sl="rot" title="หมุน 90°"${s.lock ? ' disabled' : ''}>⟳ 90°</button><button data-sl="dup" title="ทำสำเนา">⧉</button><button data-sl="lock" class="${s.lock ? 'on' : ''}" title="ล็อก กันขยับโดยไม่ตั้งใจ">${s.lock ? '🔒' : '🔓'}</button><button data-sl="zsel" title="ซูมไปที่ชิ้นนี้">🔍</button><button class="dg" data-sl="del" title="ลบ">🗑</button></span>${s.lock ? '' : nudgePad('sel')}`;
-    else if (L.length > 1) h = `<span><b>เลือก ${L.length} ชิ้น</b></span><span class="bx"><button data-sl="rot">⟳ 90°</button><button data-sl="dup">⧉ สำเนา</button><button data-sl="zsel">🔍</button><button class="dg" data-sl="del">🗑 ลบ</button></span>${nudgePad('sel')}`;
+      <span class="bx"><button data-sl="rot" title="หมุน 90°"${s.lock ? ' disabled' : ''}>⟳ 90°</button><button data-sl="dup" title="ทำสำเนา">⧉</button><button data-sl="lock" class="${s.lock ? 'on' : ''}" title="ล็อก กันขยับโดยไม่ตั้งใจ">${s.lock ? '🔒' : '🔓'}</button><button data-sl="zsel" title="ซูมไปที่ชิ้นนี้">🔍</button><button class="dg" data-sl="del" title="ลบ">🗑</button></span><span class="bx" data-g="sl-opsel" title="ความทึบของชิ้นที่เลือก"><span class="lb"><i class="sl-opi"></i> พื้น</span><input type="range" min="0" max="100" step="1" data-opsel="f" value="${Math.round(fo(L[0]) * 100)}"><b class="opv" data-opv="sf">${Math.round(fo(L[0]) * 100)}%</b><span class="lb">เส้น</span><input type="range" min="0" max="100" step="1" data-opsel="l" value="${Math.round(lo(L[0]) * 100)}"><b class="opv" data-opv="sl">${Math.round(lo(L[0]) * 100)}%</b></span>${s.lock ? '' : nudgePad('sel')}`;
+    else if (L.length > 1) h = `<span><b>เลือก ${L.length} ชิ้น</b></span><span class="bx"><button data-sl="rot">⟳ 90°</button><button data-sl="dup">⧉ สำเนา</button><button data-sl="zsel">🔍</button><button class="dg" data-sl="del">🗑 ลบ</button></span><span class="bx" data-g="sl-opsel" title="ความทึบของชิ้นที่เลือก"><span class="lb"><i class="sl-opi"></i> พื้น</span><input type="range" min="0" max="100" step="1" data-opsel="f" value="${Math.round(fo(L[0]) * 100)}"><b class="opv" data-opv="sf">${Math.round(fo(L[0]) * 100)}%</b><span class="lb">เส้น</span><input type="range" min="0" max="100" step="1" data-opsel="l" value="${Math.round(lo(L[0]) * 100)}"><b class="opv" data-opv="sl">${Math.round(lo(L[0]) * 100)}%</b></span>${nudgePad('sel')}`;
     else if (!S.scaled) h = '<span>ขั้นต่อไป: <b>📏 ตั้งสเกล</b> — วาง 2 จุดที่รู้ระยะจริง</span>';
     else if (!S.shapes.length) h = '<span>ขั้นต่อไป: เลือก <b>▭ รูปทรง</b> หรือ <b>✏ วาดอิสระ</b> ที่แถบเครื่องมือ</span>'; }
   el.innerHTML = h; }
@@ -339,7 +349,7 @@ async function perspOk() { const W0 = parseFloat(S.pw), H0 = parseFloat(S.ph); i
     S.prevImg = { img: S.img, st: JSON.stringify(snapData()), hist: S.hist.slice() }; push(); S.histImgAt = S.hist.length;
     S.img = out; S.cmx = S.cmy = W0 / ow; S.scaled = true; S.shapes = []; S.guides = []; S.sel = []; S.persp = []; S.act = null; S.tool = 'move'; fit(); ui(); autosave(); toast('ดัดรูปแล้ว — แผ่นจริง ' + fmt(W0) + ' × ' + fmt(H0) + ' ซม.'); }); }
 // ---------- ชิ้นงาน ----------
-function addShape(t, x, y, w, h, extra) { if (t === 'sq' || t === 'circle') h = w; const p = { id: uid(), n: String(S.next++), t, x: r1(x), y: r1(y), w: r1(w), h: r1(h), rot: 0, c: S.color, ...(t === 'poly' ? { sides: S.sides } : {}), ...(extra || {}) }; S.shapes.push(p); return p; }
+function addShape(t, x, y, w, h, extra) { if (t === 'sq' || t === 'circle') h = w; const p = { id: uid(), n: String(S.next++), t, x: r1(x), y: r1(y), w: r1(w), h: r1(h), rot: 0, c: S.color, op: S.opDef, lo: S.lineDef, ...(t === 'poly' ? { sides: S.sides } : {}), ...(extra || {}) }; S.shapes.push(p); return p; }
 function afterCreate(p) { if (p && p.id) S.sel = [p.id]; if (!S.repeat) S.tool = 'move'; ui(); autosave(); }
 function makePattern() { const P = one(); if (!P) return; const b0 = bbox(P), g = S.joint / 10, sw = b0[2] + g, sh = b0[3] + g; let c = Math.max(1, S.pat.c | 0), r = Math.max(1, S.pat.r | 0);
   if (S.pat.fill) { c = Math.max(1, Math.floor((IW() - b0[0] + g) / sw)); r = Math.max(1, Math.floor((IH() - b0[1] + g) / sh)); }
@@ -367,7 +377,7 @@ function paint() { if (!ctx) return; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx
     for (let gy = gy0; gy <= gy1 + 1e-6; gy += st) { const sy = Math.round(y0 + gy * z) + .5; ctx.strokeStyle = (Math.round(gy) % 100 === 0) ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.2)'; ctx.beginPath(); ctx.moveTo(x0, sy); ctx.lineTo(x0 + iw, sy); ctx.stroke(); }
     ctx.restore(); }
   if (S.guidesOn) { ctx.save(); ctx.setLineDash([7, 5]); ctx.lineWidth = 1.5; S.guides.forEach((g, i) => { ctx.strokeStyle = S.dragG === i ? '#FFD54A' : '#22D3EE'; ctx.beginPath(); if (g.o === 'v') { const sx = toS(g.p, 0)[0]; ctx.moveTo(sx, 0); ctx.lineTo(sx, H); } else { const sy = toS(0, g.p)[1]; ctx.moveTo(0, sy); ctx.lineTo(W, sy); } ctx.stroke(); }); ctx.restore(); }
-  S.shapes.forEach((s) => { const on = S.sel.indexOf(s.id) >= 0; pathOf(ctx, s); ctx.fillStyle = hexA(s.c, on ? .24 : .12); ctx.fill(); ctx.lineWidth = on ? 3 : 2; ctx.strokeStyle = on ? '#FFD54A' : s.c; if (s.lock) ctx.setLineDash([8, 4]); ctx.stroke(); ctx.setLineDash([]);
+  S.shapes.forEach((s) => { const on = S.sel.indexOf(s.id) >= 0; pathOf(ctx, s); ctx.fillStyle = hexA(s.c, fo(s)); ctx.fill(); ctx.lineWidth = on ? 3 : 2; ctx.strokeStyle = on ? '#FFD54A' : hexA(s.c, lo(s)); if (s.lock) ctx.setLineDash([8, 4]); ctx.stroke(); ctx.setLineDash([]);
     const [cx, cy] = toS(...ctr(s)), pw = s.w * z, ph = s.h * z, fs = Math.max(10, Math.min(28, Math.min(pw, ph) / 3.2));
     if (pw > 24 && ph > 18) { label(ctx, (s.lock ? '🔒' : '') + s.n, cx, cy - (S.dims && ph > fs * 2.6 ? fs * .45 : 0), fs, true); if (S.dims && ph > fs * 2.6 && pw > 46) label(ctx, s.t === 'circle' ? '⌀' + fmt(s.w) : fmt(s.w) + '×' + fmt(s.h), cx, cy + fs * .55, Math.max(10, fs * .5)); } });
   const s1 = one(); if (s1) {
@@ -391,6 +401,7 @@ function paint() { if (!ctx) return; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx
   if (S.tool === 'shape' && S.hover && !drag && !touchy()) { const [hx, hy] = previewXY(S.hover); const s = { t: S.shape, x: hx, y: hy, w: S.defW, h: S.shape === 'sq' || S.shape === 'circle' ? S.defW : S.defH, rot: 0, sides: S.sides }; pathOf(ctx, s); ctx.save(); ctx.setLineDash([6, 4]); ctx.strokeStyle = S.color; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore(); }
   loupe(); }
 function previewXY([x, y]) { const w = S.defW, h = S.shape === 'sq' || S.shape === 'circle' ? S.defW : S.defH; const sx = snapAxis([x, x + w], 'x'), sy = snapAxis([y, y + h], 'y'); return [x + sx.d, y + sy.d]; }
+const fo = (s) => Math.max(0, Math.min(100, s.op == null ? S.opDef : s.op)) / 100, lo = (s) => Math.max(0, Math.min(100, s.lo == null ? S.lineDef : s.lo)) / 100;   // ความทึบพื้นชิ้น / เส้นตัด
 function hexA(h, a) { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
 // แว่นขยาย 3× เหนือนิ้ว (แสดงขณะวางจุด / ลากที่จับ / ลากจุด / วัดระยะ)
 function loupe() { const L = S.loupe; if (!L) { lcv.hidden = true; return; } lcv.hidden = false; const size = 150, k = 3, r = size / 2;
@@ -408,7 +419,7 @@ const listOf = (k) => (k === 'cal' ? S.cal : k === 'persp' ? S.persp : k === 'dr
 function ptHit(L, sx, sy) { const r = touchy() ? 20 : 11; for (let i = L.length - 1; i >= 0; i--) { const [px, py] = toS(L[i][0], L[i][1]); if (Math.hypot(px - sx, py - sy) <= r) return i; } return -1; }
 function pDown(e) { if (!S.img) return; try { cv.setPointerCapture(e.pointerId); } catch (x) {} if (e.isPrimary) PT.clear();   // นิ้วแรกของท่าใหม่ = ล้างนิ้วค้าง (บางเครื่องไม่ส่ง pointerup)
   PT.set(e.pointerId, pos(e)); S.noSnap = e.altKey;
-  if (S.snapMenu) { S.snapMenu = false; bar(); }
+  if (S.snapMenu || S.opMenu) { S.snapMenu = false; S.opMenu = false; bar(); }
   if (PT.size === 2) { if (drag && drag.t === 'move' && drag.moved) { drag.start.forEach(([id, x, y]) => { const p = S.shapes.find((q) => q.id === id); if (p) { p.x = x; p.y = y; } }); S.hist.pop(); }
     if ((drag && (drag.t === 'resize' || drag.t === 'rotate')) && drag.orig) { Object.assign(drag.s, drag.orig); S.hist.pop(); }
     const [a, b] = [...PT.values()]; drag = { t: 'pinch', d: Math.hypot(a[0] - b[0], a[1] - b[1]), c: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], z: S.view.z, ox: S.view.ox, oy: S.view.oy }; S.loupe = null; S.dragging = false; draw(); return; }
@@ -486,6 +497,8 @@ function pCancel(e) { PT.delete(e.pointerId); if (drag && drag.t === 'move' && d
 function onWheel(e) { if (!S.img) return; e.preventDefault(); const [sx, sy] = pos(e); zoomAt(sx, sy, S.view.z * Math.exp(-e.deltaY * 0.0015)); }
 function zoomBy(k) { zoomAt(W / 2, H / 2, S.view.z * k); }
 function ptClose() { if (S.drawPts.length < 3) return; push(); const p = freeFrom(S.drawPts.slice()); S.drawPts = []; S.act = null; if (p) afterCreate(p); else ui(); }
+// ความทึบ: which = 'all' (ทุกชิ้น + ค่าตั้งต้นของชิ้นใหม่) / 'sel' (ชิ้นที่เลือก) · k = 'f' พื้นชิ้น / 'l' เส้นตัด
+function setOp(which, k, v) { const L = which === 'all' ? S.shapes : selected(); if (which === 'all') { if (k === 'f') S.opDef = v; else S.lineDef = v; } L.forEach((s) => { if (k === 'f') s.op = v; else s.lo = v; }); draw(); }
 function nudge(dx, dy, kind) { const st = S.nudge;
   if (kind === 'pt' && S.act) { if (S.act.L === 'meas') { if (S.meas) { const k = S.act.i ? 'b' : 'a'; S.meas[k] = [S.meas[k][0] + dx * st, S.meas[k][1] + dy * st]; } } else { const L = listOf(S.act.L); if (L && L[S.act.i]) L[S.act.i] = [L[S.act.i][0] + dx * st, L[S.act.i][1] + dy * st]; } draw(); fbar(); return; }
   const L = selected().filter((p) => !p.lock); if (!L.length) return; push(); L.forEach((p) => { p.x = r1(p.x + dx * st); p.y = r1(p.y + dy * st); }); draw(); panel(); autosave(); }
@@ -502,7 +515,8 @@ async function onClick(e) { const t = e.target;
   const col = t.closest('[data-col]'); if (col) { S.color = col.dataset.col; panel(); return; }
   const pc = t.closest('[data-pcol]'); if (pc) { push(); selected().forEach((p) => { p.c = pc.dataset.pcol; }); draw(); autosave(); return; }
   const gx = t.closest('[data-gx]'); if (gx) { push(); S.guides.splice(+gx.dataset.gx, 1); ui(); autosave(); return; }
-  if (S.snapMenu && !t.closest('.sl-menu') && !t.closest('[data-sl="snapmenu"]')) { S.snapMenu = false; bar(); }
+  const opp = t.closest('[data-oppre]'); if (opp) { push(); setOp('all', 'f', +opp.dataset.oppre); bar(); autosave(); return; }
+  if ((S.snapMenu || S.opMenu) && !t.closest('.sl-menu') && !t.closest('[data-sl="snapmenu"]') && !t.closest('[data-sl="opmenu"]')) { S.snapMenu = false; S.opMenu = false; bar(); }
   const b = t.closest('[data-sl]'); if (!b || b.disabled) return; return act(b.dataset.sl, b); }
 async function act(a, b) {
   if (a === 'close') return close();
@@ -515,7 +529,8 @@ async function act(a, b) {
   if (a === 'grid') { S.grid.on = !S.grid.on; bar(); steps(); draw(); autosave(); }
   else if (a === 'guides') { S.guidesOn = !S.guidesOn; bar(); draw(); }
   else if (a === 'dims') { S.dims = !S.dims; bar(); draw(); }
-  else if (a === 'snapmenu') { S.snapMenu = !S.snapMenu; S.snapMenuX = b ? b.offsetLeft : 200; bar(); }
+  else if (a === 'opmenu') { S.opMenu = !S.opMenu; S.snapMenu = false; S.opMenuX = b ? b.offsetLeft : 200; bar(); }
+  else if (a === 'snapmenu') { S.opMenu = false; S.snapMenu = !S.snapMenu; S.snapMenuX = b ? b.offsetLeft : 200; bar(); }
   else if (a === 'fit') fit(); else if (a === 'zin') zoomBy(1.4); else if (a === 'zout') zoomBy(1 / 1.4);
   else if (a === 'calx' || a === 'caly') { setTool('scale'); S.calAxis = a === 'calx' ? 'x' : 'y'; S.lockRatio = false; fbar(); if (innerWidth <= 760) { S.panel = false; panel(); } }
   else if (a === 'calOk') calOk(); else if (a === 'calReset') { S.cal = []; S.calLen = ''; S.act = null; fbar(); draw(); }
@@ -541,10 +556,14 @@ async function act(a, b) {
   else if (a === 'clear') { if (await ask('ลบชิ้นงานทั้งหมด?', 'ย้อนกลับได้ด้วย ↶ ย้อน', 'ลบทั้งหมด')) { push(); S.shapes = []; S.sel = []; S.next = 1; ui(); autosave(); } }
   else if (a === 'png') exportPng(); else if (a === 'csv') exportCsv(); else if (a === 'savejson') saveJson(); }
 function onInput(e) { const t = e.target;
+  if (t.dataset.opall || t.dataset.opsel) { if (!S.opPushed) { push(); S.opPushed = true; } const v = Math.max(0, Math.min(100, Math.round(parseFloat(t.value) || 0)));
+    if (t.dataset.opall) setOp('all', t.dataset.opall, v); else setOp('sel', t.dataset.opsel, v);
+    const lab = $('[data-opv="' + (t.dataset.opall ? t.dataset.opall : 's' + t.dataset.opsel) + '"]', root); if (lab) lab.textContent = v + '%'; const tb = $('[data-sl="opmenu"]', root); if (tb && t.dataset.opall === 'f') tb.innerHTML = '<i class="sl-opi"></i> ทึบ ' + v + '%'; return; }
   if (t.dataset.in === 'zoom') { const nz = (S.fitZ || 1) * Math.pow(2, parseFloat(t.value)); zoomAt(W / 2, H / 2, nz); return; }
   if (t.dataset.in === 'calLen') { S.calLen = t.value; draw(); return; } if (t.dataset.in === 'pw') { S.pw = t.value; return; } if (t.dataset.in === 'ph') { S.ph = t.value; return; }
   if (t.dataset.pt) { S.pat[t.dataset.pt] = t.type === 'checkbox' ? t.checked : parseFloat(t.value) || 1; } }
 function onChange(e) { const t = e.target, v = parseFloat(t.value);
+  if (t.dataset.opall || t.dataset.opsel) { S.opPushed = false; autosave(); return; }
   if (t.dataset.snap) { S.snap[t.dataset.snap] = t.checked; bar(); return; }
   if (t.dataset.in === 'nstep') { S.nudge = v; return; }
   if (t.dataset.in === 'gstep') { if (t.value === 'x') { askNum('ระยะตาราง', 'ระยะ (ซม.)', S.grid.step).then((r) => { if (r > 0) S.grid.step = r; bar(); draw(); }); return; } S.grid.step = v; S.grid.on = true; bar(); steps(); draw(); autosave(); return; }
@@ -581,7 +600,7 @@ async function exportPng() { if (!S.img) return; await busy('กำลังส�
   const k = Math.min(12, 5000 / Math.max(IW(), IH())), w = Math.round(IW() * k), h = Math.round(IH() * k), foot = Math.max(46, Math.round(w * 0.03));
   const c = document.createElement('canvas'); c.width = w; c.height = h + foot; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(S.img, 0, 0, w, h);
   const sv = S.view; S.view = { z: k, ox: 0, oy: 0 };
-  try { S.shapes.forEach((p) => { pathOf(g, p); g.fillStyle = hexA(p.c, .10); g.fill(); g.lineWidth = Math.max(2, k * .25); g.strokeStyle = p.c; g.stroke(); const [cx, cy] = toS(...ctr(p)), fs = Math.max(12, Math.min(p.w, p.h) * k / 3.4);
+  try { S.shapes.forEach((p) => { pathOf(g, p); g.fillStyle = hexA(p.c, fo(p)); g.fill(); g.lineWidth = Math.max(2, k * .25); g.strokeStyle = hexA(p.c, lo(p)); g.stroke(); const [cx, cy] = toS(...ctr(p)), fs = Math.max(12, Math.min(p.w, p.h) * k / 3.4);
     label(g, p.n, cx, cy - fs * .4, fs, true); label(g, p.t === 'circle' ? '⌀' + fmt(p.w) : fmt(p.w) + '×' + fmt(p.h), cx, cy + fs * .5, fs * .45); }); } finally { S.view = sv; }
   const ar = S.shapes.reduce((a, p) => a + area(p) / 10000, 0); g.fillStyle = '#1C1B18'; g.fillRect(0, h, w, foot); g.fillStyle = '#F6F1E8'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.font = `600 ${Math.round(foot * .36)}px "IBM Plex Sans Thai",sans-serif`;
   g.fillText(`Slab Layout · ${S.name} · แผ่น ${fmt(IW())} × ${fmt(IH())} ซม. · ${S.shapes.length} ชิ้น · ${ar.toFixed(2)} ตร.ม. · ร่อง ${S.joint} มม. · ${today()} · Wellcon Interior`, Math.round(foot * .4), h + foot / 2);
