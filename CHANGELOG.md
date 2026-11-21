@@ -2,6 +2,15 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด · เพิ่มรายการบนสุดใน `whatsnew.json` (ข้อความที่ผู้ใช้เห็นในหน้าต่าง "มีอะไรใหม่") · และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## Slab Layout · ความทึบชิ้นงาน · PM v1.464.0 · 21/11/2026
+- ผู้บริหารสั่ง 21/11/2026: "Allow the user to adjust opacity 0-100% — individual or all of the object"
+- `slab.js` 2.1.0: ชิ้นงานมี `op` (พื้นชิ้น %) · `lo` (เส้นตัด %) · ค่าตั้งต้น `opDef` 15 / `lineDef` 100 (ชิ้นใหม่ใช้ค่านี้)
+- ทุกชิ้น: ปุ่ม "ทึบ %" ที่แถบบน → เมนู: แถบเลื่อนพื้นชิ้น · ปุ่มลัด 0 / 15 / 25 / 50 / 75 / 100% · แถบเลื่อนเส้นตัด (ปรับทุกชิ้น + ค่าตั้งต้น)
+- รายชิ้น / หลายชิ้น: แถบล่างของชิ้นที่เลือกมี "พื้น" / "เส้น" 0–100% · ย้อนกลับได้ (1 ขั้นต่อการลาก) · ภาพ PNG ใช้ความทึบตามชิ้น
+- ไอคอนครึ่งวงกลมวาดด้วย CSS (สัญลักษณ์ ◐ แสดงผิดบน Android)
+- บทสอน `tab:slab` + ขั้น "ความทึบทุกชิ้น" (`wcguide.js` 1.5.2) · สไลด์ (`wcdemo.js` 1.3.5)
+- ผลทดสอบ p65 (เดสก์ท็อป 10 · มือถือ 9 ข้อ) · p64 32 ข้อ · p64m 9 ข้อ · p63 ผ่าน · ไม่มี error
+
 ## ✂ Slab Layout v2 · แม่นขึ้น ไม่วางผิด · PM v1.463.0 · 21/11/2026
 - ผู้บริหารสั่ง 21/11/2026 (ภาพมือถือ ชิ้นงานซ้อนโดยไม่ตั้งใจ 8 ชิ้น): "1 too easy to accidentally misplace when zoom in 2 drag the mark easily 3 set dimension of cutting mark 4 more drawing tools rect / square / circle / oval / hexagon 5 draw freely 6 zoom to increase accuracy when placing points and scale"
 - `slab.js` 2.0.0 (เขียนส่วนโต้ตอบใหม่): ข้อมูล `shapes` (t: rect / sq / circle / ellipse / poly / free · rot · lock · sides · pts) อ่านงาน v1 (`pieces`) ได้
