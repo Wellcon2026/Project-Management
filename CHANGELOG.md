@@ -2,6 +2,14 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด · เพิ่มรายการบนสุดใน `whatsnew.json` (ข้อความที่ผู้ใช้เห็นในหน้าต่าง "มีอะไรใหม่") · และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## ▶ ปุ่ม DEMO ที่เดียวทุกหน้า · บทสอนจูงมือแอปแยก 5 หน้า · PM v1.457.0 · Site Work v1.57.0 · 21/11/2026
+- ผู้บริหารสั่ง 21/11/2026: "เปลี่ยน วิธีใช้ เป็น Demo" · "make the button DEMO to be the same location every time on every page" · "Turn every remaining feature's guide into a hand-holding one … like Note feature demo"
+- `wcguide.js` 1.1.0: ปุ่ม `#wc-demo-tab` "▶ DEMO" ติดขอบขวา (right:0 · top:44%) ทุกหน้า · `curKey()` = Notes / Project Setup ที่เปิดอยู่ → `window.__wcDemoKey` (หน้าหลัก) → `<html data-demo-key>` (แอปแยก / Site Work) · มีบทสอน → จูงมือ · ไม่มี → สรุปทีละขั้น (`wcdemo.js`) · ซ่อนระหว่างสอน · ไม่พิมพ์
+- บทสอนจูงมือใหม่: Quotation Maker (10 ขั้น) · Takeoff (9) · Price Book (7) · PDF Maker (7) · Photo Editor (7) — รวม 10 หน้า
+- `scripts/patch-demo-tab.js` (MARK `v1.457.0 demo-tab`): แถบบนไม่แสดงปุ่ม "วิธีใช้หน้านี้" แล้ว → บอกหน้าปัจจุบันผ่าน `window.__wcDemoKey` · `wcdemo.js` 1.3.0 / `wcnote.js` 1.5.2 / `wcsetup.js` 1.3.3: เอาปุ่มที่หัวออก
+- Site Work v1.57.0: เอาปุ่ม ❓ วิธีใช้ (โหมด Defect) ออก → ตั้ง `data-demo-key="tab:qc"` · คัดลอก `wcguide.js` 1.1.0
+- ผลทดสอบ: p57 (DEMO 4 หน้าในแอปหลัก ตำแหน่งเดียวกัน · Daily / Notes เปิดจูงมือ · แอปแยก 6 หน้า DEMO ตำแหน่งเดียวกัน + ขั้น 1 ไฮไลต์) ผ่าน · p57b Quotation หลังกดสร้าง เจอจุดครบ 10 ขั้น · Site Work p3 11 ข้อผ่าน · ไม่มี error
+
 ## 👆 สอนแบบจูงมือบนหน้าจอจริง (ระยะ 1) · PM v1.456.0 · Site Work v1.56.0 · 21/11/2026
 - ผู้บริหารสั่ง 21/11/2026: "hold user's hand … show step by step, highlight / mouse on display" (Interactive Tutorial) — "please proceed"
 - `wcguide.js` 1.0.0 (ใหม่): ไฮไลต์จุดบนจอ + มือชี้ + กล่องบอกขั้น · ขั้น "กด" รอกดจริง (click / pointerup) · ขั้น "พิมพ์" · กดนอกจุดไม่ได้ · หาจุดไม่เจอ = อธิบายกลางจอ ไม่ค้าง (opt = ข้ามให้) · ออกได้ทุกขั้น · จำว่าเรียนจบ · `WCGuide.check(key)` ตรวจว่าเจอจุดครบ (ชุดทดสอบ) · มือชี้กลางจุดเมื่อจุดใหญ่ · มือถือ = กล่องด้านล่าง
