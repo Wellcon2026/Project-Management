@@ -14,7 +14,7 @@
 (function () {
   'use strict';
   if (window.WCGuide) return;
-  const VER = '1.1.0';   // 1.1.0: ปุ่ม ▶ DEMO ตำแหน่งเดียวกันทุกหน้า (ขอบขวาของจอ) — รู้เองว่าอยู่หน้าไหน · มีบทสอนจูงมือ → จูงมือ · ไม่มี → สรุปทีละขั้น
+  const VER = '1.2.0';   // 1.2.0: บทสอนจูงมือครบทุกหน้า (ชุด B / C) · จุดชี้แบบ “ข้อความบนปุ่ม” CSS{ข้อความ} · ชื่อเรียกแทน (alias) · 1.1.0: ปุ่ม ▶ DEMO ตำแหน่งเดียวกันทุกหน้า (ขอบขวาของจอ) — รู้เองว่าอยู่หน้าไหน · มีบทสอนจูงมือ → จูงมือ · ไม่มี → สรุปทีละขั้น
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const T = {};   // key → tour
 
@@ -63,7 +63,254 @@
     { sel: '#btnSend', t: 'ส่งขออนุมัติ', d: 'ตรวจแล้วกดส่ง → PM + QS อนุมัติ → จัดซื้อสั่งของ → หน้างานรับของ', last: true },
   ] };
 
+  // ---------- บทสอน (หน้าในโครงการ · ชุด B) — v1.2.0 ----------
+  // เขียนจุดชี้ได้ 2 แบบ: CSS ปกติ · หรือ "CSS{ข้อความบนปุ่ม}" (หาปุ่มจากข้อความ · ไม่สนตัวพิมพ์เล็กใหญ่) · ต่อท้าย ^2 = ขยับขึ้นไปกรอบแม่ 2 ชั้น
+  T['tab:overview'] = { title: 'Overview · ภาพรวมโครงการ', steps: [
+    { sel: 'div[title^="ไปที่"] || div{มูลค่างาน}', t: 'ตัวเลขหลักของโครงการ', d: 'มูลค่างานหลัง VO · ไทม์ไลน์ · วางบิล · เก็บเงิน — แตะการ์ดเพื่อไปหน้านั้น' },
+    { sel: 'button{👥 ทีมงาน}', t: 'ทีมงาน', d: 'กดดูรายชื่อทีม PM / Site / QS / Designer ของโครงการนี้', opt: true },
+    { sel: 'button{💰 สัญญา & การเงิน}', t: 'สัญญา & การเงิน', d: 'มูลค่าสัญญา · หลักประกัน · เงื่อนไขการจ่าย (ตามสิทธิ์)', opt: true },
+    { sel: 'button{🤝 ข้อมูลสัญญา} || [data-ws-host]', t: 'ข้อมูลโครงการ (Project Setup)', d: 'คู่สัญญา · เลขที่สัญญา · ที่อยู่วางบิล — ใช้ออกเอกสารทุกใบ', opt: true },
+    { sel: 'button{📋 ขอบเขตงาน}', t: 'ขอบเขตงาน · BOQ', d: 'ขอบเขตงาน · BOQ · กลยุทธ์ · ผู้ช่วย AI', opt: true },
+    { sel: 'button{📁 ลิงก์ไฟล์โครงการ}', t: 'ลิงก์ไฟล์โครงการ', d: 'SharePoint · Google Drive — เปิดโฟลเดอร์โครงการได้ในคลิกเดียว', opt: true },
+    { sel: 'button{📝 งานคงค้าง}', t: 'งานคงค้าง · โน้ตโครงการ', d: 'จดเรื่องที่ต้องตาม · มอบหมายคน · ติดตามจนปิด', opt: true },
+    { sel: 'button{VO อนุมัติแล้ว →}', t: 'สรุปเรื่องสำคัญ', d: 'VO · RFI / RFA · ขยายเวลา (EOT) · งวดเบิกเงิน — แตะเพื่อไปหน้านั้น', opt: true },
+    { sel: 'button{งวดเบิกเงิน →}', t: 'งวดเบิกเงิน', d: 'ดูงวดที่ค้างรับ — ทุกการ์ดในหน้านี้กดเข้าไปทำงานต่อได้เลย', last: true, opt: true },
+  ] };
+  T['tab:plan'] = { title: 'Schedule Maker · แผนงาน', steps: [
+    { sel: 'input[placeholder^="ชื่อแผนงานใหม่"]', t: 'ตั้งชื่อแผนงาน', d: 'พิมพ์ชื่อแผน เช่น “งานตกแต่ง ชั้น 1” แล้วกด ถัดไป', act: 'input' },
+    { sel: 'button{สร้างแผนงานใหม่}', t: 'สร้างแผนงาน', d: 'กดสร้าง → ใส่กิจกรรม · วันเริ่ม – จบ · ผู้รับผิดชอบ ในตาราง Gantt' },
+    { sel: 'th{ชื่อแผนงาน} || div{ชื่อแผนงาน}', t: 'รายการแผนงาน', d: 'แตะชื่อแผนเพื่อเปิด Gantt · ✎ แก้ชื่อ · 🗑 ลบ · ช่องคืบหน้าแสดง % งาน', opt: true },
+    { sel: 'select[title^="จำนวนสั"]', t: 'ช่วง Look-ahead', d: 'เลือก 1–4 สัปดาห์ ที่จะวางงานล่วงหน้า', opt: true },
+    { sel: 'button[title^="สร้างแผนล่วงหน้า"] || button{สร้าง Look-ahead}', t: 'สร้าง Look-ahead', d: 'ดึงงานช่วงนั้นจากแผนหลักมาเป็นแผนสัปดาห์ให้ทีมหน้างาน', opt: true },
+    { sel: 'div{ปฏิทิน 3 สัปดาห์}', t: 'ปฏิทิน 3 สัปดาห์', d: 'เห็นงานรายวัน สีบอกประเภทงาน · ▲▼ ย้ายกล่อง · ½ ย่อครึ่งแถว', opt: true },
+    { sel: 'div{LOOK-AHEAD}', t: 'Look-ahead 4 สัปดาห์', d: 'ตารางงานรายสัปดาห์ — อัปเดต % ทุกสัปดาห์ในที่ประชุม', opt: true },
+    { sel: 'textarea[placeholder^="จดสิ่งที่ทีมต้องรู้"]', t: 'โน้ตโครงการ', d: 'จดสิ่งที่ทีมต้องรู้ เช่น นัดตรวจงาน · ของเข้าไซต์ — ทุกคนในโครงการเห็น', last: true, opt: true },
+  ] };
+  T['tab:rfi'] = { title: 'RFI & RFA · ถามแบบ / ขออนุมัติ', steps: [
+    { sel: 'button{+ RFI ถามแบบ}', t: 'ถามแบบ (RFI)', d: 'แบบไม่ชัด / ขัดกัน → กดเปิด RFI ใส่คำถาม · รูป · ถามถึงใคร · กำหนดตอบ' },
+    { sel: 'button{+ RFA ขออนุมัติ}', t: 'ขออนุมัติ (RFA)', d: 'ขออนุมัติวัสดุ / ตัวอย่าง / Shop drawing — แนบไฟล์ได้' },
+    { sel: 'button{รอคำตอบ}', t: 'สรุปสถานะ', d: 'รอคำตอบ · ค้างเกินกำหนด · ตอบแล้ว · ปิดเรื่อง — แตะตัวเลขเพื่อกรองรายการ' },
+    { sel: 'input[placeholder^="ค้นหาเลขที่ / หัวข้อ"]', t: 'ค้นหา', d: 'พิมพ์เลขที่ / หัวข้อ / รายละเอียด', act: 'input' },
+    { sel: 'select{เฉพาะ RFI}', t: 'เลือกประเภท', d: 'ดู RFI + RFA · เฉพาะ RFI · เฉพาะ RFA' },
+    { sel: 'select{รอคำตอบ}', t: 'กรองสถานะ', d: 'เลือกดูเฉพาะเรื่องค้าง / ตอบแล้ว / ปิดแล้ว' },
+    { sel: 'button{พิมพ์ / บันทึก PDF}', t: 'พิมพ์ / PDF', d: 'ออกทะเบียน RFI / RFA ตามฟอร์มบริษัท', opt: true },
+    { sel: 'button{ส่งออก Excel (ฟอร์แมตเอกสาร)}', t: 'ส่งออก Excel', d: 'ส่งทะเบียนให้ Designer / Owner ตรวจ — ทุกเรื่องเก็บเป็นหลักฐาน แทนการถามใน LINE', last: true, opt: true },
+  ] };
+  T['tab:dwg'] = { title: 'Drawing Log · ทะเบียนแบบ', steps: [
+    { sel: 'button{แบบทั้งหมด}', t: 'สรุปแบบ', d: 'แบบทั้งหมด · อนุมัติแล้ว · รอตรวจ / ส่งแล้ว · เลยกำหนด — แตะเพื่อกรอง' },
+    { sel: 'label{นำเข้า Drawing List}', t: 'นำเข้า Drawing List', d: 'นำเข้าจาก .xlsx / .csv — ระบบจับคู่หัวคอลัมน์ให้อัตโนมัติ', opt: true },
+    { sel: 'button{เพิ่มแบบ}', t: 'เพิ่มแบบทีละแผ่น', d: 'ใส่เลขที่แบบ · ชื่อ · โซน · Rev · กำหนดส่ง · แนบไฟล์ PDF / รูป' },
+    { sel: 'input[placeholder^="ค้นหาเลขที่แบบ"]', t: 'ค้นหาแบบ', d: 'พิมพ์เลขที่ / ชื่อแบบ / โซน / Rev', act: 'input' },
+    { sel: 'select{ทุกหมวดงาน}', t: 'กรองหมวด / โซน / ประเภท', d: 'กรองตามหมวดงาน · โซน · ประเภทแบบ · กำหนดการ', opt: true },
+    { sel: 'select{ทุกสถานะ}', t: 'สถานะแบบ', d: 'รอส่ง → ส่งแล้ว → กำลังตรวจ → อนุมัติ / ให้แก้ไข', opt: true },
+    { sel: 'button{ส่งออก Excel (ฟอร์แมตเอกสาร)} || button{ส่งออก Excel}', t: 'ส่งออก', d: 'ออก Drawing Transmittal ตามฟอร์มบริษัท · แบบล่าสุดใช้ใน Site Work ได้ทันที', last: true, opt: true },
+  ] };
+  T['tab:docs'] = { title: 'Doc Register · ทะเบียนเอกสาร', steps: [
+    { sel: 'select{รายการงานต้นฉบับ}', t: 'เลือกหมวดเอกสาร', d: 'รายการงานต้นฉบับ · Material Take-off · เอกสารอื่น ๆ' },
+    { sel: 'label{อัปโหลด}', t: 'อัปโหลดไฟล์', d: 'อัปโหลดเอกสารเข้าหมวดที่เลือก — เก็บ Rev ไว้ครบ', opt: true },
+    { sel: 'input[placeholder^="ค้นหาชื่อไฟล์"]', t: 'ค้นหา', d: 'พิมพ์ชื่อไฟล์ / Rev', act: 'input' },
+    { sel: 'button{พิมพ์ / บันทึก PDF}', t: 'พิมพ์ทะเบียน', d: 'พิมพ์ / บันทึก PDF ทะเบียนรับ-ส่งเอกสาร', opt: true },
+    { sel: 'button{ส่งออก Excel (ฟอร์แมตเอกสาร)}', t: 'ส่งออก Excel', d: 'ส่งทะเบียนเอกสารตามฟอร์มบริษัท', last: true, opt: true },
+  ] };
+  T['tab:delay'] = { title: 'Early Warning · แจ้งล่าช้า', steps: [
+    { sel: 'button{+ บันทึกความล่าช้า}', t: 'บันทึกความล่าช้า', d: 'เกิดเหตุทำงานไม่ได้ (พื้นที่ไม่พร้อม · รอแบบ · งานผู้อื่น) → บันทึกทันที พร้อมรูป' },
+    { sel: 'button{วันล่าช้าจากฝั่งเรา}', t: 'ล่าช้าจากฝั่งเรา', d: 'วันล่าช้าบน critical path ที่เกิดจากเรา — ต้องเร่งแก้', opt: true },
+    { sel: 'button{วันล่าช้าจาก Owner}', t: 'ล่าช้าจาก Owner / ภายนอก', d: 'วันที่ขอขยายเวลา (EOT) ได้ — ต้องแจ้งเป็นหนังสือภายในกำหนดสัญญา', opt: true },
+    { sel: 'button{แจ้งเกินกำหนด}', t: 'กำหนดแจ้ง', d: 'เรื่องที่แจ้งช้า / ใกล้ครบกำหนดแจ้ง — แจ้งช้าเสียสิทธิ์ขอเวลา', opt: true },
+    { sel: 'select{ยังไม่แจ้ง}', t: 'กรองรายการ', d: 'ดูเฉพาะเรื่องที่ยังไม่แจ้ง / แจ้งเกินกำหนด', opt: true },
+    { sel: 'button{ชุดหนังสือแจ้งทั้งหมด}', t: 'ออกหนังสือแจ้ง', d: 'ส่งออกชุดหนังสือแจ้งทุกเรื่อง — ผู้บริหารตรวจก่อนส่ง Owner', last: true, opt: true },
+  ] };
+  T['tab:handover'] = { title: 'Handover · ส่งมอบงาน', steps: [
+    { sel: 'button{เช็กลิสต์ขั้นตอน}', t: 'เช็กลิสต์ 11 ขั้น', d: 'ภาพรวมขั้นตอนส่งมอบทั้งโครงการ — กดเปิดดู', opt: true },
+    { sel: 'input[type="date"]', t: 'วันส่งมอบเป้าหมาย', d: 'ใส่วันส่งมอบ · วันที่ใน TOC (เริ่ม DLP) · จำนวนเดือน DLP' },
+    { sel: 'input[placeholder^="ชื่อพื้นที่"]', t: 'แบ่งพื้นที่ส่งมอบ', d: 'ส่งมอบเป็นส่วน (Sectional) ได้ — ใส่ชื่อพื้นที่ เช่น ห้อง 301-320', opt: true },
+    { sel: 'button{+ เพิ่มพื้นที่}', t: 'เพิ่มพื้นที่', d: 'กดเพิ่ม แล้วติดตามแต่ละพื้นที่แยกกัน', opt: true },
+    { sel: 'button{ตรวจงาน · Punch list}', t: 'ตรวจงาน · Punch list', d: 'ไปหน้าตรวจงาน — ปิด Punch ≥ 90% ภายใน 7 วันหลังส่งมอบ', opt: true },
+    { sel: 'select{รอรับ}', t: 'สถานะเอกสารส่งมอบ', d: 'As-built · O&M · Warranty · Key schedule — เปลี่ยนสถานะทีละรายการ', opt: true },
+    { sel: 'label[title^="อัปโหลดเอกสาร"] || button[title^="แนบลิงก์"]', t: 'แนบเอกสาร', d: 'อัปโหลด PDF / Word / Excel หรือแนบลิงก์ Drive', opt: true },
+    { sel: 'button{+ เพิ่มรายการ}', t: 'เพิ่มรายการ', d: 'เพิ่มรายการที่โครงการนี้ต้องส่งเพิ่ม', last: true, opt: true },
+  ] };
+  T['tab:changes'] = { title: 'Changes · VO / SI / EOT', steps: [
+    { sel: 'button{เพิ่ม VO}', t: 'เพิ่ม VO', d: 'งานเพิ่ม-ลด → ใส่รายละเอียด · มูลค่า · แนบเอกสาร — No Signed VO = No Additional Work' },
+    { sel: 'button{เพิ่ม SI}', t: 'เพิ่ม SI', d: 'คำสั่งหน้างาน (Site Instruction) — บันทึกไว้ก่อนเปลี่ยนเป็น VO', opt: true },
+    { sel: 'button{เพิ่ม EOT}', t: 'เพิ่ม EOT', d: 'ขอขยายเวลา — อ้างเรื่องจาก Early Warning', opt: true },
+    { sel: 'input[placeholder^="ค้นหาเลขที่เอกสาร"]', t: 'ค้นหา', d: 'พิมพ์เลขที่เอกสาร / รายละเอียด', act: 'input' },
+    { sel: 'select{ทุกประเภท}', t: 'กรองประเภท', d: 'VO · SI · EOT', opt: true },
+    { sel: 'select{รออนุมัติ}', t: 'กรองสถานะ', d: 'รออนุมัติ · อนุมัติแล้ว · ไม่อนุมัติ — แจ้ง VO ภายใน 48 ชม.', opt: true },
+    { sel: 'button{ส่งออก Excel}', t: 'ส่งออก / นำเข้า', d: 'ส่งออก Excel หรือ นำเข้า Excel ทะเบียนเดิม', last: true, opt: true },
+  ] };
+  T['tab:aw'] = { title: 'VO Tracker Log · งานเพิ่ม', steps: [
+    { sel: 'div{งานเพิ่ม — สถานะจาก VO Tracker}', t: 'งานเพิ่มของโครงการ', d: 'สถานะ VO ของโครงการนี้ ดึงจาก QS Tracking อัตโนมัติ' },
+    { sel: 'div{หน้านี้ดูอย่างเดียว}^1 || div{หน้านี้ดูอย่างเดียว}', t: 'ดูอย่างเดียว', d: 'แก้ไขที่ต้นทางเท่านั้น — QS อัปเดตใน QS Tracking → VO Tracker', opt: true },
+    { sel: 'button{เปิดใน QS Tracker}', t: 'เปิดใน QS Tracker', d: 'QS กดเพื่อไปแก้ / เพิ่ม VO ที่ต้นทาง (ผูกด้วย Project ID)', last: true },
+  ] };
+  T['tab:fin'] = { title: 'Billing · งวดเบิกเงิน', steps: [
+    { sel: 'button{มูลค่าสัญญาเดิม}', t: 'มูลค่าสัญญา', d: 'สัญญาเดิม + งานเพิ่ม − งานลด = มูลค่าสัญญาสุทธิ' },
+    { sel: 'button{งานเพิ่ม (VO อนุมัติ)}', t: 'งานเพิ่ม / ลด', d: 'ดึงจาก VO ที่อนุมัติแล้ว — แตะเพื่อไป VO Tracker', opt: true },
+    { sel: 'button{วางบิลแล้ว}', t: 'วางบิล · ค้างรับ', d: 'วางบิลแล้วกี่ % · ค้างรับ · ประกันผลงานที่ถูกหัก', opt: true },
+    { sel: 'input[placeholder^="เช่น 30 วัน"] || input[type="number"]', t: 'เงื่อนไขการจ่าย', d: 'Retention % · เครดิตเทอม · เงื่อนไขพิเศษ ตามสัญญา', opt: true },
+    { sel: 'button{เพิ่มงวด}', t: 'เพิ่มงวดเบิก', d: 'ใส่งวด · % งาน · เลขที่ใบแจ้งหนี้ · วันวางบิล / วันรับเงิน' },
+    { sel: 'input[placeholder^="ค้นหางวด"]', t: 'ค้นหางวด', d: 'ค้นหางวด / เลขที่ใบแจ้งหนี้', opt: true },
+    { sel: 'button{พิมพ์ / บันทึก PDF}', t: 'พิมพ์ / ส่งออก', d: 'พิมพ์สถานะการเก็บเงิน หรือส่งออก Excel — ข้อมูลภายใน ห้ามส่งออกนอกบริษัท', last: true, opt: true },
+  ] };
+  T['tab:procm'] = { title: 'Material Log · ทะเบียนวัสดุ', steps: [
+    { sel: 'button{มูลค่างานรวม}', t: 'สรุปจัดซื้อ', d: 'ยังไม่เริ่ม → ออก PR → ผูกพัน (PO) → รอส่งเข้าไซต์ → ส่งครบ — แตะเพื่อกรอง' },
+    { sel: 'label{นำเข้ารายการ}', t: 'นำเข้ารายการวัสดุ', d: 'นำเข้าจาก BOQ / Take-off (.xlsx / .csv)', opt: true },
+    { sel: 'button{เพิ่มรายการ}', t: 'เพิ่มรายการ', d: 'เพิ่มวัสดุทีละรายการ — รหัส · ชื่อ · หมวด · โซน · จำนวน', opt: true },
+    { sel: 'input[placeholder^="ค้นหารายการ"]', t: 'ค้นหา', d: 'พิมพ์รายการ · รหัส · โซน', act: 'input' },
+    { sel: 'select{ยังไม่เริ่มจัดซื้อ}', t: 'กรองสถานะ', d: 'ดูเฉพาะรายการที่ยังไม่ออก PR / รอของเข้าไซต์', opt: true },
+    { sel: 'select{Take-off}', t: 'ขั้นตอนของแต่ละรายการ', d: 'Drawing → Take-off → Approval → PR → PO → Delivery — อัปเดตในแถว', opt: true },
+    { sel: 'button{แนบ}', t: 'แนบไฟล์ / รูป', d: 'แนบสเปก · รูปตัวอย่าง · ใบส่งของ', opt: true },
+    { sel: 'button{ส่งออกรายการ (Excel)} || button{ส่งออก}', t: 'ส่งออก', d: 'ส่งออก Excel — ราคาในหน้านี้เป็นข้อมูลภายใน ห้ามส่งลูกค้า / Designer', last: true, opt: true },
+  ] };
+  T['tab:spo'] = { title: 'Custom Order · ของสั่งทำ / นำเข้า', steps: [
+    { sel: 'button{+ เพิ่มรายการสั่งผลิต}', t: 'เพิ่มรายการสั่งผลิต / นำเข้า', d: 'ของสั่งทำ · ของนำเข้า — ใส่ผู้ผลิต · lead time · วันต้องสั่ง' },
+    { sel: 'button{ต้องสั่งภายใน 7 วัน}', t: 'ใกล้ถึงกำหนดสั่ง', d: 'รายการที่ต้องสั่งภายใน 7 วัน — สั่งช้า = ของเข้าไซต์ช้า', opt: true },
+    { sel: 'button{สั่งแล้ว / กำลังผลิต}', t: 'ติดตามสถานะ', d: 'สั่งแล้ว / กำลังผลิต → ขนส่ง / ศุลกากร / QC → ส่งเข้าไซต์', opt: true },
+    { sel: 'select{ใกล้ถึงกำหนดสั่ง}', t: 'กรองสถานะ', d: 'เลือกดูตามสถานะ', opt: true },
+    { sel: 'button{ส่งออก Excel (ฟอร์แมตเอกสาร)} || button{พิมพ์ / บันทึก PDF}', t: 'ส่งออก', d: 'พิมพ์ / ส่งออก Excel ตามฟอร์มบริษัท', last: true, opt: true },
+  ] };
+  T['tab:prod'] = { title: 'Production · งานผลิตโรงงาน', steps: [
+    { sel: 'button{เพิ่มงานผลิต}', t: 'เพิ่มงานผลิต', d: 'งาน FF&E / built-in ที่ผลิตในโรงงาน — ชื่อชิ้นงาน · แบบ · จำนวน · กำหนดส่ง' },
+    { sel: 'table || div{ยังไม่มีงานผลิต}', t: 'รายการงานผลิต', d: 'ติดตาม แบบ → Mock-up → ผลิต → QC → ส่งไซต์ (No Signature = No Production)', opt: true },
+    { sel: 'button{ส่งออก Excel}', t: 'ส่งออก Excel', d: 'ส่งตารางผลิตให้โรงงาน / ทีมหน้างาน', last: true },
+  ] };
+  T['tab:skp'] = { title: 'SketchUp · โมเดล 3D', steps: [
+    { sel: 'button{เพิ่มโมเดล}', t: 'เพิ่มโมเดล', d: 'อัปโหลดไฟล์ .skp / ลิงก์ · ชื่อโซน · เวอร์ชัน' },
+    { sel: 'button{โมเดลทั้งหมด}', t: 'สรุปโมเดล', d: 'โมเดลทั้งหมด · เวอร์ชันใช้งาน · กำลังแกะแบบ · รอตรวจ — แตะเพื่อกรอง', opt: true },
+    { sel: 'input[placeholder^="ค้นหาชื่อโมเดล"]', t: 'ค้นหา', d: 'พิมพ์ชื่อโมเดล / โซน / ผู้ทำโมเดล', act: 'input', opt: true },
+    { sel: 'select{กำลังแกะแบบ}', t: 'สถานะโมเดล', d: 'กำลังแกะแบบ → รอตรวจ / รอคอมเมนต์ → เวอร์ชันใช้งานปัจจุบัน', last: true, opt: true },
+  ] };
+  // ---------- บทสอน (เมนูหลัก · ชุด C) ----------
+  T['tab:cal'] = { title: 'Calendar · ปฏิทินวันสำคัญ', steps: [
+    { sel: 'button{วันนี้}', t: 'กลับมาวันนี้', d: 'กดเพื่อกลับมาเดือนปัจจุบัน · ‹ › เลื่อนเดือน' },
+    { sel: 'select{แสดง 1 เดือน}', t: 'จำนวนเดือน', d: 'แสดง 1–3 เดือนพร้อมกัน', opt: true },
+    { sel: 'select{ทุกโครงการ}', t: 'เลือกโครงการ', d: 'ดูทุกโครงการ หรือเฉพาะโครงการเดียว', opt: true },
+    { sel: 'button{เพิ่มวันสำคัญ}', t: 'เพิ่มวันสำคัญ', d: 'ส่งมอบ · ตรวจงาน · ประชุม · วางบิล · หมดสัญญา' },
+    { sel: 'button{การ์ด}', t: 'มุมมอง', d: 'สลับ การ์ด / ตาราง', opt: true },
+    { sel: 'button{ตรึงช่วงนี้ไว้}', t: 'ตรึงช่วง', d: 'เลือกเดือนเริ่ม – จบ แล้วตรึงไว้ เปิดครั้งหน้าก็ยังเห็นช่วงเดิม', last: true, opt: true },
+  ] };
+  T['tab:memo'] = { title: 'Letters · ออกหนังสือ / ฟอร์ม', steps: [
+    { sel: 'button{ร่างเอกสารใหม่}', t: 'ร่างเอกสารใหม่', d: 'เลือกประเภท MEMO · RFI · RFA · VO · EOT · MOM → กรอก → ส่งอนุมัติ' },
+    { sel: 'button{ให้ AI ร่างเอกสารให้}', t: 'ให้ AI ช่วยร่าง', d: 'เขียนประเด็นสั้น ๆ แล้ว AI ร่างหนังสือให้ — ตรวจทุกครั้งก่อนส่ง', opt: true },
+    { sel: 'input[placeholder^="ค้นหาเรื่อง"]', t: 'ค้นหา', d: 'พิมพ์เรื่อง · เลขที่ · ผู้รับ', act: 'input' },
+    { sel: 'select{แจ้งเพื่อทราบ}', t: 'กรองประเภท', d: 'แจ้งเพื่อทราบ · สอบถาม · ขออนุมัติ ฯลฯ', opt: true },
+    { sel: 'select{ทุกโครงการ}', t: 'กรองโครงการ', d: 'เลือกโครงการ — หนังสือที่มีผลผูกพันต้องผ่านผู้บริหารก่อนส่ง', last: true, opt: true },
+  ] };
+  T['tab:subcon'] = { title: 'Subcon · สัญญาช่าง', steps: [
+    { sel: 'button{สัญญาจ้างใหม่}', t: 'สัญญาจ้างใหม่', d: 'ผู้รับเหมา · ขอบเขตงาน · มูลค่า · งวดจ่าย — สถานะ ร่าง → PR → PO' },
+    { sel: 'div{สรุปยอดจัดจ้างทั้งหมด}', t: 'สรุปยอดจัดจ้าง', d: 'มูลค่าสัญญา · จ่ายแล้ว % — ข้อมูลภายใน', opt: true },
+    { sel: 'input[placeholder^="ค้นหาเลขสัญญา"]', t: 'ค้นหา', d: 'พิมพ์เลขสัญญา · ผู้รับจ้าง · PR / PO', act: 'input' },
+    { sel: 'select{ออก PR แล้ว}', t: 'กรองสถานะ', d: 'ร่าง · ออก PR · ออก PO · กำลังทำ · ปิดงาน', opt: true },
+    { sel: 'button{พิมพ์ / บันทึก PDF}', t: 'พิมพ์ / ส่งออก', d: 'พิมพ์ทะเบียนสัญญา / ส่งออก Excel — สัญญาจริงต้องผ่านผู้บริหาร', last: true, opt: true },
+  ] };
+  T['nav:dashboard'] = { title: 'Home · ภาพรวมทุกโครงการ', steps: [
+    { sel: 'button{งานในมือ}', t: 'งานในมือ', d: 'มูลค่างานในมือทั้งบริษัท (หลังปรับ VO) — แตะเพื่อดูรายละเอียด', opt: true },
+    { sel: 'button{โครงการต้องดูแล}', t: 'โครงการต้องดูแล', d: 'กี่โครงการ · ล่าช้ากี่โครงการ', opt: true },
+    { sel: 'button{เก็บเงินแล้ว}', t: 'การเงินรวม', d: 'เก็บเงินแล้ว · ค้างรับ (ตามสิทธิ์)', opt: true },
+    { sel: 'button[title^="แตะเพื่อเปิดโครง"]', t: 'การ์ดโครงการ', d: 'แตะเพื่อเข้าโครงการ — สีบอกสถานะ ตามแผน / ช้า', opt: true },
+    { sel: 'button{ตาราง}', t: 'มุมมอง', d: 'สลับ รายการ / ตาราง (แบบ Excel)', opt: true },
+    { sel: 'button{📝 โน้ตงานสำคัญ}', t: 'โน้ตงานสำคัญ', d: 'เรื่องที่ผู้บริหารต้องรู้ — กดเปิดดู', opt: true },
+    { sel: 'button{📊 การใช้งานระบบ}', t: 'การใช้งานระบบ', d: 'ใครใช้ / ไม่ใช้ · ส่ง Daily Report ครบไหม', last: true, opt: true },
+  ] };
+  T['nav:inbox'] = { title: 'My Space · พื้นที่ทำงานของฉัน', steps: [
+    { sel: 'button{· WLC-}', t: 'เลือกโครงการ', d: 'แตะโครงการที่จะทำงาน — การ์ดด้านล่างพาเข้างานของโครงการนั้นในคลิกเดียว', opt: true },
+    { sel: '[data-demo-card]', t: 'การ์ดงานของคุณ', d: 'การ์ดเรียงตามงานที่ตำแหน่งของคุณใช้บ่อย — แตะเพื่อเปิด' },
+    { sel: 'button{↕ จัดเรียงการ์ด}', t: 'จัดเรียงการ์ด', d: 'ลากสลับลำดับการ์ดได้ตามใจ', opt: true },
+    { sel: 'button{+ เพิ่มทางลัด}', t: 'ทางลัด', d: 'ปักหมุดหน้าที่ใช้บ่อย (☆) เข้าได้ทันที', opt: true },
+    { sel: '.wn-tabs', t: 'Notes · บันทึกของฉัน', d: 'บันทึกส่วนตัว · ของโครงการ · แท็กถึงฉัน · งานค้าง — อยู่ในหน้านี้เลย', opt: true },
+    { sel: '[data-new]', t: 'บันทึกใหม่', d: 'จดงาน · ตั้งวันครบกำหนด · แท็กเพื่อนร่วมงาน', opt: true },
+    { sel: 'button{+ เพิ่มกิจกรรม}', t: 'ปฏิทินสัปดาห์นี้', d: 'เพิ่มกิจกรรม / นัดหมาย · ‹ › เลื่อนสัปดาห์', last: true, opt: true },
+  ] };
+  T['nav:ai'] = { title: 'AI · ผู้ช่วย AI', steps: [
+    { sel: 'input[placeholder^="พิมพ์คำถาม"]', t: 'ถามผู้ช่วย', d: 'พิมพ์คำถาม เช่น “ยอดค้างรับ MVC” แล้วกด ส่ง', act: 'input' },
+    { sel: 'button{สรุปความเสี่ยงสัปดาห์นี้}', t: 'ถามเร็ว', d: 'กดคำถามสำเร็จรูป — สรุปความเสี่ยง · ค้างรับ · RFI ค้าง · VO ค้าง', opt: true },
+    { sel: 'button{อัดประชุม}', t: 'อัดประชุม', d: 'ถอดเสียงสด → สรุปรายงานประชุม (MOM) · เลือกภาษา · แยกผู้พูด', opt: true },
+    { sel: 'button{ส่ง}', t: 'ส่งคำถาม', d: 'AI ตอบจากข้อมูลที่คุณมีสิทธิ์เห็น — ตรวจตัวเลขก่อนใช้ทุกครั้ง', opt: true },
+    { sel: 'button{ล้างการสนทนา}', t: 'เริ่มใหม่', d: 'ล้างการสนทนาเพื่อเริ่มเรื่องใหม่', last: true, opt: true },
+  ] };
+  T['nav:qstrack'] = { title: 'QS Tracking · ติดตามงาน QS', steps: [
+    { sel: 'button{Dashboard ภาพรวม}', t: 'ภาพรวม', d: 'สรุปงานประมูล · เอกสาร · VO ของทุกโครงการ' },
+    { sel: 'button{เอกสารเชิญประมูล}', t: 'เอกสารเชิญประมูล', d: 'ติดตามงานที่ต้องเสนอราคา', opt: true },
+    { sel: 'button{งานประมูล}', t: 'งานประมูล', d: 'เสนอราคา · ผลประมูล — เป้า Bid Margin ≥ 8% ก่อนยื่น', opt: true },
+    { sel: 'button{เอกสารเข้า LOG}', t: 'เอกสารเข้า / ออก', d: 'LOG เอกสารรับเข้า · ส่งออก', opt: true },
+    { sel: 'button{VO Tracker}', t: 'VO Tracker', d: 'ติดตามงานเพิ่มรายโครงการ — ข้อมูลไปแสดงใน VO Tracker Log ของโครงการ', last: true, opt: true },
+  ] };
+  T['nav:cfo'] = { title: 'Company Finance · การเงินรวมบริษัท', steps: [
+    { sel: 'div{มูลค่าสัญญาสุทธิรวม}', t: 'ภาพรวมการเงิน', d: 'มูลค่าสัญญาสุทธิ · เก็บแล้ว · ค้างรับ · ยังไม่วางบิล · Retention · Advance · BG / LG', opt: true },
+    { sel: 'input[placeholder^="ค้นหาโครงการ"]', t: 'ค้นหาโครงการ', d: 'พิมพ์ชื่อโครงการ / ลูกค้า', act: 'input' },
+    { sel: 'select{เรียง:}', t: 'เรียงลำดับ', d: 'เรียงตามมูลค่าสัญญา / ค้างรับ ฯลฯ', opt: true },
+    { sel: 'button{ทั้งหมด ทุกปี}', t: 'แยกตามปี', d: 'ดูโครงการแยกปี · ตัดยอดรายปี', opt: true },
+    { sel: 'label{นำเข้าจาก Mango}', t: 'นำเข้าจาก Mango', d: 'นำเข้าสถานะโครงการจาก Mango ERP', opt: true },
+    { sel: 'button{ติดตามรับเงินรายเดือน}', t: 'ติดตามรับเงิน', d: 'ติดตามรับเงินรายเดือน — ข้อมูลการเงินภายใน ห้ามแชร์ภายนอก', opt: true },
+    { sel: 'button{ส่งออก Excel}', t: 'ส่งออก Excel', d: 'ส่งออกตารางการเงิน (ภายในบริษัทเท่านั้น)', last: true, opt: true },
+  ] };
+  T['nav:hr'] = { title: 'People · บุคลากร', steps: [
+    { sel: 'input[placeholder^="ค้นหาชื่อ"]', t: 'ค้นหาพนักงาน', d: 'พิมพ์ชื่อ / ชื่อเล่น / รหัสพนักงาน', act: 'input' },
+    { sel: 'select{ทุกแผนก}', t: 'กรองแผนก', d: 'เลือกดูทีละแผนก', opt: true },
+    { sel: 'button{แผนก}', t: 'สรุปบุคลากร', d: 'จำนวนแผนก · ทีมควบคุมงาน · ทีมบริหารโครงการ', opt: true },
+    { sel: 'button{เพิ่มพนักงาน}', t: 'เพิ่มพนักงาน', d: 'รหัส · ชื่อ · ชื่อเล่น · ตำแหน่ง · แผนก', opt: true },
+    { sel: 'div{ข้อบังคับบริษัท}', t: 'ข้อบังคับ · เวลาทำงาน', d: 'เวลาเข้า-ออกงานของแต่ละกลุ่ม', last: true, opt: true },
+  ] };
+  T['nav:jd'] = { title: 'JD · ขอบเขตงาน / หน้าที่', steps: [
+    { sel: 'select{ผู้จัดการโครงการ}', t: 'เลือกตำแหน่ง', d: 'เลือกตำแหน่งที่ต้องการดู' },
+    { sel: 'div{หน้าที่ความรับผิดชอบ}', t: 'หน้าที่ความรับผิดชอบ', d: 'งานที่ตำแหน่งนี้ต้องทำ', opt: true },
+    { sel: 'div{คุณสมบัติผู้ดำรงตำแหน่ง}', t: 'คุณสมบัติ', d: 'คุณสมบัติที่ต้องมี', opt: true },
+    { sel: 'div{ตัวชี้วัดผลงาน}', t: 'ตัวชี้วัด (KPI)', d: 'วัดผลงานจากอะไร — ใช้วางเป้าการเติบโตของตัวเอง', opt: true },
+    { sel: 'button{พิมพ์ / บันทึก PDF}', t: 'พิมพ์ / แก้ไข', d: 'พิมพ์ JD · ผู้มีสิทธิ์กด แก้ไขเอกสาร ได้', last: true, opt: true },
+  ] };
+  T['nav:library'] = { title: 'Library · คลังความรู้', steps: [
+    { sel: '#wl-q', t: 'ค้นหาความรู้', d: 'พิมพ์คำที่อยากรู้ เช่น “ฝ้า” “ส่งมอบ”', act: 'input' },
+    { sel: 'button{00 หน้าแรก}', t: 'หมวดความรู้', d: 'เลือกหมวด: ประมาณราคา · SOP · งานระบบ · ผนัง · ฝ้า · พื้น · ส่งมอบ ฯลฯ', opt: true },
+    { sel: 'div{4 Golden Rules}', t: '4 Golden Rules', d: 'กฎที่ใช้ทุกโครงการ — อ่านให้ขึ้นใจ', opt: true },
+    { sel: 'button{01 Tender}', t: 'วงจรโครงการ 15 ขั้น', d: 'Tender → Kick-off → … → Handover → DLP · แตะขั้นเพื่ออ่าน', opt: true },
+    { sel: 'button{บทความ}', t: 'บทความ', d: 'แตะหมวดเพื่ออ่านบทความ · ใช้ประกอบงานจริงและการอบรม', last: true, opt: true },
+  ] };
+  T['nav:training'] = { title: 'Training · อบรม', steps: [
+    { sel: 'button{WF Wellcon Project Workflow}', t: 'เลือกหลักสูตร', d: 'เลือกหลักสูตรตามตำแหน่ง: PM · Site · Designer · QS · จัดซื้อ · Store · Factory · Finance' },
+    { sel: 'button{บทเรียน}', t: 'บทเรียน', d: 'เลือกบทที่จะเรียน', opt: true },
+    { sel: 'button{▶ สไลด์สรุปหลักสูตร}', t: 'สไลด์สรุป', d: 'ดูภาพรวมหลักสูตรก่อนเริ่ม', opt: true },
+    { sel: 'button{เริ่มบทที่ 1}', t: 'เริ่มเรียน', d: 'อ่าน · ดูวิดีโอ · ฝึกตามเช็กลิสต์', opt: true },
+    { sel: 'button{เริ่มทำแบบทดสอบ}', t: 'แบบทดสอบท้ายตอน', d: 'ทำแบบทดสอบเพื่อวัดความเข้าใจ', opt: true },
+    { sel: 'button{เรียนจบบทนี้}', t: 'เรียนจบ', d: 'กดเมื่อจบบท — ระบบเก็บความคืบหน้าให้ เติบโตไปพร้อมบริษัท', last: true, opt: true },
+  ] };
+  T['nav:admin'] = { title: 'Users & Teams · ผู้ใช้ & ทีม', steps: [
+    { sel: 'input[placeholder^="ค้นหาชื่อ"]', t: 'ค้นหาผู้ใช้', d: 'พิมพ์ชื่อ · ชื่อเล่น · อีเมล', act: 'input' },
+    { sel: 'select{ทุกบทบาท}', t: 'กรอง', d: 'กรองตามบทบาท · ขอบเขตโครงการ · เมนู · ระดับสิทธิ์', opt: true },
+    { sel: 'button{เพิ่มผู้ใช้}', t: 'เพิ่มผู้ใช้', d: 'อีเมลบริษัท · ตำแหน่ง · โครงการที่เห็น', opt: true },
+    { sel: 'button[title^="สลับ เห็นทุกโครง"]', t: 'ขอบเขตโครงการ', d: 'เห็นทุกโครงการ / เฉพาะโครงการที่ได้รับมอบหมาย', opt: true },
+    { sel: 'button{ดาวน์โหลดผู้ใช้}', t: 'Excel', d: 'ดาวน์โหลด / อัปเดตผู้ใช้จาก Excel ทีละหลายคน', opt: true },
+    { sel: 'button{ตำแหน่งงาน}', t: 'ตำแหน่ง · Sheet โครงการ', d: 'จัดการตำแหน่งงาน และทีมรายโครงการ', last: true, opt: true },
+  ] };
+  T['nav:forms'] = { title: 'Form Builder · ฟอร์มเอกสาร', steps: [
+    { sel: 'select{ใบเสนอราคา}', t: 'เลือกเอกสาร', d: 'เลือกฟอร์มที่จะออกแบบ เช่น ใบเสนอราคา · RFI · VO' },
+    { sel: 'input[title^="คลิกเพื่อแก้ห"]', t: 'แก้หัวเอกสาร', d: 'คลิกบนตัวอย่างเพื่อแก้หัวเอกสาร / ป้ายลงนาม', opt: true },
+    { sel: 'button{ดำเข้ม (มาตรฐาน)}', t: 'สีหัวเอกสาร', d: 'เลือกโทนสี', opt: true },
+    { sel: 'label{อัปโหลดรูป}', t: 'โลโก้ / กราฟิก', d: 'อัปโหลด PNG / JPG', opt: true },
+    { sel: 'button{English}', t: 'ภาษา', d: 'ไทย / English (ลูกค้าต่างชาติใช้ 2 ภาษา)', opt: true },
+    { sel: 'button{พิมพ์ / บันทึก PDF}', t: 'ทดลองพิมพ์', d: 'พิมพ์ / PDF / Excel · คืนค่าเริ่มต้นได้ — ทุกหน้าที่ออกเอกสารใช้ฟอร์มนี้', last: true, opt: true },
+  ] };
+  T['nav:system'] = { title: 'System · ตั้งค่าระบบ', steps: [
+    { sel: 'input[placeholder^="ค้นหาเทมเพลต"]', t: 'คลังเทมเพลต Excel', d: 'เทมเพลตนำเข้าข้อมูลของแต่ละหน้า — ดาวน์โหลดไปกรอก', opt: true },
+    { sel: 'button{อ่านหลักการ}', t: 'อัตรากลาง', d: 'ราคาเรียกเก็บลูกค้า — อ่านหลักการก่อนแก้ทุกครั้ง', opt: true },
+    { sel: 'button{ตามตำแหน่ง}', t: 'การ์ด & สิทธิ์', d: 'เปิด-ปิดการ์ด / ฟังก์ชันตามตำแหน่ง · รายคน · รายโครงการ', opt: true },
+    { sel: 'div{ข้อมูลบริษัท (บล็อก SENDER}', t: 'ข้อมูลบริษัท', d: 'ชื่อ · ที่อยู่ · เลขผู้เสียภาษี ที่พิมพ์ในทุกเอกสาร', opt: true },
+    { sel: 'div{แจ้งเตือนเข้า LINE}', t: 'แจ้งเตือน LINE', d: 'เลือกกลุ่มปลายทาง และเรื่องที่จะแจ้ง', opt: true },
+    { sel: 'div{สำรองข้อมูล}', t: 'สำรองข้อมูล', d: 'สำรองก่อนแก้ข้อมูลจำนวนมากทุกครั้ง', last: true, opt: true },
+  ] };
+
   // ---------- บทสอน (แอปแยก · ชุด A) ----------
+  T['tab:lay'] = { title: 'Layboard · บอร์ดนำเสนองาน', steps: [
+    { sel: 'button{+ New board} || button{บอร์ดใหม่} || button{+ New design}', t: 'สร้างบอร์ดใหม่', d: 'เริ่มบอร์ดนำเสนองานใหม่ — เลือกขนาดกระดาษ / แนว แล้วเริ่มจัดวาง' },
+    { sel: '.lb-search input || .lb-search', t: 'ค้นหาบอร์ด', d: 'พิมพ์ชื่อบอร์ด / โครงการ', opt: true },
+    { sel: 'button{นำเข้า PDF / PowerPoint}', t: 'นำเข้าไฟล์เดิม', d: 'นำเข้า PDF / PowerPoint มาแก้ต่อ — แต่ละหน้าเป็นแผ่นใหม่', opt: true },
+    { sel: '.lb-rail', t: 'เครื่องมือ', d: 'ข้อความ · รูป · รูปทรง · สัญลักษณ์แบบ (Section · Detail · ป้ายวัสดุ · เส้นบอกระยะ)', opt: true },
+    { sel: '.lb-canvas', t: 'พื้นที่จัดวาง', d: 'ลากวาง · ย่อขยาย · จัดกลุ่ม · นำมาหน้า / ส่งไปหลัง', opt: true },
+    { sel: 'button{✦ Claude tools}', t: 'ผู้ช่วย AI', d: 'ให้ AI ช่วยจัดบอร์ด / เขียนคำบรรยาย — ตรวจก่อนส่งลูกค้าทุกครั้ง', opt: true },
+    { sel: 'button{↶}', t: 'ย้อนกลับ', d: '↶ ย้อน · ↷ ทำซ้ำ', opt: true },
+    { sel: 'button{แชร์}', t: 'แชร์', d: 'แชร์บอร์ดให้ทีม / ลูกค้าดู · รับความเห็น', opt: true },
+    { sel: 'button{พิมพ์} || button{Print / PDF}', t: 'พิมพ์ / PDF', d: 'ออกเป็น PDF ส่งนำเสนอ', last: true, opt: true },
+  ] };
   T['tab:quo'] = { title: 'Quotation Maker · ใบเสนอราคา', steps: [
     { sel: '[data-act="new"]', t: 'เริ่มใบเสนอราคาใหม่', d: 'กดปุ่มนี้เพื่อเริ่มใบใหม่', act: 'click', opt: true },
     { sel: '#edKind', t: 'ประเภทงาน', d: 'พื้นที่เดียว · เฟอร์นิเจอร์ · ซ่อมความเสียหาย · งานเปลี่ยนแบบ — เลือกให้ตรงงาน' },
@@ -145,8 +392,15 @@
   function css() { if (document.getElementById('wg-css')) return; const s = document.createElement('style'); s.id = 'wg-css'; s.textContent = CSS; document.head.appendChild(s); }
 
   const vis = (el) => { if (!el || !el.isConnected) return false; const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return false; const st = getComputedStyle(el); return st.visibility !== 'hidden' && st.display !== 'none'; };
-  function find(sel) { const parts = String(sel || '').split('||').map(s => s.trim()).filter(Boolean); let hit = null;
-    parts.forEach(p => { let L = []; try { L = [...document.querySelectorAll(p)]; } catch (e) {} for (let i = L.length - 1; i >= 0; i--) { if (vis(L[i])) { if (!hit) hit = L[i]; break; } } }); return hit; }
+  // จุดชี้: "CSS" (ตัวล่าสุดที่มองเห็น) · "CSS{ข้อความ}" (ตัวที่มีข้อความนี้ ข้อความสั้นสุด = ตัวในสุด) · ต่อท้าย ^n = ขึ้นไปกรอบแม่ n ชั้น · "a || b" = ลองทีละแบบ
+  const norm = (x) => String(x || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  function one(p) { const m = p.match(/^(.*?)\{(.+)\}(?:\^(\d+))?$/); let L = [], hit = null;
+    if (!m) { try { L = [...document.querySelectorAll(p)]; } catch (e) {} for (let i = L.length - 1; i >= 0; i--) if (vis(L[i])) return L[i]; return null; }
+    const tx = norm(m[2]); let bl = 1e9; try { L = [...document.querySelectorAll(m[1].trim() || 'button,a,label,[role="button"]')]; } catch (e) {}
+    for (const el of L) { if (el.closest && el.closest('.wg-root')) continue; const s = norm(el.tagName === 'SELECT' ? [...el.options].map(o => o.text).join(' ') : (el.innerText || el.value || '')); if (s.length < bl && s.includes(tx) && vis(el)) { hit = el; bl = s.length; } }
+    for (let n = +(m[3] || 0); hit && n > 0; n--) hit = hit.parentElement || hit; return hit; }
+  function find(sel) { const parts = String(sel || '').split('||').map(s => s.trim()).filter(Boolean);
+    for (const p of parts) { const h = one(p); if (h) return h; } return null; }
 
   const G = { tour: null, key: '', i: 0, el: null, raf: 0, poll: 0, root: null, onDoc: null, onIn: null, typed: false, missing: false };
   function build() { css(); const r = document.createElement('div'); r.className = 'wg-root'; r.setAttribute('translate', 'no');
@@ -192,27 +446,32 @@
     if (t.closest('[data-g-next]')) { go(G.i + 1); return; } if (t.closest('[data-g-prev]')) { go(G.i - 1); return; }
     if (t.closest('[data-g-slides]')) { const k = G.key; stop(false); try { window.WCDemo.open(k, { slides: true }); } catch (x) {} } }
   function onKey(e) { if (!G.tour) return; if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); stop(false); } }
-  function start(key, o) { const tour = typeof key === 'object' ? key : T[key]; if (!tour || !tour.steps || !tour.steps.length) return false;
+  // ชื่อเรียกแทน — หน้าเดียวกันหลายชื่อ (ตรงกับ ALIAS ใน wcdemo.js)
+  const GA = { 'nav:changes': 'tab:changes', 'tab:parties': 'tab:setup', 'nav:work': 'nav:inbox', 'nav:note': 'note', 'tab:proc': 'tab:procm', 'tab:mat': 'tab:procm', 'nav:subcon': 'tab:subcon', 'nav:calendar': 'tab:cal', 'nav:memo': 'tab:memo' };
+  const tk = (k) => (T[k] ? k : (GA[k] && T[GA[k]] ? GA[k] : ''));
+  function start(key, o) { if (typeof key === 'string') key = tk(key) || key; const tour = typeof key === 'object' ? key : T[key]; if (!tour || !tour.steps || !tour.steps.length) return false;
     stop(false); build(); G.tour = tour; G.key = typeof key === 'string' ? key : (tour.key || ''); document.addEventListener('keydown', onKey, true); loop(); go(0); return true; }
   function stop(done) { clearWait(); cancelAnimationFrame(G.raf); if (G.root) { G.root.remove(); G.root = null; } document.removeEventListener('keydown', onKey, true);
     if (done && G.key) { try { localStorage.setItem('wg_done:' + G.key, new Date().toISOString()); } catch (e) {} const tt = G.tour && G.tour.title; G.tour = null; toastDone(tt); return; } G.tour = null; }
-  function toastDone(tt) { const d = document.createElement('div'); d.textContent = '🎉 เรียนจบแล้ว — ' + (tt || '') + ' · กด “? วิธีใช้” ดูซ้ำได้ทุกเมื่อ';
+  function toastDone(tt) { const d = document.createElement('div'); d.textContent = '🎉 เรียนจบแล้ว — ' + (tt || '') + ' · กด ▶ DEMO ดูซ้ำได้ทุกเมื่อ';
     d.style.cssText = "position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2147483600;background:#1C1B18;color:#fff;border-radius:12px;padding:10px 16px;font:14px 'IBM Plex Sans Thai',system-ui,sans-serif;max-width:90vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.25)";
     document.body.appendChild(d); setTimeout(() => d.remove(), 3200); }
   // ตรวจว่าจุดของแต่ละขั้นเจอบนหน้าจอตอนนี้ไหม (ชุดทดสอบใช้ตรวจหลังแก้หน้าตา)
-  function check(key) { const t = T[key]; if (!t) return null; return t.steps.map((s, i) => ({ i: i + 1, t: s.t, sel: s.sel, found: !!find(s.sel), opt: !!s.opt })); }
+  function check(key) { const t = T[tk(key)]; if (!t) return null; if (t.run) return []; return t.steps.map((s, i) => ({ i: i + 1, t: s.t, sel: s.sel, found: !!find(s.sel), opt: !!s.opt })); }
   // ---------- ปุ่ม ▶ DEMO ที่เดียวกันทุกหน้า ----------
   // หน้าปัจจุบัน: Notes / Project Setup ที่เปิดอยู่ → หน้าหลักบอกผ่าน window.__wcDemoKey → แอปแยกบอกผ่าน <html data-demo-key>
   const shown = (s) => { const e = document.querySelector(s); return !!e && vis(e); };
   function curKey() { if (shown('.wn-ov .wn-bx:not(.ed)')) return 'note'; if (shown('.ws-ov .ws-bx')) return 'tab:setup';
-    return String(window.__wcDemoKey || document.documentElement.getAttribute('data-demo-key') || ''); }
+    const k = String(window.__wcDemoKey || document.documentElement.getAttribute('data-demo-key') || '');
+    if (k === 'tab:qc' && shown('iframe[title="Site Work"]')) return '';   // Site Work ในกรอบ มีปุ่ม DEMO ของตัวเอง (จูงมือจริง)
+    return k; }
   const slidesHas = (k) => !!(window.WCDemo && WCDemo.has && WCDemo.has(k));
-  function openDemo() { const k = curKey(); if (T[k]) start(k); else if (slidesHas(k)) WCDemo.open(k, { slides: true }); }
-  function tabTick() { if (!document.body) return; const k = curKey(); const show = !!k && (!!T[k] || slidesHas(k)) && !G.tour && !document.querySelector('.wd-ov');
+  function openDemo() { const k = curKey(), g = T[tk(k)]; if (g && g.run) { try { g.run(); } catch (e) {} return; } if (tk(k)) start(tk(k)); else if (slidesHas(k)) WCDemo.open(k, { slides: true }); }
+  function tabTick() { if (!document.body) return; const k = curKey(); const show = !!k && (!!tk(k) || slidesHas(k)) && !G.tour && !document.querySelector('.wd-ov');
     let b = document.getElementById('wc-demo-tab');
     if (!b) { if (!show) return; css(); b = document.createElement('button'); b.id = 'wc-demo-tab'; b.type = 'button'; b.setAttribute('translate', 'no');
       b.innerHTML = '<i>▶</i>DEMO'; b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openDemo(); }); document.body.appendChild(b); }
-    b.style.display = show ? '' : 'none'; b.title = 'Demo — สอนวิธีใช้หน้านี้ทีละขั้น' + (T[k] ? ' (จูงมือบนหน้าจอจริง)' : ''); b.setAttribute('aria-label', 'Demo วิธีใช้หน้านี้'); }
+    b.style.display = show ? '' : 'none'; b.title = 'Demo — สอนวิธีใช้หน้านี้ทีละขั้น' + (tk(k) ? ' (จูงมือบนหน้าจอจริง)' : ''); b.setAttribute('aria-label', 'Demo วิธีใช้หน้านี้'); }
   setInterval(tabTick, 500);
-  window.WCGuide = { VER, start, demo: openDemo, curKey, stop, has: (k) => !!T[k], register: (k, t) => { T[k] = t; }, check, keys: () => Object.keys(T), active: () => !!G.tour, done: (k) => { try { return !!localStorage.getItem('wg_done:' + k); } catch (e) { return false; } } };
+  window.WCGuide = { VER, start, demo: openDemo, curKey, stop, has: (k) => !!tk(k), register: (k, t) => { T[k] = t; }, check, keys: () => Object.keys(T), active: () => !!G.tour, done: (k) => { try { return !!localStorage.getItem('wg_done:' + k); } catch (e) { return false; } } };
 })();
