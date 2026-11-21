@@ -14,10 +14,11 @@
    - ทำงานในเบราว์เซอร์ทั้งหมด รูปไม่ถูกอัปโหลด · งานล่าสุดเก็บในเครื่อง (IndexedDB) · บันทึก / เปิดไฟล์งาน .json
    v2.1.0 (21/11/2026) ผู้บริหารสั่ง: "adjust opacity 0-100% individual or all of the object" — ◐ ที่แถบบน (ทุกชิ้น) · แถบล่างของชิ้นที่เลือก (รายชิ้น / หลายชิ้น)
    v2.2.0 (21/11/2026) ผู้บริหารสั่ง: 1 หมุนเส้นตัดได้ทุกองศาด้วยการลาก 2 ตั้งสเกลแล้วแสดงขนาดแผ่นบนรูป 3 ความทึบสลับ 10% / 0% · เส้นตัดเห็น 70% ตลอด
+   v2.3.0 (21/11/2026) ผู้บริหารสั่ง: "pick the point and set the dimension vertical and horizontal · scale unproportionally · the set dimension at the point stays at all time"
    ===================================================================== */
 (() => {
 'use strict';
-const VER = '2.2.0';   // 2.2.0: หมุนอิสระทุกองศา · เส้นบอกขนาดแผ่น · ปุ่มทึบ 10% ↔ 0% · เส้นตัด 70% คงที่ · 2.1.0: 2.1.0: ความทึบ 0–100% (พื้นชิ้น / เส้นตัด) รายชิ้น · ชิ้นที่เลือก · ทุกชิ้น
+const VER = '2.3.0';   // 2.3.0: ตั้งขนาดแผ่นจากจุดบนแผ่นจริง แนวนอน / แนวตั้ง แยกกัน (สเกลแยกแกน) · เส้นขนาดติดอยู่ที่จุดตลอด · 2.2.0: 2.2.0: หมุนอิสระทุกองศา · เส้นบอกขนาดแผ่น · ปุ่มทึบ 10% ↔ 0% · เส้นตัด 70% คงที่ · 2.1.0: 2.1.0: ความทึบ 0–100% (พื้นชิ้น / เส้นตัด) รายชิ้น · ชิ้นที่เลือก · ทุกชิ้น
 if (window.WCSlab) return;
 const $ = (s, r) => (r || document).querySelector(s);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -38,7 +39,7 @@ const S = {
   grid: { on: true, step: 10 }, guidesOn: true, snap: { on: true, grid: true, guide: true, edge: true }, dims: true,
   opDef: 10, lineDef: 70, joint: 3, defW: 45, defH: 120, color: '#E5484D', pat: { c: 3, r: 2, fill: false, cut: true },
   view: { z: 1, ox: 0, oy: 0 }, fitZ: 1,
-  cal: [], calLen: '', calAxis: 'both', persp: [], pw: '', ph: '', drawPts: [], meas: null, act: null,
+  dimx: null, dimy: null, cal: [], calLen: '', calAxis: 'x', persp: [], pw: '', ph: '', drawPts: [], meas: null, act: null,
   hover: null, snapHit: null, hist: [], redo: [], prevImg: null, cursor: null, panel: true, loupe: null,
 };
 let root, cv, ctx, lcv, lctx, W = 0, H = 0, DPR = 1, raf = 0;
@@ -50,8 +51,8 @@ const DB = { db: null,
   async put(k, v) { const d = await this.open(); if (!d) return; try { d.transaction('kv', 'readwrite').objectStore('kv').put(v, k); } catch (e) {} } };
 let saveT = 0;
 function autosave() { clearTimeout(saveT); saveT = setTimeout(async () => { if (!S.img) return; try { const blob = await new Promise((ok) => S.img.toBlob(ok, 'image/jpeg', 0.9)); await DB.put('last', { at: new Date().toISOString(), name: S.name, blob, st: snapData() }); } catch (e) {} }, 800); }
-function snapData() { return { cmx: S.cmx, cmy: S.cmy, scaled: S.scaled, lockRatio: S.lockRatio, shapes: S.shapes, guides: S.guides, grid: S.grid, snap: S.snap, guidesOn: S.guidesOn, joint: S.joint, defW: S.defW, defH: S.defH, next: S.next, color: S.color, shape: S.shape, sides: S.sides, dims: S.dims, opDef: S.opDef, lineDef: S.lineDef }; }
-function applyData(d) { ['cmx', 'cmy', 'scaled', 'lockRatio', 'joint', 'defW', 'defH', 'next', 'color', 'guidesOn', 'shape', 'sides', 'dims', 'opDef', 'lineDef'].forEach((k) => { if (d[k] !== undefined) S[k] = d[k]; });
+function snapData() { return { cmx: S.cmx, cmy: S.cmy, scaled: S.scaled, lockRatio: S.lockRatio, shapes: S.shapes, guides: S.guides, grid: S.grid, snap: S.snap, guidesOn: S.guidesOn, joint: S.joint, defW: S.defW, defH: S.defH, next: S.next, color: S.color, shape: S.shape, sides: S.sides, dims: S.dims, opDef: S.opDef, lineDef: S.lineDef, dimx: S.dimx, dimy: S.dimy }; }
+function applyData(d) { ['cmx', 'cmy', 'scaled', 'lockRatio', 'joint', 'defW', 'defH', 'next', 'color', 'guidesOn', 'shape', 'sides', 'dims', 'opDef', 'lineDef', 'dimx', 'dimy'].forEach((k) => { if (d[k] !== undefined) S[k] = d[k]; });
   S.shapes = (d.shapes || d.pieces || []).map((p) => ({ t: 'rect', rot: 0, ...p })); S.guides = (d.guides || []).map((g) => ({ ...g })); if (d.grid) S.grid = { ...S.grid, ...d.grid }; if (d.snap) S.snap = { ...S.snap, ...d.snap }; }
 // ---------- ย้อนกลับ / ทำซ้ำ ----------
 function push() { S.hist.push(JSON.stringify(snapData())); if (S.hist.length > 80) S.hist.shift(); S.redo = []; }
@@ -206,7 +207,7 @@ function build() {
 }
 function resize() { const cw = $('#slCw', root); if (!cw) return; DPR = window.devicePixelRatio || 1; const r = cw.getBoundingClientRect(); const first = !W; W = r.width; H = r.height; cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); lcv.width = lcv.height = Math.round(150 * DPR); if (first && S.img) fit(); else draw(); }
 function ui() { steps(); tools(); bar(); panel(); stat(); startPane(); sub(); fbar(); draw(); }
-function sub() { const t = $('#slSub', root); if (!t) return; t.textContent = S.img ? (S.name + ' · ' + (S.scaled ? 'แผ่นจริง ' + fmt(IW()) + ' × ' + fmt(IH()) + ' ซม.' : 'ยังไม่ตั้งสเกล')) : 'นำเข้ารูปแผ่นหิน / ไม้ แล้ววางชิ้นงานตามขนาดจริง'; }
+function sub() { const t = $('#slSub', root); if (!t) return; t.textContent = S.img ? (S.name + ' · ' + (S.dimx || S.dimy ? 'แผ่น ↔ ' + (S.dimx ? fmt(S.dimx.len) : '—') + ' × ↕ ' + (S.dimy ? fmt(S.dimy.len) : '—') + ' ซม.' : S.scaled ? 'แผ่นจริง ' + fmt(IW()) + ' × ' + fmt(IH()) + ' ซม.' : 'ยังไม่ตั้งสเกล')) : 'นำเข้ารูปแผ่นหิน / ไม้ แล้ววางชิ้นงานตามขนาดจริง'; }
 function steps() { const st = stepState(); const L = ['นำเข้ารูป', 'ตั้งสเกล', 'ปรับสัดส่วน', 'ตาราง · ไกด์ · Snap', 'วางชิ้นงาน'];
   $('#slSteps', root).innerHTML = L.map((t, i) => `<button class="sl-st${st[i] ? ' ok' : ''}" data-step="${i}"><i>${st[i] ? '✓' : i + 1}</i>${t}</button>`).join(''); }
 const TOOLS = [['move', '✋', 'เลือก / ย้าย'], ['scale', '📏', 'ตั้งสเกล'], ['persp', '⬚', 'ดัด 4 มุม'], ['shape', '▭', 'รูปทรง', 1], ['free', '✏', 'วาดอิสระ'], ['meas', '📐', 'วัดระยะ'], ['gv', '┆', 'ไกด์ตั้ง', 1], ['gh', '┅', 'ไกด์นอน']];
@@ -239,11 +240,12 @@ function panel() { const P = $('#slPan', root); if (!P) return; P.classList.togg
   P.innerHTML = `
   <div class="sl-sec"><h4><i>1</i>รูปแผ่น</h4><div class="sl-mut">${esc(S.name)} · ${S.img.width} × ${S.img.height} px</div><div class="sl-row"><button class="sl-b" data-sl="pick">เปลี่ยนรูป</button><button class="sl-b" data-sl="savejson" title="บันทึกงาน (รูป + ชิ้นงาน) เป็นไฟล์ .json เปิดต่อได้">💾 บันทึกงาน</button><button class="sl-b" data-sl="json">📂 เปิดงาน</button></div></div>
   <div class="sl-sec" data-g="sl-scale"><h4><i>2</i>สเกล · ขนาดจริง</h4>
-    <div class="sl-row"><button class="sl-b dk" data-tool="scale">📏 วาง 2 จุด ตั้งสเกล</button></div>
-    <div class="sl-row"><label>ขนาดแผ่นจริง</label></div>
+    <div class="sl-mut">แตะจุดบน<b>ขอบแผ่นจริง</b> แล้วใส่ขนาด — ตั้งแนวนอน / แนวตั้งแยกกัน รูปจะยืด / หดแต่ละแกนให้ตรง (ไม่ล็อกสัดส่วนรูป)</div>
+    <div class="sl-row"><button class="sl-b dk" data-sl="calx">↔ ความกว้าง${S.dimx ? ' ' + fmt(S.dimx.len) + ' ซม. ✓' : ''}</button><button class="sl-b dk" data-sl="caly">↕ ความสูง${S.dimy ? ' ' + fmt(S.dimy.len) + ' ซม. ✓' : ''}</button></div>
+    <div class="sl-row" style="margin-top:10px"><label>หรือพิมพ์ขนาดทั้งรูป (ใช้เมื่อแผ่นเต็มรูปพอดี)</label></div>
     <div class="sl-row" data-g="sl-size"><input class="sl-in" data-in="iw" type="number" step="0.1" min="1" value="${fmt(IW())}" title="กว้าง (ซม.)"><span>×</span><input class="sl-in" data-in="ih" type="number" step="0.1" min="1" value="${fmt(IH())}" title="สูง (ซม.)"><span class="sl-mut">ซม.</span></div>
-    <label class="sl-row" style="cursor:pointer"><input type="checkbox" data-in="lock"${S.lockRatio ? ' checked' : ''}> <span>ล็อกสัดส่วน (ปลดเพื่อแก้กว้าง / สูงแยกกัน)</span></label>
-    ${S.scaled ? `<div class="sl-ok">ตั้งสเกลแล้ว · สัดส่วนแกน X : Y = 1 : ${(S.cmy / S.cmx).toFixed(3)}</div>` : '<div class="sl-warn">ยังไม่ตั้งสเกล — วาง 2 จุดบนรูปที่รู้ระยะจริง หรือพิมพ์ขนาดแผ่นจริง</div>'}</div>
+    <label class="sl-row" style="cursor:pointer"><input type="checkbox" data-in="lock"${S.lockRatio ? ' checked' : ''}> <span>ตั้งแกนเดียว = ใช้สเกลเดียวกันทั้ง 2 แกน</span></label>
+    ${S.scaled ? `<div class="sl-ok">ตั้งสเกลแล้ว${S.dimx || S.dimy ? ' · แผ่น ↔ ' + (S.dimx ? fmt(S.dimx.len) : '—') + ' × ↕ ' + (S.dimy ? fmt(S.dimy.len) : '—') + ' ซม.' : ''} · สัดส่วนแกน X : Y = 1 : ${(S.cmy / S.cmx).toFixed(3)}</div>` : '<div class="sl-warn">ยังไม่ตั้งสเกล — แตะ ↔ ความกว้าง / ↕ ความสูง แล้ววางจุดบนขอบแผ่น</div>'}</div>
   <div class="sl-sec" data-g="sl-ratio"><h4><i>3</i>ปรับสัดส่วนรูป</h4><div class="sl-mut">รูปถ่ายมักยืด / หดแกนเดียว — ตั้งสเกลแนวนอน / แนวตั้งแยกกัน หรือดัด 4 มุมถ้ารูปถ่ายเฉียง</div>
     <div class="sl-row"><button class="sl-b" data-sl="calx">↔ สเกลแนวนอน</button><button class="sl-b" data-sl="caly">↕ สเกลแนวตั้ง</button></div>
     <div class="sl-row"><label>ยืดแนวนอน</label><input class="sl-in" data-in="sx" type="number" step="0.5" value="100" style="width:66px"><span class="sl-mut">%</span><label>แนวตั้ง</label><input class="sl-in" data-in="sy" type="number" step="0.5" value="100" style="width:66px"><span class="sl-mut">%</span><button class="sl-b" data-sl="stretch">ใช้</button></div>
@@ -274,10 +276,10 @@ function panel() { const P = $('#slPan', root); if (!P) return; P.classList.togg
 function nudgePad(kind) { return `<span class="pad" title="ขยับละเอียด"><span></span><button data-nud="0,-1" data-nk="${kind}" aria-label="ขึ้น">▲</button><span></span><button data-nud="-1,0" data-nk="${kind}" aria-label="ซ้าย">◀</button><button data-nud="0,1" data-nk="${kind}" aria-label="ลง">▼</button><button data-nud="1,0" data-nk="${kind}" aria-label="ขวา">▶</button></span><select data-in="nstep" title="ระยะขยับ" style="height:36px;border-radius:9px;background:#2A2721;color:#fff;border:1px solid #4A463D">${[0.1, 0.5, 1, 5].map((v) => `<option value="${v}"${v === S.nudge ? ' selected' : ''}>${v} ซม.</option>`).join('')}</select>`; }
 function fbar() { const el = $('#slFb', root); if (!el) return; if (!S.img) { el.innerHTML = ''; return; } let h = '';
   const ap = S.act ? `<span class="lb">ขยับจุด</span>${nudgePad('pt')}` : '';
-  if (S.tool === 'scale') { const n = S.cal.length;
-    if (n < 2) h = `<span>📏 ${S.calAxis === 'x' ? 'สเกลแนวนอน' : S.calAxis === 'y' ? 'สเกลแนวตั้ง' : 'ตั้งสเกล'}: กดค้างแล้วเลื่อนเพื่อเล็ง (แว่นขยาย) ยกนิ้ววาง <b>จุดที่ ${n + 1}</b> จาก 2</span><span class="sp"></span>${ap}<button data-sl="tcancel">ยกเลิก</button>`;
-    else h = `<span class="bx"><span class="lb">ระยะจริงระหว่าง 2 จุด</span><input data-in="calLen" type="number" step="0.1" min="0" value="${esc(S.calLen)}" placeholder="ซม."><span class="lb">ซม.</span></span>
-      <span class="bx">${[['both', 'ทั้ง 2 แกน'], ['x', 'แนวนอน'], ['y', 'แนวตั้ง']].map(([k, t]) => `<button data-cax="${k}" class="${S.calAxis === k ? 'on' : ''}">${t}</button>`).join('')}</span><span class="lb">ลากจุดเหลืองเพื่อแก้</span><span class="sp"></span>${ap}<button data-sl="calReset">ล้างจุด</button><button class="go" data-sl="calOk">✓ ตั้งสเกล</button>`; }
+  if (S.tool === 'scale') { const n = S.cal.length, ax = S.calAxis === 'y' ? 'y' : 'x', DX = S.dimx, DY = S.dimy;
+    const tabs = `<span class="bx" data-g="sl-axis"><button data-cax="x" class="${ax === 'x' ? 'on' : ''}">↔ แนวนอน${DX ? ' ' + fmt(DX.len) + ' ✓' : ''}</button><button data-cax="y" class="${ax === 'y' ? 'on' : ''}">↕ แนวตั้ง${DY ? ' ' + fmt(DY.len) + ' ✓' : ''}</button></span>`;
+    if (n < 2) h = tabs + `<span>${ax === 'x' ? 'แตะขอบ <b>ซ้าย</b> และ <b>ขวา</b> ของแผ่น' : 'แตะขอบ <b>บน</b> และ <b>ล่าง</b> ของแผ่น'} · จุดที่ ${n + 1}/2 (กดค้าง = แว่นขยาย)</span><span class="sp"></span>${ap}<button data-sl="tcancel">เสร็จ</button>`;
+    else h = tabs + `<span class="bx"><span class="lb">${ax === 'x' ? 'กว้างจริง' : 'สูงจริง'}</span><input data-in="calLen" type="number" step="0.1" min="0" value="${esc(S.calLen)}" placeholder="ซม."><span class="lb">ซม.</span></span><span class="lb">ลากจุดเพื่อแก้</span><span class="sp"></span>${ap}<button data-sl="calReset">ล้างจุด</button><button class="go" data-sl="calOk">✓ ใช้${ax === 'x' ? 'แนวนอน' : 'แนวตั้ง'}</button>`; }
   else if (S.tool === 'persp') { const n = S.persp.length, L = ['ซ้ายบน', 'ขวาบน', 'ขวาล่าง', 'ซ้ายล่าง'];
     if (n < 4) h = `<span>⬚ ดัด 4 มุม: วางมุม <b>${L[n]}</b> ของแผ่น (${n + 1}/4) — กดค้างเพื่อเล็งด้วยแว่นขยาย</span><span class="sp"></span>${ap}<button data-sl="tcancel">ยกเลิก</button>`;
     else h = `<span class="bx"><span class="lb">ขนาดจริง</span><input data-in="pw" type="number" step="0.1" min="0" value="${esc(S.pw)}" placeholder="กว้าง"><span>×</span><input data-in="ph" type="number" step="0.1" min="0" value="${esc(S.ph)}" placeholder="สูง"><span class="lb">ซม.</span></span><span class="lb">ลากมุมเพื่อแก้</span><span class="sp"></span>${ap}<button data-sl="perspReset">ล้างจุด</button><button class="go" data-sl="perspOk">✓ ดัดรูป</button>`; }
@@ -308,7 +310,7 @@ async function busy(t, fn) { const b = document.createElement('div'); b.classNam
 // ---------- โหลดรูป ----------
 async function decode(f) { if (window.PE_decode) return window.PE_decode(f); try { return await createImageBitmap(f, { imageOrientation: 'from-image' }); } catch (e) {} return new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('เปิดรูปไม่ได้')); i.src = URL.createObjectURL(f); }); }
 function toCanvas(bmp, max) { const k = Math.min(1, (max || 5000) / Math.max(bmp.width, bmp.height)); const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(bmp.width * k)); c.height = Math.max(1, Math.round(bmp.height * k)); c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); return c; }
-function freshImg() { S.cmx = S.cmy = 0.1; S.scaled = false; S.prevImg = null; S.hist = []; S.redo = []; S.sel = []; S.cal = []; S.persp = []; S.drawPts = []; S.meas = null; S.act = null; S.calLen = ''; S.calAxis = 'both'; S.pw = ''; S.ph = ''; }
+function freshImg() { S.dimx = S.dimy = null; S.calAxis = 'x'; S.cmx = S.cmy = 0.1; S.scaled = false; S.prevImg = null; S.hist = []; S.redo = []; S.sel = []; S.cal = []; S.persp = []; S.drawPts = []; S.meas = null; S.act = null; S.calLen = ''; S.pw = ''; S.ph = ''; }
 async function loadFile(f) {
   if (S.shapes.length && S.img && !(await ask('เปลี่ยนรูปแผ่น?', 'ชิ้นงานที่วางไว้จะยังอยู่ที่ตำแหน่งเดิม (ซม.) — ถ้าเป็นแผ่นใหม่ ควรลบชิ้นงานก่อน', 'เปลี่ยนรูป'))) return;
   await busy('กำลังเปิดรูป…', async () => { try { const bmp = await decode(f); S.img = toCanvas(bmp, 5000); S.name = f.name.replace(/\.[^.]+$/, ''); freshImg(); S.tool = 'scale';
@@ -317,15 +319,21 @@ async function loadJson(f) { try { const d = JSON.parse(await f.text()); if (!d 
   await busy('กำลังเปิดงาน…', async () => { const im = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('รูปในไฟล์งานเสีย')); i.src = d.img; }); S.img = toCanvas(im, 6000); S.name = d.name || f.name.replace(/\.json$/i, ''); freshImg(); applyData(d.st || {}); S.tool = 'move'; fit(); ui(); autosave(); toast('เปิดงานแล้ว'); }); } catch (e) { toast(String((e && e.message) || e)); } }
 async function loadLast() { const L = await DB.get('last'); if (!L || !L.blob) { toast('ไม่พบงานล่าสุด'); return; } await busy('กำลังเปิดงานล่าสุด…', async () => { const bmp = await createImageBitmap(L.blob); S.img = toCanvas(bmp, 6000); S.name = L.name || 'slab'; freshImg(); applyData(L.st || {}); S.tool = 'move'; fit(); ui(); }); }
 // ---------- สเกล ----------
+// ---- ขนาดแผ่นจากจุดบนแผ่นจริง: ↔ แนวนอน (ขอบซ้าย-ขวา) · ↕ แนวตั้ง (ขอบบน-ล่าง) — เก็บเป็นพิกเซลของรูป จึงติดอยู่ที่จุดเดิมตลอด ----
+const toImg = (p) => [p[0] / S.cmx, p[1] / S.cmy], fromImg = (p) => [p[0] * S.cmx, p[1] * S.cmy];
+function loadAxis(ax) { S.calAxis = ax; const d = S['dim' + ax]; S.cal = d ? [fromImg(d.a), fromImg(d.b)] : []; S.calLen = d ? fmt(d.len) : ''; S.act = null; }
+function applyDims() { const X = S.dimx, Y = S.dimy;
+  if (X) { const dx = Math.abs(X.b[0] - X.a[0]); if (dx >= 3) S.cmx = X.len / dx; } if (Y) { const dy = Math.abs(Y.b[1] - Y.a[1]); if (dy >= 3) S.cmy = Y.len / dy; }
+  if (X && !Y && S.lockRatio) S.cmy = S.cmx; if (Y && !X && S.lockRatio) S.cmx = S.cmy; if (X || Y) S.scaled = true; }
 function calOk() { const len = parseFloat(S.calLen); if (!(len > 0)) { toast('ใส่ระยะจริง (ซม.) ก่อน'); const i = $('[data-in="calLen"]', root); if (i) i.focus(); return; }
-  const [a, b] = S.cal, dxp = Math.abs(b[0] - a[0]) / S.cmx, dyp = Math.abs(b[1] - a[1]) / S.cmy, A = S.calAxis;
-  if (A === 'x' && dxp < 3) { toast('2 จุดแนวนอนใกล้กันเกินไป'); return; } if (A === 'y' && dyp < 3) { toast('2 จุดแนวตั้งใกล้กันเกินไป'); return; } if (A === 'both' && Math.hypot(dxp, dyp) < 3) { toast('2 จุดใกล้กันเกินไป'); return; }
-  push();
-  if (A === 'x') { S.cmx = len / dxp; if (S.lockRatio && !S.scaled) S.cmy = S.cmx; }
-  else if (A === 'y') { S.cmy = len / dyp; if (S.lockRatio && !S.scaled) S.cmx = S.cmy; }
-  else { const ratio = S.cmy / S.cmx, k = len / Math.hypot(dxp, dyp * ratio); S.cmx = k; S.cmy = k * ratio; }
-  S.scaled = true; S.cal = []; S.calLen = ''; S.act = null; S.tool = 'move'; fit(); ui(); autosave(); toast('ตั้งสเกลแล้ว — แผ่นจริง ' + fmt(IW()) + ' × ' + fmt(IH()) + ' ซม.'); }
-function setSize(w, h, which) { if (!(w > 0) || !(h > 0)) return; push(); if (S.lockRatio) { const k = which === 'h' ? h / IH() : w / IW(); S.cmx *= k; S.cmy *= k; } else { S.cmx = w / S.img.width; S.cmy = h / S.img.height; } S.scaled = true; fit(); ui(); autosave(); }
+  if (S.cal.length < 2) return; const ax = S.calAxis === 'y' ? 'y' : 'x', a = toImg(S.cal[0]), b = toImg(S.cal[1]), d = ax === 'x' ? Math.abs(b[0] - a[0]) : Math.abs(b[1] - a[1]);
+  if (d < 3) { toast(ax === 'x' ? '2 จุดแนวนอนใกล้กันเกินไป — วางที่ขอบซ้าย / ขวาของแผ่น' : '2 จุดแนวตั้งใกล้กันเกินไป — วางที่ขอบบน / ล่างของแผ่น'); return; }
+  push(); S['dim' + ax] = { a, b, len }; applyDims(); S.cal = []; S.calLen = ''; S.act = null;
+  const next = ax === 'x' && !S.dimy ? 'y' : ax === 'y' && !S.dimx ? 'x' : '';
+  if (next) { loadAxis(next); fit(); ui(); autosave(); toast((ax === 'x' ? '↔ กว้าง ' : '↕ สูง ') + fmt(len) + ' ซม. แล้ว — ต่อไป: ' + (next === 'y' ? '↕ แนวตั้ง แตะขอบบน / ล่างของแผ่น' : '↔ แนวนอน แตะขอบซ้าย / ขวา') + ' (หรือกด เสร็จ)'); return; }
+  S.tool = 'move'; fit(); ui(); autosave(); toast('ตั้งขนาดแผ่นแล้ว — ↔ ' + (S.dimx ? fmt(S.dimx.len) : '—') + ' × ↕ ' + (S.dimy ? fmt(S.dimy.len) : '—') + ' ซม.'); }
+function setSize(w, h, which) { if (!(w > 0) || !(h > 0)) return; push(); S.dimx = S.dimy = null;   // พิมพ์ขนาดทั้งรูป = ใช้ขอบรูปแทนจุดบนแผ่น
+  if (S.lockRatio) { const k = which === 'h' ? h / IH() : w / IW(); S.cmx *= k; S.cmy *= k; } else { S.cmx = w / S.img.width; S.cmy = h / S.img.height; } S.scaled = true; fit(); ui(); autosave(); }
 // ---------- ดัดมุมมอง 4 มุม ----------
 function solve(A, b) { const n = b.length; for (let i = 0; i < n; i++) { let m = i; for (let r = i + 1; r < n; r++) if (Math.abs(A[r][i]) > Math.abs(A[m][i])) m = r; [A[i], A[m]] = [A[m], A[i]]; [b[i], b[m]] = [b[m], b[i]]; const p = A[i][i]; if (Math.abs(p) < 1e-12) return null;
     for (let r = i + 1; r < n; r++) { const f = A[r][i] / p; for (let c = i; c < n; c++) A[r][c] -= f * A[i][c]; b[r] -= f * b[i]; } } const x = new Array(n); for (let i = n - 1; i >= 0; i--) { let s = b[i]; for (let c = i + 1; c < n; c++) s -= A[i][c] * x[c]; x[i] = s / A[i][i]; } return x; }
@@ -343,7 +351,7 @@ async function perspOk() { const W0 = parseFloat(S.pw), H0 = parseFloat(S.ph); i
       for (let c = 0; c < 3; c++) D[o + c] = (sd[i00 + c] * (1 - fx) + sd[i10 + c] * fx) * (1 - fy) + (sd[i01 + c] * (1 - fx) + sd[i11 + c] * fx) * fy; D[o + 3] = 255; }
     og.putImageData(od, 0, 0);
     S.prevImg = { img: S.img, st: JSON.stringify(snapData()), hist: S.hist.slice() }; push(); S.histImgAt = S.hist.length;
-    S.img = out; S.cmx = S.cmy = W0 / ow; S.scaled = true; S.shapes = []; S.guides = []; S.sel = []; S.persp = []; S.act = null; S.tool = 'move'; fit(); ui(); autosave(); toast('ดัดรูปแล้ว — แผ่นจริง ' + fmt(W0) + ' × ' + fmt(H0) + ' ซม.'); }); }
+    S.img = out; S.cmx = S.cmy = W0 / ow; S.scaled = true; S.dimx = S.dimy = null; S.shapes = []; S.guides = []; S.sel = []; S.persp = []; S.act = null; S.tool = 'move'; fit(); ui(); autosave(); toast('ดัดรูปแล้ว — แผ่นจริง ' + fmt(W0) + ' × ' + fmt(H0) + ' ซม.'); }); }
 // ---------- ชิ้นงาน ----------
 function addShape(t, x, y, w, h, extra) { if (t === 'sq' || t === 'circle') h = w; const p = { id: uid(), n: String(S.next++), t, x: r1(x), y: r1(y), w: r1(w), h: r1(h), rot: 0, c: S.color, op: S.opDef, lo: S.lineDef, ...(t === 'poly' ? { sides: S.sides } : {}), ...(extra || {}) }; S.shapes.push(p); return p; }
 function afterCreate(p) { if (p && p.id) S.sel = [p.id]; if (!S.repeat) S.tool = 'move'; ui(); autosave(); }
@@ -367,7 +375,7 @@ function label(g, txt, x, y, fs, bold) { g.font = `${bold ? 800 : 600} ${fs}px "
 function paint() { if (!ctx) return; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#1E1C18'; ctx.fillRect(0, 0, W, H); if (!S.img) { lcv.hidden = true; return; }
   const z = S.view.z, [x0, y0] = toS(0, 0), iw = IW() * z, ih = IH() * z;
   ctx.imageSmoothingEnabled = z * Math.min(S.cmx, S.cmy) < 2; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(S.img, x0, y0, iw, ih); ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1; ctx.strokeRect(x0 + .5, y0 + .5, iw, ih);
-  if (S.scaled) slabDims(x0, y0, iw, ih);
+  if (S.scaled && !S.dimx && !S.dimy) slabDims(x0, y0, iw, ih);
   if (S.grid.on) { let st = S.grid.step; while (st * z < 7) st *= 2; ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, iw, ih); ctx.clip(); ctx.lineWidth = 1;
     const gx0 = Math.max(0, Math.floor(-x0 / z / st) * st), gx1 = Math.min(IW(), (W - x0) / z), gy0 = Math.max(0, Math.floor(-y0 / z / st) * st), gy1 = Math.min(IH(), (H - y0) / z);
     for (let gx = gx0; gx <= gx1 + 1e-6; gx += st) { const sx = Math.round(x0 + gx * z) + .5; ctx.strokeStyle = (Math.round(gx) % 100 === 0) ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.2)'; ctx.beginPath(); ctx.moveTo(sx, y0); ctx.lineTo(sx, y0 + ih); ctx.stroke(); }
@@ -385,6 +393,7 @@ function paint() { if (!ctx) return; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx
     if (!s1.lock) { const hs = touchy() ? 9 : 5; handles(s1).forEach((hd) => { const [hx, hy] = toS(hd.p[0], hd.p[1]);
       if (hd.k === 'rot') { const [tx, ty] = toS(...wld(s1, 0, -s1.h / 2)); ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.strokeStyle = '#22D3EE'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.beginPath(); ctx.arc(hx, hy, hs + 1, 0, 7); ctx.fillStyle = '#0E7490'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.stroke(); }
       else { ctx.beginPath(); ctx.rect(hx - hs, hy - hs, hs * 2, hs * 2); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#1C1B18'; ctx.lineWidth = 1.5; ctx.stroke(); } }); } }
+  userDims();
   if (S.snapHit && S.dragging) { ctx.save(); ctx.strokeStyle = '#FF3DA6'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); if (S.snapHit.x != null) { const sx = toS(S.snapHit.x, 0)[0]; ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, H); ctx.stroke(); } if (S.snapHit.y != null) { const sy = toS(0, S.snapHit.y)[1]; ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke(); } ctx.restore(); }
   const ptsDraw = (L, close, col, key) => { if (!L.length) return; ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); L.forEach((q, i) => { const [sx, sy] = toS(q[0], q[1]); if (i) ctx.lineTo(sx, sy); else ctx.moveTo(sx, sy); }); if (close && L.length > 2) ctx.closePath(); ctx.stroke();
     L.forEach((q, i) => { const [sx, sy] = toS(q[0], q[1]); const act = S.act && S.act.L === key && S.act.i === i; ctx.beginPath(); ctx.arc(sx, sy, act ? 9 : 7, 0, 7); ctx.fillStyle = act ? '#FF3DA6' : col; ctx.fill(); ctx.strokeStyle = '#1C1B18'; ctx.lineWidth = 1.5; ctx.stroke();
@@ -401,6 +410,15 @@ function paint() { if (!ctx) return; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx
 function previewXY([x, y]) { const w = S.defW, h = S.shape === 'sq' || S.shape === 'circle' ? S.defW : S.defH; const sx = snapAxis([x, x + w], 'x'), sy = snapAxis([y, y + h], 'y'); return [x + sx.d, y + sy.d]; }
 const fo = (s) => Math.max(0, Math.min(100, s.op == null ? S.opDef : s.op)) / 100, lo = () => 0.7;   // ความทึบพื้นชิ้น / เส้นตัด
 // เส้นบอกขนาดแผ่น (หลังตั้งสเกล) — บนขอบบน + ขอบซ้ายของรูป · ถ้าชิดขอบจอให้วาดด้านใน
+// เส้นขนาดที่ผู้ใช้ตั้งจากจุดบนแผ่น — แสดงตลอด (ยกเว้นแกนที่กำลังแก้ในเครื่องมือตั้งสเกล)
+function userDims(g0) { const col = '#FFD54A', g = g0 || ctx;
+  const tag = (txt, x, y, r) => { g.save(); g.translate(x, y); if (r) g.rotate(-Math.PI / 2); g.font = '800 13px "IBM Plex Sans Thai",system-ui,sans-serif'; const w = g.measureText(txt).width + 14; g.fillStyle = 'rgba(28,27,24,.92)'; g.strokeStyle = col; g.lineWidth = 1; g.beginPath(); g.rect(-w / 2, -11, w, 22); g.fill(); g.stroke(); g.fillStyle = col; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, 0, 0); g.restore(); };
+  const arrow = (x, y, dx, dy) => { g.beginPath(); g.moveTo(x, y); g.lineTo(x + dx * 9 - dy * 4, y + dy * 9 + dx * 4); g.moveTo(x, y); g.lineTo(x + dx * 9 + dy * 4, y + dy * 9 - dx * 4); g.stroke(); };
+  ['x', 'y'].forEach((ax) => { const d = S['dim' + ax]; if (!d || (S.tool === 'scale' && S.calAxis === ax)) return; const A = toS(...fromImg(d.a)), B = toS(...fromImg(d.b)); g.save(); g.strokeStyle = col; g.lineWidth = 1.6; g.setLineDash([]);
+    if (ax === 'x') { const y = (A[1] + B[1]) / 2, l = Math.min(A[0], B[0]), r = Math.max(A[0], B[0]); g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(A[0], y); g.moveTo(B[0], B[1]); g.lineTo(B[0], y); g.globalAlpha = .6; g.stroke(); g.globalAlpha = 1;
+      g.beginPath(); g.moveTo(l, y); g.lineTo(r, y); g.stroke(); arrow(l, y, 1, 0); arrow(r, y, -1, 0); [A, B].forEach((P) => { g.beginPath(); g.arc(P[0], P[1], 3.5, 0, 7); g.fillStyle = col; g.fill(); }); g.restore(); tag('↔ ' + fmt(d.len) + ' ซม.', l + (r - l) * 0.27, y - 14, false); }
+    else { const x = (A[0] + B[0]) / 2, t = Math.min(A[1], B[1]), b = Math.max(A[1], B[1]); g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(x, A[1]); g.moveTo(B[0], B[1]); g.lineTo(x, B[1]); g.globalAlpha = .6; g.stroke(); g.globalAlpha = 1;
+      g.beginPath(); g.moveTo(x, t); g.lineTo(x, b); g.stroke(); arrow(x, t, 0, 1); arrow(x, b, 0, -1); [A, B].forEach((P) => { g.beginPath(); g.arc(P[0], P[1], 3.5, 0, 7); g.fillStyle = col; g.fill(); }); g.restore(); tag('↕ ' + fmt(d.len) + ' ซม.', x - 14, t + (b - t) * 0.27, true); } }); }
 function slabDims(x0, y0, iw, ih) { const g = ctx, col = '#E2BC66', o = 16; g.save(); g.strokeStyle = col; g.lineWidth = 1.5;
   const ty = y0 - o >= 12 ? y0 - o : y0 + o, lx = x0 - o >= 12 ? x0 - o : x0 + o;
   g.beginPath(); g.moveTo(x0, ty); g.lineTo(x0 + iw, ty); g.moveTo(x0, ty - 6); g.lineTo(x0, ty + 6); g.moveTo(x0 + iw, ty - 6); g.lineTo(x0 + iw, ty + 6);
@@ -485,7 +503,7 @@ function pUp(e) { PT.delete(e.pointerId); const d = drag; if (!d) return; if (d.
   if (d.t === 'pan') { if (d.tap && still) { const now = Date.now(); if (now - lastTap < 330 && Math.hypot(sx - lastTapXY[0], sy - lastTapXY[1]) < 30) { zoomAt(sx, sy, S.view.z * 2); lastTap = 0; } else { lastTap = now; lastTapXY = [sx, sy]; if (S.sel.length) { S.sel = []; panel(); fbar(); stat(); } } } draw(); return; }
   if (d.t === 'newPt') { const L = listOf(d.key); L.push(d.w); S.act = { L: d.key, i: L.length - 1 };
     if (S.tool === 'persp' && S.persp.length === 4 && S.scaled) { const q = S.persp; S.pw = S.pw || fmt(Math.hypot(q[1][0] - q[0][0], q[1][1] - q[0][1])); S.ph = S.ph || fmt(Math.hypot(q[3][0] - q[0][0], q[3][1] - q[0][1])); }
-    if (S.tool === 'scale' && S.cal.length === 2 && S.scaled) { const [a, b] = S.cal; S.calLen = S.calLen || fmt(S.calAxis === 'x' ? Math.abs(b[0] - a[0]) : S.calAxis === 'y' ? Math.abs(b[1] - a[1]) : Math.hypot(b[0] - a[0], b[1] - a[1])); }
+    if (S.tool === 'scale' && S.cal.length === 2 && S.scaled) { const [a, b] = S.cal; S.calLen = S.calLen || fmt(S.calAxis === 'y' ? Math.abs(b[1] - a[1]) : Math.abs(b[0] - a[0])); }
     fbar(); draw(); if (!d.touch && ((S.tool === 'scale' && S.cal.length === 2) || (S.tool === 'persp' && S.persp.length === 4))) { const i = $(S.tool === 'scale' ? '[data-in="calLen"]' : '[data-in="pw"]', root); if (i && !i.value) i.focus(); } return; }
   if (d.t === 'closePt') { if (still) ptClose(); return; }
   if (d.t === 'editPt') { fbar(); draw(); return; }
@@ -510,13 +528,13 @@ function nudge(dx, dy, kind) { const st = S.nudge;
   if (kind === 'pt' && S.act) { if (S.act.L === 'meas') { if (S.meas) { const k = S.act.i ? 'b' : 'a'; S.meas[k] = [S.meas[k][0] + dx * st, S.meas[k][1] + dy * st]; } } else { const L = listOf(S.act.L); if (L && L[S.act.i]) L[S.act.i] = [L[S.act.i][0] + dx * st, L[S.act.i][1] + dy * st]; } draw(); fbar(); return; }
   const L = selected().filter((p) => !p.lock); if (!L.length) return; push(); L.forEach((p) => { p.x = r1(p.x + dx * st); p.y = r1(p.y + dy * st); }); draw(); panel(); autosave(); }
 // ---------- ปุ่ม ----------
-function setTool(t) { if (S.tool === t && t !== 'move') t = 'move'; S.tool = t; if (t !== 'free') S.drawPts = []; if (t !== 'scale') { S.cal = []; S.calLen = ''; } if (t !== 'persp') S.persp = []; if (t !== 'meas') S.meas = null; S.act = null; if (t !== 'move' && t !== 'shape') S.sel = []; tools(); fbar(); panel(); stat(); draw(); }
+function setTool(t) { if (S.tool === t && t !== 'move') t = 'move'; S.tool = t; if (t !== 'free') S.drawPts = []; if (t !== 'scale') { S.cal = []; S.calLen = ''; } else loadAxis(S.dimx && !S.dimy ? 'y' : 'x'); if (t !== 'persp') S.persp = []; if (t !== 'meas') S.meas = null; S.act = null; if (t !== 'move' && t !== 'shape') S.sel = []; tools(); fbar(); panel(); stat(); draw(); }
 async function onClick(e) { const t = e.target;
   const tl = t.closest('[data-tool]'); if (tl && !tl.disabled) { setTool(tl.dataset.tool); if (innerWidth <= 760 && tl.closest('#slPan')) { S.panel = false; panel(); } return; }
   const stp = t.closest('[data-step]'); if (stp) { const i = +stp.dataset.step; if (i === 0) $('#slFile', root).click(); else if (i === 1) setTool('scale'); else if (i === 2) { S.panel = true; panel(); const el = $('[data-g="sl-ratio"]', root); if (el) el.scrollIntoView({ behavior: 'smooth' }); } else if (i === 3) { S.snapMenu = true; bar(); } else if (i === 4) setTool('shape'); return; }
   const shp = t.closest('[data-shp]'); if (shp) { S.shape = shp.dataset.shp; if (S.tool !== 'shape') setTool('shape'); fbar(); panel(); draw(); return; }
   const fm = t.closest('[data-fm]'); if (fm) { S.freeMode = fm.dataset.fm; S.drawPts = []; S.act = null; fbar(); draw(); return; }
-  const cax = t.closest('[data-cax]'); if (cax) { S.calAxis = cax.dataset.cax; if (S.calAxis !== 'both') S.lockRatio = false; fbar(); return; }
+  const cax = t.closest('[data-cax]'); if (cax) { loadAxis(cax.dataset.cax); fbar(); draw(); return; }
   const nd = t.closest('[data-nud]'); if (nd) { const [a, b] = nd.dataset.nud.split(',').map(Number); nudge(a, b, nd.dataset.nk); return; }
   const pre = t.closest('[data-pre]'); if (pre) { const [a, b] = pre.dataset.pre.split('x').map(Number); S.defW = a; S.defH = b; panel(); fbar(); return; }
   const col = t.closest('[data-col]'); if (col) { S.color = col.dataset.col; panel(); return; }
@@ -539,7 +557,7 @@ async function act(a, b) {
   else if (a === 'optoggle') { push(); const v = S.opDef > 0 ? 0 : 10; setOp('all', 'f', v); bar(); fbar(); autosave(); toast('พื้นชิ้นงานทุกชิ้น ' + v + '% · เส้นตัด 70%'); }
   else if (a === 'snapmenu') { S.opMenu = false; S.snapMenu = !S.snapMenu; S.snapMenuX = b ? b.offsetLeft : 200; bar(); }
   else if (a === 'fit') fit(); else if (a === 'zin') zoomBy(1.4); else if (a === 'zout') zoomBy(1 / 1.4);
-  else if (a === 'calx' || a === 'caly') { setTool('scale'); S.calAxis = a === 'calx' ? 'x' : 'y'; S.lockRatio = false; fbar(); if (innerWidth <= 760) { S.panel = false; panel(); } }
+  else if (a === 'calx' || a === 'caly') { setTool('scale'); loadAxis(a === 'calx' ? 'x' : 'y'); fbar(); draw(); if (innerWidth <= 760) { S.panel = false; panel(); } }
   else if (a === 'calOk') calOk(); else if (a === 'calReset') { S.cal = []; S.calLen = ''; S.act = null; fbar(); draw(); }
   else if (a === 'perspOk') perspOk(); else if (a === 'perspReset') { S.persp = []; S.act = null; fbar(); draw(); }
   else if (a === 'tcancel') setTool('move');
@@ -608,14 +626,14 @@ async function exportPng() { if (!S.img) return; await busy('กำลังส�
   const c = document.createElement('canvas'); c.width = w; c.height = h + foot; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(S.img, 0, 0, w, h);
   const sv = S.view; S.view = { z: k, ox: 0, oy: 0 };
   try { S.shapes.forEach((p) => { pathOf(g, p); g.fillStyle = hexA(p.c, fo(p)); g.fill(); g.lineWidth = Math.max(2, k * .25); g.strokeStyle = hexA(p.c, lo(p)); g.stroke(); const [cx, cy] = toS(...ctr(p)), fs = Math.max(12, Math.min(p.w, p.h) * k / 3.4);
-    label(g, p.n, cx, cy - fs * .4, fs, true); label(g, p.t === 'circle' ? '⌀' + fmt(p.w) : fmt(p.w) + '×' + fmt(p.h), cx, cy + fs * .5, fs * .45); }); } finally { S.view = sv; }
+    label(g, p.n, cx, cy - fs * .4, fs, true); label(g, p.t === 'circle' ? '⌀' + fmt(p.w) : fmt(p.w) + '×' + fmt(p.h), cx, cy + fs * .5, fs * .45); }); const tl = S.tool; S.tool = 'move'; userDims(g); S.tool = tl; } finally { S.view = sv; }
   const ar = S.shapes.reduce((a, p) => a + area(p) / 10000, 0); g.fillStyle = '#1C1B18'; g.fillRect(0, h, w, foot); g.fillStyle = '#F6F1E8'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.font = `600 ${Math.round(foot * .36)}px "IBM Plex Sans Thai",sans-serif`;
-  g.fillText(`Slab Layout · ${S.name} · แผ่น ${fmt(IW())} × ${fmt(IH())} ซม. · ${S.shapes.length} ชิ้น · ${ar.toFixed(2)} ตร.ม. · ร่อง ${S.joint} มม. · ${today()} · Wellcon Interior`, Math.round(foot * .4), h + foot / 2);
+  g.fillText(`Slab Layout · ${S.name} · แผ่น ${S.dimx || S.dimy ? '↔ ' + (S.dimx ? fmt(S.dimx.len) : '—') + ' × ↕ ' + (S.dimy ? fmt(S.dimy.len) : '—') : fmt(IW()) + ' × ' + fmt(IH())} ซม. · ${S.shapes.length} ชิ้น · ${ar.toFixed(2)} ตร.ม. · ร่อง ${S.joint} มม. · ${today()} · Wellcon Interior`, Math.round(foot * .4), h + foot / 2);
   const blob = await new Promise((ok) => c.toBlob(ok, 'image/png')); dl(blob, fname('png')); toast('บันทึกภาพแผนตัดแล้ว'); }); }
 function exportCsv() { if (!S.shapes.length) { toast('ยังไม่มีชิ้นงาน'); return; } const L = [['หมายเลข', 'รูปทรง', 'กว้าง (ซม.)', 'ยาว (ซม.)', 'มุม (°)', 'กรอบตัดจากแผ่น (ซม.)', 'พื้นที่ชิ้น (ตร.ม.)', 'ตำแหน่ง X (ซม.)', 'ตำแหน่ง Y (ซม.)']];
   S.shapes.slice().sort((a, b) => (parseFloat(a.n) || 0) - (parseFloat(b.n) || 0)).forEach((p) => { const b = bbox(p); L.push([p.n, TNAME[p.t] + (p.t === 'poly' ? ' ' + (p.sides || 6) + ' ด้าน' : ''), fmt(p.w), fmt(p.h), Math.round(p.rot || 0), fmt(b[2]) + ' × ' + fmt(b[3]), (area(p) / 10000).toFixed(3), fmt(p.x), fmt(p.y)]); });
   const sum = {}; S.shapes.forEach((p) => { const k = TNAME[p.t] + ' ' + (p.t === 'circle' ? '⌀' + fmt(p.w) : fmt(Math.min(p.w, p.h)) + ' × ' + fmt(Math.max(p.w, p.h))); sum[k] = (sum[k] || 0) + 1; });
-  L.push([]); L.push(['สรุปตามขนาด', 'จำนวน']); Object.keys(sum).sort().forEach((k) => L.push([k, sum[k]])); L.push(['รวม', S.shapes.length]); L.push([]); L.push(['แผ่น', S.name, fmt(IW()) + ' × ' + fmt(IH()) + ' ซม.', 'ร่อง ' + S.joint + ' มม.', today()]);
+  L.push([]); L.push(['สรุปตามขนาด', 'จำนวน']); Object.keys(sum).sort().forEach((k) => L.push([k, sum[k]])); L.push(['รวม', S.shapes.length]); L.push([]); L.push(['แผ่น', S.name, (S.dimx || S.dimy ? '↔ ' + (S.dimx ? fmt(S.dimx.len) : '—') + ' × ↕ ' + (S.dimy ? fmt(S.dimy.len) : '—') : fmt(IW()) + ' × ' + fmt(IH())) + ' ซม.', 'ร่อง ' + S.joint + ' มม.', today()]);
   const csv = '﻿' + L.map((r) => r.map((x) => '"' + String(x == null ? '' : x).replace(/"/g, '""') + '"').join(',')).join('\r\n'); dl(new Blob([csv], { type: 'text/csv;charset=utf-8' }), fname('csv')); toast('บันทึกรายการตัดแล้ว (เปิดด้วย Excel ได้)'); }
 async function saveJson() { if (!S.img) return; await busy('กำลังบันทึกงาน…', async () => { const img = S.img.toDataURL('image/jpeg', 0.9); dl(new Blob([JSON.stringify({ app: 'wellcon-slab', v: VER, name: S.name, at: new Date().toISOString(), img, st: snapData() })], { type: 'application/json' }), fname('json')); toast('บันทึกงานแล้ว — เปิดต่อได้ที่ 📂 เปิดงาน'); }); }
 // ---------- เปิด / ปิด ----------
