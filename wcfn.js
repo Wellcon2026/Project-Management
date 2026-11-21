@@ -1,4 +1,4 @@
-/* wcfn.js v1.2.3 — ชื่อเรียกฟังก์ชัน (Feature call names) · Wellcon PM
+/* wcfn.js v1.2.4 — ชื่อเรียกฟังก์ชัน (Feature call names) · Wellcon PM
  * แหล่งเดียวของ "ชื่อเรียกสั้นภาษาอังกฤษ" ของทุกฟังก์ชัน — ใช้คุยกันให้เข้าใจตรงกัน
  * (ผู้บริหารสั่ง 21/11/2026: "give every function the name to call … short in English")
  *
@@ -27,7 +27,7 @@
     'tab:subcon': ['Subcon', 'buy', 'สัญญาช่าง · จ่ายงวดช่าง'], 'nav:subcon': ['Subcon', 'buy', 'จัดจ้าง · สัญญาช่าง'], 'tab:spo': ['Custom Order', 'buy', 'ของสั่งทำ · ของนำเข้า'], 'tab:prod': ['Production', 'buy', 'งานผลิตโรงงาน (FF&E)'],
     'tab:mango': ['Mango', 'buy', 'ระบบ ERP · ใบขอซื้อ / ใบสั่งซื้อ'], 'nav:procurement': ['Purchasing', 'buy', 'จัดซื้อ · วัสดุ (รวมทุกโครงการ)'], 'nav:store': ['Store', 'buy', 'คลังสินค้า'],
     'tab:qc': ['Site Work', 'site', 'Defect / Survey / Scope'], 'tab:claim': ['Claim', 'site', 'เคลมความเสียหาย'],
-    'dhome': ['Design Home', 'des', 'ภาพรวมงานออกแบบ'], 'tab:skp': ['SketchUp', 'des', 'แบบ 3 มิติ (3D)'], 'tab:lay': ['Layboard', 'des', 'บอร์ดนำเสนองาน'], 'tab:photo': ['Photo Editor', 'des', 'แต่งรูปผลงาน'], 'tab:pdf': ['PDF Maker', 'des', 'แก้ไขเอกสาร'],
+    'dhome': ['Design Home', 'des', 'ภาพรวมงานออกแบบ'], 'tab:skp': ['SketchUp', 'des', 'แบบ 3 มิติ (3D)'], 'tab:slab': ['Slab Layout', 'des', 'วางแผนตัดหิน · แผ่นวัสดุ'], 'tab:lay': ['Layboard', 'des', 'บอร์ดนำเสนองาน'], 'tab:photo': ['Photo Editor', 'des', 'แต่งรูปผลงาน'], 'tab:pdf': ['PDF Maker', 'des', 'แก้ไขเอกสาร'],
     'nav:cfo': ['Company Finance', 'co', 'การเงินรวมบริษัท'], 'nav:bglg': ['Bank Guarantee', 'co', 'หนังสือค้ำประกัน BG / LG'], 'nav:hr': ['People', 'co', 'บุคลากร'], 'nav:jd': ['JD', 'co', 'ขอบเขตงาน · หน้าที่'],
     'nav:library': ['Library', 'co', 'คลังความรู้'], 'nav:training': ['Training', 'co', 'Wellcon Training · อบรม'], 'nav:admin': ['Users & Teams', 'co', 'ผู้ใช้ & ทีมโครงการ'], 'nav:forms': ['Form Builder', 'co', 'ออกแบบฟอร์มเอกสาร'],
     'nav:system': ['System', 'co', 'ตั้งค่าระบบ'], 'tab:eng': ['Level Gate', 'co', 'การมีส่วนร่วม · แต้มสะสม']
@@ -47,5 +47,5 @@
     Object.keys(M).forEach(function (k) { var n = M[k][0]; if (seen[n]) { seen[n].keys.push(k); return; } seen[n] = { name: n, group: G[M[k][1]] || '', th: M[k][2] || '', keys: [k] }; out.push(seen[n]); });
     return out;
   }
-  root.WCFN = { VER: '1.2.3', name: name, of: of, title: title, desc: desc, all: all, groups: G };
+  root.WCFN = { VER: '1.2.4', name: name, of: of, title: title, desc: desc, all: all, groups: G };
 })(typeof window !== 'undefined' ? window : globalThis);
