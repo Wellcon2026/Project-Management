@@ -2,6 +2,14 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด · เพิ่มรายการบนสุดใน `whatsnew.json` (ข้อความที่ผู้ใช้เห็นในหน้าต่าง "มีอะไรใหม่") · และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## 🎓 Demo Center · ศูนย์สอนใช้งาน (ชั้นที่ 2) · PM v1.459.0 · Site Work v1.59.0 · 21/11/2026
+- ผู้บริหารสั่ง 21/11/2026: "invest our time … tutorial interactive walkthrough to every feature" → เสนอแบบ 3 ชั้น (In-App · Interactive Walkthrough · SOP) → "please proceed"
+- `wchub.js` 1.0.0 (ใหม่): เส้นทางของฉัน (ตาม `WORK_DEF` ชุดเดียวกับการ์ด My Space · ผู้ดูแล / ผู้จัดการเลือกดูตำแหน่งอื่นได้) · ทุกฟังก์ชัน (จาก `wcfn.js` แยกหมวด + ค้นหา) · ทีม (ผู้ดูแล / ผู้จัดการ) · โหมดฝึก (`?env=staging` = schema staging ข้อมูลสำเนา) · ▶ เริ่ม = ไปหน้าจริงแล้วเริ่มบทสอนเอง (หน้าในแอป: hash + รอจุดแรก · แอปแยก / Site Work: `?wcdemo=<key>`)
+- ความคืบหน้า: เครื่อง (`wg_done:<key>`) + กลาง `app_state` id `demoProg:<อีเมล>` (1 แถวต่อคน ไม่ทับกัน · ข้อมูลในเครื่องที่ยังไม่ขึ้นกลางถูกส่งเมื่อเปิดแอปหลัก) · Site Work คนละโดเมน → ยังนับในเครื่อง
+- `scripts/patch-demo-center.js` (MARK `v1.459.0 demo-center`): โหลด wchub.js · สะพาน `__whBridge` / `_hubBridge()` · ที่วางแถบ `data-wh-host` ใน My Space (ใต้หัวหน้าทำงาน) และ Training
+- `wcguide.js` 1.3.0: เรียนจบ → `WCHub.mark` · `?wcdemo=` เริ่มสอนเอง · บทสอน Demo Center (8 ขั้น) · `wcfn.js` 1.2.2 + `nav:demo` "Demo Center" · `wcdemo.js` 1.3.1 สไลด์ Demo Center 9 ขั้น
+- ผลทดสอบ p59 (16 ข้อ · ทดสอบบันทึกกลางด้วยฐานข้อมูลจำลอง เพราะชุดทดสอบปิดเน็ต) · p59m มือถือ 412 ไม่ล้นจอ · p58 29 หน้าผ่าน · Site Work p3 / p4 / p5 ผ่าน · ไม่มี error
+
 ## 👆 สอนแบบจูงมือครบทุกหน้า · PM v1.458.0 · Site Work v1.58.0 · 21/11/2026
 - ผู้บริหารสั่ง 21/11/2026: "there is still no interactive walkthrough on some feature. Can you recheck the whole thing every feature again" · "invest our time … tutorial interactive walkthrough to every feature"
 - `wcguide.js` 1.2.0: จุดชี้แบบข้อความ `CSS{ข้อความบนปุ่ม}` (ไม่ต้องแก้ index.html · ตัวในสุดที่มีข้อความนี้) + `^n` ขึ้นกรอบแม่ · ชื่อเรียกแทน (alias: proc / mat → Material Log · calendar / memo / subcon · work → My Space) · บทสอนแบบ `run` (เปิดบทสอนเดิมของหน้านั้น) · Site Work ในกรอบ (tab:qc) ใช้ปุ่ม DEMO ของ Site Work เอง · ข้อความจบ "กด ▶ DEMO ดูซ้ำ"
