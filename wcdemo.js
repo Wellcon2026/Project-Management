@@ -12,7 +12,7 @@
 (function () {
   'use strict';
   if (window.WCDemo) return;
-  const VER = '1.0.0';
+  const VER = '1.0.2';   // 1.0.2: ปุ่มมีสีตั้งแต่โหลดหน้า · 1.0.1: Role Home รวมเข้า My Space
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   // key → ขั้นตอน [หัวข้อ, คำอธิบาย]
   const D = {
@@ -327,22 +327,16 @@
       ['เข้าโครงการ', 'กดการ์ดโครงการเพื่อเข้าหน้า Overview'],
     ],
     'nav:inbox': [
-      ['เปิด My Space', 'กด My Space (พื้นที่ทำงานของฉัน) ที่เมนูซ้าย'],
-      ['ตัวกรองด้านบน', 'ทั้งหมด · โน้ต · มอบหมายให้ฉัน · ฉันมอบหมาย'],
+      ['เปิด My Space', 'กด My Space (พื้นที่ทำงานของฉัน) — เข้าระบบแล้วมาที่หน้านี้เลย'],
+      ['เลือกโครงการ', 'กดปุ่มโครงการด้านบน เพื่อเลือก / เปลี่ยนโครงการที่จะทำงาน'],
+      ['การ์ดตามตำแหน่ง', 'การ์ดเรียงตามงานที่ตำแหน่งของคุณใช้บ่อย — กดการ์ดเพื่อเข้าใช้งาน หรือกด ▶ Demo ดูวิธีใช้'],
+      ['จัดการ์ด', 'กด “↕ จัดเรียงการ์ด” ลากสลับ ซ่อน หรือเพิ่มการ์ดได้'],
+      ['ตัวกรองงาน', 'ทั้งหมด · โน้ต · มอบหมายให้ฉัน · ฉันมอบหมาย'],
       ['มอบหมายให้ฉัน', 'งานที่มีคนมอบหมาย และเรื่องที่ระบบพบ (RFI ค้าง · วัสดุรออนุมัติ)'],
       ['ฉันมอบหมาย', 'ติดตามงานที่คุณมอบหมาย — กด ✓ ตามแล้ว เมื่อทักแล้ว'],
       ['Notes', 'ช่อง Notes หน้าตาเดียวกับการ์ด Notes'],
-      ['ปฏิทิน 3 สัปดาห์', 'ดูวันสำคัญทุกโครงการ · กดวันเพื่อเพิ่มกิจกรรม'],
+      ['ปฏิทิน 3 สัปดาห์', 'ดูวันสำคัญทุกโครงการ (สีตามประเภทกิจกรรม) · กดวันเพื่อเพิ่มกิจกรรม'],
       ['เคลียร์งาน', 'ไล่ทำจากเรื่องเร่งด่วน (สีแดง) ก่อน'],
-    ],
-    'nav:work': [
-      ['เปิด Role Home', 'หน้าทำงานตามตำแหน่งของคุณ'],
-      ['เลือกโครงการ', 'กดปุ่มโครงการด้านบนเพื่อเลือก / เปลี่ยนโครงการ'],
-      ['การ์ดฟังก์ชัน', 'การ์ดเรียงตามงานที่ตำแหน่งนี้ใช้บ่อย'],
-      ['Demo', 'กด ▶ Demo บนการ์ดเพื่อดูวิธีใช้'],
-      ['จัดเรียงการ์ด', 'กด “↕ จัดเรียงการ์ด” ลากสลับลำดับได้'],
-      ['ซ่อน / เพิ่ม', 'ซ่อนการ์ดที่ไม่ใช้ หรือเพิ่มจากแผงด้านล่าง'],
-      ['ค้นหาด่วน', 'กด Ctrl K แล้วพิมพ์ชื่อหน้า (อังกฤษหรือไทย)'],
     ],
     'nav:ai': [
       ['เปิด AI', 'กด “ถามที่ปรึกษา AI” ด้านบน หรือเมนู AI'],
@@ -473,7 +467,7 @@
     ],
   };
   // ชื่อ key อื่นที่ใช้ demo ชุดเดียวกัน
-  const ALIAS = { 'nav:note': 'note', 'tab:proc': 'tab:procm', 'tab:mat': 'tab:procm', 'nav:subcon': 'tab:subcon' };
+  const ALIAS = { 'nav:work': 'nav:inbox', 'nav:note': 'note', 'tab:proc': 'tab:procm', 'tab:mat': 'tab:procm', 'nav:subcon': 'tab:subcon' };
   const keyOf = (k) => { k = String(k || ''); return D[k] ? k : (ALIAS[k] && D[ALIAS[k]] ? ALIAS[k] : ''); };
   const nm = (k) => { try { return window.WCFN ? { en: window.WCFN.name(k) || '', th: window.WCFN.desc(k) || '' } : { en: '', th: '' }; } catch (e) { return { en: '', th: '' }; } };
 
@@ -540,7 +534,8 @@
   function onDemoClick(e) { const b = e.target && e.target.closest && e.target.closest('[data-demo]'); if (!b) return;
     e.stopPropagation(); e.preventDefault(); const card = b.closest('[data-demo-card]') || b.parentElement && b.parentElement.closest('div');
     open(b.getAttribute('data-demo'), { start: card ? () => { try { card.click(); } catch (x) {} } : null }); }
-  if (typeof document !== 'undefined') { ['click'].forEach(ev => document.addEventListener(ev, onDemoClick, true));
+  if (typeof document !== 'undefined') { if (document.head) css(); else document.addEventListener('DOMContentLoaded', css);   // 1.0.2 ปุ่ม Demo มีสีตั้งแต่โหลดหน้า (เดิมมีสีหลังเปิด Demo ครั้งแรก)
+    ['click'].forEach(ev => document.addEventListener(ev, onDemoClick, true));
     document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('[data-demo]')) onDemoClick(e); }, true); }
 
   window.WCDemo = { VER, open, close, has: (k) => !!keyOf(k), keys: () => Object.keys(D), steps: (k) => (D[keyOf(k)] || []).slice(), list: () => Object.keys(D).map(k => ({ key: k, ...nm(k), n: D[k].length })) };
