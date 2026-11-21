@@ -12,7 +12,7 @@
 (function () {
   'use strict';
   if (window.WCSetup) return;
-  const VER = '1.3.1';   // 1.3.1: ปุ่ม ? วิธีใช้ ที่หัว · 1.3.0: วางฟอร์มข้อ 1–3 ในหน้าภาพรวมโครงการได้ (inline · [data-ws-host]) — ฟอร์มเดียวกันทุกที่ · 1.2.0: ใบเสนอราคา / สัญญา / BOQ → ปุ่ม “ใช้เป็นวัสดุในใบขอซื้อ” · 1.1.0:   // 1.1.0: ที่อยู่หน้างาน / สถานที่ส่งของ (ใช้ในใบขอซื้อ · ใบเสนอราคา)
+  const VER = '1.3.2';   // 1.3.2: ชื่อ Project Setup · 1.3.1: ปุ่ม ? วิธีใช้ ที่หัว · 1.3.0: วางฟอร์มข้อ 1–3 ในหน้าภาพรวมโครงการได้ (inline · [data-ws-host]) — ฟอร์มเดียวกันทุกที่ · 1.2.0: ใบเสนอราคา / สัญญา / BOQ → ปุ่ม “ใช้เป็นวัสดุในใบขอซื้อ” · 1.1.0:   // 1.1.0: ที่อยู่หน้างาน / สถานที่ส่งของ (ใช้ในใบขอซื้อ · ใบเสนอราคา)
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const pad = (n) => String(n).padStart(2, '0');
   const dmy = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; };
@@ -184,7 +184,7 @@
   function renderInl() { const c = S; if (!c.inline || !c.B) return; const B = c.B; const p = B.proj(c.pid);
     if (!p) { c.host.innerHTML = '<div class="ws-inl"><div class="ws-hint">ไม่พบโครงการ</div></div>'; return; }
     const sc = B.score(c.pid);
-    c.host.innerHTML = `<div class="ws-inl" translate="no"><div class="ws-inl-hd">⚙ ฟอร์มเดียวกับ <b>Setup · ตั้งค่าโครงการ</b> — แก้ที่นี่หรือที่ Setup ก็ข้อมูลชุดเดียวกัน · <span class="ws-inl-pct">ข้อมูลครบ ${sc.pct}%</span><span class="sp"></span><button class="ws-b" data-full>เปิด Setup เต็ม ↗</button></div>
+    c.host.innerHTML = `<div class="ws-inl" translate="no"><div class="ws-inl-hd">⚙ ฟอร์มเดียวกับ <b>Project Setup · ตั้งค่าโครงการ</b> — แก้ที่นี่หรือที่ Project Setup ก็ข้อมูลชุดเดียวกัน · <span class="ws-inl-pct">ข้อมูลครบ ${sc.pct}%</span><span class="sp"></span><button class="ws-b" data-full>เปิด Project Setup เต็ม ↗</button></div>
       ${!B.canEdit() ? '<div class="ws-ro">ดูได้อย่างเดียว — ข้อมูลโครงการแก้ได้เฉพาะ PM · QS · Director · Admin · การเงิน · ธุรการ</div>' : ''}${c.secs.map(k => SECS[k] ? SECS[k]() : '').join('')}</div>`;
     c.sig = sigOf(c); }
   function mount(host, bridge, o) { if (!host || !bridge) return null; css(); o = o || {};
