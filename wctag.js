@@ -13,7 +13,7 @@
 (function () {
   'use strict';
   if (window.WCTag) return;
-  const VER = '1.2.3';   // 1.2.3: ส่งออก markDone / go ให้หน้า “บันทึก · งานของฉัน” (wcnote.js) ใช้ · 1.2.2: ปิดหน้าต่างเลือกคน (✕) แล้วผู้อนุมัติที่ระบบกำหนดยังได้รับแจ้ง · 1.2.1: ผู้บริหาร / ผู้จัดการฝ่าย (เห็นทุกโครงการตามตำแหน่ง) แท็กได้ในทุกโครงการ — เดิมต้องติ๊ก "เห็นทุกโครงการ" เอง · 1.2.0: แท็กในโครงการ = เลือกได้เฉพาะทีมที่ได้รับมอบหมายในโครงการนั้น (+ ผู้บริหารที่ตั้งให้เห็นทุกโครงการ) · 1.1.0: เข้าสู่ระบบครั้งเดียว ข้ามแอป (ตั๋วใช้ครั้งเดียว ?wsso=)
+  const VER = '1.3.0';   // 1.3.0: ในแอปหลัก กดกระดิ่ง = เปิดหน้า Notes แท็บ “แท็กถึงฉัน” (หน้าตาเดียวกันทุกที่) · ส่งออก loadSent / markSeen / here · 1.2.3: ส่งออก markDone / go ให้หน้า “บันทึก · งานของฉัน” (wcnote.js) ใช้ · 1.2.2: ปิดหน้าต่างเลือกคน (✕) แล้วผู้อนุมัติที่ระบบกำหนดยังได้รับแจ้ง · 1.2.1: ผู้บริหาร / ผู้จัดการฝ่าย (เห็นทุกโครงการตามตำแหน่ง) แท็กได้ในทุกโครงการ — เดิมต้องติ๊ก "เห็นทุกโครงการ" เอง · 1.2.0: แท็กในโครงการ = เลือกได้เฉพาะทีมที่ได้รับมอบหมายในโครงการนั้น (+ ผู้บริหารที่ตั้งให้เห็นทุกโครงการ) · 1.1.0: เข้าสู่ระบบครั้งเดียว ข้ามแอป (ตั๋วใช้ครั้งเดียว ?wsso=)
   const ROLE = { pm: 'PM', pm_mgr: 'PM Manager', qs: 'QS', qs_mgr: 'QS Manager', sitemgr: 'Site Manager', site: 'หัวหน้าช่าง', safety: 'Safety', designer: 'Designer',
     design_mgr: 'Design Manager', director: 'Director', superadmin: 'Admin', admin: 'Admin', proc: 'จัดซื้อ', proc_mgr: 'จัดซื้อ', store: 'Store', fin: 'การเงิน', fin_mgr: 'การเงิน',
     hr: 'HR', hr_mgr: 'HR', factory: 'โรงงาน', office: 'Office', driver: 'คนขับรถ' };
@@ -195,8 +195,14 @@
   function go(x) { if (!x || !x.url) return; mark([x.id], 'seen').then(() => {}); if (isApp(x.url)) { ticketUrl(x.url).then(v => { location.href = v; }); return; } try { const u = new URL(x.url, location.href);
     if (u.origin === location.origin && u.pathname === location.pathname && u.search === location.search && u.hash !== location.hash) { location.hash = u.hash; location.reload(); return; } location.href = u.href; } catch (e) { location.href = x.url; } }
   // รายการทั้งหมด (กดกระดิ่ง)
+  // v1.3.0 ฉันแท็กไป (30 วันล่าสุด) — ใช้ทั้งหน้าต่างนี้และหน้า Notes
+  async function loadSent() { if (!S.me || !S.sb) return []; const since = new Date(Date.now() - 30 * 864e5).toISOString();
+    const r = await S.sb.from('wc_tags').select('*').eq('from_email', S.me.email).gte('created_at', since).order('created_at', { ascending: false }).limit(100); S.sent = r.error ? [] : (r.data || []); return S.sent; }
   async function open() {
     if (!S.me || !S.sb) { toast('ยังไม่ได้เข้าสู่ระบบ'); return; }
+    if (window.WCNote && typeof window.__wnBridge === 'function') { try { window.WCNote.open(window.__wnBridge(), { tab: 'tag' }); return; } catch (e) { console.error(e); } }   // v1.3.0 แอปหลัก: หน้าตาเดียวกับ Notes
+    return openPanel(); }
+  async function openPanel() {
     let tab = 'me'; const ov = sheet(`<div class="wct-hd"><span class="wct-ic">🔔</span><b>แจ้งเตือน · แท็ก<small>เฉพาะเรื่องที่มีคนแท็กคุณ / ขออนุมัติ</small></b><button class="wct-cl" data-x aria-label="ปิด">✕</button></div>
       <div class="wct-tabs"><button class="wct-chip on" data-tab="me">ถึงฉัน</button><button class="wct-chip" data-tab="sent">ฉันแท็กไป</button></div>
       <div class="wct-bd" data-list><div class="wct-em">กำลังโหลด…</div></div>
@@ -205,8 +211,6 @@
     const draw = () => { ov.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === tab)); $('[data-all]').hidden = tab !== 'me' || !S.open.length;
       const L = tab === 'me' ? S.open : S.sent;
       $('[data-list]').innerHTML = L.length ? L.map(x => item(x, tab === 'sent')).join('') : `<div class="wct-em">${tab === 'me' ? 'ไม่มีเรื่องค้าง — ไม่มีใครแท็กคุณ' : 'ยังไม่ได้แท็กใครใน 30 วันที่ผ่านมา'}</div>`; };
-    const loadSent = async () => { const since = new Date(Date.now() - 30 * 864e5).toISOString();
-      const r = await S.sb.from('wc_tags').select('*').eq('from_email', S.me.email).gte('created_at', since).order('created_at', { ascending: false }).limit(100); S.sent = r.error ? [] : (r.data || []); };
     await refresh(); draw();
     ov.addEventListener('click', async (e) => {
       if (e.target === ov || e.target.closest('[data-x]')) { ov.remove(); const u = S.open.filter(x => !x.seen_at).map(x => x.id); if (u.length) mark(u, 'seen'); return; }
@@ -267,5 +271,5 @@
   }
   function reset() { S.me = null; S.open = []; S.sent = []; S.shown = {}; clearInterval(S.timer); emit(); }
   window.WCTag = { VER, setup, reset, pick, send, tag, close, byRole, check, ssoTake, ticketUrl, isApp, refresh, open, bell, toast, people: () => S.people.slice(), person, onChange: (f) => { S.subs.push(f); f(S.open.length, S.open.filter(x => !x.seen_at).length); },
-    count: () => S.open.length, ROLE, _S: S, markDone: (ids) => mark(ids || [], 'done'), go };
+    count: () => S.open.length, ROLE, _S: S, markDone: (ids) => mark(ids || [], 'done'), markSeen: (ids) => mark(ids || [], 'seen'), go, loadSent, openPanel, here: () => { if (S.onTag) S.onTag(); } };
 })();
