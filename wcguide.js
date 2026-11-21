@@ -14,7 +14,7 @@
 (function () {
   'use strict';
   if (window.WCGuide) return;
-  const VER = '1.2.0';   // 1.2.0: บทสอนจูงมือครบทุกหน้า (ชุด B / C) · จุดชี้แบบ “ข้อความบนปุ่ม” CSS{ข้อความ} · ชื่อเรียกแทน (alias) · 1.1.0: ปุ่ม ▶ DEMO ตำแหน่งเดียวกันทุกหน้า (ขอบขวาของจอ) — รู้เองว่าอยู่หน้าไหน · มีบทสอนจูงมือ → จูงมือ · ไม่มี → สรุปทีละขั้น
+  const VER = '1.3.0';   // 1.3.0: Demo Center (wchub.js) — เรียนจบบันทึกกลาง · ?wcdemo=<key> เริ่มสอนเอง · บทสอน Demo Center · 1.2.0: 1.2.0: บทสอนจูงมือครบทุกหน้า (ชุด B / C) · จุดชี้แบบ “ข้อความบนปุ่ม” CSS{ข้อความ} · ชื่อเรียกแทน (alias) · 1.1.0: ปุ่ม ▶ DEMO ตำแหน่งเดียวกันทุกหน้า (ขอบขวาของจอ) — รู้เองว่าอยู่หน้าไหน · มีบทสอนจูงมือ → จูงมือ · ไม่มี → สรุปทีละขั้น
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const T = {};   // key → tour
 
@@ -299,6 +299,16 @@
     { sel: 'div{สำรองข้อมูล}', t: 'สำรองข้อมูล', d: 'สำรองก่อนแก้ข้อมูลจำนวนมากทุกครั้ง', last: true, opt: true },
   ] };
 
+  T['nav:demo'] = { title: 'Demo Center · ศูนย์สอนใช้งาน', steps: [
+    { sel: '.wh-ring', t: 'ความคืบหน้าของคุณ', d: 'เรียนจบกี่ % ของเส้นทางตามตำแหน่ง — ทุกเรื่องที่กด “เสร็จสิ้น” ถูกนับให้อัตโนมัติ' },
+    { sel: '.wh-tabs [data-tab="path"]', t: 'เส้นทางของฉัน', d: 'ฟังก์ชันที่ตำแหน่งของคุณใช้บ่อย เรียงจากเรื่องแรกที่ควรรู้' },
+    { sel: '.wh-it', t: 'แต่ละเรื่อง', d: '✓ เขียว = เรียนแล้ว · ตัวเลข = ยังไม่เรียน · ข้อละ 1–2 นาที' },
+    { sel: '.wh-go', t: '▶ เริ่ม', d: 'กดแล้วพาไปหน้าจริง และเริ่มสอนแบบจูงมือให้เอง' },
+    { sel: '[data-prac]', t: 'โหมดฝึก', d: 'เปิดแอปชุดสำเนา — ลองกด / บันทึกได้เต็มที่ ไม่กระทบงานจริง', opt: true },
+    { sel: '.wh-tabs [data-tab="all"]', t: 'ทุกฟังก์ชัน', d: 'ดูและค้นหาทุกฟังก์ชันในระบบ แยกตามหมวด' },
+    { sel: '.wh-tabs [data-tab="team"]', t: 'ทีม', d: 'ผู้บริหาร / ผู้จัดการดูได้ว่าใครเรียนจบกี่เรื่อง — ช่วยติดตามพนักงานใหม่', opt: true },
+    { sel: '.wh-x', t: 'ปิด', d: 'กลับมาที่นี่ได้ทุกเมื่อจากแถบ Demo Center ใน My Space / Training', last: true },
+  ] };
   // ---------- บทสอน (แอปแยก · ชุด A) ----------
   T['tab:lay'] = { title: 'Layboard · บอร์ดนำเสนองาน', steps: [
     { sel: 'button{+ New board} || button{บอร์ดใหม่} || button{+ New design}', t: 'สร้างบอร์ดใหม่', d: 'เริ่มบอร์ดนำเสนองานใหม่ — เลือกขนาดกระดาษ / แนว แล้วเริ่มจัดวาง' },
@@ -452,8 +462,8 @@
   function start(key, o) { if (typeof key === 'string') key = tk(key) || key; const tour = typeof key === 'object' ? key : T[key]; if (!tour || !tour.steps || !tour.steps.length) return false;
     stop(false); build(); G.tour = tour; G.key = typeof key === 'string' ? key : (tour.key || ''); document.addEventListener('keydown', onKey, true); loop(); go(0); return true; }
   function stop(done) { clearWait(); cancelAnimationFrame(G.raf); if (G.root) { G.root.remove(); G.root = null; } document.removeEventListener('keydown', onKey, true);
-    if (done && G.key) { try { localStorage.setItem('wg_done:' + G.key, new Date().toISOString()); } catch (e) {} const tt = G.tour && G.tour.title; G.tour = null; toastDone(tt); return; } G.tour = null; }
-  function toastDone(tt) { const d = document.createElement('div'); d.textContent = '🎉 เรียนจบแล้ว — ' + (tt || '') + ' · กด ▶ DEMO ดูซ้ำได้ทุกเมื่อ';
+    if (done && G.key) { try { localStorage.setItem('wg_done:' + G.key, new Date().toISOString()); } catch (e) {} try { if (window.WCHub && WCHub.mark) WCHub.mark(G.key); } catch (e) {} const tt = G.tour && G.tour.title; G.tour = null; toastDone(tt); return; } G.tour = null; }
+  function toastDone(tt) { const d = document.createElement('div'); d.textContent = '🎉 เรียนจบแล้ว — ' + (tt || '') + ' · กด ▶ DEMO ดูซ้ำ · เรียนเรื่องต่อไปที่ Demo Center';
     d.style.cssText = "position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2147483600;background:#1C1B18;color:#fff;border-radius:12px;padding:10px 16px;font:14px 'IBM Plex Sans Thai',system-ui,sans-serif;max-width:90vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.25)";
     document.body.appendChild(d); setTimeout(() => d.remove(), 3200); }
   // ตรวจว่าจุดของแต่ละขั้นเจอบนหน้าจอตอนนี้ไหม (ชุดทดสอบใช้ตรวจหลังแก้หน้าตา)
@@ -461,7 +471,7 @@
   // ---------- ปุ่ม ▶ DEMO ที่เดียวกันทุกหน้า ----------
   // หน้าปัจจุบัน: Notes / Project Setup ที่เปิดอยู่ → หน้าหลักบอกผ่าน window.__wcDemoKey → แอปแยกบอกผ่าน <html data-demo-key>
   const shown = (s) => { const e = document.querySelector(s); return !!e && vis(e); };
-  function curKey() { if (shown('.wn-ov .wn-bx:not(.ed)')) return 'note'; if (shown('.ws-ov .ws-bx')) return 'tab:setup';
+  function curKey() { if (shown('.wh-ov .wh-bx')) return 'nav:demo'; if (shown('.wn-ov .wn-bx:not(.ed)')) return 'note'; if (shown('.ws-ov .ws-bx')) return 'tab:setup';
     const k = String(window.__wcDemoKey || document.documentElement.getAttribute('data-demo-key') || '');
     if (k === 'tab:qc' && shown('iframe[title="Site Work"]')) return '';   // Site Work ในกรอบ มีปุ่ม DEMO ของตัวเอง (จูงมือจริง)
     return k; }
@@ -473,5 +483,10 @@
       b.innerHTML = '<i>▶</i>DEMO'; b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openDemo(); }); document.body.appendChild(b); }
     b.style.display = show ? '' : 'none'; b.title = 'Demo — สอนวิธีใช้หน้านี้ทีละขั้น' + (tk(k) ? ' (จูงมือบนหน้าจอจริง)' : ''); b.setAttribute('aria-label', 'Demo วิธีใช้หน้านี้'); }
   setInterval(tabTick, 500);
+  // ---------- เริ่มสอนเองเมื่อเปิดจาก Demo Center (?wcdemo=<key>) — รอจุดแรกโผล่ (สูงสุด 10 วิ) ----------
+  (function auto() { let k = ''; try { k = new URLSearchParams(location.search).get('wcdemo') || ''; } catch (e) {} if (!k) return;
+    try { const u = new URL(location.href); u.searchParams.delete('wcdemo'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); } catch (e) {}
+    const t0 = Date.now(); const iv = setInterval(() => { const kk = tk(k); if (!kk && Date.now() - t0 < 4000) return; if (!kk) { clearInterval(iv); return; }
+      const f = find(T[kk].steps[0].sel); if (f || Date.now() - t0 > 10000) { clearInterval(iv); setTimeout(() => start(kk), 400); } }, 300); })();
   window.WCGuide = { VER, start, demo: openDemo, curKey, stop, has: (k) => !!tk(k), register: (k, t) => { T[k] = t; }, check, keys: () => Object.keys(T), active: () => !!G.tour, done: (k) => { try { return !!localStorage.getItem('wg_done:' + k); } catch (e) { return false; } } };
 })();
