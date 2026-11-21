@@ -196,6 +196,7 @@ node scripts/patch-cal-unify.js           # ปฏิทิน 3 สัปดา
 node scripts/patch-home-merge.js          # Role Home รวมเข้า My Space (หน้าส่วนตัวหน้าเดียว) · ลิงก์ / ปุ่มเดิม → My Space
 node scripts/patch-demo-inapp.js          # วิธีใช้ทีละขั้นอยู่ในหน้าใช้งาน (ปุ่ม ? วิธีใช้หน้านี้) · ลบปุ่ม Demo บนการ์ด
 node scripts/patch-daily-redesign.js      # Daily Report หน้าใหม่: การ์ดวันนี้ · ตัวเลข · แถบ 14 วัน · รายการแบบการ์ด
+node scripts/patch-guide.js               # สอนแบบจูงมือ (wcguide.js) · เครื่องหมาย data-g หน้า Daily Report
 node scripts/patch-layboard-photo.js    # Layboard: ปุ่ม "แต่งรูป (Photo Editor)" (แก้ layboard/index.html · sync-layboard.js เรียกให้อัตโนมัติ)
 node scripts/patch-sess-guard.js        # หลายหน้าต่างในเครื่องเดียว = ผู้ใช้คนเดียว · กันหน้าต่างอื่นเขียนทับผู้ใช้ (แก้ออกจากระบบแล้วเข้าเป็นคนอื่น)
 ```

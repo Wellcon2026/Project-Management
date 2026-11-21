@@ -22,7 +22,7 @@ const enc = (t) => JSON.stringify(t).split('</').join('<' + BS + 'u002F');
 let t = JSON.parse(lines[idx]);
 if (enc(t) !== lines[idx]) { console.error('✗ ถอด/ประกอบ template แล้วไม่ตรงเดิม — ไม่แก้'); process.exit(2); }
 const MARK = 'v1.443.0 project-setup';
-const SETUP_VER = '1.3.1';   // 1.2.0: ใช้เป็นวัสดุในใบขอซื้อ ·   // 1.1.0: ที่อยู่หน้างาน
+const SETUP_VER = '1.3.2';   // 1.2.0: ใช้เป็นวัสดุในใบขอซื้อ ·   // 1.1.0: ที่อยู่หน้างาน
 if (t.includes(MARK)) { const t2 = t.replace(/\/wcsetup\.js\?v=[0-9.]+/g, '/wcsetup.js?v=' + SETUP_VER);
   if (t2 !== t) { lines[idx] = enc(t2); fs.writeFileSync(file, lines.join(nl)); console.log('✓ project-setup มีแล้ว · อัปเดต wcsetup.js?v=' + SETUP_VER); } else console.log('✓ มีแล้ว — ไม่ต้องแก้ (project-setup)'); process.exit(0); }
 if (!t.includes('v1.441.0 ux-mobile')) { console.error('✗ ต้องรัน scripts/patch-ux-mobile.js ก่อน'); process.exit(1); }

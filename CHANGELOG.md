@@ -2,6 +2,14 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด · เพิ่มรายการบนสุดใน `whatsnew.json` (ข้อความที่ผู้ใช้เห็นในหน้าต่าง "มีอะไรใหม่") · และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## 👆 สอนแบบจูงมือบนหน้าจอจริง (ระยะ 1) · PM v1.456.0 · Site Work v1.56.0 · 21/11/2026
+- ผู้บริหารสั่ง 21/11/2026: "hold user's hand … show step by step, highlight / mouse on display" (Interactive Tutorial) — "please proceed"
+- `wcguide.js` 1.0.0 (ใหม่): ไฮไลต์จุดบนจอ + มือชี้ + กล่องบอกขั้น · ขั้น "กด" รอกดจริง (click / pointerup) · ขั้น "พิมพ์" · กดนอกจุดไม่ได้ · หาจุดไม่เจอ = อธิบายกลางจอ ไม่ค้าง (opt = ข้ามให้) · ออกได้ทุกขั้น · จำว่าเรียนจบ · `WCGuide.check(key)` ตรวจว่าเจอจุดครบ (ชุดทดสอบ) · มือชี้กลางจุดเมื่อจุดใหญ่ · มือถือ = กล่องด้านล่าง
+- บทสอน 5 หน้า: Daily Report (9 ขั้น) · Notes (9) · Project Setup (9) · PR / WO (8) · Site Work Defect (10 · อยู่ใน app.js ของ Site Work)
+- `wcdemo.js` 1.2.0: ปุ่ม "? วิธีใช้" → หน้าที่มีบทสอนเปิดแบบจูงมือ (ขั้นแรกมีลิงก์ "ดูแบบสรุปทีละขั้น") · `scripts/patch-guide.js` (MARK `v1.456.0 guide`): โหลด wcguide.js · เครื่องหมาย data-g 10 จุดในหน้า Daily Report · แอปแยกโหลด wcguide.js
+- ชื่อ Setup → **Project Setup** (`wcfn.js` 1.2.1 · `wcdemo.js` · `wcsetup.js` 1.3.2)
+- ผลทดสอบ: p53 (Daily · Notes · Project Setup · PR / WO) ทุกข้อผ่าน · Site Work p3 10 ข้อผ่าน · มือถือ 412 กล่องไม่บังปุ่ม · ไม่มี error
+
 ## 📝 Daily Report หน้าใหม่ · ชื่อเรียกที่คุ้นเคย · PM v1.455.0 · 21/11/2026
 - ผู้บริหารสั่ง 21/11/2026: "redesign the interface to be more interesting and friendly" (หน้า Daily Report) + "use a term that user familiar with"
 - `scripts/patch-daily-redesign.js` (MARK `v1.455.0 daily-redesign`): การ์ดวันนี้ (ยังไม่ส่ง / ส่งแล้ว) · ตัวเลข 4 ช่อง (ทั้งหมด · ส่งใน 7 วัน · คนเฉลี่ย · วันที่มีปัญหา) · แถบ 14 วัน (แตะเปิด / เขียนย้อนหลังถามยืนยัน) · รายการเป็นการ์ด (วัน + วันที่ · คน · รูป · ปัญหา · งาน 2 บรรทัด · รูปย่อ 4) · แตะแล้วเลื่อนไปฟอร์มเดิม (`data-daily-ed`) · ฟอร์ม / ส่งออก / ข้อมูล `dailies` เดิม
