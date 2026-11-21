@@ -26,7 +26,7 @@ let t = JSON.parse(lines[idx]);
 if (enc(t) !== lines[idx]) { console.error('✗ ถอด/ประกอบ template แล้วไม่ตรงเดิม — ไม่แก้'); process.exit(2); }
 const MARK = 'v1.438.0 note-hub';
 // เลขเวอร์ชัน wcnote.js (ล้างแคชเครื่องผู้ใช้) — เปลี่ยนทุกครั้งที่แก้ wcnote.js แล้วรันสคริปต์นี้ซ้ำ
-const NOTE_VER = '1.3.0';   // 1.3.0: ใส่เวลาได้ · 1.2.0: เรียงวันที่จะถึงก่อน · 1.1.0: แยกแท็บส่วนตัว / สาธารณะ · 1.0.1: ไฮไลต์คำค้น
+const NOTE_VER = '1.4.0';   // 1.4.0: วางในหน้าอื่นได้ (inline) · 1.3.0: ใส่เวลาได้ · 1.2.0: เรียงวันที่จะถึงก่อน · 1.1.0: แยกแท็บส่วนตัว / สาธารณะ · 1.0.1: ไฮไลต์คำค้น
 if (t.includes(MARK)) { const re = /\/wcnote\.js\?v=[0-9.]+/g; const n = (t.match(re) || []).length; const t2 = t.replace(re, '/wcnote.js?v=' + NOTE_VER);
   if (t2 !== t) { lines[idx] = enc(t2); fs.writeFileSync(file, lines.join(nl)); console.log('✓ note-hub มีแล้ว · อัปเดต wcnote.js?v=' + NOTE_VER + ' (' + n + ' จุด)'); } else console.log('✓ มีแล้ว — ไม่ต้องแก้ (note-hub)'); process.exit(0); }
 if (!t.includes('v1.437.0 delta-sync')) { console.error('✗ ต้องรัน scripts/patch-delta-sync.js ก่อน'); process.exit(1); }
