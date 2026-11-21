@@ -13,7 +13,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const AC_VER = 'v1.5.0';   // 1.5.0: การ์ด "ตั้งค่าโครงการ" (tab:setup) · 1.4.0: การ์ด "ราคากลาง" (tab:pbook)
+const AC_VER = 'v1.6.0';   // 1.6.0: ป้ายชื่อเรียกอังกฤษ (wcfn.js) · 1.5.0: การ์ด "ตั้งค่าโครงการ" (tab:setup) · 1.4.0: การ์ด "ราคากลาง" (tab:pbook)
 // 1.3.0:   // 1.3.0: การ์ด "ทำราคา · เลือกเครื่องมือ" (tab:price)
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -155,6 +155,7 @@ function render() {
 }
 
 // ---------- ตาราง ตำแหน่ง × ฟีเจอร์ ----------
+function fnTag(f) { try { const n = window.WCFN && f.keys && window.WCFN.of(f.keys[0], f.name); return n ? ` <span class="fntag">${esc(n)}</span>` : ''; } catch (e) { return ''; } }   // v1.6.0 feature-names
 function columns() { return APP.split ? ALL_ROLES.map(rk => ({ id: rk, label: ROLE_TH[rk] || rk, roles: [rk], sub: rk })) : GROUPS.filter(g => !g.hideGrouped).map(g => ({ ...g, sub: g.roles.length > 1 ? g.roles.map(r => ROLE_TH[r]).join(' + ') : '' })); }
 function cellState(col, f) { const n = col.roles.filter(rk => roleHas(rk, f)).length; return n === 0 ? 'no' : n === col.roles.length ? 'all' : 'part'; }
 function renderMatrix() {
@@ -163,7 +164,7 @@ function renderMatrix() {
   ['proj', 'nav'].forEach(sec => {
     H.push(`<tr class="sec"><td colspan="${C.length + 3}">${SEC[sec][0]} <small>· ${SEC[sec][1]}</small></td></tr>`);
     FEATS.filter(f => f.sec === sec).forEach(f => { const off = globalOff(f), fi = FEATS.indexOf(f);
-      H.push(`<tr class="${off ? 'offrow' : ''}"><td class="fx"><b>${esc(f.name)}${f.money ? '<span class="flag" title="ต้องมีสิทธิ์ดูตัวเลขเงินโครงการ">฿</span>' : ''}</b><small>${esc(f.use)}${off ? ' · ปิดทั้งระบบอยู่' : ''}</small></td>`);
+      H.push(`<tr class="${off ? 'offrow' : ''}"><td class="fx"><b>${esc(f.name)}${fnTag(f)}${f.money ? '<span class="flag" title="ต้องมีสิทธิ์ดูตัวเลขเงินโครงการ">฿</span>' : ''}</b><small>${esc(f.use)}${off ? ' · ปิดทั้งระบบอยู่' : ''}</small></td>`);
       H.push(`<td class="gl">${sec === 'proj' ? `<button class="sw${off ? '' : ' on'}${APP.busy['g' + fi] ? ' busy' : ''}" data-glob="${fi}" role="switch" aria-checked="${!off}" aria-label="เปิดใช้ ${esc(f.name)} ทั้งระบบ"></button>` : '<span class="mut">—</span>'}</td>`);
       C.forEach(c => { const s = cellState(c, f), busy = APP.busy[c.id + '|' + fi];
         const noMoney = f.money && s !== 'no' && c.roles.some(rk => roleHas(rk, f) && !moneyOn(rk));
@@ -221,7 +222,7 @@ function renderUserPanel() { const a = APP.accounts.find(x => norm(x.email) === 
     const st = fromRole ? '<span class="st role">ตามตำแหน่ง</span>' : extra ? '<span class="st add">สิทธิ์พิเศษ</span>' : '<span class="st no">ไม่มี</span>';
     const sw = fromRole ? '<span class="mut" style="font-size:12px;flex:none">แก้ที่ตารางตำแหน่ง</span>' : `<button class="sw${extra ? ' on' : ''}${APP.busy['u' + fi] ? ' busy' : ''}" data-uadd="${fi}" role="switch" aria-checked="${extra}" aria-label="สิทธิ์พิเศษ ${esc(f.name)}"></button>`;
     const warn = (extra || fromRole) && f.money && !moneyOn(rk) ? ' · ⚠ ตำแหน่งนี้ไม่มีสิทธิ์ดูตัวเลขเงิน — การ์ดจะไม่แสดง' : '';
-    return `<div class="frow"${off ? ' style="background:#F7F5F0"' : ''}><div class="t"><b>${esc(f.name)}</b><small>${esc(f.use)}${off ? ' · ปิดทั้งระบบอยู่ (ไม่มีใครเห็น)' : ''}${fromOwn && !fromRole && !extra ? ' · มีในการ์ดรายคนเดิม' : ''}${warn}</small></div>${st}${sw}</div>`; };
+    return `<div class="frow"${off ? ' style="background:#F7F5F0"' : ''}><div class="t"><b>${esc(f.name)}${fnTag(f)}</b><small>${esc(f.use)}${off ? ' · ปิดทั้งระบบอยู่ (ไม่มีใครเห็น)' : ''}${fromOwn && !fromRole && !extra ? ' · มีในการ์ดรายคนเดิม' : ''}${warn}</small></div>${st}${sw}</div>`; };
   P.innerHTML = `<div class="h">${esc(nickOf(a))}<small>${esc(a.name || '')} · ${esc(ROLE_TH[rk] || rk || '—')} · ${esc(a.email)}</small></div>
     <div class="info">เปิดสวิตช์ = ให้ฟีเจอร์นั้น <b>เฉพาะคนนี้</b> เพิ่มจากชุดของตำแหน่ง · ฟีเจอร์ที่ได้จากตำแหน่งแก้ที่แท็บ “ตามตำแหน่ง” · มีผลเมื่อผู้ใช้เปิดแอปใหม่</div>
     ${own ? `<div class="warn">คนนี้ถูกตั้ง <b>การ์ดรายคน</b> ไว้แบบเดิม (${own.length} การ์ด) — หน้าแรกใช้ชุดรายคนแทนชุดของตำแหน่ง แต่สิทธิ์เข้าหน้ายังรวมทั้งสองชุด <button class="btn bad" style="margin-left:6px;min-height:34px" data-act="resetOwn">กลับไปใช้ชุดตามตำแหน่ง</button></div>` : ''}
