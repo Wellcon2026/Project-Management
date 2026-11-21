@@ -1,4 +1,4 @@
-/* wcfn.js v1.1.0 — ชื่อเรียกฟังก์ชัน (Feature call names) · Wellcon PM
+/* wcfn.js v1.1.1 — ชื่อเรียกฟังก์ชัน (Feature call names) · Wellcon PM
  * แหล่งเดียวของ "ชื่อเรียกสั้นภาษาอังกฤษ" ของทุกฟังก์ชัน — ใช้คุยกันให้เข้าใจตรงกัน
  * (ผู้บริหารสั่ง 21/11/2026: "give every function the name to call … short in English")
  *
@@ -30,7 +30,7 @@
     'dhome': ['Design Home', 'des', 'ภาพรวมงานออกแบบ'], 'tab:skp': ['SketchUp', 'des', 'แบบ 3 มิติ (3D)'], 'tab:lay': ['Layboard', 'des', 'บอร์ดนำเสนองาน'], 'tab:photo': ['Photo Editor', 'des', 'แต่งรูปผลงาน'], 'tab:pdf': ['PDF Maker', 'des', 'แก้ไขเอกสาร'],
     'nav:cfo': ['Company Finance', 'co', 'การเงินรวมบริษัท'], 'nav:bglg': ['Bank Guarantee', 'co', 'หนังสือค้ำประกัน BG / LG'], 'nav:hr': ['People', 'co', 'บุคลากร'], 'nav:jd': ['JD', 'co', 'ขอบเขตงาน · หน้าที่'],
     'nav:library': ['Library', 'co', 'คลังความรู้'], 'nav:training': ['Training', 'co', 'Wellcon Training · อบรม'], 'nav:admin': ['Users & Teams', 'co', 'ผู้ใช้ & ทีมโครงการ'], 'nav:forms': ['Form Builder', 'co', 'ออกแบบฟอร์มเอกสาร'],
-    'nav:system': ['System', 'co', 'ตั้งค่าระบบ']
+    'nav:system': ['System', 'co', 'ตั้งค่าระบบ'], 'tab:eng': ['Level Gate', 'co', 'การมีส่วนร่วม · แต้มสะสม']
   };
   function name(key) { var r = M[String(key || '')]; return r ? r[0] : ''; }
   // ป้ายที่จะแสดงข้างชื่อไทย — ไม่แสดงซ้ำถ้าชื่อเดิมมีคำนี้อยู่แล้ว (เช่น "Takeoff · วัดหน้างาน")
@@ -47,5 +47,5 @@
     Object.keys(M).forEach(function (k) { var n = M[k][0]; if (seen[n]) { seen[n].keys.push(k); return; } seen[n] = { name: n, group: G[M[k][1]] || '', th: M[k][2] || '', keys: [k] }; out.push(seen[n]); });
     return out;
   }
-  root.WCFN = { VER: '1.1.0', name: name, of: of, title: title, desc: desc, all: all, groups: G };
+  root.WCFN = { VER: '1.1.1', name: name, of: of, title: title, desc: desc, all: all, groups: G };
 })(typeof window !== 'undefined' ? window : globalThis);

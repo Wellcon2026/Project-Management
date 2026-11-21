@@ -22,9 +22,7 @@ let t = JSON.parse(lines[idx]);
 if (enc(t) !== lines[idx]) { console.error('✗ ถอด/ประกอบ template แล้วไม่ตรงเดิม — ไม่แก้'); process.exit(2); }
 const MARK = 'v1.447.0 feature-names';
 if (t.includes(MARK)) {
-  const re = /wcfn\.js\?v=[0-9.]+/; const m = t.match(re);
-  if (m && m[0] !== 'wcfn.js?v=' + FN_VER) { t = t.replace(re, 'wcfn.js?v=' + FN_VER); lines[idx] = enc(t); fs.writeFileSync(file, lines.join(nl)); console.log('✓ อัปเดตเวอร์ชัน wcfn.js → ' + FN_VER); }
-  else console.log('✓ มีแล้ว — ไม่ต้องแก้ (feature-names)');
+  console.log('✓ มีแล้ว — ไม่ต้องแก้ (feature-names) · เวอร์ชัน wcfn.js ดูแลโดย patch-feature-titles.js');
   process.exit(0);
 }
 if (!t.includes('v1.443.0 project-setup')) { console.error('✗ ต้องรัน scripts/patch-project-setup.js ก่อน'); process.exit(1); }
