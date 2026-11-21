@@ -13,10 +13,11 @@
    - หน่วยโลก = ซม. · รูปวางที่ (0,0) ขนาด w·cmx × h·cmy (cmx / cmy = ซม. ต่อพิกเซล แยกแกน)
    - ทำงานในเบราว์เซอร์ทั้งหมด รูปไม่ถูกอัปโหลด · งานล่าสุดเก็บในเครื่อง (IndexedDB) · บันทึก / เปิดไฟล์งาน .json
    v2.1.0 (21/11/2026) ผู้บริหารสั่ง: "adjust opacity 0-100% individual or all of the object" — ◐ ที่แถบบน (ทุกชิ้น) · แถบล่างของชิ้นที่เลือก (รายชิ้น / หลายชิ้น)
+   v2.2.0 (21/11/2026) ผู้บริหารสั่ง: 1 หมุนเส้นตัดได้ทุกองศาด้วยการลาก 2 ตั้งสเกลแล้วแสดงขนาดแผ่นบนรูป 3 ความทึบสลับ 10% / 0% · เส้นตัดเห็น 70% ตลอด
    ===================================================================== */
 (() => {
 'use strict';
-const VER = '2.1.0';   // 2.1.0: ความทึบ 0–100% (พื้นชิ้น / เส้นตัด) รายชิ้น · ชิ้นที่เลือก · ทุกชิ้น
+const VER = '2.2.0';   // 2.2.0: หมุนอิสระทุกองศา · เส้นบอกขนาดแผ่น · ปุ่มทึบ 10% ↔ 0% · เส้นตัด 70% คงที่ · 2.1.0: 2.1.0: ความทึบ 0–100% (พื้นชิ้น / เส้นตัด) รายชิ้น · ชิ้นที่เลือก · ทุกชิ้น
 if (window.WCSlab) return;
 const $ = (s, r) => (r || document).querySelector(s);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -35,7 +36,7 @@ const S = {
   shapes: [], guides: [], sel: [], tool: 'move', next: 1,
   shape: 'rect', sides: 6, repeat: false, freeMode: 'drag', nudge: 0.5,
   grid: { on: true, step: 10 }, guidesOn: true, snap: { on: true, grid: true, guide: true, edge: true }, dims: true,
-  opDef: 15, lineDef: 100, joint: 3, defW: 45, defH: 120, color: '#E5484D', pat: { c: 3, r: 2, fill: false, cut: true },
+  opDef: 10, lineDef: 70, joint: 3, defW: 45, defH: 120, color: '#E5484D', pat: { c: 3, r: 2, fill: false, cut: true },
   view: { z: 1, ox: 0, oy: 0 }, fitZ: 1,
   cal: [], calLen: '', calAxis: 'both', persp: [], pw: '', ph: '', drawPts: [], meas: null, act: null,
   hover: null, snapHit: null, hist: [], redo: [], prevImg: null, cursor: null, panel: true, loupe: null,
@@ -217,14 +218,9 @@ function bar() { const g = S.grid, sn = S.snap;
     <select data-in="gstep" title="ระยะตาราง (ซม.)">${STEPS.map((v) => `<option value="${v}"${v === g.step ? ' selected' : ''}>${v} ซม.</option>`).join('')}${STEPS.indexOf(g.step) < 0 ? `<option value="${g.step}" selected>${g.step} ซม.</option>` : ''}<option value="x">กำหนดเอง…</option></select>
     <button class="sl-tg${S.guidesOn ? ' on' : ''}" data-sl="guides" title="แสดง / ซ่อนเส้นไกด์">┆ ไกด์ ${S.guides.length || ''}</button>
     <button class="sl-tg${sn.on ? ' on' : ''}" data-sl="snapmenu" data-g="sl-snap" title="ตั้งค่า Snap">🧲 Snap ${sn.on ? 'เปิด' : 'ปิด'} ▾</button>
-    <button class="sl-tg${S.opMenu ? ' on' : ''}" data-sl="opmenu" data-g="sl-op" title="ความทึบชิ้นงานทุกชิ้น"><i class="sl-opi"></i> ทึบ ${S.opDef}%</button>
+    <button class="sl-tg${S.opDef > 0 ? ' on' : ''}" data-sl="optoggle" data-g="sl-op" title="สลับความทึบพื้นชิ้นงานทุกชิ้น 10% ↔ 0% (เส้นตัดเห็น 70% ตลอด)"><i class="sl-opi"></i> ทึบ ${S.opDef > 0 ? S.opDef + '%' : '0%'}</button>
     <button class="sl-tg wide${S.dims ? ' on' : ''}" data-sl="dims" title="แสดงขนาดบนชิ้นงาน">↔ ขนาด</button>
     <span class="sl-zoom" data-g="sl-zoom"><button class="sl-tg" data-sl="zout" title="ซูมออก">－</button><input type="range" data-in="zoom" min="-2" max="6" step="0.05" value="${Math.log2(S.view.z / (S.fitZ || 1))}" aria-label="ซูม"><button class="sl-tg" data-sl="zin" title="ซูมเข้า">＋</button><b id="slZp">${zoomPct()}%</b><button class="sl-tg" data-sl="fit" title="พอดีจอ">⤢</button></span>
-    ${S.opMenu ? `<div class="sl-menu sl-opm" style="left:${Math.min(S.opMenuX || 200, Math.max(8, W - 280))}px"><b style="display:flex;align-items:center;gap:6px;padding:4px 8px"><i class="sl-opi"></i> ความทึบ · ทุกชิ้น</b>
-      <div class="sl-opr"><span>พื้นชิ้นงาน</span><input type="range" min="0" max="100" step="1" data-opall="f" value="${S.opDef}"><b data-opv="f">${S.opDef}%</b></div>
-      <div class="sl-row" style="padding:0 8px">${[0, 15, 25, 50, 75, 100].map((v) => `<button class="sl-chip${S.opDef === v ? ' on' : ''}" data-oppre="${v}">${v}%</button>`).join('')}</div>
-      <div class="sl-opr"><span>เส้นตัด</span><input type="range" min="0" max="100" step="1" data-opall="l" value="${S.lineDef}"><b data-opv="l">${S.lineDef}%</b></div>
-      <div class="sl-mut" style="padding:4px 8px">0% = เห็นลายหินเต็มที่ · ปรับรายชิ้น: แตะชิ้น แล้วใช้แถบ “พื้น / เส้น” ด้านล่าง</div></div>` : ''}
     ${S.snapMenu ? `<div class="sl-menu" style="left:${Math.min(S.snapMenuX || 200, Math.max(8, W - 260))}px"><label><input type="checkbox" data-snap="on"${sn.on ? ' checked' : ''}> <b>เปิด Snap</b></label><div style="border-top:1px solid #EEE6D8;margin:4px 0"></div>
       <label><input type="checkbox" data-snap="grid"${sn.grid ? ' checked' : ''}${sn.on ? '' : ' disabled'}> ติดตาราง</label><label><input type="checkbox" data-snap="guide"${sn.guide ? ' checked' : ''}${sn.on ? '' : ' disabled'}> ติดเส้นไกด์</label>
       <label><input type="checkbox" data-snap="edge"${sn.edge ? ' checked' : ''}${sn.on ? '' : ' disabled'}> ติดขอบชิ้นงาน / ขอบแผ่น (+ ร่อง)</label><div class="sl-mut" style="padding:4px 8px">กด Alt ค้างขณะลาก = ปิด Snap ชั่วคราว</div></div>` : ''}`; }
@@ -295,8 +291,8 @@ function fbar() { const el = $('#slFb', root); if (!el) return; if (!S.img) { el
   else if (S.tool === 'gv' || S.tool === 'gh') h = `<span>${S.tool === 'gv' ? '┆ แตะเพื่อวางเส้นไกด์แนวตั้ง' : '┅ แตะเพื่อวางเส้นไกด์แนวนอน'} · ลากเส้นเพื่อย้าย · ลากออกนอกแผ่น = ลบ</span><span class="sp"></span><button data-tool="move">เสร็จ</button>`;
   else { const s = one(); const L = selected();
     if (s) h = `<span class="bx" data-g="sl-insp"><b>${esc(TNAME[s.t])} #${esc(s.n)}</b><input data-pe="w" class="sm" type="number" step="0.1" min="1" value="${fmt(s.w)}" title="กว้าง (ซม.)"${s.lock ? ' disabled' : ''}>${s.t === 'sq' || s.t === 'circle' ? '' : `<span>×</span><input data-pe="h" class="sm" type="number" step="0.1" min="1" value="${fmt(s.h)}" title="ยาว (ซม.)"${s.lock ? ' disabled' : ''}>`}<span class="lb">ซม.</span><input data-pe="rot" class="sm" type="number" step="1" value="${Math.round(s.rot || 0)}" title="มุม (องศา)"${s.lock ? ' disabled' : ''}><span class="lb">°</span></span>
-      <span class="bx"><button data-sl="rot" title="หมุน 90°"${s.lock ? ' disabled' : ''}>⟳ 90°</button><button data-sl="dup" title="ทำสำเนา">⧉</button><button data-sl="lock" class="${s.lock ? 'on' : ''}" title="ล็อก กันขยับโดยไม่ตั้งใจ">${s.lock ? '🔒' : '🔓'}</button><button data-sl="zsel" title="ซูมไปที่ชิ้นนี้">🔍</button><button class="dg" data-sl="del" title="ลบ">🗑</button></span><span class="bx" data-g="sl-opsel" title="ความทึบของชิ้นที่เลือก"><span class="lb"><i class="sl-opi"></i> พื้น</span><input type="range" min="0" max="100" step="1" data-opsel="f" value="${Math.round(fo(L[0]) * 100)}"><b class="opv" data-opv="sf">${Math.round(fo(L[0]) * 100)}%</b><span class="lb">เส้น</span><input type="range" min="0" max="100" step="1" data-opsel="l" value="${Math.round(lo(L[0]) * 100)}"><b class="opv" data-opv="sl">${Math.round(lo(L[0]) * 100)}%</b></span>${s.lock ? '' : nudgePad('sel')}`;
-    else if (L.length > 1) h = `<span><b>เลือก ${L.length} ชิ้น</b></span><span class="bx"><button data-sl="rot">⟳ 90°</button><button data-sl="dup">⧉ สำเนา</button><button data-sl="zsel">🔍</button><button class="dg" data-sl="del">🗑 ลบ</button></span><span class="bx" data-g="sl-opsel" title="ความทึบของชิ้นที่เลือก"><span class="lb"><i class="sl-opi"></i> พื้น</span><input type="range" min="0" max="100" step="1" data-opsel="f" value="${Math.round(fo(L[0]) * 100)}"><b class="opv" data-opv="sf">${Math.round(fo(L[0]) * 100)}%</b><span class="lb">เส้น</span><input type="range" min="0" max="100" step="1" data-opsel="l" value="${Math.round(lo(L[0]) * 100)}"><b class="opv" data-opv="sl">${Math.round(lo(L[0]) * 100)}%</b></span>${nudgePad('sel')}`;
+      <span class="bx"><button data-sl="rot" title="หมุน 90°"${s.lock ? ' disabled' : ''}>⟳ 90°</button><button data-sl="dup" title="ทำสำเนา">⧉</button><button data-sl="lock" class="${s.lock ? 'on' : ''}" title="ล็อก กันขยับโดยไม่ตั้งใจ">${s.lock ? '🔒' : '🔓'}</button><button data-sl="zsel" title="ซูมไปที่ชิ้นนี้">🔍</button><button class="dg" data-sl="del" title="ลบ">🗑</button></span><span class="bx" data-g="sl-opsel" title="ความทึบของชิ้นที่เลือก"><span class="lb"><i class="sl-opi"></i> พื้น</span><input type="range" min="0" max="100" step="1" data-opsel="f" value="${Math.round(fo(L[0]) * 100)}"><b class="opv" data-opv="sf">${Math.round(fo(L[0]) * 100)}%</b><button data-opq="${fo(L[0]) > 0 ? 0 : 10}" title="สลับ 10% ↔ 0%">${fo(L[0]) > 0 ? '→ 0%' : '→ 10%'}</button></span>${s.lock ? '' : nudgePad('sel')}`;
+    else if (L.length > 1) h = `<span><b>เลือก ${L.length} ชิ้น</b></span><span class="bx"><button data-sl="rot">⟳ 90°</button><button data-sl="dup">⧉ สำเนา</button><button data-sl="zsel">🔍</button><button class="dg" data-sl="del">🗑 ลบ</button></span><span class="bx" data-g="sl-opsel" title="ความทึบของชิ้นที่เลือก"><span class="lb"><i class="sl-opi"></i> พื้น</span><input type="range" min="0" max="100" step="1" data-opsel="f" value="${Math.round(fo(L[0]) * 100)}"><b class="opv" data-opv="sf">${Math.round(fo(L[0]) * 100)}%</b><button data-opq="${fo(L[0]) > 0 ? 0 : 10}" title="สลับ 10% ↔ 0%">${fo(L[0]) > 0 ? '→ 0%' : '→ 10%'}</button></span>${nudgePad('sel')}`;
     else if (!S.scaled) h = '<span>ขั้นต่อไป: <b>📏 ตั้งสเกล</b> — วาง 2 จุดที่รู้ระยะจริง</span>';
     else if (!S.shapes.length) h = '<span>ขั้นต่อไป: เลือก <b>▭ รูปทรง</b> หรือ <b>✏ วาดอิสระ</b> ที่แถบเครื่องมือ</span>'; }
   el.innerHTML = h; }
@@ -371,6 +367,7 @@ function label(g, txt, x, y, fs, bold) { g.font = `${bold ? 800 : 600} ${fs}px "
 function paint() { if (!ctx) return; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#1E1C18'; ctx.fillRect(0, 0, W, H); if (!S.img) { lcv.hidden = true; return; }
   const z = S.view.z, [x0, y0] = toS(0, 0), iw = IW() * z, ih = IH() * z;
   ctx.imageSmoothingEnabled = z * Math.min(S.cmx, S.cmy) < 2; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(S.img, x0, y0, iw, ih); ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1; ctx.strokeRect(x0 + .5, y0 + .5, iw, ih);
+  if (S.scaled) slabDims(x0, y0, iw, ih);
   if (S.grid.on) { let st = S.grid.step; while (st * z < 7) st *= 2; ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, iw, ih); ctx.clip(); ctx.lineWidth = 1;
     const gx0 = Math.max(0, Math.floor(-x0 / z / st) * st), gx1 = Math.min(IW(), (W - x0) / z), gy0 = Math.max(0, Math.floor(-y0 / z / st) * st), gy1 = Math.min(IH(), (H - y0) / z);
     for (let gx = gx0; gx <= gx1 + 1e-6; gx += st) { const sx = Math.round(x0 + gx * z) + .5; ctx.strokeStyle = (Math.round(gx) % 100 === 0) ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.2)'; ctx.beginPath(); ctx.moveTo(sx, y0); ctx.lineTo(sx, y0 + ih); ctx.stroke(); }
@@ -396,12 +393,20 @@ function paint() { if (!ctx) return; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx
   if (S.meas) { ptsDraw([S.meas.a, S.meas.b], false, '#22D3EE', 'meas'); const [ax, ay] = toS(...S.meas.a), [bx, by] = toS(...S.meas.b); label(ctx, fmt(Math.hypot(S.meas.b[0] - S.meas.a[0], S.meas.b[1] - S.meas.a[1])) + ' ซม.', (ax + bx) / 2, (ay + by) / 2 - 14, 13, true); }
   if (S.tool === 'scale' && S.cal.length === 2) { const [ax, ay] = toS(...S.cal[0]), [bx, by] = toS(...S.cal[1]); label(ctx, S.calLen ? S.calLen + ' ซม.' : '? ซม.', (ax + bx) / 2, (ay + by) / 2 - 14, 13, true); }
   if (drag && drag.t === 'newPt') { const [sx, sy] = toS(...drag.w); ctx.save(); ctx.strokeStyle = '#FF3DA6'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sx, sy, 8, 0, 7); ctx.stroke(); ctx.restore(); }
+  if (S.rotLabel && drag && drag.t === 'rotate') { const s = S.rotLabel.s, [cx, cy] = toS(...ctr(s)); ctx.save(); ctx.fillStyle = 'rgba(14,116,144,.92)'; const tx = Math.round(s.rot) + '°', tw = 64; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(cx - tw / 2, cy - 54, tw, 28, 8) : ctx.rect(cx - tw / 2, cy - 54, tw, 28); ctx.fill(); ctx.restore(); label(ctx, tx, cx, cy - 40, 16, true); }
   if (drag && drag.t === 'create' && drag.live) { const s = drag.live; pathOf(ctx, s); ctx.save(); ctx.setLineDash([6, 4]); ctx.strokeStyle = S.color; ctx.lineWidth = 2; ctx.stroke(); ctx.restore(); const [cx, cy] = toS(...ctr(s)); label(ctx, s.t === 'circle' ? '⌀' + fmt(s.w) : fmt(s.w) + '×' + fmt(s.h), cx, cy, 13, true); }
   if (drag && drag.t === 'free' && drag.pts.length > 1) { ctx.save(); ctx.strokeStyle = S.color; ctx.lineWidth = 2; ctx.beginPath(); drag.pts.forEach((q, i) => { const [sx, sy] = toS(q[0], q[1]); if (i) ctx.lineTo(sx, sy); else ctx.moveTo(sx, sy); }); ctx.stroke(); ctx.restore(); }
   if (S.tool === 'shape' && S.hover && !drag && !touchy()) { const [hx, hy] = previewXY(S.hover); const s = { t: S.shape, x: hx, y: hy, w: S.defW, h: S.shape === 'sq' || S.shape === 'circle' ? S.defW : S.defH, rot: 0, sides: S.sides }; pathOf(ctx, s); ctx.save(); ctx.setLineDash([6, 4]); ctx.strokeStyle = S.color; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore(); }
   loupe(); }
 function previewXY([x, y]) { const w = S.defW, h = S.shape === 'sq' || S.shape === 'circle' ? S.defW : S.defH; const sx = snapAxis([x, x + w], 'x'), sy = snapAxis([y, y + h], 'y'); return [x + sx.d, y + sy.d]; }
-const fo = (s) => Math.max(0, Math.min(100, s.op == null ? S.opDef : s.op)) / 100, lo = (s) => Math.max(0, Math.min(100, s.lo == null ? S.lineDef : s.lo)) / 100;   // ความทึบพื้นชิ้น / เส้นตัด
+const fo = (s) => Math.max(0, Math.min(100, s.op == null ? S.opDef : s.op)) / 100, lo = () => 0.7;   // ความทึบพื้นชิ้น / เส้นตัด
+// เส้นบอกขนาดแผ่น (หลังตั้งสเกล) — บนขอบบน + ขอบซ้ายของรูป · ถ้าชิดขอบจอให้วาดด้านใน
+function slabDims(x0, y0, iw, ih) { const g = ctx, col = '#E2BC66', o = 16; g.save(); g.strokeStyle = col; g.lineWidth = 1.5;
+  const ty = y0 - o >= 12 ? y0 - o : y0 + o, lx = x0 - o >= 12 ? x0 - o : x0 + o;
+  g.beginPath(); g.moveTo(x0, ty); g.lineTo(x0 + iw, ty); g.moveTo(x0, ty - 6); g.lineTo(x0, ty + 6); g.moveTo(x0 + iw, ty - 6); g.lineTo(x0 + iw, ty + 6);
+  g.moveTo(lx, y0); g.lineTo(lx, y0 + ih); g.moveTo(lx - 6, y0); g.lineTo(lx + 6, y0); g.moveTo(lx - 6, y0 + ih); g.lineTo(lx + 6, y0 + ih); g.stroke(); g.restore();
+  const tag = (txt, x, y, r) => { g.save(); g.translate(x, y); if (r) g.rotate(-Math.PI / 2); g.font = '800 13px "IBM Plex Sans Thai",system-ui,sans-serif'; const w = g.measureText(txt).width + 14; g.fillStyle = '#1C1B18'; g.strokeStyle = col; g.lineWidth = 1; g.beginPath(); g.rect(-w / 2, -11, w, 22); g.fill(); g.stroke(); g.fillStyle = col; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, 0, 0); g.restore(); };
+  tag('แผ่น ' + fmt(IW()) + ' ซม.', Math.max(70, Math.min(W - 70, x0 + iw / 2)), ty, false); tag(fmt(IH()) + ' ซม.', lx, Math.max(60, Math.min(H - 60, y0 + ih / 2)), true); }
 function hexA(h, a) { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
 // แว่นขยาย 3× เหนือนิ้ว (แสดงขณะวางจุด / ลากที่จับ / ลากจุด / วัดระยะ)
 function loupe() { const L = S.loupe; if (!L) { lcv.hidden = true; return; } lcv.hidden = false; const size = 150, k = 3, r = size / 2;
@@ -472,7 +477,8 @@ function pMove(e) { if (!S.img) return; const P0 = pos(e); if (PT.has(e.pointerI
     if (s.t === 'sq' || s.t === 'circle') { const m = Math.max(hd.a ? nw : 0, hd.b ? nh : 0); nw = nh = m; }
     const clx = hd.a ? fx + Math.sign((lx - fx) || hd.a) * nw / 2 : 0, cly = hd.b ? fy + Math.sign((ly - fy) || hd.b) * nh / 2 : 0; const [ccx, ccy] = ctr(o), [rx, ry] = rot(clx, cly, th);
     s.w = r1(nw); s.h = r1(nh); s.x = r1(ccx + rx - s.w / 2); s.y = r1(ccy + ry - s.h / 2); S.loupe = { sx, sy }; draw(); fbar(); return; }
-  if (drag.t === 'rotate') { const s = drag.s, [cx, cy] = ctr(s); let a = Math.atan2(wy - cy, wx - cx) / D2R + 90; if (!e.altKey) a = Math.round(a / 15) * 15; a = ((a % 360) + 360) % 360; s.rot = Math.round(a); draw(); fbar(); return; } }
+  if (drag.t === 'rotate') { const s = drag.s, [cx, cy] = ctr(s); let a = Math.atan2(wy - cy, wx - cx) / D2R + 90; a = ((a % 360) + 360) % 360; const m = Math.round(a / 45) * 45; if (!e.altKey && Math.abs(a - m) <= 3) a = m % 360;   // หมุนอิสระทีละ 1° · ใกล้ 0 / 45 / 90° ±3° ดูดเข้ามุม
+    s.rot = Math.round(a) % 360; S.rotLabel = { s, sx, sy }; draw(); fbar(); return; } }
 function pUp(e) { PT.delete(e.pointerId); const d = drag; if (!d) return; if (d.t === 'pinch') { if (!PT.size) drag = null; return; }
   drag = null; S.dragging = false; S.dragG = -1; S.loupe = null; lcv.hidden = true;
   const [sx, sy] = pos(e), [wx, wy] = toW(sx, sy), quick = Date.now() - d.t0 < 700, still = Math.hypot(sx - d.sx, sy - d.sy) <= thr(e);
@@ -491,6 +497,7 @@ function pUp(e) { PT.delete(e.pointerId); const d = drag; if (!d) return; if (d.
     if (!d.live && still && quick) { push(); const [x, y] = previewXY([wx, wy]); afterCreate(addShape(S.shape, x, y, S.defW, S.defH)); toast('✓ วาง' + TNAME[S.shape] + 'แล้ว' + (S.repeat ? '' : ' · กลับโหมดเลือก')); } draw(); return; }
   if (d.t === 'free') { const P = simplify(d.pts, 2 / S.view.z); if (P.length >= 3) { push(); const p = freeFrom(P); if (p) afterCreate(p); else toast('รูปเล็กเกินไป'); } else toast('เส้นสั้นเกินไป — ลากวาดให้เป็นรูปปิด'); draw(); return; }
   if (d.t === 'move') { if (d.moved) { autosave(); panel(); } fbar(); draw(); return; }
+  S.rotLabel = null;
   if (d.t === 'resize' || d.t === 'rotate') { if (!d.go) { S.hist.pop(); draw(); return; } autosave(); panel(); fbar(); draw(); return; }
   draw(); }
 function pCancel(e) { PT.delete(e.pointerId); if (drag && drag.t === 'move' && drag.moved) { drag.start.forEach(([id, x, y]) => { const p = S.shapes.find((q) => q.id === id); if (p) { p.x = x; p.y = y; } }); } drag = null; S.loupe = null; S.dragging = false; draw(); }
@@ -515,7 +522,7 @@ async function onClick(e) { const t = e.target;
   const col = t.closest('[data-col]'); if (col) { S.color = col.dataset.col; panel(); return; }
   const pc = t.closest('[data-pcol]'); if (pc) { push(); selected().forEach((p) => { p.c = pc.dataset.pcol; }); draw(); autosave(); return; }
   const gx = t.closest('[data-gx]'); if (gx) { push(); S.guides.splice(+gx.dataset.gx, 1); ui(); autosave(); return; }
-  const opp = t.closest('[data-oppre]'); if (opp) { push(); setOp('all', 'f', +opp.dataset.oppre); bar(); autosave(); return; }
+  const opq = t.closest('[data-opq]'); if (opq) { push(); setOp('sel', 'f', +opq.dataset.opq); fbar(); autosave(); return; }
   if ((S.snapMenu || S.opMenu) && !t.closest('.sl-menu') && !t.closest('[data-sl="snapmenu"]') && !t.closest('[data-sl="opmenu"]')) { S.snapMenu = false; S.opMenu = false; bar(); }
   const b = t.closest('[data-sl]'); if (!b || b.disabled) return; return act(b.dataset.sl, b); }
 async function act(a, b) {
@@ -529,7 +536,7 @@ async function act(a, b) {
   if (a === 'grid') { S.grid.on = !S.grid.on; bar(); steps(); draw(); autosave(); }
   else if (a === 'guides') { S.guidesOn = !S.guidesOn; bar(); draw(); }
   else if (a === 'dims') { S.dims = !S.dims; bar(); draw(); }
-  else if (a === 'opmenu') { S.opMenu = !S.opMenu; S.snapMenu = false; S.opMenuX = b ? b.offsetLeft : 200; bar(); }
+  else if (a === 'optoggle') { push(); const v = S.opDef > 0 ? 0 : 10; setOp('all', 'f', v); bar(); fbar(); autosave(); toast('พื้นชิ้นงานทุกชิ้น ' + v + '% · เส้นตัด 70%'); }
   else if (a === 'snapmenu') { S.opMenu = false; S.snapMenu = !S.snapMenu; S.snapMenuX = b ? b.offsetLeft : 200; bar(); }
   else if (a === 'fit') fit(); else if (a === 'zin') zoomBy(1.4); else if (a === 'zout') zoomBy(1 / 1.4);
   else if (a === 'calx' || a === 'caly') { setTool('scale'); S.calAxis = a === 'calx' ? 'x' : 'y'; S.lockRatio = false; fbar(); if (innerWidth <= 760) { S.panel = false; panel(); } }
