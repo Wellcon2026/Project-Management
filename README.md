@@ -187,6 +187,7 @@ node scripts/patch-project-setup.js       # การ์ด "ตั้งค่�
 node scripts/patch-setup-link.js          # ที่อยู่หน้างาน (siteAddr) นับในความครบ — Quotation Maker / ใบขอซื้อ / Claim ดึงข้อมูลจากตั้งค่าโครงการ
 node scripts/patch-feature-names.js       # ชื่อเรียกอังกฤษสั้น (wcfn.js) — ป้ายข้างชื่อไทย: เมนูซ้าย · การ์ดหน้าแรก · Ctrl+K
 node scripts/patch-feature-titles.js      # การ์ด / เมนูซ้าย: ชื่ออังกฤษเป็นหัวข้อ · ไทยอธิบายด้านล่าง (WCFN.title / WCFN.desc)
+node scripts/patch-note-inline.js         # Notes ทุกที่หน้าตาเดียวกัน: กระดานโน้ต Home / My Space → ช่อง data-wn-host (wcnote.js 1.4.0)
 node scripts/patch-layboard-photo.js    # Layboard: ปุ่ม "แต่งรูป (Photo Editor)" (แก้ layboard/index.html · sync-layboard.js เรียกให้อัตโนมัติ)
 node scripts/patch-sess-guard.js        # หลายหน้าต่างในเครื่องเดียว = ผู้ใช้คนเดียว · กันหน้าต่างอื่นเขียนทับผู้ใช้ (แก้ออกจากระบบแล้วเข้าเป็นคนอื่น)
 ```

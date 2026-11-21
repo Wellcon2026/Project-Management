@@ -15,7 +15,7 @@
 (function () {
   'use strict';
   if (window.WCNote) return;
-  const VER = '1.3.0';   // 1.3.0: ใส่เวลาในบันทึกได้ (time 'HH:MM') — แสดงบนป้ายวันที่ · เรียงตามเวลาในวันเดียวกัน · ขึ้นในปฏิทิน · 1.2.0: เรียงตามวันที่จะถึงก่อน (กำลังจะถึง → เลยกำหนด → ไม่มีกำหนดวัน → เสร็จแล้ว) · 1.1.0: แยกแท็บ 🔒 ส่วนตัว / 👥 สาธารณะ (โครงการ) ชัดเจน + ตัวกรอง “เฉพาะของฉัน” · 1.0.1: ค้นหาแล้วไฮไลต์คำที่พบ (สีเหลือง) + บอกจำนวนที่พบ
+  const VER = '1.4.0';   // 1.4.0: วางหน้าบันทึกชุดเดียวกันในหน้าอื่นได้ (inline · [data-wn-host]) — พื้นที่ทำงานของฉัน / หน้า Home ใช้หน้าตาเดียวกับหน้านี้ · 1.3.0: ใส่เวลาในบันทึกได้ (time 'HH:MM') — แสดงบนป้ายวันที่ · เรียงตามเวลาในวันเดียวกัน · ขึ้นในปฏิทิน · 1.2.0: เรียงตามวันที่จะถึงก่อน (กำลังจะถึง → เลยกำหนด → ไม่มีกำหนดวัน → เสร็จแล้ว) · 1.1.0: แยกแท็บ 🔒 ส่วนตัว / 👥 สาธารณะ (โครงการ) ชัดเจน + ตัวกรอง “เฉพาะของฉัน” · 1.0.1: ค้นหาแล้วไฮไลต์คำที่พบ (สีเหลือง) + บอกจำนวนที่พบ
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const norm = (s) => String(s || '').trim().toLowerCase();
   const pad = (n) => String(n).padStart(2, '0');
@@ -93,18 +93,25 @@
 .wn-hl{background:#FFE066;color:#22231C;border-radius:3px;padding:0 1px;box-shadow:0 0 0 1px #F2C200}
 .wn-cnt{font-size:12.5px;color:#6B6758;padding:2px 2px 0}
 .wn-toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#1C1B18;color:#fff;border-radius:12px;padding:10px 16px;font:14px 'IBM Plex Sans Thai',system-ui,sans-serif;z-index:2147483600;max-width:90vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.25)}
-@media print{.wn-ov,.wn-toast{display:none!important}}`;
+@media print{.wn-ov,.wn-toast{display:none!important}}
+.wn-inl .wn-bx{height:auto;max-width:none;border-radius:18px;box-shadow:0 8px 24px rgba(28,27,24,.08);border:1px solid #E3DACB}
+.wn-inl .wn-bd{max-height:min(560px,70vh)}
+.wn-inl .wn-ft{padding-bottom:12px}
+.wn-inl .wn-x{width:auto;padding:0 12px;font-size:13px;font-weight:600;font-family:inherit}`;
   function css() { if (document.getElementById('wn-css')) return; const s = document.createElement('style'); s.id = 'wn-css'; s.textContent = CSS; document.head.appendChild(s); }
   let toastT = 0;
   function toast(m, ms) { css(); let t = document.querySelector('.wn-toast'); if (!t) { t = document.createElement('div'); t.className = 'wn-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
     t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms || 2600); }
 
-  const S = { B: null, ov: null, tab: 'mine', q: '', proj: '', who: '', focus: '', sig: '', timer: 0 };
+  const OV = { B: null, ov: null, tab: 'mine', q: '', proj: '', who: '', focus: '', sig: '', timer: 0 };
+  let S = OV;   // บริบทที่กำลังวาด / จัดการ (หน้าต่างเต็มจอ หรือ ช่องที่วางในหน้าอื่น)
+  const INL = [];   // ช่องที่วางในหน้าอื่น (inline)
+  const run = (c, fn) => { const k = S; S = c; try { return fn(); } finally { S = k; } };
 
   // ---------- รวบรวมข้อมูล ----------
   function allNotes() {
     const B = S.B, N = B.notes() || {}, out = [];
-    Object.keys(N).forEach(k => { if (k.indexOf('proj:') !== 0 || !Array.isArray(N[k])) return; const pid = k.slice(5);
+    Object.keys(N).forEach(k => { if (k.indexOf('proj:') !== 0 || !Array.isArray(N[k])) return; const pid = k.slice(5); if (S.pid && pid !== S.pid) return;
       N[k].forEach(n => { if (n && n.id && B.visible(n)) out.push({ ...n, _pid: pid, _k: k }); }); });
     return out;
   }
@@ -114,8 +121,8 @@
     const projN = notes.filter(n => (n.vis || 'public') === 'public');   // สาธารณะ: ทีมโครงการเห็น (รวมโน้ตทั่วไปแบบเดิมที่ทุกคนเห็น)
     const privN = mineN.filter(n => (n.vis || 'public') !== 'public');   // ส่วนตัว: เห็นคนเดียว / แชร์เฉพาะคน
     const toMeN = notes.filter(n => norm(n.email) !== em && (norm(n.asg) === em || (n.vis === 'people' && (n.shareTo || []).map(norm).includes(em))));
-    const tags = (window.WCTag && WCTag._S && Array.isArray(WCTag._S.open)) ? WCTag._S.open.slice() : [];
-    const rem = (B.rem() || []).filter(r => !r.done).map(r => ({ ...r, _rem: true }));
+    const tags = ((window.WCTag && WCTag._S && Array.isArray(WCTag._S.open)) ? WCTag._S.open.slice() : []).filter(x => !S.pid || x.project === S.pid);
+    const rem = (B.rem() || []).filter(r => !r.done && (!S.pid || r.pid === S.pid)).map(r => ({ ...r, _rem: true }));
     const todoN = notes.filter(n => !n.done && ((norm(n.asg) === em) || (norm(n.email) === em && n.due && !n.asg)));
     const todo = [...rem, ...todoN].sort((a, b) => String(a.due || '9999').localeCompare(String(b.due || '9999')));
     const late = todo.filter(x => { const d = daysTo(x.due); return d != null && d < 0; }).length;
@@ -164,12 +171,12 @@
 
   // ---------- หน้าหลัก ----------
   function render() {
-    if (!S.ov || !S.B) return; const d = data(); const bx = S.ov.querySelector('.wn-bx');
+    if (!S.B) return; const bx = S.inline ? S.box : (S.ov && S.ov.querySelector('.wn-bx')); if (!bx) return; const d = data();
     const T = [['mine', '🔒 ส่วนตัว', d.privN.filter(n => !n.done).length, 0], ['proj', '👥 สาธารณะ · โครงการ', d.projN.filter(n => !n.done).length, 0],
       ['tag', '🏷 แท็กถึงฉัน', d.tags.length + d.toMeN.filter(n => !n.done).length, d.unseen], ['todo', '✅ งานค้าง', d.todo.length, d.late]];
     const q = norm(S.q).trim(), match = (s) => !q || norm(s).includes(q);
     let body = '', chips = '';
-    const projChips = (L) => { const ids = [...new Set(L.map(n => n._pid))]; if (ids.length < 2) return '';
+    const projChips = (L) => { const ids = [...new Set(L.map(n => n._pid))]; if (ids.length < 2 || S.pid) return '';
       return `<div class="wn-chips"><button class="wn-chip${!S.proj ? ' on' : ''}" data-pj="">ทุกโครงการ</button>${ids.map(id => `<button class="wn-chip${S.proj === id ? ' on' : ''}" data-pj="${esc(id)}">${esc(pname(id))}</button>`).join('')}</div>`; };
     const byProj = (L) => L.filter(n => !S.proj || n._pid === S.proj);
     const newest = (a, b) => String(b.editedAt || b.at || '').localeCompare(String(a.editedAt || a.at || ''));
@@ -196,52 +203,53 @@
       body = L.length ? '<div class="wn-hint" style="padding:2px 2px 0">ติ๊กช่องเมื่อทำเสร็จ · วันที่ใกล้ถึงขึ้นก่อน</div>' + groups(L, x => x._rem ? remCard(x) : todoNote(x, d))
         : '<div class="wn-em">ไม่มีงานค้าง 🎉<br>งานคงค้างที่ PM มอบหมายให้คุณ และโน้ตที่มีกำหนดวัน จะขึ้นที่นี่</div>';
     }
-    bx.innerHTML = `<div class="wn-hd"><span class="ic">📝</span><b>บันทึก · งานของฉัน<small>${esc(d.me.name || '')} · บันทึกส่วนตัว / โครงการ · แท็ก · งานค้าง</small></b><button class="wn-x" data-x aria-label="ปิด">✕</button></div>
+    bx.innerHTML = `<div class="wn-hd"><span class="ic">📝</span><b>Notes<small>บันทึก · งานของฉัน${S.pid ? ' · ' + esc(pname(S.pid)) : ' · ' + esc(d.me.name || '')} · ส่วนตัว / โครงการ · แท็ก · งานค้าง</small></b>${S.inline ? '<button class="wn-x" data-full title="เปิดเต็มจอ">⤢ เต็มจอ</button>' : '<button class="wn-x" data-x aria-label="ปิด">✕</button>'}</div>
       <div class="wn-tabs">${T.map(t => `<button class="wn-tab${S.tab === t[0] ? ' on' : ''}" data-tab="${t[0]}">${t[1]}${t[2] ? ' <i' + (t[3] ? ' class="u"' : '') + '>' + t[2] + '</i>' : ''}</button>`).join('')}</div>
       <div class="wn-bar"><input class="wn-in" type="search" data-q placeholder="ค้นหาในบันทึก…" value="${esc(S.q)}" autocomplete="off">${S.tab === 'tag' && window.WCTag ? '<button class="wn-b" data-tagall>🔔 แท็กทั้งหมด</button>' : ''}</div>
       ${chips}<div class="wn-bd">${q ? '<div class="wn-cnt">🔎 คำว่า “<b>' + esc(S.q.trim()) + '</b>” พบ ' + (body.split('<mark class="wn-hl">').length - 1) + ' จุด ใน ' + (body.split('class="wn-it').length - 1) + ' รายการ</div>' : ''}${body}</div>
-      <div class="wn-ft"><button class="wn-b big" data-x>ปิด</button><button class="wn-b g big" data-new>＋ บันทึกใหม่</button></div>`;
+      <div class="wn-ft">${S.inline ? '' : '<button class="wn-b big" data-x>ปิด</button>'}<button class="wn-b g big" data-new>＋ บันทึกใหม่</button></div>`;
     S.sig = sig();
-    if (q && !S.focus) { const m = bx.querySelector('.wn-hl'); if (m) { try { m.scrollIntoView({ block: 'nearest' }); } catch (e) {} } }   // ข้อความยาว → เลื่อนให้เห็นคำแรกที่พบ
-    if (S.focus) { const f = bx.querySelector('.wn-it.foc'); if (f) { try { f.scrollIntoView({ block: 'center' }); } catch (e) {} } }
+    if (q && !S.focus && !S.inline) { const m = bx.querySelector('.wn-hl'); if (m) { try { m.scrollIntoView({ block: 'nearest' }); } catch (e) {} } }   // ข้อความยาว → เลื่อนให้เห็นคำแรกที่พบ
+    if (S.focus && !S.inline) { const f = bx.querySelector('.wn-it.foc'); if (f) { try { f.scrollIntoView({ block: 'center' }); } catch (e) {} } }
   }
   function sig() { try { const B = S.B; return JSON.stringify([B.notes(), B.rem(), window.WCTag && WCTag._S ? WCTag._S.open.map(x => x.id + (x.seen_at || '')) : []]).length + ':' + JSON.stringify(B.notes()).slice(-200); } catch (e) { return ''; } }
 
   const findNote = (key) => { const [k, id] = String(key).split('|'); const L = ((S.B.notes() || {})[k] || []); return { k, id, n: L.find(x => x.id === id) }; };
   async function onClick(e) {
-    const t = e.target; const B = S.B; if (!B) return;
-    if (t === S.ov || t.closest('[data-x]')) { close(); return; }
+    const t = e.target; const B = S.B; if (!B) return; const C = S; const later = () => setTimeout(() => run(C, render), 60);
+    if (!C.inline && (t === S.ov || t.closest('[data-x]'))) { close(); return; }
+    if (t.closest('[data-full]')) { open(B, { tab: C.tab, pid: C.pid }); return; }
     const tb = t.closest('[data-tab]'); if (tb) { S.tab = tb.dataset.tab; S.proj = ''; render(); return; }
     const pj = t.closest('[data-pj]'); if (pj) { S.proj = pj.dataset.pj; render(); return; }
     const wh = t.closest('[data-who]'); if (wh) { S.who = wh.dataset.who; S.proj = ''; render(); return; }
     if (t.closest('[data-new]')) { editor(null); return; }
-    if (t.closest('[data-tagall]')) { close(); WCTag.open(); return; }
+    if (t.closest('[data-tagall]')) { if (!C.inline) close(); WCTag.open(); return; }
     const ed = t.closest('[data-edit]'); if (ed) { const f = findNote(ed.dataset.edit); if (f.n) editor({ ...f.n, _pid: f.k.slice(5), _k: f.k }); return; }
-    const dn = t.closest('[data-done]'); if (dn) { const f = findNote(dn.dataset.done); if (f.n) { B.update(f.k, f.id, { done: true, doneAt: new Date().toISOString(), doneBy: B.me().name || '' }); toast('ปิดงานแล้ว ✓'); } setTimeout(render, 60); return; }
-    const ud = t.closest('[data-undone]'); if (ud) { const f = findNote(ud.dataset.undone); if (f.n) B.update(f.k, f.id, { done: false, doneAt: '', doneBy: '' }); setTimeout(render, 60); return; }
-    const dl = t.closest('[data-del]'); if (dl) { const f = findNote(dl.dataset.del); if (f.n && confirm('ลบบันทึกนี้?\n\n' + first(f.n.text, 120))) { B.del(f.k, f.id); toast('ลบบันทึกแล้ว'); setTimeout(render, 60); } return; }
+    const dn = t.closest('[data-done]'); if (dn) { const f = findNote(dn.dataset.done); if (f.n) { B.update(f.k, f.id, { done: true, doneAt: new Date().toISOString(), doneBy: B.me().name || '' }); toast('ปิดงานแล้ว ✓'); } later(); return; }
+    const ud = t.closest('[data-undone]'); if (ud) { const f = findNote(ud.dataset.undone); if (f.n) B.update(f.k, f.id, { done: false, doneAt: '', doneBy: '' }); later(); return; }
+    const dl = t.closest('[data-del]'); if (dl) { const f = findNote(dl.dataset.del); if (f.n && confirm('ลบบันทึกนี้?\n\n' + first(f.n.text, 120))) { B.del(f.k, f.id); toast('ลบบันทึกแล้ว'); later(); } return; }
     const cl = t.closest('[data-cal]'); if (cl) { const [pid, iso] = cl.dataset.cal.split('|'); close(); B.openCal(pid, iso); return; }
     const pl = t.closest('[data-plan]'); if (pl) { close(); B.openPlan(pl.dataset.plan); return; }
     const tn = t.closest('[data-tagn]'); if (tn) { const f = findNote(tn.dataset.tagn); if (f.n) tagNote(f.k, f.n); return; }
-    const rm = t.closest('[data-rem]'); if (rm) { const [pid, id] = rm.dataset.rem.split('|'); B.remToggle(pid, id); toast('ปิดงานคงค้างแล้ว ✓'); setTimeout(render, 60); return; }
+    const rm = t.closest('[data-rem]'); if (rm) { const [pid, id] = rm.dataset.rem.split('|'); B.remToggle(pid, id); toast('ปิดงานคงค้างแล้ว ✓'); later(); return; }
     const tg = t.closest('[data-tgo]'); if (tg && window.WCTag) { const x = (WCTag._S.open || []).find(y => y.id === tg.dataset.tgo); if (x) { close(); if (WCTag.go) WCTag.go(x); else if (x.url) location.href = x.url; } return; }
-    const td = t.closest('[data-tdone]'); if (td && window.WCTag && WCTag.markDone) { await WCTag.markDone([td.dataset.tdone]); toast('รับทราบแล้ว'); render(); return; }
+    const td = t.closest('[data-tdone]'); if (td && window.WCTag && WCTag.markDone) { await WCTag.markDone([td.dataset.tdone]); toast('รับทราบแล้ว'); run(C, render); return; }
   }
 
   // ---------- แท็กคนในโน้ต ----------
   async function tagNote(k, n) {
-    const B = S.B, pid = k.slice(5); if (!window.WCTag) return;
+    const B = S.B, C = S, pid = k.slice(5); if (!window.WCTag) return;
     const r = await WCTag.pick({ title: 'แท็กคนในบันทึกนี้', sub: 'คนที่ถูกแท็กเห็นบันทึกนี้ในแท็บ “แท็กถึงฉัน” และได้แจ้งเตือนเมื่อเปิดแอป', project: pid === '_gen' ? '' : pid });
     if (!r || !r.to || !r.to.length) return;
     if ((n.vis || 'public') !== 'public') { const cur = (n.shareTo || []).map(norm); B.update(k, n.id, { vis: 'people', shareTo: [...new Set([...cur, ...r.to.map(norm)])] }); }
     await WCTag.send({ project: pid === '_gen' ? null : pid, ref_type: 'note', ref_id: n.id, title: '📝 ' + first(n.text, 90), note: r.note || '', url: B.noteUrl(n.id), to: r.to });
-    setTimeout(render, 80);
+    setTimeout(() => run(C, render), 80);
   }
 
   // ---------- เพิ่ม / แก้ไขบันทึก ----------
   function editor(n0) {
-    const B = S.B, me = B.me(), P = B.projects(); const isNew = !n0;
-    const f = { text: n0 ? n0.text || '' : '', pid: n0 ? n0._pid : (S.proj && S.proj !== '_gen' ? S.proj : (B.curPid() && P.some(p => p.id === B.curPid()) ? B.curPid() : '_gen')),
+    const B = S.B, C = S, me = B.me(), P = B.projects(); const isNew = !n0;
+    const f = { text: n0 ? n0.text || '' : '', pid: n0 ? n0._pid : (C.pid || (C.proj && C.proj !== '_gen' ? C.proj : (B.curPid() && P.some(p => p.id === B.curPid()) ? B.curPid() : '_gen'))),
       vis: n0 ? (n0.vis || 'public') : 'private', due: n0 ? n0.due || '' : '', time: n0 && okTime(n0.time) ? n0.time : '', cal: n0 ? !!n0.cal : false, plan: n0 && n0.plan ? { ...n0.plan } : null };
     const ov = document.createElement('div'); ov.className = 'wn-ov'; ov.style.zIndex = '2147482600'; ov.setAttribute('translate', 'no');
     ov.innerHTML = '<div class="wn-bx ed" role="dialog" aria-modal="true"></div>'; document.body.appendChild(ov); const bx = ov.firstChild;
@@ -284,31 +292,53 @@
       if (isNew) n = B.add(f.pid, patch);
       else if (f.pid !== n0._pid) { B.del(n0._k, n0.id); n = B.add(f.pid, { ...patch, asg: n0.asg || '', done: !!n0.done, at: n0.at, editedAt: new Date().toISOString() }); }
       else { B.update(n0._k, n0.id, { ...patch, editedAt: new Date().toISOString(), editedBy: me.name || '' }); n = { ...n0, ...patch }; }
-      done(); if (!n) return; S.focus = n.id; S.tab = patch.vis === 'public' ? 'proj' : 'mine'; S.proj = ''; S.who = '';
+      done(); if (!n) return; C.focus = n.id; C.tab = patch.vis === 'public' ? 'proj' : 'mine'; C.proj = ''; C.who = '';
       toast(isNew ? (patch.vis === 'public' ? 'บันทึกแล้ว — ทีมโครงการเห็น (แท็บสาธารณะ)' : 'บันทึกแล้ว — เห็นเฉพาะคุณ (แท็บส่วนตัว)') + (patch.cal ? ' · ขึ้นในปฏิทินแล้ว' : '') : 'แก้ไขบันทึกแล้ว');
-      setTimeout(() => { render(); if (sv.dataset.save === 'tag') tagNote('proj:' + f.pid, { ...n, ...patch }); }, 80);
+      setTimeout(() => run(C, () => { render(); if (sv.dataset.save === 'tag') tagNote('proj:' + f.pid, { ...n, ...patch }); }), 80);
     });
     draw(); setTimeout(() => { const ta = bx.querySelector('textarea'); if (ta && isNew) ta.focus(); }, 50);
   }
 
   // ---------- เปิด / ปิด ----------
-  function open(bridge, o) {
-    css(); o = o || {}; if (!bridge) return; S.B = bridge; if (o.tab) S.tab = o.tab; S.focus = o.focus || ''; S.q = ''; S.proj = ''; S.who = '';
+  function open(bridge, o) { return run(OV, () => open0(bridge, o)); }
+  function open0(bridge, o) {
+    css(); o = o || {}; if (!bridge) return; S.B = bridge; S.pid = o.pid || ''; if (o.tab) S.tab = o.tab; S.focus = o.focus || ''; S.q = ''; S.proj = ''; S.who = '';
     if (S.focus) { const n = allNotes().find(x => x.id === S.focus); if (n) { const em = norm(bridge.me().email); S.tab = (n.vis || 'public') === 'public' && norm(n.asg) !== em ? 'proj' : norm(n.email) === em ? 'mine' : 'tag'; } else toast('ไม่พบบันทึกนี้ — อาจถูกลบ หรือคุณไม่มีสิทธิ์เห็น', 3500); }
     if (!S.ov) { S.ov = document.createElement('div'); S.ov.className = 'wn-ov'; S.ov.setAttribute('translate', 'no'); S.ov.innerHTML = '<div class="wn-bx" role="dialog" aria-modal="true" aria-label="บันทึก · งานของฉัน"></div>';
-      S.ov.addEventListener('click', onClick);
-      S.ov.addEventListener('input', (e) => { if (e.target.matches('[data-q]')) { S.q = e.target.value; const pos = e.target.selectionStart; render(); const q = S.ov.querySelector('[data-q]'); if (q) { q.focus(); try { q.setSelectionRange(pos, pos); } catch (x) {} } } });
+      S.ov.addEventListener('click', (e) => run(OV, () => onClick(e)));
+      S.ov.addEventListener('input', (e) => run(OV, () => onInput(e)));
       document.body.appendChild(S.ov);
       document.addEventListener('keydown', onKey); }
     try { if (window.WCTag && WCTag.refresh) WCTag.refresh(); } catch (e) {}
     render();
-    clearInterval(S.timer); S.timer = setInterval(() => { if (!S.ov) return; const a = document.activeElement; if (a && S.ov.contains(a) && a.matches('input,textarea,select')) return; if (document.querySelector('.wn-bx.ed')) return; const s = sig(); if (s !== S.sig) render(); }, 2000);
+    clearInterval(S.timer); S.timer = setInterval(() => run(OV, () => { if (!S.ov) return; const a = document.activeElement; if (a && S.ov.contains(a) && a.matches('input,textarea,select')) return; if (document.querySelector('.wn-bx.ed')) return; const s = sig(); if (s !== S.sig) render(); }), 2000);
   }
-  function onKey(e) { if (e.key === 'Escape' && S.ov && !document.querySelector('.wn-bx.ed') && !document.querySelector('.wct-ov')) close(); }
-  function close() { if (S.ov) { S.ov.remove(); S.ov = null; } clearInterval(S.timer); document.removeEventListener('keydown', onKey); }
+  function onInput(e) { if (!e.target.matches('[data-q]')) return; const box = S.inline ? S.host : S.ov; S.q = e.target.value; const pos = e.target.selectionStart; render(); const q = box && box.querySelector('[data-q]'); if (q) { q.focus(); try { q.setSelectionRange(pos, pos); } catch (x) {} } }
+
+  // ---------- วางหน้าบันทึกชุดเดียวกันในหน้าอื่น (inline) ----------
+  // <div data-wn-host="space|home" [data-wn-pid="<pid>"] [data-wn-tab="mine|proj|tag|todo"]></div> → วางอัตโนมัติ (bridge จาก window.__wnBridge())
+  function mount(host, bridge, o) { if (!host || !bridge) return null; css(); o = o || {};
+    let c = INL.find(x => x.host === host); if (c) { c.B = bridge; run(c, render); return c; }
+    c = { B: bridge, host, inline: true, box: null, tab: o.tab || 'mine', q: '', proj: '', who: '', focus: '', sig: '', pid: o.pid || '' };
+    host.innerHTML = '<div class="wn-inl" translate="no"><div class="wn-bx" role="region" aria-label="บันทึก · งานของฉัน"></div></div>'; c.box = host.querySelector('.wn-bx');
+    host.addEventListener('click', (e) => run(c, () => onClick(e)));
+    host.addEventListener('input', (e) => run(c, () => onInput(e)));
+    INL.push(c); run(c, render); return c; }
+  function scan() { const br = window.__wnBridge; if (typeof br !== 'function') return;
+    document.querySelectorAll('[data-wn-host]').forEach(h => { const c = INL.find(x => x.host === h); if (c && h.querySelector('.wn-inl')) return; if (c) INL.splice(INL.indexOf(c), 1);
+      try { mount(h, br(), { pid: h.getAttribute('data-wn-pid') || '', tab: h.getAttribute('data-wn-tab') || '' }); } catch (e) {} }); }
+  let scanQ = 0; const scanSoon = () => { if (scanQ) return; scanQ = requestAnimationFrame(() => { scanQ = 0; scan(); }); };
+  if (typeof MutationObserver !== 'undefined') { const start = () => { try { new MutationObserver(scanSoon).observe(document.body, { childList: true, subtree: true }); scanSoon(); } catch (e) {} };
+    if (document.body) start(); else document.addEventListener('DOMContentLoaded', start); }
+  setInterval(() => { for (let i = INL.length - 1; i >= 0; i--) { const c = INL[i]; if (!c.host.isConnected) { INL.splice(i, 1); continue; }
+      const a = document.activeElement; if (a && c.host.contains(a) && a.matches('input,textarea,select')) continue; if (document.querySelector('.wn-bx.ed')) continue;
+      run(c, () => { const s = sig(); if (s !== c.sig) render(); }); } }, 2000);
+  function onKey(e) { if (e.key === 'Escape' && OV.ov && !document.querySelector('.wn-bx.ed') && !document.querySelector('.wct-ov')) close(); }
+  function close() { if (OV.ov) { OV.ov.remove(); OV.ov = null; } clearInterval(OV.timer); document.removeEventListener('keydown', onKey); }
 
   // ---------- จำนวนบนการ์ดหน้าแรก ----------
-  function counts(bridge) { const keep = S.B; S.B = bridge; try { const d = data(); return { mine: d.mineN.filter(n => !n.done).length, tag: d.tags.length + d.toMeN.filter(n => !n.done).length, unseen: d.unseen, todo: d.todo.length, late: d.late }; } catch (e) { return { mine: 0, tag: 0, unseen: 0, todo: 0, late: 0 }; } finally { S.B = keep || bridge; } }
+  function counts(bridge) { return run({ B: bridge, pid: '' }, () => counts0()); }
+  function counts0() { try { const d = data(); return { mine: d.mineN.filter(n => !n.done).length, tag: d.tags.length + d.toMeN.filter(n => !n.done).length, unseen: d.unseen, todo: d.todo.length, late: d.late }; } catch (e) { return { mine: 0, tag: 0, unseen: 0, todo: 0, late: 0 }; } }
 
-  window.WCNote = { VER, open, close, counts, isOpen: () => !!S.ov, _S: S };
+  window.WCNote = { VER, open, close, counts, mount, scan, isOpen: () => !!OV.ov, _S: OV, _INL: INL };
 })();

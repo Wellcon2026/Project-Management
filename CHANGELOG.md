@@ -2,6 +2,13 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด · เพิ่มรายการบนสุดใน `whatsnew.json` (ข้อความที่ผู้ใช้เห็นในหน้าต่าง "มีอะไรใหม่") · และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## 📝 Notes ทุกที่หน้าตาเดียวกัน · PM v1.449.0 · 21/11/2026
+- ผู้บริหารสั่ง 21/11/2026 (ข้อ 1 ของแผนรวมหน้าที่ซ้ำ): "same data serve the user same function make them the same … import the display"
+- `wcnote.js` 1.4.0: โหมดวางในหน้าอื่น (inline) — `WCNote.mount(host, bridge, { pid, tab })` · วางอัตโนมัติที่ `<div data-wn-host>` (MutationObserver · bridge จาก `window.__wnBridge`) · บริบทแยกต่อช่อง (แท็บ / ค้นหา / ตัวกรอง) · รองรับกรองเฉพาะโครงการ (`data-wn-pid`) · ปุ่ม ⤢ เต็มจอ
+- `scripts/patch-note-inline.js` (MARK `v1.449.0 note-inline`): แทนกระดานโน้ตเดิม 2 ที่ — หน้า Home ("โน้ตงานสำคัญ · ทุกโครงการ" เปิดที่แท็บสาธารณะ) และ My Space ("โน้ต · ทุกโครงการ") · ข้อมูลชุดเดิม ไม่ย้าย / ไม่แปลง
+- ยังไม่ได้ทำ: ช่อง "งานคงค้าง · โน้ตโครงการ" ในภาพรวมโครงการ (มีส่วนมอบหมายงานคงค้างของ PM — ต้องแยกออกก่อน) · รวมรายการ "มอบหมายให้ฉัน" / กระดิ่งแท็ก
+- ผลทดสอบ: p45 (1366 / 412) 9 ข้อผ่าน · p31–p35 (Notes เดิม) ผ่าน · ไม่มี error
+
 ## 🔤 การ์ด / เมนูซ้าย: ชื่ออังกฤษเป็นหัวข้อ · ไทยอธิบายด้านล่าง · PM v1.448.0 · 21/11/2026
 - ผู้บริหารสั่ง 21/11/2026: "use the English name as a first head title and Thai to describe the function under the title" (ตัวอย่าง PDF Maker / แก้ไขเอกสาร)
 - `wcfn.js` 1.1.0: เพิ่มคำอธิบายไทยต่อฟังก์ชัน · `WCFN.title(key,label)` (ชื่ออังกฤษ + ↗ ถ้าเปิดแท็บใหม่) · `WCFN.desc(key)` · Quotation = "Quotation Maker"
