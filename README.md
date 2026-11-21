@@ -190,6 +190,9 @@ node scripts/patch-feature-titles.js      # การ์ด / เมนูซ้
 node scripts/patch-note-inline.js         # Notes ทุกที่หน้าตาเดียวกัน: กระดานโน้ต Home / My Space → ช่อง data-wn-host (wcnote.js 1.4.0)
 node scripts/patch-note-unify.js          # ภาพรวมโครงการ: ส่วนโน้ต → หน้า Notes เฉพาะโครงการ · กระดิ่ง = Notes แท็บแท็ก (wctag.js 1.3.0)
 node scripts/patch-feature-demo.js        # ปุ่ม ▶ ดู Demo วิธีใช้ บนการ์ดทุกฟังก์ชัน (wcdemo.js) — ไม่เล่นเอง
+node scripts/patch-setup-inline.js        # ภาพรวมโครงการ: ข้อมูลสัญญา / คู่สัญญา / วางบิล = ฟอร์ม Setup (wcsetup.js 1.3.0)
+node scripts/patch-card-dedupe.js         # การ์ด Material Log ซ้ำ (proc / procm) เหลือใบเดียว
+node scripts/patch-cal-unify.js           # ปฏิทิน 3 สัปดาห์ใช้สีตามประเภทกิจกรรม เหมือนปฏิทินหลัก
 node scripts/patch-layboard-photo.js    # Layboard: ปุ่ม "แต่งรูป (Photo Editor)" (แก้ layboard/index.html · sync-layboard.js เรียกให้อัตโนมัติ)
 node scripts/patch-sess-guard.js        # หลายหน้าต่างในเครื่องเดียว = ผู้ใช้คนเดียว · กันหน้าต่างอื่นเขียนทับผู้ใช้ (แก้ออกจากระบบแล้วเข้าเป็นคนอื่น)
 ```
