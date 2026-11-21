@@ -2,6 +2,13 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด · เพิ่มรายการบนสุดใน `whatsnew.json` (ข้อความที่ผู้ใช้เห็นในหน้าต่าง "มีอะไรใหม่") · และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## 🔤 การ์ด / เมนูซ้าย: ชื่ออังกฤษเป็นหัวข้อ · ไทยอธิบายด้านล่าง · PM v1.448.0 · 21/11/2026
+- ผู้บริหารสั่ง 21/11/2026: "use the English name as a first head title and Thai to describe the function under the title" (ตัวอย่าง PDF Maker / แก้ไขเอกสาร)
+- `wcfn.js` 1.1.0: เพิ่มคำอธิบายไทยต่อฟังก์ชัน · `WCFN.title(key,label)` (ชื่ออังกฤษ + ↗ ถ้าเปิดแท็บใหม่) · `WCFN.desc(key)` · Quotation = "Quotation Maker"
+- `scripts/patch-feature-titles.js` (MARK `v1.448.0 en-title`): เมธอด `FNT` / `FNTH` · การ์ดหน้าแรก (หัวข้อ `t.ttl` + บรรทัดไทย `.wcth`) · เมนูซ้าย (หัวข้อ `n.ttl` + บรรทัดไทย) · รายการในเมนูที่ไม่ได้มาจาก navDef (โครงการ · ปักหมุด) ใช้ชื่อเดิม
+- ระหว่างทดสอบพบ: ชื่อโครงการในเมนูซ้ายหาย (ไม่มี `ttl`) → แก้ก่อนขึ้นระบบ
+- ผลทดสอบ (p44 · 1366 / 412): ผ่าน · ไม่มี error
+
 ## 🏷 ชื่อเรียกฟังก์ชัน (Feature call names) · PM v1.447.0 · 21/11/2026
 - ผู้บริหารขอ 21/11/2026: “give every function the name to call … make the name short in English” — ให้ทุกคนอ้างถึงฟังก์ชันเดียวกันด้วยชื่อเดียวกัน
 - `wcfn.js` 1.0.0 (ใหม่): แหล่งเดียวของชื่อเรียก — `WCFN.name(key)` · `WCFN.of(key, labelไทย)` (คืนค่าว่างถ้าชื่อไทยมีคำนั้นอยู่แล้ว ไม่แสดงซ้ำ) · `WCFN.all()` · อ้างด้วย key ภายใน (`tab:` / `nav:` / `dhome` / `note`) ไม่ผูกกับข้อความไทย
