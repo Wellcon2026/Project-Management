@@ -12,7 +12,7 @@
 (function () {
   'use strict';
   if (window.WCSetup) return;
-  const VER = '1.3.0';   // 1.3.0: วางฟอร์มข้อ 1–3 ในหน้าภาพรวมโครงการได้ (inline · [data-ws-host]) — ฟอร์มเดียวกันทุกที่ · 1.2.0: ใบเสนอราคา / สัญญา / BOQ → ปุ่ม “ใช้เป็นวัสดุในใบขอซื้อ” · 1.1.0:   // 1.1.0: ที่อยู่หน้างาน / สถานที่ส่งของ (ใช้ในใบขอซื้อ · ใบเสนอราคา)
+  const VER = '1.3.1';   // 1.3.1: ปุ่ม ? วิธีใช้ ที่หัว · 1.3.0: วางฟอร์มข้อ 1–3 ในหน้าภาพรวมโครงการได้ (inline · [data-ws-host]) — ฟอร์มเดียวกันทุกที่ · 1.2.0: ใบเสนอราคา / สัญญา / BOQ → ปุ่ม “ใช้เป็นวัสดุในใบขอซื้อ” · 1.1.0:   // 1.1.0: ที่อยู่หน้างาน / สถานที่ส่งของ (ใช้ในใบขอซื้อ · ใบเสนอราคา)
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const pad = (n) => String(n).padStart(2, '0');
   const dmy = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; };
@@ -139,7 +139,7 @@
     const top = S.ov.querySelector('.ws-bd') ? S.ov.querySelector('.ws-bd').scrollTop : 0;
     bx.innerHTML = `<div class="ws-hd"><span class="ic">⚙</span><div class="tt"><b>ตั้งค่าโครงการ</b><select data-pid aria-label="เลือกโครงการ">${projOpts}</select></div>
       <div class="ws-pct"><span class="ring" style="background:${ring}"><span style="background:#1C1B18;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center">${sc.pct}%</span></span><small>ข้อมูลครบ<br>${sc.done}/${sc.total} อย่าง</small></div>
-      <button class="ws-x" data-x aria-label="ปิด">✕</button></div>
+      ${window.WCDemo && WCDemo.btn ? WCDemo.btn('tab:setup') : ''}<button class="ws-x" data-x aria-label="ปิด">✕</button></div>
       <div class="ws-bd">${h.join('')}</div>
       <div class="ws-ft"><small>บันทึกอัตโนมัติทุกช่อง · ซิงก์ให้ทุกคนในทีม</small><button class="ws-b" data-proj>เปิดหน้าโครงการ ↗</button><button class="ws-b p" data-x>เสร็จ</button></div>`;
     const bd = bx.querySelector('.ws-bd'); if (bd) bd.scrollTop = top;

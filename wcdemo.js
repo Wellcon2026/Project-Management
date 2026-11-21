@@ -12,7 +12,7 @@
 (function () {
   'use strict';
   if (window.WCDemo) return;
-  const VER = '1.0.2';   // 1.0.2: ปุ่มมีสีตั้งแต่โหลดหน้า · 1.0.1: Role Home รวมเข้า My Space
+  const VER = '1.1.0';   // 1.1.0: วิธีใช้อยู่ในหน้าใช้งาน (ปุ่ม ? วิธีใช้ ที่หัวหน้า) แทนปุ่มบนการ์ด —   // 1.0.2: ปุ่มมีสีตั้งแต่โหลดหน้า · 1.0.1: Role Home รวมเข้า My Space
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   // key → ขั้นตอน [หัวข้อ, คำอธิบาย]
   const D = {
@@ -497,6 +497,11 @@
 .wcdemo-b::before{content:'▶';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:99px;background:#C9A961;color:#1C1B18;font-size:10px;padding-left:2px;box-sizing:border-box}
 .wcdemo-b:hover,.wcdemo-b:focus-visible{background:#C9A961;border-color:#C9A961;color:#1C1B18;outline:none}.wcdemo-b:hover::before{background:#1C1B18;color:#E2BC66}
 .wcdemo-b[data-has=""]{display:none!important}
+.wcdemo-hb{flex:none;display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 13px 0 6px;border-radius:999px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.10);color:#F6F1E8;font:700 13px 'IBM Plex Sans Thai',system-ui,sans-serif;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.wcdemo-hb>i{font-style:normal;width:26px;height:26px;border-radius:50%;background:#C9A961;color:#1C1B18;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+.wcdemo-hb:hover,.wcdemo-hb:focus-visible{background:rgba(255,255,255,.2);outline:none}
+.wcdemo-hb.lt{border-color:#E0C99A;background:#FBF3E4;color:#8A5E14}.wcdemo-hb.lt>i{background:#1C1B18;color:#F4EFE6}.wcdemo-hb.lt:hover{background:#F6E9D2}
+@media(max-width:430px){.wcdemo-hb>b{display:none}.wcdemo-hb{padding:0 6px}}
 @media print{.wd-ov{display:none!important}}`;
   function css() { if (document.getElementById('wd-css')) return; const s = document.createElement('style'); s.id = 'wd-css'; s.textContent = CSS; document.head.appendChild(s); }
 
@@ -532,11 +537,19 @@
     document.addEventListener('keydown', onKey, true); draw(); return true; }
   // ปุ่ม ▶ Demo บนการ์ด: <span class="wcdemo-b" data-demo="<key>"> — กดแล้วไม่เปิดหน้าของการ์ด (จับก่อนถึงการ์ด)
   function onDemoClick(e) { const b = e.target && e.target.closest && e.target.closest('[data-demo]'); if (!b) return;
-    e.stopPropagation(); e.preventDefault(); const card = b.closest('[data-demo-card]') || b.parentElement && b.parentElement.closest('div');
+    e.stopPropagation(); e.preventDefault(); const card = b.closest('[data-demo-card]');   // ปุ่มบนการ์ด = มี "เปิดใช้งานจริง" · ปุ่มในหน้าใช้งาน = อยู่ในหน้าแล้ว ไม่ต้องมี
     open(b.getAttribute('data-demo'), { start: card ? () => { try { card.click(); } catch (x) {} } : null }); }
   if (typeof document !== 'undefined') { if (document.head) css(); else document.addEventListener('DOMContentLoaded', css);   // 1.0.2 ปุ่ม Demo มีสีตั้งแต่โหลดหน้า (เดิมมีสีหลังเปิด Demo ครั้งแรก)
     ['click'].forEach(ev => document.addEventListener(ev, onDemoClick, true));
     document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('[data-demo]')) onDemoClick(e); }, true); }
 
-  window.WCDemo = { VER, open, close, has: (k) => !!keyOf(k), keys: () => Object.keys(D), steps: (k) => (D[keyOf(k)] || []).slice(), list: () => Object.keys(D).map(k => ({ key: k, ...nm(k), n: D[k].length })) };
+  // ปุ่ม "? วิธีใช้" ในหัวหน้าของแอปแยก: <html data-demo-key="tab:quo" [data-demo-hdr=".hdr"] [data-demo-light]> → ใส่ปุ่มท้ายหัวหน้าทุกหน้าจอให้อัตโนมัติ
+  function hbtn(k, light) { return '<button type="button" class="wcdemo-hb' + (light ? ' lt' : '') + '" data-demo="' + esc(k) + '" title="วิธีใช้หน้านี้ — สาธิตทีละขั้น" aria-label="วิธีใช้หน้านี้"><i>?</i><b>วิธีใช้</b></button>'; }
+  function inject() { const R = document.documentElement; const k = R.getAttribute('data-demo-key'); if (!k || !keyOf(k)) return;
+    const sel = R.getAttribute('data-demo-hdr') || '.hdr', light = R.hasAttribute('data-demo-light');
+    document.querySelectorAll(sel).forEach(h => { if (h.querySelector('.wcdemo-hb')) return; h.insertAdjacentHTML('beforeend', hbtn(k, light)); }); }
+  if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined') { let q = 0; const soon = () => { if (q) return; q = requestAnimationFrame(() => { q = 0; inject(); }); };
+    const go = () => { try { new MutationObserver(soon).observe(document.body, { childList: true, subtree: true }); inject(); } catch (e) {} };
+    if (document.body) go(); else document.addEventListener('DOMContentLoaded', go); }
+  window.WCDemo = { VER, open, close, btn: hbtn, has: (k) => !!keyOf(k), keys: () => Object.keys(D), steps: (k) => (D[keyOf(k)] || []).slice(), list: () => Object.keys(D).map(k => ({ key: k, ...nm(k), n: D[k].length })) };
 })();

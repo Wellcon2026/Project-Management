@@ -2,6 +2,13 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด · เพิ่มรายการบนสุดใน `whatsnew.json` (ข้อความที่ผู้ใช้เห็นในหน้าต่าง "มีอะไรใหม่") · และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## ❓ วิธีใช้ทีละขั้นอยู่ในหน้าใช้งาน · PM v1.454.0 · 21/11/2026
+- ผู้บริหารสั่ง 21/11/2026: ปุ่ม Demo บนการ์ดดูรก — ให้อยู่ในแอป step by step แบบเดิม
+- `scripts/patch-demo-inapp.js` (MARK `v1.454.0 demo-inapp`): ลบปุ่มบนการ์ด · ปุ่ม "? วิธีใช้หน้านี้" → `WCDemo.open(key ของหน้า)` (ในโครงการ `tab:<pdTab>` · calendar / subcon / memo · อื่น ๆ `nav:<screen>`) · หน้าที่ไม่มี Demo ใช้คำแนะนำสั้นเดิม
+- `wcdemo.js` 1.1.0: ปุ่มหัวหน้า `.wcdemo-hb` (`WCDemo.btn`) · ใส่ให้อัตโนมัติจาก `<html data-demo-key data-demo-hdr data-demo-light>` · ปุ่มในหน้าใช้งานไม่มีขั้น "เปิดใช้งานจริง"
+- แอปแยก + `data-demo-key`: quotation (tab:quo) · auto-pr (tab:apr) · quick-measure (tab:qm) · pdf · photo · pricebook (tab:pbook) · layboard (tab:lay · หัว .lb-edhead แบบสีอ่อน) · `wcnote.js` 1.5.1 · `wcsetup.js` 1.3.1 ปุ่มที่หัว
+- ผลทดสอบ (p51): การ์ดไม่มีปุ่ม · Daily Report / Notes / Quotation Maker / ใบขอซื้อ / Takeoff เปิดสาธิตของหน้านั้น · ไม่มี error
+
 ## 🏠 หน้าแรก 3 แบบ → 2 แบบ (Role Home รวมเข้า My Space) · PM v1.453.0 · 21/11/2026
 - ผู้บริหารสั่ง 21/11/2026 ("yes please proceed") — ข้อสุดท้ายของแผนรวมหน้าที่ซ้ำ
 - `scripts/patch-home-merge.js` (MARK `v1.453.0 home-merge`): `WORK_VALS` แสดงส่วน Role Home บนหน้า inbox (ตำแหน่งที่มีชุดการ์ด) · `_homeScreen` / `_landScreen` / `_homeTarget` / ปุ่มโลโก้ → inbox · หน้า 'work' ที่ค้าง (สถานะเก่า / ปุ่มเก่า) → inbox · ลิงก์ `#/work` → inbox · ลบเมนู Role Home · แท็กจากหน้านี้ใช้โครงการที่เลือก · หัวหน้า "MY SPACE ·" · ลบปุ่มไปหน้าตัวเอง
