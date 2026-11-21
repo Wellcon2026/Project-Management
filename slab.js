@@ -18,7 +18,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const VER = '3.0.0';   // 3.0.0: เส้น CAD — เขียนเส้นตรง / โค้ง 3 จุด / วงกลม · Snap จุดปลาย / กึ่งกลาง / จุดตัด / ศูนย์กลาง · ตัด (Trim) · ยืด (Extend) · เส้นขนาน (Offset) · ลบ · แตกชิ้น (Explode) · ทำเป็นชิ้นงาน (Region) · 2.4.0: ลากเส้นขนาด / ป้ายออกจากจุดที่ตั้งได้อิสระ (จุด + สเกลคงเดิม) · แตะป้าย 2 ครั้ง = กลับที่เดิม · 2.3.1: เส้นประตามขอบผ่านจุดขนาด (เห็นกรอบแผ่นที่ตั้ง) · ลากจุดขนาดได้ในโหมดเลือก → คำนวณสเกลใหม่ · เส้นเล็งยาวขณะวางจุด · 2.3.0: 2.3.0: ตั้งขนาดแผ่นจากจุดบนแผ่นจริง แนวนอน / แนวตั้ง แยกกัน (สเกลแยกแกน) · เส้นขนาดติดอยู่ที่จุดตลอด · 2.2.0: 2.2.0: หมุนอิสระทุกองศา · เส้นบอกขนาดแผ่น · ปุ่มทึบ 10% ↔ 0% · เส้นตัด 70% คงที่ · 2.1.0: 2.1.0: ความทึบ 0–100% (พื้นชิ้น / เส้นตัด) รายชิ้น · ชิ้นที่เลือก · ทุกชิ้น
+const VER = '3.2.0';   // 3.2.0: เปิด / ปิดขนาดรายชิ้น · รายเส้น · เส้นขนาดแผ่น ↔ / ↕ แยกกัน (เมนู ↔ ขนาด ▾) · 3.1.0: 💾 บันทึกงานในระบบ · 📂 งานที่บันทึก (ของฉัน / ทั้งทีม · เปิด · เปลี่ยนชื่อ · ลบ) · เตือนเมื่อยังไม่บันทึก · 3.0.0: เส้น CAD — เขียนเส้นตรง / โค้ง 3 จุด / วงกลม · Snap จุดปลาย / กึ่งกลาง / จุดตัด / ศูนย์กลาง · ตัด (Trim) · ยืด (Extend) · เส้นขนาน (Offset) · ลบ · แตกชิ้น (Explode) · ทำเป็นชิ้นงาน (Region) · 2.4.0: ลากเส้นขนาด / ป้ายออกจากจุดที่ตั้งได้อิสระ (จุด + สเกลคงเดิม) · แตะป้าย 2 ครั้ง = กลับที่เดิม · 2.3.1: เส้นประตามขอบผ่านจุดขนาด (เห็นกรอบแผ่นที่ตั้ง) · ลากจุดขนาดได้ในโหมดเลือก → คำนวณสเกลใหม่ · เส้นเล็งยาวขณะวางจุด · 2.3.0: 2.3.0: ตั้งขนาดแผ่นจากจุดบนแผ่นจริง แนวนอน / แนวตั้ง แยกกัน (สเกลแยกแกน) · เส้นขนาดติดอยู่ที่จุดตลอด · 2.2.0: 2.2.0: หมุนอิสระทุกองศา · เส้นบอกขนาดแผ่น · ปุ่มทึบ 10% ↔ 0% · เส้นตัด 70% คงที่ · 2.1.0: 2.1.0: ความทึบ 0–100% (พื้นชิ้น / เส้นตัด) รายชิ้น · ชิ้นที่เลือก · ทุกชิ้น
 if (window.WCSlab) return;
 const $ = (s, r) => (r || document).querySelector(s);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -36,11 +36,11 @@ const S = {
   open: false, img: null, name: '', cmx: 0.1, cmy: 0.1, scaled: false, lockRatio: true,
   shapes: [], guides: [], sel: [], tool: 'move', next: 1, lines: [], lsel: [], cad: 'line', ced: 'trim', cpts: [], chain: [], ortho: false, offD: 2, offSrc: null, lastLoop: null, cin: { len: '', ang: '', rad: '' }, osHit: null, hoverP: null, hoverL: null,
   shape: 'rect', sides: 6, repeat: false, freeMode: 'drag', nudge: 0.5,
-  grid: { on: true, step: 10 }, guidesOn: true, snap: { on: true, grid: true, guide: true, edge: true, obj: true }, dims: true,
+  grid: { on: true, step: 10 }, guidesOn: true, ldims: true, dimH: { x: false, y: false }, snap: { on: true, grid: true, guide: true, edge: true, obj: true }, dims: true,
   opDef: 10, lineDef: 70, joint: 3, defW: 45, defH: 120, color: '#E5484D', pat: { c: 3, r: 2, fill: false, cut: true },
   view: { z: 1, ox: 0, oy: 0 }, fitZ: 1,
   dimx: null, dimy: null, cal: [], calLen: '', calAxis: 'x', persp: [], pw: '', ph: '', drawPts: [], meas: null, act: null,
-  hover: null, snapHit: null, hist: [], redo: [], prevImg: null, cursor: null, panel: true, loupe: null,
+  hover: null, snapHit: null, work: null, dirty: false, imgDirty: false, wk: null, hist: [], redo: [], prevImg: null, cursor: null, panel: true, loupe: null,
 };
 let root, cv, ctx, lcv, lctx, W = 0, H = 0, DPR = 1, raf = 0;
 const touchy = () => matchMedia('(pointer:coarse)').matches;
@@ -48,15 +48,17 @@ const touchy = () => matchMedia('(pointer:coarse)').matches;
 const DB = { db: null,
   async open() { if (this.db) return this.db; return new Promise((ok) => { try { const q = indexedDB.open('wcslab', 1); q.onupgradeneeded = () => q.result.createObjectStore('kv'); q.onsuccess = () => { this.db = q.result; ok(this.db); }; q.onerror = () => ok(null); } catch (e) { ok(null); } }); },
   async get(k) { const d = await this.open(); if (!d) return null; return new Promise((ok) => { try { const r = d.transaction('kv').objectStore('kv').get(k); r.onsuccess = () => ok(r.result || null); r.onerror = () => ok(null); } catch (e) { ok(null); } }); },
-  async put(k, v) { const d = await this.open(); if (!d) return; try { d.transaction('kv', 'readwrite').objectStore('kv').put(v, k); } catch (e) {} } };
+  async put(k, v) { const d = await this.open(); if (!d) return; await new Promise((ok) => { try { const t = d.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = () => ok(); t.onerror = () => ok(); } catch (e) { ok(); } }); },
+  async del(k) { const d = await this.open(); if (!d) return; await new Promise((ok) => { try { const t = d.transaction('kv', 'readwrite'); t.objectStore('kv').delete(k); t.oncomplete = () => ok(); t.onerror = () => ok(); } catch (e) { ok(); } }); },
+  async list(pre) { const d = await this.open(); if (!d) return []; return new Promise((ok) => { const out = []; try { const q = d.transaction('kv').objectStore('kv').openCursor(); q.onsuccess = () => { const c = q.result; if (!c) { ok(out); return; } if (String(c.key).startsWith(pre)) { const { blob, st, ...m } = c.value || {}; out.push(m); } c.continue(); }; q.onerror = () => ok(out); } catch (e) { ok(out); } }); } };
 let saveT = 0;
-function autosave() { clearTimeout(saveT); saveT = setTimeout(async () => { if (!S.img) return; try { const blob = await new Promise((ok) => S.img.toBlob(ok, 'image/jpeg', 0.9)); await DB.put('last', { at: new Date().toISOString(), name: S.name, blob, st: snapData() }); } catch (e) {} }, 800); }
-function snapData() { return { cmx: S.cmx, cmy: S.cmy, scaled: S.scaled, lockRatio: S.lockRatio, shapes: S.shapes, guides: S.guides, grid: S.grid, snap: S.snap, guidesOn: S.guidesOn, joint: S.joint, defW: S.defW, defH: S.defH, next: S.next, color: S.color, shape: S.shape, sides: S.sides, dims: S.dims, opDef: S.opDef, lineDef: S.lineDef, dimx: S.dimx, dimy: S.dimy, lines: S.lines }; }
-function applyData(d) { ['cmx', 'cmy', 'scaled', 'lockRatio', 'joint', 'defW', 'defH', 'next', 'color', 'guidesOn', 'shape', 'sides', 'dims', 'opDef', 'lineDef', 'dimx', 'dimy'].forEach((k) => { if (d[k] !== undefined) S[k] = d[k]; });
+function autosave() { clearTimeout(saveT); saveT = setTimeout(async () => { if (!S.img) return; try { const blob = await new Promise((ok) => S.img.toBlob(ok, 'image/jpeg', 0.9)); await DB.put('last', { at: new Date().toISOString(), name: S.name, blob, st: snapData(), work: S.work, dirty: S.dirty, imgDirty: S.imgDirty }); } catch (e) {} }, 800); }
+function snapData() { return { cmx: S.cmx, cmy: S.cmy, scaled: S.scaled, lockRatio: S.lockRatio, shapes: S.shapes, guides: S.guides, grid: S.grid, snap: S.snap, guidesOn: S.guidesOn, joint: S.joint, defW: S.defW, defH: S.defH, next: S.next, color: S.color, shape: S.shape, sides: S.sides, dims: S.dims, opDef: S.opDef, lineDef: S.lineDef, dimx: S.dimx, dimy: S.dimy, lines: S.lines, ldims: S.ldims, dimH: S.dimH }; }
+function applyData(d) { ['cmx', 'cmy', 'scaled', 'lockRatio', 'joint', 'defW', 'defH', 'next', 'color', 'guidesOn', 'shape', 'sides', 'dims', 'opDef', 'lineDef', 'dimx', 'dimy', 'ldims'].forEach((k) => { if (d[k] !== undefined) S[k] = d[k]; }); S.dimH = { x: false, y: false, ...(d.dimH || {}) };
   S.shapes = (d.shapes || d.pieces || []).map((p) => ({ t: 'rect', rot: 0, ...p })); S.guides = (d.guides || []).map((g) => ({ ...g })); S.lines = (d.lines || []).map((e) => JSON.parse(JSON.stringify(e))); if (d.grid) S.grid = { ...S.grid, ...d.grid }; if (d.snap) S.snap = { ...S.snap, ...d.snap }; }
 // ---------- ย้อนกลับ / ทำซ้ำ ----------
-function push() { S.hist.push(JSON.stringify(snapData())); if (S.hist.length > 80) S.hist.shift(); S.redo = []; }
-function restorePrev() { const p = S.prevImg; if (!p) return; S.prevImg = null; S.img = p.img; applyData(JSON.parse(p.st)); S.hist = p.hist; S.sel = []; fit(); ui(); autosave(); toast('คืนรูปก่อนดัดแล้ว'); }
+function push() { S.dirty = true; markDirty(); S.hist.push(JSON.stringify(snapData())); if (S.hist.length > 80) S.hist.shift(); S.redo = []; }
+function restorePrev() { const p = S.prevImg; if (!p) return; S.prevImg = null; S.img = p.img; S.imgDirty = true; S.dirty = true; applyData(JSON.parse(p.st)); S.hist = p.hist; S.sel = []; fit(); ui(); autosave(); toast('คืนรูปก่อนดัดแล้ว'); }
 function undo() { if (S.prevImg && S.histImgAt === S.hist.length) { restorePrev(); return; }
   const h = S.hist.pop(); if (!h) { toast('ไม่มีอะไรให้ย้อน'); return; } S.redo.push(JSON.stringify(snapData())); applyData(JSON.parse(h)); S.sel = S.sel.filter((id) => S.shapes.some((s) => s.id === id)); S.lsel = S.lsel.filter((id) => S.lines.some((e) => e.id === id)); S.chain = []; S.cpts = []; ui(); autosave(); }
 function redo() { const h = S.redo.pop(); if (!h) return; S.hist.push(JSON.stringify(snapData())); applyData(JSON.parse(h)); S.lsel = []; ui(); autosave(); }
@@ -111,6 +113,12 @@ const CSS = `
 #slab .sl-hd{flex:none;display:flex;align-items:center;gap:8px;background:#1C1B18;color:#F6F1E8;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top,0px));border-bottom:1px solid #33302A}
 #slab .sl-hd .tt{flex:1;min-width:0}#slab .sl-hd .tt b{display:block;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#slab .sl-hd .tt span{display:block;font-size:12px;color:#BDB4A2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #slab .sl-ib{flex:none;height:38px;min-width:38px;border-radius:11px;border:1px solid #4A463D;background:#2A2721;color:#F6F1E8;padding:0 10px;font:600 13px inherit;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+#slab .sl-ib.dirty{position:relative;border-color:#C9A961}#slab .sl-ib.dirty::after{content:'';position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:#FF7A45;box-shadow:0 0 0 2px #2A2721}
+#slab .sl-wk .bx{width:min(760px,100%);max-height:88vh;display:flex;flex-direction:column;gap:6px}#slab .wk-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}#slab .wk-hd h3{margin:0}#slab .wk-hd .sl-b{margin-left:auto}
+#slab .wk-tab{display:inline-flex;border:1px solid #DDD3C2;border-radius:10px;overflow:hidden}#slab .wk-tab button{border:0;background:#fff;padding:0 14px;height:36px;font:600 13px inherit;font-family:inherit;cursor:pointer}#slab .wk-tab button.on{background:#1C1B18;color:#F6F1E8}
+#slab .wk-list{overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;padding:2px;min-height:120px}#slab .wk-c{border:1px solid #E5DCCB;border-radius:12px;background:#fff;display:flex;flex-direction:column;overflow:hidden}#slab .wk-c.cur{border-color:#C9A961;box-shadow:0 0 0 2px rgba(201,169,97,.35)}
+#slab .wk-c img,#slab .wk-c .ph{width:100%;height:120px;object-fit:cover;background:#2A2721;display:grid;place-items:center;color:#C9A961;font-size:30px}#slab .wk-c .tx{padding:8px 10px 4px;display:flex;flex-direction:column;gap:2px;font-size:12px;color:#6B6455}#slab .wk-c .tx b{font-size:14px;color:#1C1B18;word-break:break-word}#slab .wk-c .ac{display:flex;gap:6px;padding:6px 10px 10px}#slab .wk-c .ac .dk{flex:1}
+@media (max-width:480px){#slab .sl-redo{display:none}}
 #slab .sl-ib:hover{background:#36322B}#slab .sl-ib.gold{background:#C9A961;color:#1C1B18;border-color:#C9A961}#slab .sl-ib:disabled{opacity:.4;cursor:default}
 #slab .sl-steps{flex:none;display:flex;gap:6px;overflow-x:auto;padding:7px 10px;background:#26241F;border-bottom:1px solid #33302A}
 #slab .sl-st{flex:none;display:flex;align-items:center;gap:6px;border:1px solid #4A463D;border-radius:999px;padding:4px 10px 4px 5px;color:#D9CFBD;font-size:12px;background:transparent;font-family:inherit;cursor:pointer}
@@ -185,7 +193,8 @@ function build() {
   root.innerHTML = `<div class="sl-hd"><button class="sl-ib" data-sl="close" aria-label="กลับ Photo Editor" title="กลับ Photo Editor">←</button>
       <div class="tt"><b>Slab Layout · วางแผนตัดแผ่น</b><span id="slSub"></span></div>
       <button class="sl-ib" data-sl="undo" title="ย้อนกลับ (Ctrl+Z)">↶<span class="tx"> ย้อน</span></button>
-      <button class="sl-ib" data-sl="redo" title="ทำซ้ำ (Ctrl+Y)">↷</button>
+      <button class="sl-ib sl-redo" data-sl="redo" title="ทำซ้ำ (Ctrl+Y)">↷</button>
+      <button class="sl-ib" data-sl="csave" data-g="sl-save" title="บันทึกงานในระบบ (Ctrl+S) — เปิดแก้ต่อได้ที่ 📂 งานที่บันทึก">💾<span class="tx"> บันทึก</span></button>
       <button class="sl-ib sl-pt" data-sl="panel" title="ตั้งค่า / รายการตัด">⚙</button>
       <button class="sl-ib" data-sl="csv" data-g="sl-export" title="รายการตัด (Excel / CSV)">📋<span class="tx"> รายการตัด</span></button>
       <button class="sl-ib gold" data-sl="png" title="บันทึกภาพแผนตัด (PNG)">⬇<span class="tx"> บันทึกภาพ</span></button></div>
@@ -207,7 +216,7 @@ function build() {
 }
 function resize() { const cw = $('#slCw', root); if (!cw) return; DPR = window.devicePixelRatio || 1; const r = cw.getBoundingClientRect(); const first = !W; W = r.width; H = r.height; cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); lcv.width = lcv.height = Math.round(150 * DPR); if (first && S.img) fit(); else draw(); }
 function ui() { steps(); tools(); bar(); panel(); stat(); startPane(); sub(); fbar(); draw(); }
-function sub() { const t = $('#slSub', root); if (!t) return; t.textContent = S.img ? (S.name + ' · ' + (S.dimx || S.dimy ? 'แผ่น ↔ ' + (S.dimx ? fmt(S.dimx.len) : '—') + ' × ↕ ' + (S.dimy ? fmt(S.dimy.len) : '—') + ' ซม.' : S.scaled ? 'แผ่นจริง ' + fmt(IW()) + ' × ' + fmt(IH()) + ' ซม.' : 'ยังไม่ตั้งสเกล')) : 'นำเข้ารูปแผ่นหิน / ไม้ แล้ววางชิ้นงานตามขนาดจริง'; }
+function sub() { markDirty(); const t = $('#slSub', root); if (!t) return; t.textContent = S.img ? (S.name + ' · ' + (S.dimx || S.dimy ? 'แผ่น ↔ ' + (S.dimx ? fmt(S.dimx.len) : '—') + ' × ↕ ' + (S.dimy ? fmt(S.dimy.len) : '—') + ' ซม.' : S.scaled ? 'แผ่นจริง ' + fmt(IW()) + ' × ' + fmt(IH()) + ' ซม.' : 'ยังไม่ตั้งสเกล')) : 'นำเข้ารูปแผ่นหิน / ไม้ แล้ววางชิ้นงานตามขนาดจริง'; }
 function steps() { const st = stepState(); const L = ['นำเข้ารูป', 'ตั้งสเกล', 'ปรับสัดส่วน', 'ตาราง · ไกด์ · Snap', 'วางชิ้นงาน'];
   $('#slSteps', root).innerHTML = L.map((t, i) => `<button class="sl-st${st[i] ? ' ok' : ''}" data-step="${i}"><i>${st[i] ? '✓' : i + 1}</i>${t}</button>`).join(''); }
 const TOOLS = [['move', '✋', 'เลือก / ย้าย'], ['scale', '📏', 'ตั้งสเกล'], ['persp', '⬚', 'ดัด 4 มุม'], ['shape', '▭', 'รูปทรง', 1], ['free', '✏', 'วาดอิสระ'], ['cad', '⟋', 'เขียนเส้น'], ['cedit', '✂', 'แก้เส้น'], ['meas', '📐', 'วัดระยะ'], ['gv', '┆', 'ไกด์ตั้ง', 1], ['gh', '┅', 'ไกด์นอน']];
@@ -220,8 +229,12 @@ function bar() { const g = S.grid, sn = S.snap;
     <button class="sl-tg${S.guidesOn ? ' on' : ''}" data-sl="guides" title="แสดง / ซ่อนเส้นไกด์">┆ ไกด์ ${S.guides.length || ''}</button>
     <button class="sl-tg${sn.on ? ' on' : ''}" data-sl="snapmenu" data-g="sl-snap" title="ตั้งค่า Snap">🧲 Snap ${sn.on ? 'เปิด' : 'ปิด'} ▾</button>
     <button class="sl-tg${S.opDef > 0 ? ' on' : ''}" data-sl="optoggle" data-g="sl-op" title="สลับความทึบพื้นชิ้นงานทุกชิ้น 10% ↔ 0% (เส้นตัดเห็น 70% ตลอด)"><i class="sl-opi"></i> ทึบ ${S.opDef > 0 ? S.opDef + '%' : '0%'}</button>
-    <button class="sl-tg wide${S.dims ? ' on' : ''}" data-sl="dims" title="แสดงขนาดบนชิ้นงาน">↔ ขนาด</button>
+    <button class="sl-tg${S.dims || S.ldims || !S.dimH.x || !S.dimH.y ? ' on' : ''}" data-sl="dimmenu" data-g="sl-dims" title="เปิด / ปิดการแสดงขนาด">↔ ขนาด ▾</button>
     <span class="sl-zoom" data-g="sl-zoom"><button class="sl-tg" data-sl="zout" title="ซูมออก">－</button><input type="range" data-in="zoom" min="-2" max="6" step="0.05" value="${Math.log2(S.view.z / (S.fitZ || 1))}" aria-label="ซูม"><button class="sl-tg" data-sl="zin" title="ซูมเข้า">＋</button><b id="slZp">${zoomPct()}%</b><button class="sl-tg" data-sl="fit" title="พอดีจอ">⤢</button></span>
+    ${S.dimMenu ? (() => { const nh = S.shapes.filter((x) => x.nd).length + S.lines.filter((x) => x.nd).length; return `<div class="sl-menu" style="left:${Math.min(S.dimMenuX || 200, Math.max(8, W - 290))}px"><b style="padding:4px 8px;display:block">แสดงขนาด</b>
+      <label><input type="checkbox" data-dm="pcs"${S.dims ? ' checked' : ''}> ขนาดบนชิ้นงาน (กว้าง × ยาว)</label><label><input type="checkbox" data-dm="lns"${S.ldims ? ' checked' : ''}> ความยาว / รัศมีของเส้น</label>
+      <label><input type="checkbox" data-dm="x"${!S.dimH.x ? ' checked' : ''}> เส้นขนาดแผ่น ↔ กว้าง</label><label><input type="checkbox" data-dm="y"${!S.dimH.y ? ' checked' : ''}> เส้นขนาดแผ่น ↕ สูง</label>
+      <div class="sl-mut" style="padding:4px 8px;max-width:250px">ทีละชิ้น: แตะชิ้นงาน / เส้น → ปุ่ม <b>↔ ขนาด</b> ที่แถบล่าง</div>${nh ? `<div style="padding:4px 8px"><button class="sl-b" data-sl="dimall">แสดงขนาดที่ซ่อนรายชิ้น (${nh})</button></div>` : ''}</div>`; })() : ''}
     ${S.snapMenu ? `<div class="sl-menu" style="left:${Math.min(S.snapMenuX || 200, Math.max(8, W - 260))}px"><label><input type="checkbox" data-snap="on"${sn.on ? ' checked' : ''}> <b>เปิด Snap</b></label><div style="border-top:1px solid #EEE6D8;margin:4px 0"></div>
       <label><input type="checkbox" data-snap="grid"${sn.grid ? ' checked' : ''}${sn.on ? '' : ' disabled'}> ติดตาราง</label><label><input type="checkbox" data-snap="guide"${sn.guide ? ' checked' : ''}${sn.on ? '' : ' disabled'}> ติดเส้นไกด์</label>
       <label><input type="checkbox" data-snap="edge"${sn.edge ? ' checked' : ''}${sn.on ? '' : ' disabled'}> ติดขอบชิ้นงาน / ขอบแผ่น (+ ร่อง)</label><label><input type="checkbox" data-snap="obj"${sn.obj !== false ? ' checked' : ''}${sn.on ? '' : ' disabled'}> ติดจุดของเส้น (จุดปลาย · กึ่งกลาง · จุดตัด · ศูนย์กลาง · มุม)</label><div class="sl-mut" style="padding:4px 8px">กด Alt ค้างขณะลาก = ปิด Snap ชั่วคราว</div></div>` : ''}`; }
@@ -229,7 +242,7 @@ function stat() { const el = $('#slStat', root); if (!el) return; const c = S.cu
   el.innerHTML = S.img ? `<span>ตำแหน่ง <b>${c ? fmt(c[0]) + ', ' + fmt(c[1]) + ' ซม.' : '—'}</b></span><span>สเกล <b>${S.scaled ? '1 px = ' + (S.cmx * 10).toFixed(2) + (Math.abs(S.cmx - S.cmy) > 1e-6 ? ' / ' + (S.cmy * 10).toFixed(2) : '') + ' มม.' : 'ยังไม่ตั้ง'}</b></span><span>ชิ้นงาน <b>${S.shapes.length}</b>${S.sel.length ? ' · เลือก ' + S.sel.length : ''}</span>${S.lines.length ? `<span>เส้น <b>${S.lines.length}</b></span>` : ''}` : '<span>ยังไม่มีรูป</span>'; }
 function startPane() { const el = $('#slStart', root); if (!el) return; if (S.img) { el.hidden = true; return; } el.hidden = false;
   el.innerHTML = `<div class="sl-drop"><div style="font-size:42px">✂</div><h2>Slab Layout · วางแผนตัดแผ่น</h2><p>นำเข้ารูปแผ่นหิน / ไม้ / แผ่นวัสดุ → ตั้งสเกลตามขนาดจริง → วางชิ้นงาน (เช่น 45×120 ซม.) วงกลม · หลายเหลี่ยม · วาดอิสระ → จัดแพทเทิร์น · ออกรายการตัด</p>
-    <div class="sl-row" style="justify-content:center"><button class="sl-b tl" data-sl="pick" data-g="sl-open" style="height:46px;padding:0 20px;font-size:15px">🖼 นำเข้ารูปแผ่น</button><button class="sl-b" data-sl="json" style="height:46px">📂 เปิดไฟล์งาน (.json)</button>${S.lastAt ? `<button class="sl-b" data-sl="last" style="height:46px">↺ งานล่าสุด · ${esc(S.lastName || '')}</button>` : ''}</div>
+    <div class="sl-row" style="justify-content:center"><button class="sl-b tl" data-sl="pick" data-g="sl-open" style="height:46px;padding:0 20px;font-size:15px">🖼 นำเข้ารูปแผ่น</button><button class="sl-b dk" data-sl="works" data-g="sl-works" style="height:46px">📂 งานที่บันทึก</button>${S.lastAt ? `<button class="sl-b" data-sl="last" style="height:46px">↺ งานล่าสุด · ${esc(S.lastName || '')}</button>` : ''}</div>
     <div class="sl-mut">หรือลากรูปมาวาง · JPG · PNG · WebP · TIFF · PSD — รูปอยู่ในเครื่องคุณ ไม่ถูกอัปโหลด</div>
     <div class="sl-flow"><div><b>1 · นำเข้ารูป</b>รูปแผ่นหิน / dry-lay / แบบ elevation</div><div><b>2 · ตั้งสเกล</b>วาง 2 จุด (มีแว่นขยาย) แล้วใส่ระยะจริง</div><div><b>3 · ปรับสัดส่วน</b>ปรับแกนเดียว หรือดัด 4 มุมให้ตรง</div><div><b>4 · ตาราง · ไกด์ · Snap</b>เปิด-ปิดได้ เลือกให้ติดอะไร</div><div><b>5 · วางชิ้นงาน</b>รูปทรง / วาดอิสระ · ตั้งขนาด ซม. · ลากย้าย · แพทเทิร์น</div></div></div>`; }
 function panel() { const P = $('#slPan', root); if (!P) return; P.classList.toggle('off', !S.panel);
@@ -238,7 +251,9 @@ function panel() { const P = $('#slPan', root); if (!P) return; P.classList.togg
   const sum = {}; S.shapes.forEach((p) => { const k = TNAME[p.t] + ' ' + (p.t === 'circle' ? '⌀' + fmt(p.w) : fmt(Math.min(p.w, p.h)) + ' × ' + fmt(Math.max(p.w, p.h))); sum[k] = sum[k] || { n: 0, a: 0 }; sum[k].n++; sum[k].a += area(p) / 10000; });
   const tot = Object.values(sum).reduce((a, b) => a + b.a, 0); const thin = S.shapes.filter((p) => Math.min(p.w, p.h) < 10).length;
   P.innerHTML = `
-  <div class="sl-sec"><h4><i>1</i>รูปแผ่น</h4><div class="sl-mut">${esc(S.name)} · ${S.img.width} × ${S.img.height} px</div><div class="sl-row"><button class="sl-b" data-sl="pick">เปลี่ยนรูป</button><button class="sl-b" data-sl="savejson" title="บันทึกงาน (รูป + ชิ้นงาน) เป็นไฟล์ .json เปิดต่อได้">💾 บันทึกงาน</button><button class="sl-b" data-sl="json">📂 เปิดงาน</button></div></div>
+  <div class="sl-sec"><h4><i>1</i>รูปแผ่น</h4><div class="sl-mut">${esc(S.name)} · ${S.img.width} × ${S.img.height} px</div><div class="sl-mut" style="margin-top:4px">${S.work ? (S.work.cloud ? 'บันทึกในระบบ' : 'บันทึกในเครื่องนี้') + ' · ' + esc(fmtAt(S.work.at)) + (S.work.byName ? ' · ' + esc(S.work.byName) : '') + (S.dirty ? ' · <b style="color:#B45309">● มีการแก้ที่ยังไม่บันทึก</b>' : ' · ✓ ล่าสุดแล้ว') : '<b style="color:#B45309">ยังไม่ได้บันทึกงานนี้</b> — กด 💾 บันทึก เพื่อเปิดแก้ต่อภายหลัง'}</div>
+    <div class="sl-row"><button class="sl-b dk" data-sl="csave">💾 บันทึก</button><button class="sl-b" data-sl="works">📂 งานที่บันทึก</button>${S.work ? '<button class="sl-b" data-sl="csaveas">⧉ บันทึกเป็นงานใหม่</button>' : ''}</div>
+    <div class="sl-row"><button class="sl-b" data-sl="pick">เปลี่ยนรูป</button><button class="sl-b" data-sl="savejson" title="ดาวน์โหลดงาน (รูป + ชิ้นงาน) เป็นไฟล์ .json">⬇ ไฟล์งาน .json</button></div></div>
   <div class="sl-sec" data-g="sl-scale"><h4><i>2</i>สเกล · ขนาดจริง</h4>
     <div class="sl-mut">แตะจุดบน<b>ขอบแผ่นจริง</b> แล้วใส่ขนาด — ตั้งแนวนอน / แนวตั้งแยกกัน รูปจะยืด / หดแต่ละแกนให้ตรง (ไม่ล็อกสัดส่วนรูป)</div>
     <div class="sl-row"><button class="sl-b dk" data-sl="calx">↔ ความกว้าง${S.dimx ? ' ' + fmt(S.dimx.len) + ' ซม. ✓' : ''}</button><button class="sl-b dk" data-sl="caly">↕ ความสูง${S.dimy ? ' ' + fmt(S.dimy.len) + ' ซม. ✓' : ''}</button></div>
@@ -301,11 +316,11 @@ function fbar() { const el = $('#slFb', root); if (!el) return; if (!S.img) { el
   else if (S.tool === 'gv' || S.tool === 'gh') h = `<span>${S.tool === 'gv' ? '┆ แตะเพื่อวางเส้นไกด์แนวตั้ง' : '┅ แตะเพื่อวางเส้นไกด์แนวนอน'} · ลากเส้นเพื่อย้าย · ลากออกนอกแผ่น = ลบ</span><span class="sp"></span><button data-tool="move">เสร็จ</button>`;
   else { const s = one(); const L = selected(), LS = lselected(), e1 = LS[0];
     if (LS.length === 1) h = `<span class="bx" data-g="sl-linsp"><b>${LNAME[e1.t]}</b>${e1.t === 'ln' ? `<input data-le="len" class="sm" type="number" step="0.1" min="0.1" value="${fmt(lLen(e1))}" title="ความยาว (ซม.)"><span class="lb">ซม.</span><input data-le="ang" class="sm" type="number" step="1" value="${fmt(lAng(e1))}" title="มุม (องศา · 0 = ขวา · 90 = ขึ้น)"><span class="lb">°</span>` : `<span class="lb">R</span><input data-le="r" class="sm" type="number" step="0.1" min="0.1" value="${fmt(e1.r)}" title="รัศมี (ซม.)"><span class="lb">ซม. · ⌀ ${fmt(e1.r * 2)}${e1.t === 'arc' ? ' · ยาว ' + fmt(lLen(e1)) : ''}</span>`}</span>
-      <span class="bx"><button data-sl="ldup" title="ทำสำเนา">⧉</button><button data-sl="lregion" title="ทำเป็นชิ้นงาน (เส้นต่อกันเป็นวงปิด)">⬚ เป็นชิ้น</button><button class="dg" data-sl="ldel" title="ลบ">🗑</button></span>${nudgePad('sel')}`;
-    else if (LS.length > 1) h = `<span><b>เลือก ${LS.length} เส้น</b></span><span class="bx"><button data-sl="ldup">⧉ สำเนา</button><button class="dg" data-sl="ldel">🗑 ลบ</button></span>${nudgePad('sel')}`;
+      <span class="bx"><button data-sl="ldim" class="${S.ldims && !e1.nd ? 'on' : ''}" title="แสดง / ซ่อนขนาดของเส้นนี้">↔ ขนาด</button><button data-sl="ldup" title="ทำสำเนา">⧉</button><button data-sl="lregion" title="ทำเป็นชิ้นงาน (เส้นต่อกันเป็นวงปิด)">⬚ เป็นชิ้น</button><button class="dg" data-sl="ldel" title="ลบ">🗑</button></span>${nudgePad('sel')}`;
+    else if (LS.length > 1) h = `<span><b>เลือก ${LS.length} เส้น</b></span><span class="bx"><button data-sl="ldim" class="${S.ldims && !LS[0].nd ? 'on' : ''}">↔ ขนาด</button><button data-sl="ldup">⧉ สำเนา</button><button class="dg" data-sl="ldel">🗑 ลบ</button></span>${nudgePad('sel')}`;
     else if (s) h = `<span class="bx" data-g="sl-insp"><b>${esc(TNAME[s.t])} #${esc(s.n)}</b><input data-pe="w" class="sm" type="number" step="0.1" min="1" value="${fmt(s.w)}" title="กว้าง (ซม.)"${s.lock ? ' disabled' : ''}>${s.t === 'sq' || s.t === 'circle' ? '' : `<span>×</span><input data-pe="h" class="sm" type="number" step="0.1" min="1" value="${fmt(s.h)}" title="ยาว (ซม.)"${s.lock ? ' disabled' : ''}>`}<span class="lb">ซม.</span><input data-pe="rot" class="sm" type="number" step="1" value="${Math.round(s.rot || 0)}" title="มุม (องศา)"${s.lock ? ' disabled' : ''}><span class="lb">°</span></span>
-      <span class="bx"><button data-sl="rot" title="หมุน 90°"${s.lock ? ' disabled' : ''}>⟳ 90°</button><button data-sl="dup" title="ทำสำเนา">⧉</button><button data-sl="lock" class="${s.lock ? 'on' : ''}" title="ล็อก กันขยับโดยไม่ตั้งใจ">${s.lock ? '🔒' : '🔓'}</button><button data-sl="zsel" title="ซูมไปที่ชิ้นนี้">🔍</button><button class="dg" data-sl="del" title="ลบ">🗑</button></span><span class="bx" data-g="sl-opsel" title="ความทึบของชิ้นที่เลือก"><span class="lb"><i class="sl-opi"></i> พื้น</span><input type="range" min="0" max="100" step="1" data-opsel="f" value="${Math.round(fo(L[0]) * 100)}"><b class="opv" data-opv="sf">${Math.round(fo(L[0]) * 100)}%</b><button data-opq="${fo(L[0]) > 0 ? 0 : 10}" title="สลับ 10% ↔ 0%">${fo(L[0]) > 0 ? '→ 0%' : '→ 10%'}</button></span>${s.lock ? '' : nudgePad('sel')}`;
-    else if (L.length > 1) h = `<span><b>เลือก ${L.length} ชิ้น</b></span><span class="bx"><button data-sl="rot">⟳ 90°</button><button data-sl="dup">⧉ สำเนา</button><button data-sl="zsel">🔍</button><button class="dg" data-sl="del">🗑 ลบ</button></span><span class="bx" data-g="sl-opsel" title="ความทึบของชิ้นที่เลือก"><span class="lb"><i class="sl-opi"></i> พื้น</span><input type="range" min="0" max="100" step="1" data-opsel="f" value="${Math.round(fo(L[0]) * 100)}"><b class="opv" data-opv="sf">${Math.round(fo(L[0]) * 100)}%</b><button data-opq="${fo(L[0]) > 0 ? 0 : 10}" title="สลับ 10% ↔ 0%">${fo(L[0]) > 0 ? '→ 0%' : '→ 10%'}</button></span>${nudgePad('sel')}`;
+      <span class="bx"><button data-sl="rot" title="หมุน 90°"${s.lock ? ' disabled' : ''}>⟳ 90°</button><button data-sl="dup" title="ทำสำเนา">⧉</button><button data-sl="lock" class="${s.lock ? 'on' : ''}" title="ล็อก กันขยับโดยไม่ตั้งใจ">${s.lock ? '🔒' : '🔓'}</button><button data-sl="zsel" title="ซูมไปที่ชิ้นนี้">🔍</button><button data-sl="pdim" data-g="sl-pdim" class="${S.dims && !s.nd ? 'on' : ''}" title="แสดง / ซ่อนขนาดของชิ้นนี้">↔ ขนาด</button><button class="dg" data-sl="del" title="ลบ">🗑</button></span><span class="bx" data-g="sl-opsel" title="ความทึบของชิ้นที่เลือก"><span class="lb"><i class="sl-opi"></i> พื้น</span><input type="range" min="0" max="100" step="1" data-opsel="f" value="${Math.round(fo(L[0]) * 100)}"><b class="opv" data-opv="sf">${Math.round(fo(L[0]) * 100)}%</b><button data-opq="${fo(L[0]) > 0 ? 0 : 10}" title="สลับ 10% ↔ 0%">${fo(L[0]) > 0 ? '→ 0%' : '→ 10%'}</button></span>${s.lock ? '' : nudgePad('sel')}`;
+    else if (L.length > 1) h = `<span><b>เลือก ${L.length} ชิ้น</b></span><span class="bx"><button data-sl="rot">⟳ 90°</button><button data-sl="dup">⧉ สำเนา</button><button data-sl="zsel">🔍</button><button data-sl="pdim" class="${S.dims && !L[0].nd ? 'on' : ''}" title="แสดง / ซ่อนขนาดของชิ้นที่เลือก">↔ ขนาด</button><button class="dg" data-sl="del">🗑 ลบ</button></span><span class="bx" data-g="sl-opsel" title="ความทึบของชิ้นที่เลือก"><span class="lb"><i class="sl-opi"></i> พื้น</span><input type="range" min="0" max="100" step="1" data-opsel="f" value="${Math.round(fo(L[0]) * 100)}"><b class="opv" data-opv="sf">${Math.round(fo(L[0]) * 100)}%</b><button data-opq="${fo(L[0]) > 0 ? 0 : 10}" title="สลับ 10% ↔ 0%">${fo(L[0]) > 0 ? '→ 0%' : '→ 10%'}</button></span>${nudgePad('sel')}`;
     else if (!S.scaled) h = '<span>ขั้นต่อไป: <b>📏 ตั้งสเกล</b> — วาง 2 จุดที่รู้ระยะจริง</span>';
     else if (!S.shapes.length) h = '<span>ขั้นต่อไป: เลือก <b>▭ รูปทรง</b> หรือ <b>✏ วาดอิสระ</b> ที่แถบเครื่องมือ</span>'; }
   el.innerHTML = h; }
@@ -324,11 +339,11 @@ function toCanvas(bmp, max) { const k = Math.min(1, (max || 5000) / Math.max(bmp
 function freshImg() { S.dimx = S.dimy = null; S.calAxis = 'x'; S.cmx = S.cmy = 0.1; S.scaled = false; S.prevImg = null; S.hist = []; S.redo = []; S.sel = []; S.cal = []; S.persp = []; S.drawPts = []; S.meas = null; S.act = null; S.calLen = ''; S.pw = ''; S.ph = ''; }
 async function loadFile(f) {
   if ((S.shapes.length || S.lines.length) && S.img && !(await ask('เปลี่ยนรูปแผ่น?', 'ชิ้นงาน / เส้นที่วางไว้จะยังอยู่ที่ตำแหน่งเดิม (ซม.) — ถ้าเป็นแผ่นใหม่ ควรลบชิ้นงานก่อน', 'เปลี่ยนรูป'))) return;
-  await busy('กำลังเปิดรูป…', async () => { try { const bmp = await decode(f); S.img = toCanvas(bmp, 5000); S.name = f.name.replace(/\.[^.]+$/, ''); freshImg(); S.tool = 'scale';
+  await busy('กำลังเปิดรูป…', async () => { try { const bmp = await decode(f); const had = !!S.img; S.img = toCanvas(bmp, 5000); if (!had) { S.name = f.name.replace(/\.[^.]+$/, ''); S.work = null; } freshImg(); S.imgDirty = true; S.dirty = true; S.tool = 'scale';
     fit(); ui(); autosave(); toast('เปิดรูปแล้ว — ขั้นต่อไป: ตั้งสเกล วาง 2 จุดที่รู้ระยะจริง'); } catch (e) { toast(String((e && e.message) || e)); } }); }
 async function loadJson(f) { try { const d = JSON.parse(await f.text()); if (!d || !d.img) throw new Error('ไฟล์งานไม่ถูกต้อง');
-  await busy('กำลังเปิดงาน…', async () => { const im = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('รูปในไฟล์งานเสีย')); i.src = d.img; }); S.img = toCanvas(im, 6000); S.name = d.name || f.name.replace(/\.json$/i, ''); freshImg(); applyData(d.st || {}); S.tool = 'move'; fit(); ui(); autosave(); toast('เปิดงานแล้ว'); }); } catch (e) { toast(String((e && e.message) || e)); } }
-async function loadLast() { const L = await DB.get('last'); if (!L || !L.blob) { toast('ไม่พบงานล่าสุด'); return; } await busy('กำลังเปิดงานล่าสุด…', async () => { const bmp = await createImageBitmap(L.blob); S.img = toCanvas(bmp, 6000); S.name = L.name || 'slab'; freshImg(); applyData(L.st || {}); S.tool = 'move'; fit(); ui(); }); }
+  await busy('กำลังเปิดงาน…', async () => { const im = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('รูปในไฟล์งานเสีย')); i.src = d.img; }); S.img = toCanvas(im, 6000); S.name = d.name || f.name.replace(/\.json$/i, ''); freshImg(); applyData(d.st || {}); S.work = null; S.imgDirty = true; S.dirty = true; worksClose(); S.tool = 'move'; fit(); ui(); autosave(); toast('เปิดงานแล้ว'); }); } catch (e) { toast(String((e && e.message) || e)); } }
+async function loadLast() { const L = await DB.get('last'); if (!L || !L.blob) { toast('ไม่พบงานล่าสุด'); return; } await busy('กำลังเปิดงานล่าสุด…', async () => { const bmp = await createImageBitmap(L.blob); S.img = toCanvas(bmp, 6000); S.name = L.name || 'slab'; freshImg(); applyData(L.st || {}); S.work = L.work || null; S.dirty = L.dirty !== false; S.imgDirty = !!L.imgDirty || !S.work; worksClose(); S.tool = 'move'; fit(); ui(); }); }
 // ---------- สเกล ----------
 // ---- ขนาดแผ่นจากจุดบนแผ่นจริง: ↔ แนวนอน (ขอบซ้าย-ขวา) · ↕ แนวตั้ง (ขอบบน-ล่าง) — เก็บเป็นพิกเซลของรูป จึงติดอยู่ที่จุดเดิมตลอด ----
 const toImg = (p) => [p[0] / S.cmx, p[1] / S.cmy], fromImg = (p) => [p[0] * S.cmx, p[1] * S.cmy];
@@ -361,7 +376,7 @@ async function perspOk() { const W0 = parseFloat(S.pw), H0 = parseFloat(S.ph); i
       if (x < 0 || y < 0 || x >= sw - 1 || y >= sh - 1) { D[o + 3] = 0; continue; } const x0 = x | 0, y0 = y | 0, fx = x - x0, fy = y - y0, i00 = (y0 * sw + x0) * 4, i10 = i00 + 4, i01 = i00 + sw * 4, i11 = i01 + 4;
       for (let c = 0; c < 3; c++) D[o + c] = (sd[i00 + c] * (1 - fx) + sd[i10 + c] * fx) * (1 - fy) + (sd[i01 + c] * (1 - fx) + sd[i11 + c] * fx) * fy; D[o + 3] = 255; }
     og.putImageData(od, 0, 0);
-    S.prevImg = { img: S.img, st: JSON.stringify(snapData()), hist: S.hist.slice() }; push(); S.histImgAt = S.hist.length;
+    S.prevImg = { img: S.img, st: JSON.stringify(snapData()), hist: S.hist.slice() }; push(); S.histImgAt = S.hist.length; S.imgDirty = true;
     S.img = out; S.cmx = S.cmy = W0 / ow; S.scaled = true; S.dimx = S.dimy = null; S.shapes = []; S.lines = []; S.lsel = []; S.guides = []; S.sel = []; S.persp = []; S.act = null; S.tool = 'move'; fit(); ui(); autosave(); toast('ดัดรูปแล้ว — แผ่นจริง ' + fmt(W0) + ' × ' + fmt(H0) + ' ซม.'); }); }
 // ---------- ชิ้นงาน ----------
 function addShape(t, x, y, w, h, extra) { if (t === 'sq' || t === 'circle') h = w; const p = { id: uid(), n: String(S.next++), t, x: r1(x), y: r1(y), w: r1(w), h: r1(h), rot: 0, c: S.color, op: S.opDef, lo: S.lineDef, ...(t === 'poly' ? { sides: S.sides } : {}), ...(extra || {}) }; S.shapes.push(p); return p; }
@@ -396,7 +411,7 @@ function paint() { if (!ctx) return; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx
   if (S.guidesOn) { ctx.save(); ctx.setLineDash([7, 5]); ctx.lineWidth = 1.5; S.guides.forEach((g, i) => { ctx.strokeStyle = S.dragG === i ? '#FFD54A' : '#22D3EE'; ctx.beginPath(); if (g.o === 'v') { const sx = toS(g.p, 0)[0]; ctx.moveTo(sx, 0); ctx.lineTo(sx, H); } else { const sy = toS(0, g.p)[1]; ctx.moveTo(0, sy); ctx.lineTo(W, sy); } ctx.stroke(); }); ctx.restore(); }
   S.shapes.forEach((s) => { const on = S.sel.indexOf(s.id) >= 0; pathOf(ctx, s); ctx.fillStyle = hexA(s.c, fo(s)); ctx.fill(); ctx.lineWidth = on ? 3 : 2; ctx.strokeStyle = on ? '#FFD54A' : hexA(s.c, lo(s)); if (s.lock) ctx.setLineDash([8, 4]); ctx.stroke(); ctx.setLineDash([]);
     const [cx, cy] = toS(...ctr(s)), pw = s.w * z, ph = s.h * z, fs = Math.max(10, Math.min(28, Math.min(pw, ph) / 3.2));
-    if (pw > 24 && ph > 18) { label(ctx, (s.lock ? '🔒' : '') + s.n, cx, cy - (S.dims && ph > fs * 2.6 ? fs * .45 : 0), fs, true); if (S.dims && ph > fs * 2.6 && pw > 46) label(ctx, s.t === 'circle' ? '⌀' + fmt(s.w) : fmt(s.w) + '×' + fmt(s.h), cx, cy + fs * .55, Math.max(10, fs * .5)); } });
+    if (pw > 24 && ph > 18) { const sd = S.dims && !s.nd; label(ctx, (s.lock ? '🔒' : '') + s.n, cx, cy - (sd && ph > fs * 2.6 ? fs * .45 : 0), fs, true); if (sd && ph > fs * 2.6 && pw > 46) label(ctx, s.t === 'circle' ? '⌀' + fmt(s.w) : fmt(s.w) + '×' + fmt(s.h), cx, cy + fs * .55, Math.max(10, fs * .5)); } });
   paintLines(ctx);
   const s1 = one(); if (s1) {
     if (!((s1.rot || 0) % 360)) { const [ax, ay] = toS(s1.x, s1.y), pw = s1.w * z, ph = s1.h * z; ctx.save(); ctx.strokeStyle = '#FFD54A'; ctx.lineWidth = 1; const t = 14;
@@ -435,7 +450,7 @@ function dimEdges() { const [x0, y0] = toS(0, 0), x1 = x0 + IW() * S.view.z, y1 
 function userDims(g0) { const col = '#FFD54A', g = g0 || ctx;
   const tag = (txt, x, y, r) => { g.save(); g.translate(x, y); if (r) g.rotate(-Math.PI / 2); g.font = '800 13px "IBM Plex Sans Thai",system-ui,sans-serif'; const w = g.measureText(txt).width + 14; g.fillStyle = 'rgba(28,27,24,.92)'; g.strokeStyle = col; g.lineWidth = 1; g.beginPath(); g.rect(-w / 2, -11, w, 22); g.fill(); g.stroke(); g.fillStyle = col; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, 0, 0); g.restore(); };
   const arrow = (x, y, dx, dy) => { g.beginPath(); g.moveTo(x, y); g.lineTo(x + dx * 9 - dy * 4, y + dy * 9 + dx * 4); g.moveTo(x, y); g.lineTo(x + dx * 9 + dy * 4, y + dy * 9 - dx * 4); g.stroke(); };
-  ['x', 'y'].forEach((ax) => { const d = S['dim' + ax]; if (!d || (S.tool === 'scale' && S.calAxis === ax)) return; const A = toS(...fromImg(d.a)), B = toS(...fromImg(d.b)); g.save(); g.strokeStyle = col; g.lineWidth = 1.6; g.setLineDash([]);
+  ['x', 'y'].forEach((ax) => { const d = S['dim' + ax]; if (!d || S.dimH[ax] || (S.tool === 'scale' && S.calAxis === ax)) return; const A = toS(...fromImg(d.a)), B = toS(...fromImg(d.b)); g.save(); g.strokeStyle = col; g.lineWidth = 1.6; g.setLineDash([]);
     const G = dimGeo(ax, d); if (ax === 'x') { const y = G.at, l = G.lo, r = G.hi; g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(A[0], y); g.moveTo(B[0], B[1]); g.lineTo(B[0], y); g.globalAlpha = .6; g.stroke(); g.globalAlpha = 1;
       g.beginPath(); g.moveTo(l, y); g.lineTo(r, y); g.stroke(); arrow(l, y, 1, 0); arrow(r, y, -1, 0); [A, B].forEach((P) => { g.beginPath(); g.arc(P[0], P[1], 3.5, 0, 7); g.fillStyle = col; g.fill(); }); g.restore(); tag('↔ ' + fmt(d.len) + ' ซม.', G.tx, G.ty, false); }
     else { const x = G.at, t = G.lo, b = G.hi; g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(x, A[1]); g.moveTo(B[0], B[1]); g.lineTo(x, B[1]); g.globalAlpha = .6; g.stroke(); g.globalAlpha = 1;
@@ -447,16 +462,16 @@ function dimGeo(ax, d) { const A = toS(...fromImg(d.a)), B = toS(...fromImg(d.b)
   const at = (A[0] + B[0]) / 2 + (d.o || 0) * S.cmx * z, lo = Math.min(A[1], B[1]), hi = Math.max(A[1], B[1]); return { A, B, at, lo, hi, tx: at - 14, ty: lo + (hi - lo) * tp }; }
 // แตะโดนเส้นขนาด / ป้าย → { ax, tag } · ป้ายมาก่อนเสมอ · ตัวเส้นนับเฉพาะเมื่อไม่ได้ทับชิ้นงาน
 function hitDimLine(sx, sy, wx, wy) { const r = touchy() ? 14 : 7; let line = null;
-  for (const ax of ['x', 'y']) { const d = S['dim' + ax]; if (!d) continue; const G = dimGeo(ax, d), hw = 46 + (touchy() ? 8 : 0), hh = 13 + (touchy() ? 8 : 0);
+  for (const ax of ['x', 'y']) { const d = S['dim' + ax]; if (!d || S.dimH[ax]) continue; const G = dimGeo(ax, d), hw = 46 + (touchy() ? 8 : 0), hh = 13 + (touchy() ? 8 : 0);
     if (ax === 'x' ? (Math.abs(sx - G.tx) <= hw && Math.abs(sy - G.ty) <= hh) : (Math.abs(sx - G.tx) <= hh && Math.abs(sy - G.ty) <= hw)) return { ax, tag: true };
     const u = ax === 'x' ? sx : sy, v = ax === 'x' ? sy : sx; if (!line && Math.abs(v - G.at) <= r && u >= G.lo - r && u <= G.hi + r) line = { ax, tag: false }; }
   return line && !hitAny(wx, wy) ? line : null; }
 function slabDims(x0, y0, iw, ih) { const g = ctx, col = '#E2BC66', o = 16; g.save(); g.strokeStyle = col; g.lineWidth = 1.5;
   const ty = y0 - o >= 12 ? y0 - o : y0 + o, lx = x0 - o >= 12 ? x0 - o : x0 + o;
-  g.beginPath(); g.moveTo(x0, ty); g.lineTo(x0 + iw, ty); g.moveTo(x0, ty - 6); g.lineTo(x0, ty + 6); g.moveTo(x0 + iw, ty - 6); g.lineTo(x0 + iw, ty + 6);
-  g.moveTo(lx, y0); g.lineTo(lx, y0 + ih); g.moveTo(lx - 6, y0); g.lineTo(lx + 6, y0); g.moveTo(lx - 6, y0 + ih); g.lineTo(lx + 6, y0 + ih); g.stroke(); g.restore();
+  g.beginPath(); if (!S.dimH.x) { g.moveTo(x0, ty); g.lineTo(x0 + iw, ty); g.moveTo(x0, ty - 6); g.lineTo(x0, ty + 6); g.moveTo(x0 + iw, ty - 6); g.lineTo(x0 + iw, ty + 6); }
+  if (!S.dimH.y) { g.moveTo(lx, y0); g.lineTo(lx, y0 + ih); g.moveTo(lx - 6, y0); g.lineTo(lx + 6, y0); g.moveTo(lx - 6, y0 + ih); g.lineTo(lx + 6, y0 + ih); } g.stroke(); g.restore();
   const tag = (txt, x, y, r) => { g.save(); g.translate(x, y); if (r) g.rotate(-Math.PI / 2); g.font = '800 13px "IBM Plex Sans Thai",system-ui,sans-serif'; const w = g.measureText(txt).width + 14; g.fillStyle = '#1C1B18'; g.strokeStyle = col; g.lineWidth = 1; g.beginPath(); g.rect(-w / 2, -11, w, 22); g.fill(); g.stroke(); g.fillStyle = col; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, 0, 0); g.restore(); };
-  tag('แผ่น ' + fmt(IW()) + ' ซม.', Math.max(70, Math.min(W - 70, x0 + iw / 2)), ty, false); tag(fmt(IH()) + ' ซม.', lx, Math.max(60, Math.min(H - 60, y0 + ih / 2)), true); }
+  if (!S.dimH.x) tag('แผ่น ' + fmt(IW()) + ' ซม.', Math.max(70, Math.min(W - 70, x0 + iw / 2)), ty, false); if (!S.dimH.y) tag(fmt(IH()) + ' ซม.', lx, Math.max(60, Math.min(H - 60, y0 + ih / 2)), true); }
 function hexA(h, a) { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
 // แว่นขยาย 3× เหนือนิ้ว (แสดงขณะวางจุด / ลากที่จับ / ลากจุด / วัดระยะ)
 function loupe() { const L = S.loupe; if (!L) { lcv.hidden = true; return; } lcv.hidden = false; const size = 150, k = 3, r = size / 2;
@@ -578,7 +593,7 @@ function cedTap(sx, sy) { const [wx, wy] = toW(sx, sy), P = [wx, wy], e = hitLin
 function lpath(g, e) { g.beginPath(); if (e.t === 'ln') { const [ax, ay] = toS(...e.a), [bx, by] = toS(...e.b); g.moveTo(ax, ay); g.lineTo(bx, by); } else { const [cx, cy] = toS(...e.o), rr = Math.max(0.5, e.r * S.view.z); if (e.t === 'cir') g.arc(cx, cy, rr, 0, TAU); else g.arc(cx, cy, rr, e.a0, e.a0 + sweep(e)); } }
 function paintLines(g, k) { const z = S.view.z;
   S.lines.forEach((e) => { const on = !k && S.lsel.indexOf(e.id) >= 0, hv = !k && S.hoverL === e.id, src = !k && S.offSrc === e.id; lpath(g, e); g.save(); g.lineCap = 'round'; g.lineWidth = k ? Math.max(2, k * 0.25) : on || hv ? 3.5 : 2; g.strokeStyle = on || src ? '#FFD54A' : hv ? '#FF3DA6' : hexA(e.col || S.color, 0.9); if (src) g.setLineDash([8, 5]); g.stroke(); g.restore();
-    if (S.dims && !on && lLen(e) * z > 80) { const [mx, my] = toS(...lMid(e)); label(g, e.t === 'ln' ? fmt(lLen(e)) : 'R' + fmt(e.r), mx, my - (k ? 0 : 10), k ? Math.max(12, 3 * k) : 11); } });
+    if (S.ldims && !e.nd && !on && lLen(e) * z > 80) { const [mx, my] = toS(...lMid(e)); label(g, e.t === 'ln' ? fmt(lLen(e)) : 'R' + fmt(e.r), mx, my - (k ? 0 : 10), k ? Math.max(12, 3 * k) : 11); } });
   if (k) return; const L = lselected(); if (L.length !== 1) return; const e = L[0], hs = touchy() ? 9 : 5;
   lgrips(e).forEach((gp) => { const [x, y] = toS(...gp.p); g.beginPath(); g.rect(x - hs, y - hs, hs * 2, hs * 2); g.fillStyle = gp.k === 'm' || gp.k === 'o' ? '#22D3EE' : '#fff'; g.fill(); g.strokeStyle = '#1C1B18'; g.lineWidth = 1.5; g.stroke(); });
   const [mx, my] = toS(...lMid(e)); label(g, e.t === 'ln' ? fmt(lLen(e)) + ' ซม. · ' + fmt(lAng(e)) + '°' : 'R ' + fmt(e.r) + ' · ⌀ ' + fmt(e.r * 2) + ' ซม.', mx, my - 16, 13, true); }
@@ -602,7 +617,7 @@ const listOf = (k) => (k === 'cal' ? S.cal : k === 'persp' ? S.persp : k === 'dr
 function ptHit(L, sx, sy) { const r = touchy() ? 20 : 11; for (let i = L.length - 1; i >= 0; i--) { const [px, py] = toS(L[i][0], L[i][1]); if (Math.hypot(px - sx, py - sy) <= r) return i; } return -1; }
 function pDown(e) { if (!S.img) return; try { cv.setPointerCapture(e.pointerId); } catch (x) {} if (e.isPrimary) PT.clear();   // นิ้วแรกของท่าใหม่ = ล้างนิ้วค้าง (บางเครื่องไม่ส่ง pointerup)
   PT.set(e.pointerId, pos(e)); S.noSnap = e.altKey;
-  if (S.snapMenu || S.opMenu) { S.snapMenu = false; S.opMenu = false; bar(); }
+  if (S.snapMenu || S.opMenu || S.dimMenu) { S.snapMenu = false; S.opMenu = false; S.dimMenu = false; bar(); }
   if (PT.size === 2) { if (drag && drag.t === 'move' && drag.moved) { drag.start.forEach(([id, x, y]) => { const p = S.shapes.find((q) => q.id === id); if (p) { p.x = x; p.y = y; } }); S.hist.pop(); }
     if ((drag && (drag.t === 'resize' || drag.t === 'rotate')) && drag.orig) { Object.assign(drag.s, drag.orig); S.hist.pop(); }
     if (drag && ((drag.t === 'lmove' && drag.moved) || drag.t === 'lgrip')) { lRestore(drag); S.hist.pop(); } S.osHit = null;
@@ -711,6 +726,9 @@ function nudge(dx, dy, kind) { const st = S.nudge;
 // ---------- ปุ่ม ----------
 function setTool(t) { if (S.tool === t && t !== 'move') t = 'move'; S.tool = t; if (t !== 'free') S.drawPts = []; if (t !== 'scale') { S.cal = []; S.calLen = ''; } else loadAxis(S.dimx && !S.dimy ? 'y' : 'x'); if (t !== 'persp') S.persp = []; if (t !== 'meas') S.meas = null; S.act = null; if (t !== 'move' && t !== 'shape') S.sel = []; if (t !== 'move') S.lsel = []; if (t !== 'cad') { S.cpts = []; S.chain = []; S.hoverP = null; } if (t !== 'cedit') { S.offSrc = null; S.hoverL = null; } S.osHit = null; tools(); fbar(); panel(); stat(); draw(); }
 async function onClick(e) { const t = e.target;
+  const wk = t.closest('[data-wk]'); if (wk) { const k = wk.dataset.wk; if (k === 'x') worksClose(); else if (k === 'mine' || k === 'all') { S.wk.scope = k; worksRender(); } else if (k === 'new') newWork(); else if (k === 'json') $('#slJson', root).click(); else if (k === 'last') { if (S.dirty && S.img && !(await ask('เปิดงานล่าสุดในเครื่อง?', 'งานที่เปิดอยู่มีการแก้ที่ยังไม่บันทึก', 'เปิด'))) return; loadLast(); } return; }
+  const wo = t.closest('[data-wo]'); if (wo) return openWork(wo.dataset.wo); const wr = t.closest('[data-wr]'); if (wr) return renameWork(wr.dataset.wr); const wd = t.closest('[data-wd]'); if (wd) return deleteWork(wd.dataset.wd);
+  if (t.classList && t.classList.contains('sl-wk')) { worksClose(); return; }
   const tl = t.closest('[data-tool]'); if (tl && !tl.disabled) { setTool(tl.dataset.tool); if (innerWidth <= 760 && tl.closest('#slPan')) { S.panel = false; panel(); } return; }
   const stp = t.closest('[data-step]'); if (stp) { const i = +stp.dataset.step; if (i === 0) $('#slFile', root).click(); else if (i === 1) setTool('scale'); else if (i === 2) { S.panel = true; panel(); const el = $('[data-g="sl-ratio"]', root); if (el) el.scrollIntoView({ behavior: 'smooth' }); } else if (i === 3) { S.snapMenu = true; bar(); } else if (i === 4) setTool('shape'); return; }
   const shp = t.closest('[data-shp]'); if (shp) { S.shape = shp.dataset.shp; if (S.tool !== 'shape') setTool('shape'); fbar(); panel(); draw(); return; }
@@ -724,19 +742,25 @@ async function onClick(e) { const t = e.target;
   const pc = t.closest('[data-pcol]'); if (pc) { push(); selected().forEach((p) => { p.c = pc.dataset.pcol; }); draw(); autosave(); return; }
   const gx = t.closest('[data-gx]'); if (gx) { push(); S.guides.splice(+gx.dataset.gx, 1); ui(); autosave(); return; }
   const opq = t.closest('[data-opq]'); if (opq) { push(); setOp('sel', 'f', +opq.dataset.opq); fbar(); autosave(); return; }
-  if ((S.snapMenu || S.opMenu) && !t.closest('.sl-menu') && !t.closest('[data-sl="snapmenu"]') && !t.closest('[data-sl="opmenu"]')) { S.snapMenu = false; S.opMenu = false; bar(); }
+  if ((S.snapMenu || S.opMenu || S.dimMenu) && !t.closest('.sl-menu') && !t.closest('[data-sl="snapmenu"]') && !t.closest('[data-sl="opmenu"]') && !t.closest('[data-sl="dimmenu"]')) { S.snapMenu = false; S.opMenu = false; S.dimMenu = false; bar(); }
   const b = t.closest('[data-sl]'); if (!b || b.disabled) return; return act(b.dataset.sl, b); }
 async function act(a, b) {
   if (a === 'close') return close();
   if (a === 'pick') return $('#slFile', root).click();
   if (a === 'json') return $('#slJson', root).click();
   if (a === 'last') return loadLast();
+  if (a === 'works') return worksOpen();
+  if (a === 'csave') return saveWork(false); if (a === 'csaveas') return saveWork(true);
   if (a === 'undo') return undo(); if (a === 'redo') return redo();
   if (a === 'panel') { S.panel = !S.panel; panel(); return; }
   if (!S.img) return;
   if (a === 'grid') { S.grid.on = !S.grid.on; bar(); steps(); draw(); autosave(); }
   else if (a === 'guides') { S.guidesOn = !S.guidesOn; bar(); draw(); }
   else if (a === 'dims') { S.dims = !S.dims; bar(); draw(); }
+  else if (a === 'dimmenu') { S.snapMenu = false; S.opMenu = false; S.dimMenu = !S.dimMenu; S.dimMenuX = b ? b.offsetLeft : 200; bar(); }
+  else if (a === 'dimall') { push(); S.shapes.forEach((x) => { delete x.nd; }); S.lines.forEach((x) => { delete x.nd; }); bar(); fbar(); draw(); autosave(); toast('แสดงขนาดทุกชิ้นแล้ว'); }
+  else if (a === 'pdim') { const L = selected(); if (!L.length) return; push(); const v = !L[0].nd; L.forEach((x) => { if (v) x.nd = true; else delete x.nd; }); if (!v && !S.dims) { S.dims = true; bar(); } fbar(); draw(); autosave(); toast(v ? 'ซ่อนขนาดชิ้นนี้แล้ว' : 'แสดงขนาดชิ้นนี้แล้ว'); }
+  else if (a === 'ldim') { const L = lselected(); if (!L.length) return; push(); const v = !L[0].nd; L.forEach((x) => { if (v) x.nd = true; else delete x.nd; }); if (!v && !S.ldims) { S.ldims = true; bar(); } fbar(); draw(); autosave(); toast(v ? 'ซ่อนขนาดเส้นนี้แล้ว' : 'แสดงขนาดเส้นนี้แล้ว'); }
   else if (a === 'optoggle') { push(); const v = S.opDef > 0 ? 0 : 10; setOp('all', 'f', v); bar(); fbar(); autosave(); toast('พื้นชิ้นงานทุกชิ้น ' + v + '% · เส้นตัด 70%'); }
   else if (a === 'snapmenu') { S.opMenu = false; S.snapMenu = !S.snapMenu; S.snapMenuX = b ? b.offsetLeft : 200; bar(); }
   else if (a === 'fit') fit(); else if (a === 'zin') zoomBy(1.4); else if (a === 'zout') zoomBy(1 / 1.4);
@@ -772,6 +796,7 @@ async function act(a, b) {
   else if (a === 'clear') { if (await ask('ลบชิ้นงานทั้งหมด?', 'ย้อนกลับได้ด้วย ↶ ย้อน', 'ลบทั้งหมด')) { push(); S.shapes = []; S.sel = []; S.next = 1; ui(); autosave(); } }
   else if (a === 'png') exportPng(); else if (a === 'csv') exportCsv(); else if (a === 'savejson') saveJson(); }
 function onInput(e) { const t = e.target;
+  if (t.hasAttribute && t.hasAttribute('data-wkq')) { S.wk.q = t.value; const pos = t.selectionStart; worksRender(); const i = $('[data-wkq]', root); if (i) { i.focus(); try { i.setSelectionRange(pos, pos); } catch (x) {} } return; }
   if (t.dataset.opall || t.dataset.opsel) { if (!S.opPushed) { push(); S.opPushed = true; } const v = Math.max(0, Math.min(100, Math.round(parseFloat(t.value) || 0)));
     if (t.dataset.opall) setOp('all', t.dataset.opall, v); else setOp('sel', t.dataset.opsel, v);
     const lab = $('[data-opv="' + (t.dataset.opall ? t.dataset.opall : 's' + t.dataset.opsel) + '"]', root); if (lab) lab.textContent = v + '%'; const tb = $('[data-sl="opmenu"]', root); if (tb && t.dataset.opall === 'f') tb.innerHTML = '<i class="sl-opi"></i> ทึบ ' + v + '%'; return; }
@@ -782,6 +807,7 @@ function onInput(e) { const t = e.target;
 function onChange(e) { const t = e.target, v = parseFloat(t.value);
   if (t.dataset.opall || t.dataset.opsel) { S.opPushed = false; autosave(); return; }
   if (t.dataset.snap) { S.snap[t.dataset.snap] = t.checked; bar(); return; }
+  if (t.dataset.dm) { push(); const k = t.dataset.dm; if (k === 'pcs') S.dims = t.checked; else if (k === 'lns') S.ldims = t.checked; else S.dimH = { ...S.dimH, [k]: !t.checked }; bar(); draw(); autosave(); return; }
   if (t.dataset.in === 'nstep') { S.nudge = v; return; }
   if (t.dataset.in === 'gstep') { if (t.value === 'x') { askNum('ระยะตาราง', 'ระยะ (ซม.)', S.grid.step).then((r) => { if (r > 0) S.grid.step = r; bar(); draw(); }); return; } S.grid.step = v; S.grid.on = true; bar(); steps(); draw(); autosave(); return; }
   if (t.dataset.in === 'lock') { S.lockRatio = t.checked; return; }
@@ -798,6 +824,8 @@ function onChange(e) { const t = e.target, v = parseFloat(t.value);
 function onKey(e) { if (!S.open) return; const tg = e.target, typing = /INPUT|TEXTAREA|SELECT/.test(tg.tagName);
   if (e.key === ' ' && !typing) { S.space = e.type === 'keydown'; e.preventDefault(); return; } if (e.type !== 'keydown') return;
   if (window.WCGuide && WCGuide.active && WCGuide.active()) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (S.img) saveWork(false); return; }
+  if (e.key === 'Escape' && S.wk && !$('.sl-dlg:not(.sl-wk)', root)) { worksClose(); e.preventDefault(); return; }
   if (e.key === 'Enter' && typing && /^(clen|cang|crad)$/.test(tg.dataset.in || '')) { e.preventDefault(); S.cin[tg.dataset.in.slice(1)] = tg.value; cadPlace(); return; }
   if (e.key === 'Enter' && typing && tg.dataset.in === 'calLen') { e.preventDefault(); S.calLen = tg.value; calOk(); return; }
   if (e.key === 'Enter' && typing && (tg.dataset.in === 'pw' || tg.dataset.in === 'ph')) { e.preventDefault(); perspOk(); return; }
@@ -822,7 +850,7 @@ async function exportPng() { if (!S.img) return; await busy('กำลังส�
   const c = document.createElement('canvas'); c.width = w; c.height = h + foot; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(S.img, 0, 0, w, h);
   const sv = S.view; S.view = { z: k, ox: 0, oy: 0 };
   try { S.shapes.forEach((p) => { pathOf(g, p); g.fillStyle = hexA(p.c, fo(p)); g.fill(); g.lineWidth = Math.max(2, k * .25); g.strokeStyle = hexA(p.c, lo(p)); g.stroke(); const [cx, cy] = toS(...ctr(p)), fs = Math.max(12, Math.min(p.w, p.h) * k / 3.4);
-    label(g, p.n, cx, cy - fs * .4, fs, true); label(g, p.t === 'circle' ? '⌀' + fmt(p.w) : fmt(p.w) + '×' + fmt(p.h), cx, cy + fs * .5, fs * .45); }); paintLines(g, k); const tl = S.tool; S.tool = 'move'; userDims(g); S.tool = tl; } finally { S.view = sv; }
+    const sd = S.dims && !p.nd; label(g, p.n, cx, cy - (sd ? fs * .4 : 0), fs, true); if (sd) label(g, p.t === 'circle' ? '⌀' + fmt(p.w) : fmt(p.w) + '×' + fmt(p.h), cx, cy + fs * .5, fs * .45); }); paintLines(g, k); const tl = S.tool; S.tool = 'move'; userDims(g); S.tool = tl; } finally { S.view = sv; }
   const ar = S.shapes.reduce((a, p) => a + area(p) / 10000, 0); g.fillStyle = '#1C1B18'; g.fillRect(0, h, w, foot); g.fillStyle = '#F6F1E8'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.font = `600 ${Math.round(foot * .36)}px "IBM Plex Sans Thai",sans-serif`;
   g.fillText(`Slab Layout · ${S.name} · แผ่น ${S.dimx || S.dimy ? '↔ ' + (S.dimx ? fmt(S.dimx.len) : '—') + ' × ↕ ' + (S.dimy ? fmt(S.dimy.len) : '—') : fmt(IW()) + ' × ' + fmt(IH())} ซม. · ${S.shapes.length} ชิ้น · ${ar.toFixed(2)} ตร.ม. ·${S.lines.length ? ' เส้น ' + S.lines.length + ' · ยาว ' + (S.lines.reduce((a, e) => a + lLen(e), 0) / 100).toFixed(2) + ' ม. ·' : ''} ร่อง ${S.joint} มม. · ${today()} · Wellcon Interior`, Math.round(foot * .4), h + foot / 2);
   const blob = await new Promise((ok) => c.toBlob(ok, 'image/png')); dl(blob, fname('png')); toast('บันทึกภาพแผนตัดแล้ว'); }); }
@@ -833,13 +861,83 @@ function exportCsv() { if (!S.shapes.length && !S.lines.length) { toast('ยั�
   if (S.lines.length) { L.push([]); L.push(['เส้น CAD', 'ชนิด', 'ยาว (ซม.)', 'รัศมี (ซม.)']); S.lines.forEach((e, i) => L.push([i + 1, LNAME[e.t], fmt(lLen(e)), e.t === 'ln' ? '' : fmt(e.r)])); L.push(['ความยาวเส้นรวม (ม.)', '', (S.lines.reduce((a, e) => a + lLen(e), 0) / 100).toFixed(2)]); }
   const csv = '﻿' + L.map((r) => r.map((x) => '"' + String(x == null ? '' : x).replace(/"/g, '""') + '"').join(',')).join('\r\n'); dl(new Blob([csv], { type: 'text/csv;charset=utf-8' }), fname('csv')); toast('บันทึกรายการตัดแล้ว (เปิดด้วย Excel ได้)'); }
 async function saveJson() { if (!S.img) return; await busy('กำลังบันทึกงาน…', async () => { const img = S.img.toDataURL('image/jpeg', 0.9); dl(new Blob([JSON.stringify({ app: 'wellcon-slab', v: VER, name: S.name, at: new Date().toISOString(), img, st: snapData() })], { type: 'application/json' }), fname('json')); toast('บันทึกงานแล้ว — เปิดต่อได้ที่ 📂 เปิดงาน'); }); }
+// ---------- งานที่บันทึกในระบบ (ผู้บริหารสั่ง 21/11/2026 "save the work within the software and come back to edit it later") ----------
+// ระบบ: รูปแผ่น → storage general-photo/slab[-stg]/<id>-<รุ่น>.jpg (ลิงก์สาธารณะตามที่ผู้บริหารตัดสิน) · ข้อมูลงาน → app_state 'slab:<id>' { v: { name, by, byName, at, img, thumb, w, h, n, ln, st } }
+// ไม่ได้เข้าสู่ระบบ / ต่อระบบไม่ได้ → เก็บในเครื่องนี้ (IndexedDB 'w:<id>')
+const BUCKET = 'general-photo';
+const cloud = () => { try { return window.PE_cloud ? window.PE_cloud() : null; } catch (e) { return null; } };
+const fmtAt = (iso) => { const d = new Date(iso); if (isNaN(d)) return ''; const p = (n) => String(n).padStart(2, '0'); return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()); };
+const blobOf = (c, q) => new Promise((ok) => c.toBlob(ok, 'image/jpeg', q || 0.9));
+function loadImg(url) { return new Promise((ok, no) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = () => no(new Error('โหลดรูปแผ่นไม่ได้')); i.src = url; }); }
+function planCanvas(maxW) { const k = Math.min(maxW / IW(), maxW / IH()), w = Math.max(1, Math.round(IW() * k)), h = Math.max(1, Math.round(IH() * k)), c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.drawImage(S.img, 0, 0, w, h);
+  const sv = S.view; S.view = { z: k, ox: 0, oy: 0 }; try { S.shapes.forEach((p) => { pathOf(g, p); g.fillStyle = hexA(p.c, Math.max(0.25, fo(p))); g.fill(); g.lineWidth = 1.5; g.strokeStyle = hexA(p.c, 0.9); g.stroke(); }); S.lines.forEach((e) => { lpath(g, e); g.lineWidth = 1.5; g.strokeStyle = hexA(e.col || S.color, 0.9); g.stroke(); }); } finally { S.view = sv; } return c; }
+function markDirty() { const b = root && $('[data-sl="csave"]', root); if (b) b.classList.toggle('dirty', !!(S.dirty && S.img)); }
+function askText(title, label, v) { return new Promise((ok) => { const d = document.createElement('div'); d.className = 'sl-dlg';
+  d.innerHTML = `<div class="bx"><h3>${title}</h3><div class="sl-row"><label>${label}</label><input class="sl-in" type="text" maxlength="80" style="flex:1;min-width:0" value="${esc(v)}"></div><div class="sl-row" style="justify-content:flex-end"><button class="sl-b" data-no>ยกเลิก</button><button class="sl-b dk" data-ok>บันทึก</button></div></div>`;
+  root.appendChild(d); const i = d.querySelector('input'); setTimeout(() => { i.focus(); i.select(); }, 30); const done = (x) => { d.remove(); ok(x); };
+  d.addEventListener('click', (e) => { if (e.target.closest('[data-no]') || e.target === d) done(null); if (e.target.closest('[data-ok]')) done(i.value); }); i.addEventListener('keydown', (e) => { if (e.key === 'Enter') done(i.value); if (e.key === 'Escape') done(null); }); }); }
+async function saveWork(asNew) { if (!S.img) { toast('ยังไม่มีรูปแผ่น'); return; } const C = cloud(), me = C ? C.me : { email: '', name: '' }, W0 = S.work;
+  let id = W0 && W0.id; const own = !!W0 && (!W0.by || W0.by === me.email);
+  if (W0 && !own && !asNew) { if (!(await ask('บันทึกเป็นสำเนาของคุณ?', 'งานนี้เป็นของ <b>' + esc(W0.byName || W0.by) + '</b> — บันทึกเป็นงานใหม่ของคุณ (งานเดิมไม่เปลี่ยน)', 'บันทึกเป็นสำเนา'))) return; asNew = true; }
+  if (W0 && W0.cloud !== !!C) asNew = true;   // งานในเครื่อง ↔ ในระบบ = บันทึกเป็นงานใหม่ที่ปลายทาง
+  if (!id || asNew) { const nm = await askText(W0 ? 'บันทึกเป็นงานใหม่' : 'บันทึกงาน', 'ชื่องาน', W0 ? S.name + ' (สำเนา)' : S.name); if (nm == null) return; S.name = nm.trim() || S.name || 'slab'; id = 'w' + uid().slice(1); }
+  const fresh = !W0 || asNew, by = fresh ? me.email : (W0.by || me.email), byName = fresh ? (me.name || me.email) : (W0.byName || me.name || '');
+  if (C && !fresh) { try { const r = await C.sb.from('app_state').select('updated_by,at:data->v->>at').eq('id', 'slab:' + id).maybeSingle(); const x = r && r.data;
+      if (x && x.at && W0.at && x.at !== W0.at && !(await ask('มีคนบันทึกงานนี้หลังจากคุณเปิด', 'บันทึกล่าสุด ' + esc(fmtAt(x.at)) + (x.updated_by ? ' โดย ' + esc(x.updated_by) : '') + ' — บันทึกทับด้วยงานของคุณ?', 'บันทึกทับ'))) return; } catch (e) {} }
+  await busy(C ? 'กำลังบันทึกงานในระบบ…' : 'กำลังบันทึกงานในเครื่อง…', async () => { try {
+    const at = new Date().toISOString(), st = JSON.parse(JSON.stringify(snapData())), thumb = planCanvas(360).toDataURL('image/jpeg', 0.72);
+    const meta = { name: S.name, by, byName, at, w: S.img.width, h: S.img.height, n: S.shapes.length, ln: S.lines.length, thumb };
+    if (C) { let img = !fresh && W0.img; const oldImg = img;
+      if (!img || S.imgDirty || fresh) { img = (C.stg ? 'slab-stg/' : 'slab/') + id + '-' + Date.now().toString(36) + '.jpg'; const up = await C.sb.storage.from(BUCKET).upload(img, await blobOf(S.img, 0.9), { upsert: true, contentType: 'image/jpeg' }); if (up.error) throw up.error; }
+      const r = await C.sb.from('app_state').upsert({ id: 'slab:' + id, data: { v: { ...meta, img, st } }, updated_by: me.email }); if (r.error) throw r.error;
+      if (oldImg && oldImg !== img && !fresh) { try { await C.sb.storage.from(BUCKET).remove([oldImg]); } catch (e) {} }   // รูปรุ่นเก่าของงานเดียวกัน
+      S.work = { id, by, byName, at, img, cloud: true }; }
+    else { await DB.put('w:' + id, { ...meta, id, blob: await blobOf(S.img, 0.9), st }); S.work = { id, by, byName, at, cloud: false }; }
+    S.imgDirty = false; S.dirty = false; ui(); autosave(); toast((C ? 'บันทึกในระบบแล้ว' : 'บันทึกในเครื่องนี้แล้ว (ยังไม่ได้เข้าสู่ระบบ)') + ' — เปิดต่อได้ที่ 📂 งานที่บันทึก');
+  } catch (e) { toast('บันทึกไม่สำเร็จ: ' + ((e && e.message) || e) + ' — ลองใหม่ หรือกด ⬇ ไฟล์งาน .json'); } }); }
+async function listWorks() { const C = cloud();
+  if (C) { const r = await C.sb.from('app_state').select('id,updated_at,name:data->v->>name,by:data->v->>by,byName:data->v->>byName,at:data->v->>at,thumb:data->v->>thumb,n:data->v->>n,ln:data->v->>ln').like('id', 'slab:%').order('updated_at', { ascending: false }).limit(300);
+    if (r.error) throw r.error; return (r.data || []).map((x) => ({ ...x, id: String(x.id).slice(5), cloud: true })); }
+  return (await DB.list('w:')).map((x) => ({ id: x.id, name: x.name, by: x.by, byName: x.byName, at: x.at, thumb: x.thumb, n: x.n, ln: x.ln, cloud: false })).sort((a, b) => String(b.at).localeCompare(String(a.at))); }
+async function worksOpen() { const C = cloud(); S.wk = { list: null, scope: S.wk ? S.wk.scope : 'mine', q: '', err: '' }; worksRender();
+  try { S.wk.list = await listWorks(); } catch (e) { S.wk.list = []; S.wk.err = 'โหลดรายการไม่ได้: ' + ((e && e.message) || e); }
+  if (!C) S.wk.scope = 'mine'; worksRender(); }
+function worksClose() { const d = root && $('.sl-wk', root); if (d) d.remove(); S.wk = null; }
+function worksRender() { if (!S.wk) return; const C = cloud(), me = C ? C.me.email : '', W = S.wk; let d = $('.sl-wk', root); if (!d) { d = document.createElement('div'); d.className = 'sl-dlg sl-wk'; root.appendChild(d); }
+  const q = W.q.trim().toLowerCase(), L = (W.list || []).filter((x) => (W.scope === 'all' || !C || x.by === me) && (!q || String(x.name || '').toLowerCase().includes(q) || String(x.byName || '').toLowerCase().includes(q)));
+  const card = (x) => { const own = !C || x.by === me, cur = S.work && S.work.id === x.id; return `<div class="wk-c${cur ? ' cur' : ''}">${x.thumb ? `<img src="${esc(x.thumb)}" alt="">` : '<div class="ph">✂</div>'}<div class="tx"><b>${esc(x.name || 'ไม่มีชื่อ')}</b><span>${C ? esc(x.byName || x.by || '') + ' · ' : ''}${esc(fmtAt(x.at))}</span><span>${+x.n || 0} ชิ้น · ${+x.ln || 0} เส้น${cur ? ' · <i>เปิดอยู่</i>' : ''}</span></div>
+    <div class="ac"><button class="sl-b dk" data-wo="${esc(x.id)}">เปิด</button>${own ? `<button class="sl-b" data-wr="${esc(x.id)}" title="เปลี่ยนชื่อ">✎</button><button class="sl-b dg" data-wd="${esc(x.id)}" title="ลบงาน">🗑</button>` : ''}</div></div>`; };
+  d.innerHTML = `<div class="bx"><div class="wk-hd"><h3>📂 งานที่บันทึก</h3><span class="sl-mut">${C ? 'เก็บในระบบ — เปิดต่อได้ทุกเครื่อง' : 'เก็บในเครื่องนี้ (ยังไม่ได้เข้าสู่ระบบ Wellcon PM)'}</span><button class="sl-b" data-wk="x" aria-label="ปิด">✕</button></div>
+    <div class="sl-row">${C ? `<span class="wk-tab"><button class="${W.scope === 'mine' ? 'on' : ''}" data-wk="mine">ของฉัน</button><button class="${W.scope === 'all' ? 'on' : ''}" data-wk="all">ทั้งทีม</button></span>` : ''}<input class="sl-in" data-wkq placeholder="ค้นหาชื่องาน / ชื่อคน" value="${esc(W.q)}" style="flex:1;min-width:120px"></div>
+    <div class="wk-list">${W.list == null ? '<div class="sl-mut">กำลังโหลด…</div>' : W.err ? `<div class="sl-warn">${esc(W.err)}</div>` : L.length ? L.map(card).join('') : `<div class="sl-mut" style="padding:18px 4px">${W.list.length ? 'ไม่พบงานที่ค้นหา' : 'ยังไม่มีงานที่บันทึก — วางแผนตัดแล้วกด 💾 บันทึก ที่หัวหน้า'}</div>`}</div>
+    <div class="sl-row" style="margin-top:10px"><button class="sl-b tl" data-wk="new">＋ เริ่มงานใหม่</button><button class="sl-b" data-wk="json">📂 เปิดไฟล์ .json</button>${S.lastAt ? `<button class="sl-b" data-wk="last">↺ งานล่าสุดในเครื่อง</button>` : ''}</div></div>`; }
+async function openWork(id) { const W = S.wk && (S.wk.list || []).find((x) => x.id === id); if (!W) return;
+  if (S.dirty && S.img && !(S.work && S.work.id === id) && !(await ask('เปิดงานอื่น?', 'งานที่เปิดอยู่มีการแก้ที่ยังไม่บันทึก — ถ้าเปิดงานอื่น การแก้นั้นจะหาย', 'เปิดงาน'))) return;
+  await busy('กำลังเปิดงาน…', async () => { try { let v, img; const C = cloud();
+    if (W.cloud) { const r = await C.sb.from('app_state').select('data').eq('id', 'slab:' + id).maybeSingle(); if (r.error) throw r.error; v = r.data && r.data.data && r.data.data.v; if (!v || !v.img) throw new Error('ไม่พบงานนี้ (อาจถูกลบแล้ว)'); img = await loadImg(C.sb.storage.from(BUCKET).getPublicUrl(v.img).data.publicUrl); }
+    else { v = await DB.get('w:' + id); if (!v || !v.blob) throw new Error('ไม่พบงานนี้'); img = await createImageBitmap(v.blob); }
+    S.img = toCanvas(img, 6000); S.name = v.name || 'slab'; freshImg(); applyData(v.st || {}); fixPx(v.w, v.h); S.work = { id, by: v.by, byName: v.byName, at: v.at, img: v.img, cloud: !!W.cloud };
+    S.imgDirty = false; S.dirty = false; S.tool = 'move'; S.sel = []; S.lsel = []; worksClose(); fit(); ui(); autosave(); toast('เปิดงานแล้ว — ' + S.name);
+  } catch (e) { toast('เปิดงานไม่ได้: ' + ((e && e.message) || e)); } }); }
+// รูปที่โหลดกลับมาขนาดพิกเซลไม่เท่าตอนบันทึก → ปรับสเกล / จุดขนาด (เก็บเป็นพิกเซล) ให้ขนาดจริง (ซม.) เท่าเดิม
+function fixPx(w0, h0) { if (!(w0 > 0) || !(h0 > 0) || (S.img.width === w0 && S.img.height === h0)) return; const kx = w0 / S.img.width, ky = h0 / S.img.height; S.cmx *= kx; S.cmy *= ky; ['dimx', 'dimy'].forEach((k) => { const d = S[k]; if (d) { d.a = [d.a[0] / kx, d.a[1] / ky]; d.b = [d.b[0] / kx, d.b[1] / ky]; } }); }
+async function renameWork(id) { const W = (S.wk.list || []).find((x) => x.id === id); if (!W) return; const nm = await askText('เปลี่ยนชื่องาน', 'ชื่องาน', W.name || ''); if (nm == null || !nm.trim()) return; const C = cloud();
+  try { if (W.cloud) { const r = await C.sb.from('app_state').select('data').eq('id', 'slab:' + id).maybeSingle(); const v = r.data && r.data.data && r.data.data.v; if (!v) throw new Error('ไม่พบงานนี้'); v.name = nm.trim(); const u = await C.sb.from('app_state').upsert({ id: 'slab:' + id, data: { v }, updated_by: C.me.email }); if (u.error) throw u.error; if (S.work && S.work.id === id) S.work.at = v.at; }
+    else { const v = await DB.get('w:' + id); v.name = nm.trim(); await DB.put('w:' + id, v); }
+    W.name = nm.trim(); if (S.work && S.work.id === id) { S.name = W.name; sub(); } worksRender(); toast('เปลี่ยนชื่อแล้ว'); } catch (e) { toast('เปลี่ยนชื่อไม่ได้: ' + ((e && e.message) || e)); } }
+async function deleteWork(id) { const W = (S.wk.list || []).find((x) => x.id === id); if (!W) return; if (!(await ask('ลบงาน “' + esc(W.name || '') + '”?', 'ลบทั้งรูปแผ่นและแผนตัดของงานนี้ — <b>กู้คืนไม่ได้</b> (ถ้าต้องการเก็บ เปิดงานแล้วกด ⬇ ไฟล์งาน .json ก่อน)', 'ลบงาน'))) return; const C = cloud();
+  try { if (W.cloud) { const r = await C.sb.from('app_state').select('data').eq('id', 'slab:' + id).maybeSingle(); const v = r.data && r.data.data && r.data.data.v; const d = await C.sb.from('app_state').delete().eq('id', 'slab:' + id); if (d.error) throw d.error; if (v && v.img) { try { await C.sb.storage.from(BUCKET).remove([v.img]); } catch (e) {} } }
+    else await DB.del('w:' + id);
+    S.wk.list = S.wk.list.filter((x) => x.id !== id); if (S.work && S.work.id === id) { S.work = null; S.dirty = true; ui(); } worksRender(); toast('ลบงานแล้ว'); } catch (e) { toast('ลบไม่ได้: ' + ((e && e.message) || e)); } }
+async function newWork() { if (S.dirty && S.img && !(await ask('เริ่มงานใหม่?', 'งานที่เปิดอยู่มีการแก้ที่ยังไม่บันทึก — ถ้าเริ่มงานใหม่ การแก้นั้นจะหาย', 'เริ่มงานใหม่'))) return;
+  S.img = null; S.name = ''; freshImg(); S.shapes = []; S.lines = []; S.guides = []; S.lsel = []; S.next = 1; S.work = null; S.dirty = false; S.tool = 'move'; worksClose(); ui(); }
 // ---------- เปิด / ปิด ----------
 let prevKey = '';
-async function open() { if (!root) { build(); document.addEventListener('keydown', onKey, true); document.addEventListener('keyup', onKey, true); } root.hidden = false; S.open = true; if (innerWidth <= 760) S.panel = false;   // มือถือ: แผงตั้งค่าปิดไว้ก่อน (กด ⚙ เปิด) ให้เห็นรูปเต็ม
+async function open() { if (!root) { build(); document.addEventListener('keydown', onKey, true); document.addEventListener('keyup', onKey, true); window.addEventListener('beforeunload', (e) => { if (S.img && S.dirty) { e.preventDefault(); e.returnValue = ''; } }); } root.hidden = false; S.open = true; if (innerWidth <= 760) S.panel = false;   // มือถือ: แผงตั้งค่าปิดไว้ก่อน (กด ⚙ เปิด) ให้เห็นรูปเต็ม
   prevKey = document.documentElement.getAttribute('data-demo-key') || ''; document.documentElement.setAttribute('data-demo-key', 'tab:slab');
   resize(); ui(); if (!S.img) { const L = await DB.get('last'); if (L && L.blob) { S.lastAt = L.at; S.lastName = L.name; startPane(); } } }
 function close() { if (!root) return; root.hidden = true; S.open = false; document.documentElement.setAttribute('data-demo-key', prevKey && prevKey !== 'tab:slab' ? prevKey : 'tab:photo'); }
-window.WCSlab = { VER, open, close, isOpen: () => S.open, _S: S, _api: { bbox, area, hitAny, toS, toW, one, lLen, regionFrom, fingers: () => PT.size, dragT: () => (drag ? drag.t : '') } };
+window.WCSlab = { VER, open, close, isOpen: () => S.open, _S: S, _api: { saveWork, worksOpen, bbox, area, hitAny, toS, toW, one, lLen, regionFrom, fingers: () => PT.size, dragT: () => (drag ? drag.t : '') } };
 // ?slab=1 → เปิดโหมดนี้เลย (จาก Learning Center / ลิงก์) — เฉพาะเมื่อเข้าสู่ระบบ / มีสิทธิ์ Photo Editor แล้ว
 try { if (new URLSearchParams(location.search).get('slab')) { let n = 0; const go = () => { const m = document.getElementById('scrMain'); if (m && !m.hidden) open(); else if (n++ < 60) setTimeout(go, 250); }; setTimeout(go, 300); } } catch (e) {}
 })();
