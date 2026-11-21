@@ -350,6 +350,7 @@ const isImg = (f) => /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|bmp|heic|
 const extOf = (f) => ((String(f.name || '').match(/\.([^.]+)$/) || [])[1] || '').toLowerCase();
 const loadImage = (src) => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('เปิดรูปไม่ได้')); i.src = src; });
 // ---------- ถอดรหัสไฟล์รูปทุกชนิด → canvas / ImageBitmap (PSD · TIFF ถอดเอง · ที่เหลือใช้เบราว์เซอร์) ----------
+window.PE_decode = (f) => decodeAny(f);   // v1.5.0 ใช้ร่วมกับ Slab Layout (slab.js) — เปิด PSD / TIFF ได้เหมือนกัน
 async function decodeAny(file) {
   const e = extOf(file);
   if (e === 'psd' || e === 'psb' || /photoshop/i.test(file.type)) return psdToCanvas(await file.arrayBuffer(), file.name);

@@ -9,7 +9,7 @@
    ===================================================================== */
 (function () {
   'use strict';
-  const VER = '1.1.1';   // 1.1.1: ชี้ค้างที่รายการ = 💡 ทำไมสำคัญ · 1.1.0: ชื่อ Learning Center · เปิดจากการ์ด (ผู้ดูแลเปิด-ปิดได้) · ไม่มีแถบใน My Space / Training แล้ว
+  const VER = '1.1.2';   // 1.1.2: Slab Layout · 1.1.1: ชี้ค้างที่รายการ = 💡 ทำไมสำคัญ · 1.1.0: ชื่อ Learning Center · เปิดจากการ์ด (ผู้ดูแลเปิด-ปิดได้) · ไม่มีแถบใน My Space / Training แล้ว
   if (window.WCHub && window.WCHub.VER) return;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const BR = () => { try { return window.__whBridge ? window.__whBridge() : null; } catch (e) { return null; } };
@@ -38,7 +38,7 @@
   // ---------- พาไปหน้า แล้วเริ่มสอน ----------
   const PD = { 'tab:procm': 'proc' };
   const NAVR = { 'tab:cal': 'calendar', 'tab:memo': 'memo', 'tab:subcon': 'subcon' };
-  const APPS = { 'tab:quo': 'quotation.html', 'tab:qm': 'quick-measure.html', 'tab:apr': 'auto-pr.html', 'tab:pbook': 'pricebook.html', 'tab:pdf': 'pdf.html', 'tab:photo': 'photo.html', 'tab:lay': 'layboard/index.html' };
+  const APPS = { 'tab:quo': 'quotation.html', 'tab:qm': 'quick-measure.html', 'tab:apr': 'auto-pr.html', 'tab:pbook': 'pricebook.html', 'tab:pdf': 'pdf.html', 'tab:photo': 'photo.html', 'tab:lay': 'layboard/index.html', 'tab:slab': 'photo.html?slab=1' };
   function toast(t) { const d = document.createElement('div'); d.textContent = t; d.className = 'wh-toast'; document.body.appendChild(d); setTimeout(() => d.remove(), 3200); }
   function go(k) {
     k = ALIAS[k] || k; const b = BR(); const pid = (b && b.pid()) || ''; close();
@@ -48,7 +48,7 @@
         if (Date.now() - t0 > 9000) { clearInterval(iv); if (okK) WCGuide.start(k); else toast('เปิดหน้านี้ไม่ได้ — ตำแหน่งของคุณอาจไม่มีสิทธิ์ใช้หน้านี้'); } }, 250); };
     if (k === 'note') { if (b && b.openNote) b.openNote(); return startWhenReady(); }
     if (k === 'tab:setup') { if (b && b.openSetup) b.openSetup(pid); return startWhenReady(); }
-    if (APPS[k]) { location.href = '/' + APPS[k] + '?' + (pid ? 'pid=' + encodeURIComponent(pid) + '&' : '') + (b && b.staging() ? 'env=staging&' : '') + 'wcdemo=' + encodeURIComponent(k); return; }
+    if (APPS[k]) { location.href = '/' + APPS[k] + (APPS[k].indexOf('?') >= 0 ? '&' : '?') + (pid ? 'pid=' + encodeURIComponent(pid) + '&' : '') + (b && b.staging() ? 'env=staging&' : '') + 'wcdemo=' + encodeURIComponent(k); return; }
     if (k === 'tab:qc' || k === 'tab:claim') { const base = ((b && b.staging() && window.__wdcBase) || 'https://wellcon-defect-check.vercel.app/').replace(/\/?$/, '/');
       window.open(base + (k === 'tab:claim' ? 'claim' : '') + '?pid=' + encodeURIComponent(pid) + '&wcdemo=tab:qc', '_blank'); return; }
     if (!b) { if (hasS(k)) WCDemo.open(k, { slides: true }); return; }
