@@ -18,7 +18,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const VER = '2.3.0';   // 2.3.0: ตั้งขนาดแผ่นจากจุดบนแผ่นจริง แนวนอน / แนวตั้ง แยกกัน (สเกลแยกแกน) · เส้นขนาดติดอยู่ที่จุดตลอด · 2.2.0: 2.2.0: หมุนอิสระทุกองศา · เส้นบอกขนาดแผ่น · ปุ่มทึบ 10% ↔ 0% · เส้นตัด 70% คงที่ · 2.1.0: 2.1.0: ความทึบ 0–100% (พื้นชิ้น / เส้นตัด) รายชิ้น · ชิ้นที่เลือก · ทุกชิ้น
+const VER = '2.3.1';   // 2.3.1: เส้นประตามขอบผ่านจุดขนาด (เห็นกรอบแผ่นที่ตั้ง) · ลากจุดขนาดได้ในโหมดเลือก → คำนวณสเกลใหม่ · เส้นเล็งยาวขณะวางจุด · 2.3.0: 2.3.0: ตั้งขนาดแผ่นจากจุดบนแผ่นจริง แนวนอน / แนวตั้ง แยกกัน (สเกลแยกแกน) · เส้นขนาดติดอยู่ที่จุดตลอด · 2.2.0: 2.2.0: หมุนอิสระทุกองศา · เส้นบอกขนาดแผ่น · ปุ่มทึบ 10% ↔ 0% · เส้นตัด 70% คงที่ · 2.1.0: 2.1.0: ความทึบ 0–100% (พื้นชิ้น / เส้นตัด) รายชิ้น · ชิ้นที่เลือก · ทุกชิ้น
 if (window.WCSlab) return;
 const $ = (s, r) => (r || document).querySelector(s);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -278,7 +278,7 @@ function fbar() { const el = $('#slFb', root); if (!el) return; if (!S.img) { el
   const ap = S.act ? `<span class="lb">ขยับจุด</span>${nudgePad('pt')}` : '';
   if (S.tool === 'scale') { const n = S.cal.length, ax = S.calAxis === 'y' ? 'y' : 'x', DX = S.dimx, DY = S.dimy;
     const tabs = `<span class="bx" data-g="sl-axis"><button data-cax="x" class="${ax === 'x' ? 'on' : ''}">↔ แนวนอน${DX ? ' ' + fmt(DX.len) + ' ✓' : ''}</button><button data-cax="y" class="${ax === 'y' ? 'on' : ''}">↕ แนวตั้ง${DY ? ' ' + fmt(DY.len) + ' ✓' : ''}</button></span>`;
-    if (n < 2) h = tabs + `<span>${ax === 'x' ? 'แตะขอบ <b>ซ้าย</b> และ <b>ขวา</b> ของแผ่น' : 'แตะขอบ <b>บน</b> และ <b>ล่าง</b> ของแผ่น'} · จุดที่ ${n + 1}/2 (กดค้าง = แว่นขยาย)</span><span class="sp"></span>${ap}<button data-sl="tcancel">เสร็จ</button>`;
+    if (n < 2) h = tabs + `<span>${ax === 'x' ? 'แตะขอบ <b>ซ้าย</b> และ <b>ขวา</b> ของแผ่น' : 'แตะขอบ <b>บน</b> และ <b>ล่าง</b> ของแผ่น'} · จุดที่ ${n + 1}/2 (กดค้าง = แว่นขยาย · ให้เส้นชมพูทับขอบแผ่นพอดี)</span><span class="sp"></span>${ap}<button data-sl="tcancel">เสร็จ</button>`;
     else h = tabs + `<span class="bx"><span class="lb">${ax === 'x' ? 'กว้างจริง' : 'สูงจริง'}</span><input data-in="calLen" type="number" step="0.1" min="0" value="${esc(S.calLen)}" placeholder="ซม."><span class="lb">ซม.</span></span><span class="lb">ลากจุดเพื่อแก้</span><span class="sp"></span>${ap}<button data-sl="calReset">ล้างจุด</button><button class="go" data-sl="calOk">✓ ใช้${ax === 'x' ? 'แนวนอน' : 'แนวตั้ง'}</button>`; }
   else if (S.tool === 'persp') { const n = S.persp.length, L = ['ซ้ายบน', 'ขวาบน', 'ขวาล่าง', 'ซ้ายล่าง'];
     if (n < 4) h = `<span>⬚ ดัด 4 มุม: วางมุม <b>${L[n]}</b> ของแผ่น (${n + 1}/4) — กดค้างเพื่อเล็งด้วยแว่นขยาย</span><span class="sp"></span>${ap}<button data-sl="tcancel">ยกเลิก</button>`;
@@ -381,6 +381,7 @@ function paint() { if (!ctx) return; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx
     for (let gx = gx0; gx <= gx1 + 1e-6; gx += st) { const sx = Math.round(x0 + gx * z) + .5; ctx.strokeStyle = (Math.round(gx) % 100 === 0) ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.2)'; ctx.beginPath(); ctx.moveTo(sx, y0); ctx.lineTo(sx, y0 + ih); ctx.stroke(); }
     for (let gy = gy0; gy <= gy1 + 1e-6; gy += st) { const sy = Math.round(y0 + gy * z) + .5; ctx.strokeStyle = (Math.round(gy) % 100 === 0) ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.2)'; ctx.beginPath(); ctx.moveTo(x0, sy); ctx.lineTo(x0 + iw, sy); ctx.stroke(); }
     ctx.restore(); }
+  dimEdges();
   if (S.guidesOn) { ctx.save(); ctx.setLineDash([7, 5]); ctx.lineWidth = 1.5; S.guides.forEach((g, i) => { ctx.strokeStyle = S.dragG === i ? '#FFD54A' : '#22D3EE'; ctx.beginPath(); if (g.o === 'v') { const sx = toS(g.p, 0)[0]; ctx.moveTo(sx, 0); ctx.lineTo(sx, H); } else { const sy = toS(0, g.p)[1]; ctx.moveTo(0, sy); ctx.lineTo(W, sy); } ctx.stroke(); }); ctx.restore(); }
   S.shapes.forEach((s) => { const on = S.sel.indexOf(s.id) >= 0; pathOf(ctx, s); ctx.fillStyle = hexA(s.c, fo(s)); ctx.fill(); ctx.lineWidth = on ? 3 : 2; ctx.strokeStyle = on ? '#FFD54A' : hexA(s.c, lo(s)); if (s.lock) ctx.setLineDash([8, 4]); ctx.stroke(); ctx.setLineDash([]);
     const [cx, cy] = toS(...ctr(s)), pw = s.w * z, ph = s.h * z, fs = Math.max(10, Math.min(28, Math.min(pw, ph) / 3.2));
@@ -410,6 +411,13 @@ function paint() { if (!ctx) return; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx
 function previewXY([x, y]) { const w = S.defW, h = S.shape === 'sq' || S.shape === 'circle' ? S.defW : S.defH; const sx = snapAxis([x, x + w], 'x'), sy = snapAxis([y, y + h], 'y'); return [x + sx.d, y + sy.d]; }
 const fo = (s) => Math.max(0, Math.min(100, s.op == null ? S.opDef : s.op)) / 100, lo = () => 0.7;   // ความทึบพื้นชิ้น / เส้นตัด
 // เส้นบอกขนาดแผ่น (หลังตั้งสเกล) — บนขอบบน + ขอบซ้ายของรูป · ถ้าชิดขอบจอให้วาดด้านใน
+// เส้นประตามขอบผ่านจุดขนาด: ↔ = เส้นตั้ง 2 เส้น · ↕ = เส้นนอน 2 เส้น → รวมกันเป็นกรอบแผ่นตามที่ตั้ง (เห็นทันทีถ้าจุดไม่ตรงขอบแผ่น)
+function dimEdges() { const [x0, y0] = toS(0, 0), x1 = x0 + IW() * S.view.z, y1 = y0 + IH() * S.view.z, g = ctx; g.save(); g.strokeStyle = 'rgba(255,213,74,.85)'; g.lineWidth = 1.5; g.setLineDash([10, 6]);
+  const line = (ax, a, b, c) => { g.beginPath(); if (ax === 'v') { g.moveTo(a, b); g.lineTo(a, c); } else { g.moveTo(b, a); g.lineTo(c, a); } g.stroke(); };
+  ['x', 'y'].forEach((ax) => { const d = S['dim' + ax]; if (!d || (S.tool === 'scale' && S.calAxis === ax)) return; [d.a, d.b].forEach((P) => { const [sx, sy] = toS(...fromImg(P)); if (ax === 'x') line('v', sx, y0, y1); else line('h', sy, x0, x1); }); });
+  if (S.tool === 'scale') { const ax = S.calAxis === 'y' ? 'h' : 'v'; const L = S.cal.slice(); if (drag && drag.t === 'newPt' && drag.key === 'cal') L.push(drag.w); g.strokeStyle = 'rgba(255,61,166,.9)'; g.setLineDash([4, 4]);
+    L.forEach((P) => { const [sx, sy] = toS(P[0], P[1]); if (ax === 'v') line('v', sx, y0, y1); else line('h', sy, x0, x1); }); }
+  g.restore(); }
 // เส้นขนาดที่ผู้ใช้ตั้งจากจุดบนแผ่น — แสดงตลอด (ยกเว้นแกนที่กำลังแก้ในเครื่องมือตั้งสเกล)
 function userDims(g0) { const col = '#FFD54A', g = g0 || ctx;
   const tag = (txt, x, y, r) => { g.save(); g.translate(x, y); if (r) g.rotate(-Math.PI / 2); g.font = '800 13px "IBM Plex Sans Thai",system-ui,sans-serif'; const w = g.measureText(txt).width + 14; g.fillStyle = 'rgba(28,27,24,.92)'; g.strokeStyle = col; g.lineWidth = 1; g.beginPath(); g.rect(-w / 2, -11, w, 22); g.fill(); g.stroke(); g.fillStyle = col; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, 0, 0); g.restore(); };
@@ -455,6 +463,7 @@ function pDown(e) { if (!S.img) return; try { cv.setPointerCapture(e.pointerId);
       drag = { ...base, t: 'editPt', key, i, off: [L[i][0] - wx, L[i][1] - wy] }; S.act = { L: key, i }; S.loupe = { sx, sy }; draw(); fbar(); return; } }
   if (S.tool === 'meas' && S.meas) { const i = ptHit([S.meas.a, S.meas.b], sx, sy); if (i >= 0) { const p = i ? S.meas.b : S.meas.a; drag = { ...base, t: 'editPt', key: 'meas', i, off: [p[0] - wx, p[1] - wy] }; S.act = { L: 'meas', i }; S.loupe = { sx, sy }; draw(); fbar(); return; } }
   if (S.tool === 'move' || S.tool === 'shape') { const hh = hitHandle(sx, sy); if (hh) { push(); const s = hh.s; drag = { ...base, t: hh.hd.k === 'rot' ? 'rotate' : 'resize', s, hd: hh.hd, orig: JSON.parse(JSON.stringify(s)) }; S.dragging = true; S.loupe = hh.hd.k === 'rot' ? null : { sx, sy }; draw(); return; } }
+  if (S.tool === 'move') { const r = touchy() ? 20 : 10; for (const ax of ['x', 'y']) { const d = S['dim' + ax]; if (!d) continue; for (const k of ['a', 'b']) { const [px, py] = toS(...fromImg(d[k])); if (Math.hypot(px - sx, py - sy) <= r) { push(); drag = { ...base, t: 'dimPt', ax, k, off: [fromImg(d[k])[0] - wx, fromImg(d[k])[1] - wy], cm: [S.cmx, S.cmy] }; S.loupe = { sx, sy }; draw(); return; } } } }
   const tool = S.tool;
   if (tool === 'scale' || tool === 'persp' || (tool === 'free' && S.freeMode === 'pts')) { const key = tool === 'scale' ? 'cal' : tool === 'persp' ? 'persp' : 'draw', L = listOf(key), max = tool === 'scale' ? 2 : tool === 'persp' ? 4 : 999;
     if (L.length >= max) { drag = { ...base, t: 'pan', ox: S.view.ox, oy: S.view.oy, tap: true }; return; } drag = { ...base, t: 'newPt', key, w: [wx, wy] }; S.loupe = { sx, sy }; draw(); return; }
@@ -475,6 +484,7 @@ function pMove(e) { if (!S.img) return; const P0 = pos(e); if (PT.has(e.pointerI
     S.view.z = nz; S.view.ox = c[0] - (drag.c[0] - drag.ox) * (nz / drag.z); S.view.oy = c[1] - (drag.c[1] - drag.oy) * (nz / drag.z); draw(); zoomUi(); return; }
   if (drag.t === 'pan') { if (drag.tap && !far) return; drag.tap = false; S.view.ox = drag.ox + sx - drag.sx; S.view.oy = drag.oy + sy - drag.sy; draw(); return; }
   if (drag.t === 'newPt') { drag.w = [wx, wy]; S.loupe = { sx, sy }; draw(); return; }
+  if (drag.t === 'dimPt') { if (!drag.go) { if (!far) return; drag.go = true; } const d = S['dim' + drag.ax]; d[drag.k] = [(wx + drag.off[0]) / drag.cm[0], (wy + drag.off[1]) / drag.cm[1]]; S.loupe = { sx, sy }; draw(); return; }
   if (drag.t === 'editPt') { const np = [wx + drag.off[0], wy + drag.off[1]]; if (drag.key === 'meas') { if (S.meas) S.meas[drag.i ? 'b' : 'a'] = np; } else { const L = listOf(drag.key); if (L) L[drag.i] = np; } S.loupe = { sx, sy }; draw(); fbar(); return; }
   if (drag.t === 'meas') { if (S.meas) S.meas.b = snapPt(wx, wy); S.dragging = true; S.loupe = { sx, sy }; draw(); fbar(); return; }
   if (drag.t === 'create') { if (!far && !drag.live) return; const [bx, by] = snapPt(wx, wy); let x = Math.min(drag.a[0], bx), y = Math.min(drag.a[1], by), w = Math.abs(bx - drag.a[0]), h = Math.abs(by - drag.a[1]);
@@ -507,6 +517,7 @@ function pUp(e) { PT.delete(e.pointerId); const d = drag; if (!d) return; if (d.
     fbar(); draw(); if (!d.touch && ((S.tool === 'scale' && S.cal.length === 2) || (S.tool === 'persp' && S.persp.length === 4))) { const i = $(S.tool === 'scale' ? '[data-in="calLen"]' : '[data-in="pw"]', root); if (i && !i.value) i.focus(); } return; }
   if (d.t === 'closePt') { if (still) ptClose(); return; }
   if (d.t === 'editPt') { fbar(); draw(); return; }
+  if (d.t === 'dimPt') { if (!d.go) { S.hist.pop(); draw(); return; } applyDims(); ui(); autosave(); toast('ปรับจุดขนาดแล้ว — แผ่น ↔ ' + (S.dimx ? fmt(S.dimx.len) : '—') + ' × ↕ ' + (S.dimy ? fmt(S.dimy.len) : '—') + ' ซม. (คำนวณสเกลใหม่)'); return; }
   if (d.t === 'meas') { S.snapHit = null; if (S.meas && Math.hypot(S.meas.b[0] - S.meas.a[0], S.meas.b[1] - S.meas.a[1]) * S.view.z < 4) S.meas = null; fbar(); draw(); return; }
   if (d.t === 'newGuide') { if (!still) { draw(); return; } push(); const [x, y] = snapPt(wx, wy); S.guides.push({ o: S.tool === 'gv' ? 'v' : 'h', p: r1(S.tool === 'gv' ? x : y) }); S.guidesOn = true; S.snapHit = null; ui(); autosave(); return; }
   if (d.t === 'guide') { S.snapHit = null; const g = S.guides[d.i]; if (g && ((g.o === 'v' && (g.p < -50 || g.p > IW() + 50)) || (g.o === 'h' && (g.p < -50 || g.p > IH() + 50)))) { S.guides.splice(d.i, 1); toast('ลบเส้นไกด์แล้ว (ลากออกนอกแผ่น)'); } ui(); autosave(); return; }
