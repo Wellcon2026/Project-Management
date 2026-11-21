@@ -15,7 +15,7 @@
 (function () {
   'use strict';
   if (window.WCNote) return;
-  const VER = '1.4.0';   // 1.4.0: วางหน้าบันทึกชุดเดียวกันในหน้าอื่นได้ (inline · [data-wn-host]) — พื้นที่ทำงานของฉัน / หน้า Home ใช้หน้าตาเดียวกับหน้านี้ · 1.3.0: ใส่เวลาในบันทึกได้ (time 'HH:MM') — แสดงบนป้ายวันที่ · เรียงตามเวลาในวันเดียวกัน · ขึ้นในปฏิทิน · 1.2.0: เรียงตามวันที่จะถึงก่อน (กำลังจะถึง → เลยกำหนด → ไม่มีกำหนดวัน → เสร็จแล้ว) · 1.1.0: แยกแท็บ 🔒 ส่วนตัว / 👥 สาธารณะ (โครงการ) ชัดเจน + ตัวกรอง “เฉพาะของฉัน” · 1.0.1: ค้นหาแล้วไฮไลต์คำที่พบ (สีเหลือง) + บอกจำนวนที่พบ
+  const VER = '1.5.0';   // 1.5.0: แท็บแท็กถึงฉัน = หน้ากระดิ่งเดิมครบ (📥 ถึงฉัน / 📤 ฉันแท็กไป · ✓ รับทราบทั้งหมด · 🏷 แท็กคน) · วางในภาพรวมโครงการ (เฉพาะโครงการนั้น) · 1.4.0: 1.4.0: วางหน้าบันทึกชุดเดียวกันในหน้าอื่นได้ (inline · [data-wn-host]) — พื้นที่ทำงานของฉัน / หน้า Home ใช้หน้าตาเดียวกับหน้านี้ · 1.3.0: ใส่เวลาในบันทึกได้ (time 'HH:MM') — แสดงบนป้ายวันที่ · เรียงตามเวลาในวันเดียวกัน · ขึ้นในปฏิทิน · 1.2.0: เรียงตามวันที่จะถึงก่อน (กำลังจะถึง → เลยกำหนด → ไม่มีกำหนดวัน → เสร็จแล้ว) · 1.1.0: แยกแท็บ 🔒 ส่วนตัว / 👥 สาธารณะ (โครงการ) ชัดเจน + ตัวกรอง “เฉพาะของฉัน” · 1.0.1: ค้นหาแล้วไฮไลต์คำที่พบ (สีเหลือง) + บอกจำนวนที่พบ
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const norm = (s) => String(s || '').trim().toLowerCase();
   const pad = (n) => String(n).padStart(2, '0');
@@ -160,6 +160,14 @@
       <div class="wn-m">จาก <b style="color:#22231C">${hl(x.from_name || x.from_email || '—')}</b></div>${x.note ? '<div class="wn-t" style="background:#F3EEE3;border-radius:10px;padding:7px 10px;font-size:14px">' + hl(x.note) + '</div>' : ''}
       <div class="wn-a">${x.url ? `<button class="wn-b p" data-tgo="${esc(x.id)}">เปิดเรื่อง</button>` : ''}<button class="wn-b" data-tdone="${esc(x.id)}">✓ ${ap ? 'จัดการแล้ว' : 'รับทราบ'}</button></div></div>`;
   }
+  function sentCard(x) {
+    const st = x.done_at ? '<span class="wn-tg ok">✓ เสร็จแล้ว</span>' : x.seen_at ? '<span class="wn-tg">👁 เห็นแล้ว</span>' : '<span class="wn-tg soon">ยังไม่เห็น</span>';
+    return `<div class="wn-it"><div class="wn-m"><span class="wn-tg">${x.kind === 'approve' ? '✍️ ขออนุมัติ' : '🏷 แท็ก'}</span>${x.project ? '<span>📁 ' + esc(pname(x.project)) + '</span>' : ''}<span style="margin-left:auto">${esc(when(x.created_at))}</span></div>
+      <div class="wn-t" style="font-weight:600">${hl(x.title || '(ไม่มีชื่อเรื่อง)')}</div>
+      <div class="wn-m">ถึง <b style="color:#22231C">${hl(x.to_name || x.to_email || '—')}</b> ${st}</div>${x.note ? '<div class="wn-t" style="background:#F3EEE3;border-radius:10px;padding:7px 10px;font-size:14px">' + hl(x.note) + '</div>' : ''}
+      ${x.url ? `<div class="wn-a"><button class="wn-b" data-tgo="${esc(x.id)}">เปิดเรื่อง</button></div>` : ''}</div>`;
+  }
+  const SEEN = {};   // แท็กที่แสดงแล้ว → บอกระบบว่าเห็นแล้ว (เหมือนปิดหน้ากระดิ่งเดิม)
   function remCard(r) {
     return `<div class="wn-it"><label class="wn-ck"><input type="checkbox" data-rem="${esc(r.pid)}|${esc(r.id)}"><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
       <span class="wn-t">${hl(r.text || '')}</span><span class="wn-m"><span class="wn-tg">📋 งานคงค้างโครงการ</span><span>📁 ${esc(pname(r.pid))}</span>${r.due ? dueChip(r.due, false) : ''}${r.by ? '<span>มอบหมายโดย ' + esc(r.by) + '</span>' : ''}</span></span></label></div>`;
@@ -194,10 +202,18 @@
       chips = `<div class="wn-chips"><button class="wn-chip${S.who !== 'me' ? ' on' : ''}" data-who="">👥 ทุกคน (${d.projN.length})</button><button class="wn-chip${S.who === 'me' ? ' on' : ''}" data-who="me">✍️ เฉพาะของฉัน (${nMe})</button></div>` + projChips(base);
       body = '<div class="wn-hint" style="padding:2px 2px 0">👥 บันทึกสาธารณะ — ทีมโครงการเห็นทุกคน</div>' + listDone(L, '<div class="wn-em">ยังไม่มีบันทึกสาธารณะ<br>(บันทึกที่เลือก “👥 ทีมโครงการเห็น” ของโครงการที่คุณอยู่ในทีม จะขึ้นที่นี่)</div>');
     } else if (S.tab === 'tag') {
-      const tg = d.tags.filter(x => match(x.title + ' ' + (x.note || '') + ' ' + (x.from_name || ''))), nn = d.toMeN.filter(n => match(n.text)).sort(newest);
-      body = (tg.length ? '<div class="wn-sec">มีคนแท็กคุณ (' + tg.length + ')</div>' + tg.map(tagCard).join('') : '')
-        + (nn.length ? '<div class="wn-sec">โน้ตที่แชร์ / มอบหมายให้คุณ (' + nn.length + ')</div>' + nn.map(n => noteCard(n, d)).join('') : '')
-        || '<div class="wn-em">ไม่มีเรื่องค้าง — ยังไม่มีใครแท็กคุณ</div>';
+      const sub = S.tagSub === 'sent' ? 'sent' : 'me', T0 = window.WCTag && WCTag._S ? WCTag._S : {};
+      chips = `<div class="wn-chips"><button class="wn-chip${sub === 'me' ? ' on' : ''}" data-tsub="me">📥 ถึงฉัน (${d.tags.length + d.toMeN.filter(n => !n.done).length})</button><button class="wn-chip${sub === 'sent' ? ' on' : ''}" data-tsub="sent">📤 ฉันแท็กไป</button></div>`;
+      if (sub === 'sent') {
+        const L = (Array.isArray(T0.sent) ? T0.sent : []).filter(x => (!S.pid || x.project === S.pid) && match(x.title + ' ' + (x.note || '') + ' ' + (x.to_name || '')));
+        body = S.sentBusy ? '<div class="wn-em">กำลังโหลด…</div>' : S.sentErr && !L.length ? '<div class="wn-em">โหลดรายการไม่สำเร็จ — ตรวจอินเทอร์เน็ต แล้วกด “📤 ฉันแท็กไป” อีกครั้ง</div>' : L.length ? '<div class="wn-sec">เรื่องที่คุณแท็กคนอื่น · 30 วันล่าสุด (' + L.length + ')</div>' + L.map(sentCard).join('') : '<div class="wn-em">ยังไม่ได้แท็กใครใน 30 วันที่ผ่านมา</div>';
+      } else {
+        const tg = d.tags.filter(x => match(x.title + ' ' + (x.note || '') + ' ' + (x.from_name || ''))), nn = d.toMeN.filter(n => match(n.text)).sort(newest);
+        body = (tg.length ? '<div class="wn-sec">มีคนแท็กคุณ (' + tg.length + ')</div>' + tg.map(tagCard).join('') : '')
+          + (nn.length ? '<div class="wn-sec">โน้ตที่แชร์ / มอบหมายให้คุณ (' + nn.length + ')</div>' + nn.map(n => noteCard(n, d)).join('') : '')
+          || '<div class="wn-em">ไม่มีเรื่องค้าง — ยังไม่มีใครแท็กคุณ</div>';
+        const un = d.tags.filter(x => !x.seen_at && !SEEN[x.id]).map(x => x.id); if (un.length && window.WCTag && WCTag.markSeen) { un.forEach(id => { SEEN[id] = 1; }); setTimeout(() => { try { WCTag.markSeen(un); } catch (e) {} }, 1500); }
+      }
     } else {
       const L = d.todo.filter(x => match(x.text));
       body = L.length ? '<div class="wn-hint" style="padding:2px 2px 0">ติ๊กช่องเมื่อทำเสร็จ · วันที่ใกล้ถึงขึ้นก่อน</div>' + groups(L, x => x._rem ? remCard(x) : todoNote(x, d))
@@ -205,7 +221,7 @@
     }
     bx.innerHTML = `<div class="wn-hd"><span class="ic">📝</span><b>Notes<small>บันทึก · งานของฉัน${S.pid ? ' · ' + esc(pname(S.pid)) : ' · ' + esc(d.me.name || '')} · ส่วนตัว / โครงการ · แท็ก · งานค้าง</small></b>${S.inline ? '<button class="wn-x" data-full title="เปิดเต็มจอ">⤢ เต็มจอ</button>' : '<button class="wn-x" data-x aria-label="ปิด">✕</button>'}</div>
       <div class="wn-tabs">${T.map(t => `<button class="wn-tab${S.tab === t[0] ? ' on' : ''}" data-tab="${t[0]}">${t[1]}${t[2] ? ' <i' + (t[3] ? ' class="u"' : '') + '>' + t[2] + '</i>' : ''}</button>`).join('')}</div>
-      <div class="wn-bar"><input class="wn-in" type="search" data-q placeholder="ค้นหาในบันทึก…" value="${esc(S.q)}" autocomplete="off">${S.tab === 'tag' && window.WCTag ? '<button class="wn-b" data-tagall>🔔 แท็กทั้งหมด</button>' : ''}</div>
+      <div class="wn-bar"><input class="wn-in" type="search" data-q placeholder="ค้นหาในบันทึก…" value="${esc(S.q)}" autocomplete="off">${S.tab === 'tag' && window.WCTag && WCTag._S && WCTag._S.onTag ? '<button class="wn-b" data-there>🏷 แท็กคน</button>' : ''}${S.tab === 'tag' && S.tagSub !== 'sent' && d.tags.length && window.WCTag && WCTag.markDone ? '<button class="wn-b" data-tackall>✓ รับทราบทั้งหมด</button>' : ''}</div>
       ${chips}<div class="wn-bd">${q ? '<div class="wn-cnt">🔎 คำว่า “<b>' + esc(S.q.trim()) + '</b>” พบ ' + (body.split('<mark class="wn-hl">').length - 1) + ' จุด ใน ' + (body.split('class="wn-it').length - 1) + ' รายการ</div>' : ''}${body}</div>
       <div class="wn-ft">${S.inline ? '' : '<button class="wn-b big" data-x>ปิด</button>'}<button class="wn-b g big" data-new>＋ บันทึกใหม่</button></div>`;
     S.sig = sig();
@@ -223,7 +239,9 @@
     const pj = t.closest('[data-pj]'); if (pj) { S.proj = pj.dataset.pj; render(); return; }
     const wh = t.closest('[data-who]'); if (wh) { S.who = wh.dataset.who; S.proj = ''; render(); return; }
     if (t.closest('[data-new]')) { editor(null); return; }
-    if (t.closest('[data-tagall]')) { if (!C.inline) close(); WCTag.open(); return; }
+    const ts = t.closest('[data-tsub]'); if (ts) { C.tagSub = ts.dataset.tsub; if (C.tagSub === 'sent' && window.WCTag && WCTag.loadSent) { C.sentBusy = true; C.sentErr = false; render(); try { await Promise.race([WCTag.loadSent(), new Promise((_, no) => setTimeout(() => no(new Error('timeout')), 8000))]); } catch (x) { C.sentErr = true; } C.sentBusy = false; run(C, render); } else render(); return; }
+    if (t.closest('[data-there]')) { if (!C.inline) close(); if (window.WCTag && WCTag.here) WCTag.here(); return; }
+    if (t.closest('[data-tackall]')) { const ids = (WCTag._S.open || []).filter(x => !C.pid || x.project === C.pid).map(x => x.id); if (!ids.length || !confirm('รับทราบทั้งหมด ' + ids.length + ' เรื่อง?')) return; await WCTag.markDone(ids); toast('รับทราบแล้ว ' + ids.length + ' เรื่อง'); run(C, render); return; }
     const ed = t.closest('[data-edit]'); if (ed) { const f = findNote(ed.dataset.edit); if (f.n) editor({ ...f.n, _pid: f.k.slice(5), _k: f.k }); return; }
     const dn = t.closest('[data-done]'); if (dn) { const f = findNote(dn.dataset.done); if (f.n) { B.update(f.k, f.id, { done: true, doneAt: new Date().toISOString(), doneBy: B.me().name || '' }); toast('ปิดงานแล้ว ✓'); } later(); return; }
     const ud = t.closest('[data-undone]'); if (ud) { const f = findNote(ud.dataset.undone); if (f.n) B.update(f.k, f.id, { done: false, doneAt: '', doneBy: '' }); later(); return; }
@@ -232,7 +250,7 @@
     const pl = t.closest('[data-plan]'); if (pl) { close(); B.openPlan(pl.dataset.plan); return; }
     const tn = t.closest('[data-tagn]'); if (tn) { const f = findNote(tn.dataset.tagn); if (f.n) tagNote(f.k, f.n); return; }
     const rm = t.closest('[data-rem]'); if (rm) { const [pid, id] = rm.dataset.rem.split('|'); B.remToggle(pid, id); toast('ปิดงานคงค้างแล้ว ✓'); later(); return; }
-    const tg = t.closest('[data-tgo]'); if (tg && window.WCTag) { const x = (WCTag._S.open || []).find(y => y.id === tg.dataset.tgo); if (x) { close(); if (WCTag.go) WCTag.go(x); else if (x.url) location.href = x.url; } return; }
+    const tg = t.closest('[data-tgo]'); if (tg && window.WCTag) { const x = (WCTag._S.open || []).concat(WCTag._S.sent || []).find(y => y.id === tg.dataset.tgo); if (x) { close(); if (WCTag.go) WCTag.go(x); else if (x.url) location.href = x.url; } return; }
     const td = t.closest('[data-tdone]'); if (td && window.WCTag && WCTag.markDone) { await WCTag.markDone([td.dataset.tdone]); toast('รับทราบแล้ว'); run(C, render); return; }
   }
 
@@ -302,7 +320,7 @@
   // ---------- เปิด / ปิด ----------
   function open(bridge, o) { return run(OV, () => open0(bridge, o)); }
   function open0(bridge, o) {
-    css(); o = o || {}; if (!bridge) return; S.B = bridge; S.pid = o.pid || ''; if (o.tab) S.tab = o.tab; S.focus = o.focus || ''; S.q = ''; S.proj = ''; S.who = '';
+    css(); o = o || {}; if (!bridge) return; S.B = bridge; S.pid = o.pid || ''; if (o.tab) S.tab = o.tab; S.tagSub = 'me'; S.focus = o.focus || ''; S.q = ''; S.proj = ''; S.who = '';
     if (S.focus) { const n = allNotes().find(x => x.id === S.focus); if (n) { const em = norm(bridge.me().email); S.tab = (n.vis || 'public') === 'public' && norm(n.asg) !== em ? 'proj' : norm(n.email) === em ? 'mine' : 'tag'; } else toast('ไม่พบบันทึกนี้ — อาจถูกลบ หรือคุณไม่มีสิทธิ์เห็น', 3500); }
     if (!S.ov) { S.ov = document.createElement('div'); S.ov.className = 'wn-ov'; S.ov.setAttribute('translate', 'no'); S.ov.innerHTML = '<div class="wn-bx" role="dialog" aria-modal="true" aria-label="บันทึก · งานของฉัน"></div>';
       S.ov.addEventListener('click', (e) => run(OV, () => onClick(e)));
@@ -325,10 +343,12 @@
     host.addEventListener('input', (e) => run(c, () => onInput(e)));
     INL.push(c); run(c, render); return c; }
   function scan() { const br = window.__wnBridge; if (typeof br !== 'function') return;
-    document.querySelectorAll('[data-wn-host]').forEach(h => { const c = INL.find(x => x.host === h); if (c && h.querySelector('.wn-inl')) return; if (c) INL.splice(INL.indexOf(c), 1);
+    document.querySelectorAll('[data-wn-host]').forEach(h => { const c = INL.find(x => x.host === h);
+      if (c && h.querySelector('.wn-inl')) { const p = h.getAttribute('data-wn-pid') || ''; if (p !== c.pid) { c.pid = p; c.proj = ''; c.q = ''; c.focus = ''; run(c, render); } return; }   // หน้าเดิม เปลี่ยนโครงการ
+      if (c) INL.splice(INL.indexOf(c), 1);
       try { mount(h, br(), { pid: h.getAttribute('data-wn-pid') || '', tab: h.getAttribute('data-wn-tab') || '' }); } catch (e) {} }); }
   let scanQ = 0; const scanSoon = () => { if (scanQ) return; scanQ = requestAnimationFrame(() => { scanQ = 0; scan(); }); };
-  if (typeof MutationObserver !== 'undefined') { const start = () => { try { new MutationObserver(scanSoon).observe(document.body, { childList: true, subtree: true }); scanSoon(); } catch (e) {} };
+  if (typeof MutationObserver !== 'undefined') { const start = () => { try { new MutationObserver(scanSoon).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-wn-pid'] }); scanSoon(); } catch (e) {} };
     if (document.body) start(); else document.addEventListener('DOMContentLoaded', start); }
   setInterval(() => { for (let i = INL.length - 1; i >= 0; i--) { const c = INL[i]; if (!c.host.isConnected) { INL.splice(i, 1); continue; }
       const a = document.activeElement; if (a && c.host.contains(a) && a.matches('input,textarea,select')) continue; if (document.querySelector('.wn-bx.ed')) continue;
