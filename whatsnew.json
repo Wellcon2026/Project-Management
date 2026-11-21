@@ -1,4 +1,10 @@
 [
+  { "v": "v1.458.0", "d": "21/11/2026", "t": "▶ DEMO สอนแบบจูงมือครบทุกหน้า",
+    "items": [
+      "กด ▶ DEMO ที่ขอบขวา — ทุกหน้าสอนแบบจูงมือแล้ว: ไฮไลต์ปุ่มจริง มีมือชี้ บอกทีละขั้นว่าต้องกดอะไร",
+      "เพิ่ม 30 หน้า เช่น Schedule Maker · Drawing Log · RFI & RFA · Material Log · VO Tracker Log · Billing · Handover · Calendar · Letters · Subcon · Home · My Space · Library · Training ฯลฯ",
+      "Site Work โหมด As-Built & Survey ใช้ปุ่ม DEMO ที่เดียวกัน"
+    ] },
   { "v": "v1.457.0", "d": "21/11/2026", "t": "ปุ่ม DEMO ที่เดียวทุกหน้า",
     "items": [
       "ปุ่ม ▶ DEMO อยู่ที่ขอบขวาของจอ ตำแหน่งเดียวกันทุกหน้า (รวม Site Work และแอปแยก) — แทนปุ่ม “? วิธีใช้” เดิม",

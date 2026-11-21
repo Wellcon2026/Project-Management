@@ -2,6 +2,14 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด · เพิ่มรายการบนสุดใน `whatsnew.json` (ข้อความที่ผู้ใช้เห็นในหน้าต่าง "มีอะไรใหม่") · และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## 👆 สอนแบบจูงมือครบทุกหน้า · PM v1.458.0 · Site Work v1.58.0 · 21/11/2026
+- ผู้บริหารสั่ง 21/11/2026: "there is still no interactive walkthrough on some feature. Can you recheck the whole thing every feature again" · "invest our time … tutorial interactive walkthrough to every feature"
+- `wcguide.js` 1.2.0: จุดชี้แบบข้อความ `CSS{ข้อความบนปุ่ม}` (ไม่ต้องแก้ index.html · ตัวในสุดที่มีข้อความนี้) + `^n` ขึ้นกรอบแม่ · ชื่อเรียกแทน (alias: proc / mat → Material Log · calendar / memo / subcon · work → My Space) · บทสอนแบบ `run` (เปิดบทสอนเดิมของหน้านั้น) · Site Work ในกรอบ (tab:qc) ใช้ปุ่ม DEMO ของ Site Work เอง · ข้อความจบ "กด ▶ DEMO ดูซ้ำ"
+- บทสอนใหม่ 30 หน้า (รวมทั้งหมด 39): Overview · Schedule Maker · RFI & RFA · Drawing Log · Doc Register · Early Warning · Handover · Changes · VO Tracker Log · Billing · Material Log · Custom Order · Production · SketchUp · Calendar · Letters · Subcon · Home · My Space · AI · QS Tracking · Company Finance · People · JD · Library · Training · Users & Teams · Form Builder · System · Layboard
+- Site Work v1.58.0: โหมด As-Built & Survey — เอาปุ่ม ❓ วิธีใช้ ที่แถบบนออก → ▶ DEMO ขอบขวา (`sw:survey` เปิดบทสอน / ฝึกกับแบบตัวอย่างเดิม)
+- ยังเป็นสไลด์สรุป (ยังไม่มีหน้าให้ชี้ / ทดสอบไม่ได้): Purchasing · Store · Bank Guarantee · Level Gate · Design Home (เปิดจากการ์ดตามตำแหน่ง) · Mango (ระบบภายนอก) · Pricing (การ์ดเลือกเครื่องมือ) · Layboard เขียนบทสอนแล้วแต่ยังทดสอบบนจอไม่ได้ (ต้องมีข้อมูล Layboard)
+- ผลทดสอบ p58: 29 หน้า × `WCGuide.check` เจอจุดครบ + กด DEMO ขั้น 1 ไฮไลต์จริง · ไม่มี error
+
 ## ▶ ปุ่ม DEMO ที่เดียวทุกหน้า · บทสอนจูงมือแอปแยก 5 หน้า · PM v1.457.0 · Site Work v1.57.0 · 21/11/2026
 - ผู้บริหารสั่ง 21/11/2026: "เปลี่ยน วิธีใช้ เป็น Demo" · "make the button DEMO to be the same location every time on every page" · "Turn every remaining feature's guide into a hand-holding one … like Note feature demo"
 - `wcguide.js` 1.1.0: ปุ่ม `#wc-demo-tab` "▶ DEMO" ติดขอบขวา (right:0 · top:44%) ทุกหน้า · `curKey()` = Notes / Project Setup ที่เปิดอยู่ → `window.__wcDemoKey` (หน้าหลัก) → `<html data-demo-key>` (แอปแยก / Site Work) · มีบทสอน → จูงมือ · ไม่มี → สรุปทีละขั้น (`wcdemo.js`) · ซ่อนระหว่างสอน · ไม่พิมพ์
