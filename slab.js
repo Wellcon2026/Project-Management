@@ -18,7 +18,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const VER = '2.3.1';   // 2.3.1: เส้นประตามขอบผ่านจุดขนาด (เห็นกรอบแผ่นที่ตั้ง) · ลากจุดขนาดได้ในโหมดเลือก → คำนวณสเกลใหม่ · เส้นเล็งยาวขณะวางจุด · 2.3.0: 2.3.0: ตั้งขนาดแผ่นจากจุดบนแผ่นจริง แนวนอน / แนวตั้ง แยกกัน (สเกลแยกแกน) · เส้นขนาดติดอยู่ที่จุดตลอด · 2.2.0: 2.2.0: หมุนอิสระทุกองศา · เส้นบอกขนาดแผ่น · ปุ่มทึบ 10% ↔ 0% · เส้นตัด 70% คงที่ · 2.1.0: 2.1.0: ความทึบ 0–100% (พื้นชิ้น / เส้นตัด) รายชิ้น · ชิ้นที่เลือก · ทุกชิ้น
+const VER = '2.4.0';   // 2.4.0: ลากเส้นขนาด / ป้ายออกจากจุดที่ตั้งได้อิสระ (จุด + สเกลคงเดิม) · แตะป้าย 2 ครั้ง = กลับที่เดิม · 2.3.1: เส้นประตามขอบผ่านจุดขนาด (เห็นกรอบแผ่นที่ตั้ง) · ลากจุดขนาดได้ในโหมดเลือก → คำนวณสเกลใหม่ · เส้นเล็งยาวขณะวางจุด · 2.3.0: 2.3.0: ตั้งขนาดแผ่นจากจุดบนแผ่นจริง แนวนอน / แนวตั้ง แยกกัน (สเกลแยกแกน) · เส้นขนาดติดอยู่ที่จุดตลอด · 2.2.0: 2.2.0: หมุนอิสระทุกองศา · เส้นบอกขนาดแผ่น · ปุ่มทึบ 10% ↔ 0% · เส้นตัด 70% คงที่ · 2.1.0: 2.1.0: ความทึบ 0–100% (พื้นชิ้น / เส้นตัด) รายชิ้น · ชิ้นที่เลือก · ทุกชิ้น
 if (window.WCSlab) return;
 const $ = (s, r) => (r || document).querySelector(s);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -423,10 +423,21 @@ function userDims(g0) { const col = '#FFD54A', g = g0 || ctx;
   const tag = (txt, x, y, r) => { g.save(); g.translate(x, y); if (r) g.rotate(-Math.PI / 2); g.font = '800 13px "IBM Plex Sans Thai",system-ui,sans-serif'; const w = g.measureText(txt).width + 14; g.fillStyle = 'rgba(28,27,24,.92)'; g.strokeStyle = col; g.lineWidth = 1; g.beginPath(); g.rect(-w / 2, -11, w, 22); g.fill(); g.stroke(); g.fillStyle = col; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, 0, 0); g.restore(); };
   const arrow = (x, y, dx, dy) => { g.beginPath(); g.moveTo(x, y); g.lineTo(x + dx * 9 - dy * 4, y + dy * 9 + dx * 4); g.moveTo(x, y); g.lineTo(x + dx * 9 + dy * 4, y + dy * 9 - dx * 4); g.stroke(); };
   ['x', 'y'].forEach((ax) => { const d = S['dim' + ax]; if (!d || (S.tool === 'scale' && S.calAxis === ax)) return; const A = toS(...fromImg(d.a)), B = toS(...fromImg(d.b)); g.save(); g.strokeStyle = col; g.lineWidth = 1.6; g.setLineDash([]);
-    if (ax === 'x') { const y = (A[1] + B[1]) / 2, l = Math.min(A[0], B[0]), r = Math.max(A[0], B[0]); g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(A[0], y); g.moveTo(B[0], B[1]); g.lineTo(B[0], y); g.globalAlpha = .6; g.stroke(); g.globalAlpha = 1;
-      g.beginPath(); g.moveTo(l, y); g.lineTo(r, y); g.stroke(); arrow(l, y, 1, 0); arrow(r, y, -1, 0); [A, B].forEach((P) => { g.beginPath(); g.arc(P[0], P[1], 3.5, 0, 7); g.fillStyle = col; g.fill(); }); g.restore(); tag('↔ ' + fmt(d.len) + ' ซม.', l + (r - l) * 0.27, y - 14, false); }
-    else { const x = (A[0] + B[0]) / 2, t = Math.min(A[1], B[1]), b = Math.max(A[1], B[1]); g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(x, A[1]); g.moveTo(B[0], B[1]); g.lineTo(x, B[1]); g.globalAlpha = .6; g.stroke(); g.globalAlpha = 1;
-      g.beginPath(); g.moveTo(x, t); g.lineTo(x, b); g.stroke(); arrow(x, t, 0, 1); arrow(x, b, 0, -1); [A, B].forEach((P) => { g.beginPath(); g.arc(P[0], P[1], 3.5, 0, 7); g.fillStyle = col; g.fill(); }); g.restore(); tag('↕ ' + fmt(d.len) + ' ซม.', x - 14, t + (b - t) * 0.27, true); } }); }
+    const G = dimGeo(ax, d); if (ax === 'x') { const y = G.at, l = G.lo, r = G.hi; g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(A[0], y); g.moveTo(B[0], B[1]); g.lineTo(B[0], y); g.globalAlpha = .6; g.stroke(); g.globalAlpha = 1;
+      g.beginPath(); g.moveTo(l, y); g.lineTo(r, y); g.stroke(); arrow(l, y, 1, 0); arrow(r, y, -1, 0); [A, B].forEach((P) => { g.beginPath(); g.arc(P[0], P[1], 3.5, 0, 7); g.fillStyle = col; g.fill(); }); g.restore(); tag('↔ ' + fmt(d.len) + ' ซม.', G.tx, G.ty, false); }
+    else { const x = G.at, t = G.lo, b = G.hi; g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(x, A[1]); g.moveTo(B[0], B[1]); g.lineTo(x, B[1]); g.globalAlpha = .6; g.stroke(); g.globalAlpha = 1;
+      g.beginPath(); g.moveTo(x, t); g.lineTo(x, b); g.stroke(); arrow(x, t, 0, 1); arrow(x, b, 0, -1); [A, B].forEach((P) => { g.beginPath(); g.arc(P[0], P[1], 3.5, 0, 7); g.fillStyle = col; g.fill(); }); g.restore(); tag('↕ ' + fmt(d.len) + ' ซม.', G.tx, G.ty, true); } }); }
+// ตำแหน่งเส้นขนาดบนจอ — d.o = ระยะเลื่อนเส้นออกจากจุดที่ตั้ง (หน่วยพิกเซลรูป ตั้งฉากกับเส้น) · d.tp = ตำแหน่งป้ายตามแนวเส้น (0–1)
+// ลากเส้น / ป้ายออกไปวางที่ว่างได้อิสระ (ผู้ใช้ขอ 21/11/2026) — จุดที่ตั้งบนแผ่นอยู่ที่เดิม สเกลไม่เปลี่ยน
+function dimGeo(ax, d) { const A = toS(...fromImg(d.a)), B = toS(...fromImg(d.b)), tp = d.tp == null ? 0.27 : d.tp, z = S.view.z;
+  if (ax === 'x') { const at = (A[1] + B[1]) / 2 + (d.o || 0) * S.cmy * z, lo = Math.min(A[0], B[0]), hi = Math.max(A[0], B[0]); return { A, B, at, lo, hi, tx: lo + (hi - lo) * tp, ty: at - 14 }; }
+  const at = (A[0] + B[0]) / 2 + (d.o || 0) * S.cmx * z, lo = Math.min(A[1], B[1]), hi = Math.max(A[1], B[1]); return { A, B, at, lo, hi, tx: at - 14, ty: lo + (hi - lo) * tp }; }
+// แตะโดนเส้นขนาด / ป้าย → { ax, tag } · ป้ายมาก่อนเสมอ · ตัวเส้นนับเฉพาะเมื่อไม่ได้ทับชิ้นงาน
+function hitDimLine(sx, sy, wx, wy) { const r = touchy() ? 14 : 7; let line = null;
+  for (const ax of ['x', 'y']) { const d = S['dim' + ax]; if (!d) continue; const G = dimGeo(ax, d), hw = 46 + (touchy() ? 8 : 0), hh = 13 + (touchy() ? 8 : 0);
+    if (ax === 'x' ? (Math.abs(sx - G.tx) <= hw && Math.abs(sy - G.ty) <= hh) : (Math.abs(sx - G.tx) <= hh && Math.abs(sy - G.ty) <= hw)) return { ax, tag: true };
+    const u = ax === 'x' ? sx : sy, v = ax === 'x' ? sy : sx; if (!line && Math.abs(v - G.at) <= r && u >= G.lo - r && u <= G.hi + r) line = { ax, tag: false }; }
+  return line && !hitAny(wx, wy) ? line : null; }
 function slabDims(x0, y0, iw, ih) { const g = ctx, col = '#E2BC66', o = 16; g.save(); g.strokeStyle = col; g.lineWidth = 1.5;
   const ty = y0 - o >= 12 ? y0 - o : y0 + o, lx = x0 - o >= 12 ? x0 - o : x0 + o;
   g.beginPath(); g.moveTo(x0, ty); g.lineTo(x0 + iw, ty); g.moveTo(x0, ty - 6); g.lineTo(x0, ty + 6); g.moveTo(x0 + iw, ty - 6); g.lineTo(x0 + iw, ty + 6);
@@ -463,7 +474,8 @@ function pDown(e) { if (!S.img) return; try { cv.setPointerCapture(e.pointerId);
       drag = { ...base, t: 'editPt', key, i, off: [L[i][0] - wx, L[i][1] - wy] }; S.act = { L: key, i }; S.loupe = { sx, sy }; draw(); fbar(); return; } }
   if (S.tool === 'meas' && S.meas) { const i = ptHit([S.meas.a, S.meas.b], sx, sy); if (i >= 0) { const p = i ? S.meas.b : S.meas.a; drag = { ...base, t: 'editPt', key: 'meas', i, off: [p[0] - wx, p[1] - wy] }; S.act = { L: 'meas', i }; S.loupe = { sx, sy }; draw(); fbar(); return; } }
   if (S.tool === 'move' || S.tool === 'shape') { const hh = hitHandle(sx, sy); if (hh) { push(); const s = hh.s; drag = { ...base, t: hh.hd.k === 'rot' ? 'rotate' : 'resize', s, hd: hh.hd, orig: JSON.parse(JSON.stringify(s)) }; S.dragging = true; S.loupe = hh.hd.k === 'rot' ? null : { sx, sy }; draw(); return; } }
-  if (S.tool === 'move') { const r = touchy() ? 20 : 10; for (const ax of ['x', 'y']) { const d = S['dim' + ax]; if (!d) continue; for (const k of ['a', 'b']) { const [px, py] = toS(...fromImg(d[k])); if (Math.hypot(px - sx, py - sy) <= r) { push(); drag = { ...base, t: 'dimPt', ax, k, off: [fromImg(d[k])[0] - wx, fromImg(d[k])[1] - wy], cm: [S.cmx, S.cmy] }; S.loupe = { sx, sy }; draw(); return; } } } }
+  if (S.tool === 'move') { const r = touchy() ? 20 : 10; for (const ax of ['x', 'y']) { const d = S['dim' + ax]; if (!d) continue; for (const k of ['a', 'b']) { const [px, py] = toS(...fromImg(d[k])); if (Math.hypot(px - sx, py - sy) <= r) { push(); drag = { ...base, t: 'dimPt', ax, k, off: [fromImg(d[k])[0] - wx, fromImg(d[k])[1] - wy], cm: [S.cmx, S.cmy] }; S.loupe = { sx, sy }; draw(); return; } } }
+    const hd = hitDimLine(sx, sy, wx, wy); if (hd) { const d = S['dim' + hd.ax]; push(); drag = { ...base, t: 'dimLine', ax: hd.ax, o0: d.o || 0, tp0: d.tp == null ? 0.27 : d.tp }; draw(); return; } }
   const tool = S.tool;
   if (tool === 'scale' || tool === 'persp' || (tool === 'free' && S.freeMode === 'pts')) { const key = tool === 'scale' ? 'cal' : tool === 'persp' ? 'persp' : 'draw', L = listOf(key), max = tool === 'scale' ? 2 : tool === 'persp' ? 4 : 999;
     if (L.length >= max) { drag = { ...base, t: 'pan', ox: S.view.ox, oy: S.view.oy, tap: true }; return; } drag = { ...base, t: 'newPt', key, w: [wx, wy] }; S.loupe = { sx, sy }; draw(); return; }
@@ -478,13 +490,15 @@ function pDown(e) { if (!S.img) return; try { cv.setPointerCapture(e.pointerId);
   if (gi >= 0) { push(); drag = { ...base, t: 'guide', i: gi }; S.dragG = gi; draw(); return; }
   drag = { ...base, t: 'pan', ox: S.view.ox, oy: S.view.oy, tap: true }; }
 function pMove(e) { if (!S.img) return; const P0 = pos(e); if (PT.has(e.pointerId)) PT.set(e.pointerId, P0); const [sx, sy] = P0, [wx, wy] = toW(sx, sy); S.cursor = [wx, wy]; S.hover = [wx, wy]; S.noSnap = e.altKey;
-  if (!drag) { if (S.tool === 'shape') draw(); stat(); return; }
+  if (!drag) { if (S.tool === 'shape') draw(); if (S.tool === 'move' && !touchy()) cv.style.cursor = hitDimLine(sx, sy, wx, wy) ? 'move' : ''; stat(); return; }
   const far = Math.hypot(sx - drag.sx, sy - drag.sy) > thr(e);
   if (drag.t === 'pinch') { if (PT.size < 2) return; const [a, b] = [...PT.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]), c = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; const nz = Math.max(S.fitZ * 0.2, Math.min(ZMAX(), drag.z * d / drag.d));
     S.view.z = nz; S.view.ox = c[0] - (drag.c[0] - drag.ox) * (nz / drag.z); S.view.oy = c[1] - (drag.c[1] - drag.oy) * (nz / drag.z); draw(); zoomUi(); return; }
   if (drag.t === 'pan') { if (drag.tap && !far) return; drag.tap = false; S.view.ox = drag.ox + sx - drag.sx; S.view.oy = drag.oy + sy - drag.sy; draw(); return; }
   if (drag.t === 'newPt') { drag.w = [wx, wy]; S.loupe = { sx, sy }; draw(); return; }
   if (drag.t === 'dimPt') { if (!drag.go) { if (!far) return; drag.go = true; } const d = S['dim' + drag.ax]; d[drag.k] = [(wx + drag.off[0]) / drag.cm[0], (wy + drag.off[1]) / drag.cm[1]]; S.loupe = { sx, sy }; draw(); return; }
+  if (drag.t === 'dimLine') { if (!drag.go) { if (!far) return; drag.go = true; } const d = S['dim' + drag.ax], X = drag.ax === 'x', G = dimGeo(drag.ax, d), span = Math.max(20, G.hi - G.lo);
+    d.o = drag.o0 + (X ? sy - drag.sy : sx - drag.sx) / ((X ? S.cmy : S.cmx) * S.view.z); d.tp = Math.max(0.04, Math.min(0.96, drag.tp0 + (X ? sx - drag.sx : sy - drag.sy) / span)); draw(); return; }
   if (drag.t === 'editPt') { const np = [wx + drag.off[0], wy + drag.off[1]]; if (drag.key === 'meas') { if (S.meas) S.meas[drag.i ? 'b' : 'a'] = np; } else { const L = listOf(drag.key); if (L) L[drag.i] = np; } S.loupe = { sx, sy }; draw(); fbar(); return; }
   if (drag.t === 'meas') { if (S.meas) S.meas.b = snapPt(wx, wy); S.dragging = true; S.loupe = { sx, sy }; draw(); fbar(); return; }
   if (drag.t === 'create') { if (!far && !drag.live) return; const [bx, by] = snapPt(wx, wy); let x = Math.min(drag.a[0], bx), y = Math.min(drag.a[1], by), w = Math.abs(bx - drag.a[0]), h = Math.abs(by - drag.a[1]);
@@ -518,6 +532,8 @@ function pUp(e) { PT.delete(e.pointerId); const d = drag; if (!d) return; if (d.
   if (d.t === 'closePt') { if (still) ptClose(); return; }
   if (d.t === 'editPt') { fbar(); draw(); return; }
   if (d.t === 'dimPt') { if (!d.go) { S.hist.pop(); draw(); return; } applyDims(); ui(); autosave(); toast('ปรับจุดขนาดแล้ว — แผ่น ↔ ' + (S.dimx ? fmt(S.dimx.len) : '—') + ' × ↕ ' + (S.dimy ? fmt(S.dimy.len) : '—') + ' ซม. (คำนวณสเกลใหม่)'); return; }
+  if (d.t === 'dimLine') { const dd = S['dim' + d.ax]; if (!d.go) { S.hist.pop(); const now = Date.now(); if (quick && now - lastTap < 330 && Math.hypot(sx - lastTapXY[0], sy - lastTapXY[1]) < 30) { push(); delete dd.o; delete dd.tp; lastTap = 0; autosave(); toast('วางเส้นขนาดกลับที่จุดเดิมแล้ว'); } else { lastTap = now; lastTapXY = [sx, sy]; } draw(); return; }
+    autosave(); toast('ย้ายเส้นขนาดแล้ว — จุดบนแผ่น / สเกลเหมือนเดิม · แตะป้าย 2 ครั้ง = กลับที่เดิม'); draw(); return; }
   if (d.t === 'meas') { S.snapHit = null; if (S.meas && Math.hypot(S.meas.b[0] - S.meas.a[0], S.meas.b[1] - S.meas.a[1]) * S.view.z < 4) S.meas = null; fbar(); draw(); return; }
   if (d.t === 'newGuide') { if (!still) { draw(); return; } push(); const [x, y] = snapPt(wx, wy); S.guides.push({ o: S.tool === 'gv' ? 'v' : 'h', p: r1(S.tool === 'gv' ? x : y) }); S.guidesOn = true; S.snapHit = null; ui(); autosave(); return; }
   if (d.t === 'guide') { S.snapHit = null; const g = S.guides[d.i]; if (g && ((g.o === 'v' && (g.p < -50 || g.p > IW() + 50)) || (g.o === 'h' && (g.p < -50 || g.p > IH() + 50)))) { S.guides.splice(d.i, 1); toast('ลบเส้นไกด์แล้ว (ลากออกนอกแผ่น)'); } ui(); autosave(); return; }
