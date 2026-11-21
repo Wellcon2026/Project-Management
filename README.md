@@ -199,6 +199,7 @@ node scripts/patch-daily-redesign.js      # Daily Report หน้าใหม�
 node scripts/patch-guide.js               # สอนแบบจูงมือ (wcguide.js) · เครื่องหมาย data-g หน้า Daily Report
 node scripts/patch-demo-tab.js            # ปุ่ม ▶ DEMO ขอบขวาที่เดียวทุกหน้า (แถบบนไม่มีปุ่มวิธีใช้แล้ว)
 node scripts/patch-demo-center.js         # Demo Center (wchub.js) · สะพาน · แถบใน My Space / Training
+node scripts/patch-learn-card.js          # Learning Center เป็นการ์ด (เอาแถบออก) · สวิตช์ learn ให้ผู้ดูแลเปิด-ปิด
 node scripts/patch-layboard-photo.js    # Layboard: ปุ่ม "แต่งรูป (Photo Editor)" (แก้ layboard/index.html · sync-layboard.js เรียกให้อัตโนมัติ)
 node scripts/patch-sess-guard.js        # หลายหน้าต่างในเครื่องเดียว = ผู้ใช้คนเดียว · กันหน้าต่างอื่นเขียนทับผู้ใช้ (แก้ออกจากระบบแล้วเข้าเป็นคนอื่น)
 ```

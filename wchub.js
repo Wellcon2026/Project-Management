@@ -1,5 +1,5 @@
 /* =====================================================================
-   wchub.js — Demo Center · ศูนย์สอนใช้งาน (v1.0.0 · ผู้บริหารสั่ง 21/11/2026 "please proceed" ชั้นที่ 2)
+   wchub.js — Learning Center · ศูนย์เรียนรู้ (เดิม Demo Center v1.0.0 · ผู้บริหารสั่ง 21/11/2026 "please proceed" ชั้นที่ 2)
    - เส้นทางของฉัน: ฟังก์ชันที่ตำแหน่งนี้ใช้ (ชุดเดียวกับการ์ด My Space · WORK_DEF) เรียงเป็นเช็กลิสต์ + ความคืบหน้า
    - ทุกฟังก์ชัน: รายชื่อจาก wcfn.js แยกหมวด · กด ▶ เริ่ม → พาไปหน้านั้นแล้วเริ่มสอนแบบจูงมือ (wcguide.js) เอง
    - ทีม (ผู้บริหาร / ผู้จัดการ): ใครเรียนจบกี่เรื่อง
@@ -9,7 +9,7 @@
    ===================================================================== */
 (function () {
   'use strict';
-  const VER = '1.0.0';
+  const VER = '1.1.0';   // 1.1.0: ชื่อ Learning Center · เปิดจากการ์ด (ผู้ดูแลเปิด-ปิดได้) · ไม่มีแถบใน My Space / Training แล้ว
   if (window.WCHub && window.WCHub.VER) return;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const BR = () => { try { return window.__whBridge ? window.__whBridge() : null; } catch (e) { return null; } };
@@ -57,7 +57,7 @@
     if (!h) { if (hasS(k)) WCDemo.open(k, { slides: true }); return; }
     if (location.hash === h) startWhenReady(); else { location.hash = h; setTimeout(startWhenReady, 300); }
   }
-  // ---------- หน้าต่าง Demo Center ----------
+  // ---------- หน้าต่าง Learning Center ----------
   const S = { ov: null, tab: 'path', role: '', q: '', team: null };
   const CSS = `
 .wh-ov{position:fixed;inset:0;z-index:2147483000;background:rgba(28,27,24,.55);display:flex;align-items:center;justify-content:center;padding:16px;font-family:'IBM Plex Sans Thai',system-ui,sans-serif}
@@ -130,7 +130,7 @@
           + rows.map((r) => { const pc = r.tot ? Math.round(r.n / r.tot * 100) : 0; return `<tr><td><b>${esc(r.p.name)}</b></td><td>${esc((roles.find((x) => x.key === r.p.roleKey) || {}).label || r.p.roleKey || '—')}</td><td><div style="display:flex;gap:8px;align-items:center"><div class="wh-pb" style="flex:1"><i style="width:${pc}%"></i></div><span>${r.n}/${r.tot}</span></div></td><td>${r.all}</td><td>${r.at ? esc(r.at.slice(0, 10).split('-').reverse().join('/')) : '—'}</td></tr>`; }).join('') + '</table>'; }
     }
     const tabs = [['path', '🎯 เส้นทางของฉัน'], ['all', '📚 ทุกฟังก์ชัน']].concat(me.admin || me.mgr ? [['team', '👥 ทีม']] : []);
-    S.ov.innerHTML = `<div class="wh-bx" role="dialog" aria-label="Demo Center"><div class="wh-hd">${ring(nd, path.length)}<div class="tt"><div class="k">DEMO CENTER · ศูนย์สอนใช้งาน</div><h2>เรียนรู้ระบบทีละขั้น${me.name ? ' · ' + esc(me.name) : ''}</h2><div class="s">เรียนแล้ว ${nd} / ${path.length} เรื่องในเส้นทางของคุณ · กด ▶ เริ่ม = พาไปหน้าจริง แล้วจูงมือทีละขั้น</div></div><button class="wh-x" data-x aria-label="ปิด">×</button></div>
+    S.ov.innerHTML = `<div class="wh-bx" role="dialog" aria-label="Learning Center"><div class="wh-hd">${ring(nd, path.length)}<div class="tt"><div class="k">LEARNING CENTER · ศูนย์เรียนรู้</div><h2>เรียนรู้ระบบทีละขั้น${me.name ? ' · ' + esc(me.name) : ''}</h2><div class="s">เรียนแล้ว ${nd} / ${path.length} เรื่องในเส้นทางของคุณ · กด ▶ เริ่ม = พาไปหน้าจริง แล้วจูงมือทีละขั้น</div></div><button class="wh-x" data-x aria-label="ปิด">×</button></div>
       <div class="wh-tabs">${tabs.map((t) => `<button data-tab="${t[0]}" class="${S.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div><div class="wh-bd">${body}</div></div>`;
   }
   function onClick(e) { const t = e.target.closest('[data-go],[data-tab],[data-x],[data-prac]'); if (!t) { if (e.target === S.ov) close(); return; }
@@ -145,15 +145,6 @@
     if (tab) S.tab = tab; S.team = null; render(); loadMine().then(() => { if (S.ov) render(); }); }
   function onKey(e) { if (e.key === 'Escape' && S.ov && !(window.WCGuide && WCGuide.active && WCGuide.active())) { e.stopPropagation(); close(); } }
   function close() { if (S.ov) { S.ov.remove(); S.ov = null; document.removeEventListener('keydown', onKey, true); } }
-  // ---------- แบนเนอร์ใน My Space / Training ([data-wh-host]) ----------
-  function banner(h) { const b = BR(); if (!b || !b.me().email) { h.innerHTML = ''; return; } const M = mine(), path = pathOf(b.me().roleKey); const n = path.filter((k) => done(k, M)).length; const p = path.length ? Math.round(n / path.length * 100) : 0; const stg = b.staging();
-    const sig = [n, path.length, stg].join('|'); if (h.getAttribute('data-wh-sig') === sig) return; h.setAttribute('data-wh-sig', sig);
-    h.innerHTML = `<div class="wh-ban${stg ? ' stg' : ''}" data-wh-open role="button" tabindex="0"><div class="ic">${stg ? '🧪' : '🎓'}</div><div class="tx"><b>${stg ? 'โหมดฝึก · Demo Center' : 'Demo Center · เรียนรู้ระบบทีละขั้น'}</b><span>${stg ? 'ข้อมูลสำเนา — ลองกดได้เต็มที่ ไม่กระทบงานจริง' : 'เส้นทางตามตำแหน่งของคุณ · กดแล้วพาไปหน้าจริง จูงมือทีละขั้น'}</span></div><div class="pg"><div class="wh-pb"><i style="width:${p}%"></i></div>${n}/${path.length}</div><button type="button">${n ? 'เรียนต่อ ▶' : 'เริ่มเรียน ▶'}</button></div>`; }
-  function scan() { css(); document.querySelectorAll('[data-wh-host]').forEach(banner); }
-  function refresh() { document.querySelectorAll('[data-wh-host]').forEach((h) => { h.removeAttribute('data-wh-sig'); banner(h); }); if (S.ov) render(); }
-  document.addEventListener('click', (e) => { const t = e.target.closest && e.target.closest('[data-wh-open]'); if (t) { e.preventDefault(); open('path'); } });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest && e.target.closest('[data-wh-open]')) open('path'); });
-  let started = false; function boot() { if (started || !document.body) return; started = true; setInterval(scan, 1200); setTimeout(() => loadMine().then(refresh), 2500); }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  function refresh() { if (S.ov) render(); }
   window.WCHub = { VER, open, close, go, mark, path: pathOf, isOpen: () => !!S.ov, _S: S };
 })();

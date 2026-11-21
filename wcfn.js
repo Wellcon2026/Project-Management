@@ -1,4 +1,4 @@
-/* wcfn.js v1.2.2 — ชื่อเรียกฟังก์ชัน (Feature call names) · Wellcon PM
+/* wcfn.js v1.2.3 — ชื่อเรียกฟังก์ชัน (Feature call names) · Wellcon PM
  * แหล่งเดียวของ "ชื่อเรียกสั้นภาษาอังกฤษ" ของทุกฟังก์ชัน — ใช้คุยกันให้เข้าใจตรงกัน
  * (ผู้บริหารสั่ง 21/11/2026: "give every function the name to call … short in English")
  *
@@ -17,7 +17,7 @@
   // key → [ชื่อเรียก (หัวข้อ), หมวด, คำอธิบายไทย (บรรทัดใต้หัวข้อ)] — v1.1.0 ผู้บริหารสั่ง 21/11/2026: การ์ด / เมนู ใช้ชื่ออังกฤษเป็นหัวข้อ ไทยอธิบายด้านล่าง
   var M = {
     'nav:dashboard': ['Home', 'me', 'ภาพรวมทุกโครงการ'], 'nav:inbox': ['My Space', 'me', 'พื้นที่ทำงานของฉัน'], 'nav:work': ['My Space', 'me', 'พื้นที่ทำงานของฉัน'],
-    'nav:note': ['Notes', 'me', 'บันทึก · งานของฉัน'], 'nav:demo': ['Demo Center', 'me', 'ศูนย์สอนใช้งาน · ฝึกทีละขั้น'], 'note': ['Notes', 'me', 'บันทึก · งานของฉัน'], 'nav:ai': ['AI', 'me', 'ผู้ช่วย AI'],
+    'nav:note': ['Notes', 'me', 'บันทึก · งานของฉัน'], 'nav:learn': ['Learning Center', 'me', 'ศูนย์เรียนรู้ · Demo ตามตำแหน่ง'], 'note': ['Notes', 'me', 'บันทึก · งานของฉัน'], 'nav:ai': ['AI', 'me', 'ผู้ช่วย AI'],
     'tab:overview': ['Overview', 'proj', 'ภาพรวมโครงการ'], 'tab:setup': ['Project Setup', 'proj', 'ตั้งค่าโครงการ'], 'tab:plan': ['Schedule Maker', 'proj', 'แผนงาน · ความคืบหน้า'], 'tab:cal': ['Calendar', 'proj', 'ปฏิทิน · วันสำคัญ'],
     'tab:daily': ['Daily Report', 'site', 'รายงานประจำวัน (Site)'], 'tab:rfi': ['RFI & RFA', 'proj', 'ถามแบบ · ขออนุมัติวัสดุ'], 'tab:dwg': ['Drawing Log', 'proj', 'แบบก่อสร้าง · ทะเบียนแบบ'],
     'tab:docs': ['Doc Register', 'proj', 'ทะเบียนรับ-ส่งเอกสาร'], 'tab:memo': ['Letters', 'proj', 'ออกหนังสือ / ฟอร์ม'], 'tab:delay': ['Early Warning', 'proj', 'แจ้งล่าช้า'], 'tab:handover': ['Handover', 'proj', 'ส่งมอบงาน'],
@@ -47,5 +47,5 @@
     Object.keys(M).forEach(function (k) { var n = M[k][0]; if (seen[n]) { seen[n].keys.push(k); return; } seen[n] = { name: n, group: G[M[k][1]] || '', th: M[k][2] || '', keys: [k] }; out.push(seen[n]); });
     return out;
   }
-  root.WCFN = { VER: '1.2.2', name: name, of: of, title: title, desc: desc, all: all, groups: G };
+  root.WCFN = { VER: '1.2.3', name: name, of: of, title: title, desc: desc, all: all, groups: G };
 })(typeof window !== 'undefined' ? window : globalThis);

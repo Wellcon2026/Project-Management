@@ -2,6 +2,12 @@
 
 ทุกครั้งที่ขึ้นงานใหม่ เพิ่มรายการบนสุด · เพิ่มรายการบนสุดใน `whatsnew.json` (ข้อความที่ผู้ใช้เห็นในหน้าต่าง "มีอะไรใหม่") · และเปลี่ยนป้ายเวอร์ชันบนหน้าจอด้วย `node scripts/patch-version-label.js vX.Y.Z "D พ.ย. 2569"`
 
+## 🎓 Learning Center เป็นการ์ดแยก · PM v1.460.0 · Site Work v1.59.1 · 21/11/2026
+- ผู้บริหารสั่ง 21/11/2026: "ไม่เอาเข้ามาเป็น main หลักในหน้าทำงาน ใช้แค่หน้า demo พอแล้ว · ส่วน learning center ให้ไปเป็นอีก feature นึง ที่ admin สามารถเปิดปิด card ได้"
+- `scripts/patch-learn-card.js` (MARK `v1.460.0 learn-card`): เอาแถบ `data-wh-host` ออกจาก My Space / Training · การ์ด `nav:learn` "Learning Center" ข้าง Notes (`_learnTile` → `WCHub.open`) · สวิตช์ `learn` ใน `SUPPORT_FEATS` (featOn: ทั้งระบบ / ตำแหน่ง / รายคน · ค่าเริ่มต้นเปิด)
+- เปลี่ยนชื่อ Demo Center → **Learning Center** (`wchub.js` 1.1.0 ไม่มีโค้ดแถบแล้ว · `wcguide.js` 1.3.1 บทสอน `nav:learn` · `wcfn.js` 1.2.3 · `wcdemo.js` 1.3.2) · ปุ่ม ▶ DEMO ขอบขวาเหมือนเดิม
+- ผลทดสอบ p60 (10 ข้อ: ไม่มีแถบ · มีการ์ด · เปิด Learning Center · DEMO สอน · สวิตช์ปิดแล้วการ์ดหาย / เปิดกลับมา) · p59 14 ข้อ · p58 29 หน้า · Site Work p3 / p5 ผ่าน · ไม่มี error
+
 ## 🎓 Demo Center · ศูนย์สอนใช้งาน (ชั้นที่ 2) · PM v1.459.0 · Site Work v1.59.0 · 21/11/2026
 - ผู้บริหารสั่ง 21/11/2026: "invest our time … tutorial interactive walkthrough to every feature" → เสนอแบบ 3 ชั้น (In-App · Interactive Walkthrough · SOP) → "please proceed"
 - `wchub.js` 1.0.0 (ใหม่): เส้นทางของฉัน (ตาม `WORK_DEF` ชุดเดียวกับการ์ด My Space · ผู้ดูแล / ผู้จัดการเลือกดูตำแหน่งอื่นได้) · ทุกฟังก์ชัน (จาก `wcfn.js` แยกหมวด + ค้นหา) · ทีม (ผู้ดูแล / ผู้จัดการ) · โหมดฝึก (`?env=staging` = schema staging ข้อมูลสำเนา) · ▶ เริ่ม = ไปหน้าจริงแล้วเริ่มบทสอนเอง (หน้าในแอป: hash + รอจุดแรก · แอปแยก / Site Work: `?wcdemo=<key>`)
