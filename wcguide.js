@@ -14,7 +14,7 @@
 (function () {
   'use strict';
   if (window.WCGuide) return;
-  const VER = '1.3.1';   // 1.3.1: Demo Center → Learning Center (nav:learn) · 1.3.0: Demo Center (wchub.js) — เรียนจบบันทึกกลาง · ?wcdemo=<key> เริ่มสอนเอง · บทสอน Demo Center · 1.2.0: 1.2.0: บทสอนจูงมือครบทุกหน้า (ชุด B / C) · จุดชี้แบบ “ข้อความบนปุ่ม” CSS{ข้อความ} · ชื่อเรียกแทน (alias) · 1.1.0: ปุ่ม ▶ DEMO ตำแหน่งเดียวกันทุกหน้า (ขอบขวาของจอ) — รู้เองว่าอยู่หน้าไหน · มีบทสอนจูงมือ → จูงมือ · ไม่มี → สรุปทีละขั้น
+  const VER = '1.4.0';   // 1.4.0: 💡 ทำไมสำคัญ — ขั้นแรกบอกว่าฟังก์ชันนี้สำคัญต่องานอย่างไร / ช่วยอะไร (ขั้นอื่นกดเปิดดู) · 1.3.1: 1.3.1: Demo Center → Learning Center (nav:learn) · 1.3.0: Demo Center (wchub.js) — เรียนจบบันทึกกลาง · ?wcdemo=<key> เริ่มสอนเอง · บทสอน Demo Center · 1.2.0: 1.2.0: บทสอนจูงมือครบทุกหน้า (ชุด B / C) · จุดชี้แบบ “ข้อความบนปุ่ม” CSS{ข้อความ} · ชื่อเรียกแทน (alias) · 1.1.0: ปุ่ม ▶ DEMO ตำแหน่งเดียวกันทุกหน้า (ขอบขวาของจอ) — รู้เองว่าอยู่หน้าไหน · มีบทสอนจูงมือ → จูงมือ · ไม่มี → สรุปทีละขั้น
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const T = {};   // key → tour
 
@@ -385,7 +385,7 @@
 .wg-bub .h{background:#1C1B18;color:#F6F1E8;padding:10px 12px 10px 14px;display:flex;align-items:center;gap:8px}
 .wg-bub .h b{flex:1;font-size:13px;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wg-bub .h span{font-size:12px;color:#E2BC66;font-weight:800;white-space:nowrap}
 .wg-bub .x{border:0;background:rgba(255,255,255,.14);color:#fff;width:34px;height:34px;border-radius:10px;font-size:16px;cursor:pointer;flex:none}
-.wg-bub .bd{padding:12px 14px 4px}.wg-bub .tt{font-size:17px;font-weight:800;line-height:1.35}.wg-bub .dd{font-size:14.5px;line-height:1.6;color:#3A3830;margin-top:4px}
+.wg-bub .bd{padding:12px 14px 4px}.wg-bub .why{background:#FBF3E4;border:1px solid #E8D2A6;border-radius:12px;padding:10px 12px;margin:0 0 10px;color:#4A3610}.wg-bub .why b{display:block;font-size:13px;color:#8A5E14;margin-bottom:3px}.wg-bub .why p{margin:0;font-size:13.5px;line-height:1.55}.wg-bub .why i{display:block;font-style:normal;font-size:12px;font-weight:800;color:#8A5E14;margin-top:7px}.wg-bub .why ul{margin:3px 0 0;padding-left:18px;font-size:13px;line-height:1.55}.wg-bub .lk.wy{display:block;margin:0 0 8px;padding:0}.wg-bub .tt{font-size:17px;font-weight:800;line-height:1.35}.wg-bub .dd{font-size:14.5px;line-height:1.6;color:#3A3830;margin-top:4px}
 .wg-bub .do{margin-top:8px;font-size:13px;font-weight:800;color:#8A5E14;background:#FBF0CF;border-radius:10px;padding:6px 10px;display:inline-block}
 .wg-bub .miss{margin-top:8px;font-size:12.5px;color:#8A8375;background:#F3EEE3;border-radius:10px;padding:6px 10px}
 .wg-bub .pg{height:4px;background:#EFE7D6}.wg-bub .pg i{display:block;height:100%;background:#C9A961}
@@ -434,16 +434,19 @@
       if (g.bottom + 48 + bh < H) by = g.bottom + 48; else if (g.top - 48 - bh > 0) by = g.top - 48 - bh; else { by = Math.max(12, H - bh - 12); bx = g.right + 16 + bw < W ? g.right + 16 : Math.max(12, g.left - bw - 16); }
       bb.style.left = bx + 'px'; bb.style.top = by + 'px'; } }
   function loop() { place(); G.raf = requestAnimationFrame(loop); }
+  function whyHtml() { const w = why(G.key); if (!w) return ''; const open = G.i === 0 || G.whyOpen;
+    if (!open) return '<button class="lk wy" data-g-why>💡 ทำไมฟังก์ชันนี้สำคัญ</button>';
+    return `<div class="why"><b>💡 ทำไมสำคัญต่องาน</b><p>${esc(w.w)}</p>${(w.h || []).length ? '<i>ช่วยคุณ</i><ul>' + w.h.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>' : ''}</div>`; }
   function drawBub() {
     const s = G.tour.steps[G.i], n = G.tour.steps.length, bb = G.root.querySelector('.wg-bub'), last = G.i === n - 1 || s.last, act = G.missing ? 'none' : (s.act || 'none');
     bb.innerHTML = `<div class="h"><span>ขั้น ${G.i + 1}/${n}</span><b>${esc(G.tour.title)}</b><button class="x" data-g-x aria-label="ออกจากการสอน">✕</button></div><div class="pg"><i style="width:${Math.round((G.i + 1) / n * 100)}%"></i></div>
-      <div class="bd"><div class="tt">${esc(s.t)}</div><div class="dd">${esc(s.d)}</div>${act === 'click' ? '<div class="do">👆 กดจุดที่ไฮไลต์</div>' : act === 'input' ? '<div class="do">⌨ พิมพ์ในช่องที่ไฮไลต์ แล้วกด ถัดไป</div>' : ''}${G.missing ? '<div class="miss">ยังไม่เห็นจุดนี้บนหน้าจอ (อาจยังไม่มีข้อมูล / ไม่มีสิทธิ์) — อ่านคำอธิบาย แล้วกด ถัดไป</div>' : ''}</div>
+      <div class="bd">${whyHtml()}<div class="tt">${esc(s.t)}</div><div class="dd">${esc(s.d)}</div>${act === 'click' ? '<div class="do">👆 กดจุดที่ไฮไลต์</div>' : act === 'input' ? '<div class="do">⌨ พิมพ์ในช่องที่ไฮไลต์ แล้วกด ถัดไป</div>' : ''}${G.missing ? '<div class="miss">ยังไม่เห็นจุดนี้บนหน้าจอ (อาจยังไม่มีข้อมูล / ไม่มีสิทธิ์) — อ่านคำอธิบาย แล้วกด ถัดไป</div>' : ''}</div>
       ${G.i === 0 && window.WCDemo && WCDemo.has && WCDemo.has(G.key) ? '<button class="lk" data-g-slides>ดูแบบสรุปทีละขั้น (ไม่ต้องกดตาม)</button>' : ''}
       <div class="ft"><button class="b" data-g-prev${G.i ? '' : ' disabled'}>◀ ก่อนหน้า</button>${last ? '<button class="b p" data-g-done>เสร็จสิ้น ✓</button>' : `<button class="b p" data-g-next>${act === 'click' ? 'ข้ามขั้นนี้ ▶' : 'ถัดไป ▶'}</button>`}</div>`; }
   function clearWait() { clearInterval(G.poll); G.poll = 0; if (G.onDoc) { document.removeEventListener('click', G.onDoc, true); document.removeEventListener('pointerup', G.onDoc, true); G.onDoc = null; } if (G.onIn) { document.removeEventListener('input', G.onIn, true); G.onIn = null; } }
   function go(i) {
     clearWait(); if (!G.tour) return; const n = G.tour.steps.length; if (i >= n) { stop(true); return; } if (i < 0) i = 0;
-    G.i = i; G.el = null; G.missing = false; const s = G.tour.steps[i]; const sp = G.root.querySelector('.wg-spot'); sp.classList.remove('pulse');
+    G.i = i; G.el = null; G.missing = false; G.whyOpen = false; const s = G.tour.steps[i]; const sp = G.root.querySelector('.wg-spot'); sp.classList.remove('pulse');
     drawBub(); let tries = 0;
     const attach = (el) => { G.el = el; try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {} if ((s.act || 'none') !== 'none') sp.classList.add('pulse');
       if (s.act === 'click') { G.onDoc = (e) => { if (G.el && (G.el === e.target || G.el.contains(e.target))) { const k = G.i; clearWait(); setTimeout(() => { if (G.tour && G.i === k) go(k + 1); }, 450); } }; document.addEventListener('click', G.onDoc, true); document.addEventListener('pointerup', G.onDoc, true); }   // แตะบนแบบ (canvas) บางที่ไม่เกิด click → ฟัง pointerup ด้วย
@@ -453,12 +456,58 @@
       if (tries > 24) { clearInterval(G.poll); G.poll = 0; if (s.opt && i < n - 1) { go(i + 1); return; } G.missing = true; drawBub(); } }, 150); }
   function onBub(e) { const t = e.target;
     if (t.closest('[data-g-x]')) { stop(false); return; } if (t.closest('[data-g-done]')) { stop(true); return; }
-    if (t.closest('[data-g-next]')) { go(G.i + 1); return; } if (t.closest('[data-g-prev]')) { go(G.i - 1); return; }
+    if (t.closest('[data-g-why]')) { G.whyOpen = true; drawBub(); return; } if (t.closest('[data-g-next]')) { go(G.i + 1); return; } if (t.closest('[data-g-prev]')) { go(G.i - 1); return; }
     if (t.closest('[data-g-slides]')) { const k = G.key; stop(false); try { window.WCDemo.open(k, { slides: true }); } catch (x) {} } }
   function onKey(e) { if (!G.tour) return; if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); stop(false); } }
   // ชื่อเรียกแทน — หน้าเดียวกันหลายชื่อ (ตรงกับ ALIAS ใน wcdemo.js)
   const GA = { 'nav:changes': 'tab:changes', 'tab:parties': 'tab:setup', 'nav:work': 'nav:inbox', 'nav:note': 'note', 'tab:proc': 'tab:procm', 'tab:mat': 'tab:procm', 'nav:subcon': 'tab:subcon', 'nav:calendar': 'tab:cal', 'nav:memo': 'tab:memo' };
   const tk = (k) => (T[k] ? k : (GA[k] && T[GA[k]] ? GA[k] : ''));
+  // ---------- 💡 ทำไมฟังก์ชันนี้สำคัญ (ผู้บริหารสั่ง 21/11/2026: "ให้มี note แจ้ง user ว่า function ที่ demo มีความสำคัญต่องานอย่างไร จะช่วย user อะไรได้บ้าง") ----------
+  // w = สำคัญต่องานอย่างไร · h = ช่วยคุณได้อะไร (แสดงเต็มที่ขั้นแรก · ขั้นอื่นกด “💡 ทำไมสำคัญ” เปิดดู)
+  const WHY = {
+    'note': { w: 'งานหลุดส่วนใหญ่เกิดจาก “จำได้แต่ไม่ได้จด” — บันทึกที่มีวันครบกำหนดและแท็กคน ทำให้ทุกเรื่องมีเจ้าของ', h: ['ไม่ลืมเรื่องที่รับปากไว้ · มีวันครบกำหนดเตือน', 'แท็กเพื่อนร่วมงาน แทนการทักใน LINE แล้วหาย', 'เห็นงานค้างของตัวเองในที่เดียว'] },
+    'tab:setup': { w: 'ข้อมูลโครงการคือฐานของเอกสารทุกใบ — กรอกครบครั้งเดียว ใบขอซื้อ ใบเสนอราคา หนังสือ ดึงไปใช้เอง', h: ['ไม่ต้องพิมพ์ชื่อลูกค้า / ที่อยู่ / เลขภาษีซ้ำทุกเอกสาร', 'ลดเอกสารผิดชื่อ ผิดที่อยู่ — ดูเป็นมืออาชีพ', 'ทีมทุกคนเห็นคู่สัญญาและผู้ติดต่อชุดเดียวกัน'] },
+    'tab:apr': { w: 'No Approved BOQ = No PO — ใบขอซื้อ / ใบขอจ้างที่ถูกต้องคือจุดเริ่มของการคุมต้นทุนและของเข้าไซต์ตรงเวลา', h: ['กรอกเร็วขึ้น ระบบช่วยดึงรายการจากโครงการ', 'ส่งอนุมัติตามสายงาน ติดตามสถานะได้', 'ลดของผิดสเปก / ผิดจำนวน / สั่งซ้ำ'] },
+    'tab:daily': { w: 'Daily Report คือหลักฐานหน้างานรายวัน — ใช้ยืนยันความคืบหน้า ขอขยายเวลา และป้องกันข้อโต้แย้งกับ Owner', h: ['บันทึกคน · งาน · ปัญหา · รูป จบใน 5 นาที', 'มีหลักฐานย้อนหลังเมื่อถูกทวงถามหรือเคลม', 'ทีมออฟฟิศเห็นหน้างานโดยไม่ต้องโทรถาม'] },
+    'tab:overview': { w: 'ภาพรวมเดียวที่บอกว่าโครงการ “ปกติหรือมีปัญหา” — เงิน เวลา งานค้าง ในจอเดียว', h: ['รู้ทันทีว่าเรื่องไหนต้องตามก่อน', 'แตะตัวเลขแล้วไปหน้าที่ต้องแก้ได้เลย', 'ใช้สรุปประชุมกับผู้บริหารได้ทันที'] },
+    'tab:plan': { w: 'Time Management ตรงแผนคือจุดแข็งของ Wellcon — แผนงานและ Look-ahead ทำให้ทีมรู้ว่าสัปดาห์นี้ต้องทำอะไร', h: ['เห็นงานล่าช้าก่อนกระทบวันส่งมอบ', 'Look-ahead 1–4 สัปดาห์ ให้ทีมหน้างานเตรียมคน / ของทัน', 'ใช้คุยกับ Owner / Designer ด้วยข้อมูลเดียวกัน'] },
+    'tab:rfi': { w: 'ทุกคำถามแบบและการขออนุมัติต้องมีหลักฐาน — RFI / RFA ที่บันทึกไว้ปกป้องบริษัทเมื่อแบบเปลี่ยนหรือมีงานเพิ่ม', h: ['ไม่ต้องรอคำตอบที่หายใน LINE / อีเมล', 'เห็นเรื่องค้างเกินกำหนด ตามได้ทันที', 'ใช้อ้างอิงทำ VO / ขอขยายเวลาได้'] },
+    'tab:dwg': { w: 'ทำงานผิดแบบ = รื้อ = เสียเงินและเวลา — Drawing Log ทำให้ทุกคนใช้แบบ Rev ล่าสุดที่อนุมัติแล้ว', h: ['รู้ว่าแบบไหนอนุมัติ / รอตรวจ / ให้แก้', 'หน้างานเปิดแบบล่าสุดใน Site Work ได้ทันที', 'ออก Drawing Transmittal ตามฟอร์มบริษัท'] },
+    'tab:docs': { w: 'เอกสารรับ-ส่งที่มีทะเบียน คือหลักฐานว่า “ส่งแล้ว / ได้รับแล้ว” เมื่อไร', h: ['หาไฟล์ / Rev ได้ในไม่กี่วินาที', 'ไม่ต้องค้นอีเมลย้อนหลังตอนถูกถาม', 'ส่งทะเบียนให้ Owner ตามฟอร์มบริษัท'] },
+    'tab:delay': { w: 'แจ้งล่าช้าไม่ทันกำหนดสัญญา = เสียสิทธิ์ขอขยายเวลา และเสี่ยงค่าปรับ', h: ['บันทึกเหตุล่าช้าทันทีพร้อมรูป', 'เตือนกำหนดแจ้งก่อนหมดสิทธิ์', 'ออกหนังสือแจ้งได้ครบทุกเรื่อง (ผู้บริหารตรวจก่อนส่ง)'] },
+    'tab:handover': { w: 'ส่งมอบครบและเร็ว = รับเงินงวดสุดท้ายและคืนประกันผลงานเร็ว — เป้าปิด Punch ≥ 90% ใน 7 วัน', h: ['เช็กลิสต์เอกสารส่งมอบไม่ตกหล่น', 'ติดตามรายพื้นที่ (Sectional) ได้', 'เก็บ As-built / O&M / Warranty ไว้ที่เดียว'] },
+    'tab:changes': { w: 'No Signed VO = No Additional Work — งานเพิ่มที่ไม่บันทึกและไม่อนุมัติ คืองานที่ไม่ได้เงิน', h: ['บันทึก VO / SI / EOT ทันที (แจ้ง VO ภายใน 48 ชม.)', 'เห็นสถานะรออนุมัติ / อนุมัติแล้ว', 'ใช้ปรับมูลค่าสัญญาและงวดเบิกได้ถูกต้อง'] },
+    'tab:aw': { w: 'งานเพิ่มที่ติดตามไม่ต่อเนื่องคือรายได้ที่หายไป — ทุกคนในโครงการเห็นสถานะ VO ชุดเดียวกับ QS', h: ['รู้ว่า VO ไหนรออนุมัติ / อนุมัติแล้ว', 'ไม่ต้องถาม QS ทุกครั้ง', 'ข้อมูลตรงกับ QS Tracking เสมอ'] },
+    'tab:fin': { w: 'งานเสร็จแต่ไม่วางบิล = เงินไม่เข้า — งวดเบิกเงินทำให้เห็นว่าเงินค้างที่ไหน', h: ['รู้ยอดวางบิล / ค้างรับ / ประกันผลงานที่ถูกหัก', 'ไม่พลาดงวดที่ถึงกำหนด', 'ข้อมูลภายใน — ช่วยผู้บริหารวางแผนกระแสเงินสด'] },
+    'tab:procm': { w: 'วัสดุมาไม่ทัน = งานหยุด — Material Log บอกสถานะทุกรายการตั้งแต่ถอดแบบจนของเข้าไซต์', h: ['เห็นรายการที่ยังไม่ออกใบขอซื้อ', 'ติดตามของรอเข้าไซต์ / ส่งครบแล้ว', 'ทีมจัดซื้อ หน้างาน QS ดูข้อมูลชุดเดียวกัน'] },
+    'tab:spo': { w: 'ของสั่งทำ / นำเข้ามี lead time ยาว — สั่งช้าวันเดียว อาจเลื่อนส่งมอบทั้งโครงการ', h: ['เตือนรายการที่ต้องสั่งภายใน 7 วัน', 'ติดตามผลิต → ขนส่ง → ศุลกากร → เข้าไซต์', 'วางแผนติดตั้งได้ตรงวันของเข้า'] },
+    'tab:prod': { w: 'No Signature = No Production — งานผลิตในโรงงานต้องเริ่มจากแบบที่อนุมัติ และส่งตรงคิวหน้างาน', h: ['เห็นสถานะ แบบ → Mock-up → ผลิต → QC → ส่ง', 'โรงงานกับหน้างานใช้ตารางเดียวกัน', 'ลดงานผลิตผิดแบบ / ผิดขนาด'] },
+    'tab:skp': { w: 'โมเดล 3D ที่ไม่คุมเวอร์ชัน ทำให้ทีมทำงานคนละแบบ', h: ['รู้ว่าเวอร์ชันไหนใช้งานจริง', 'ติดตามงานแกะแบบ / รอตรวจ', 'ใช้ตรวจปัญหาก่อนผลิตและติดตั้ง'] },
+    'tab:cal': { w: 'วันส่งมอบคือตัวตั้ง — ปฏิทินรวมวันสำคัญทุกโครงการ ไม่ให้นัดชนหรือลืมกำหนด', h: ['เห็นส่งมอบ · ตรวจงาน · ประชุม · วางบิล ในที่เดียว', 'วางแผนคนและเวลาได้ล่วงหน้า', 'ไม่พลาดวันหมดสัญญา / หมดประกัน'] },
+    'tab:memo': { w: 'หนังสือที่เป็นลายลักษณ์อักษรคือหลักฐานทางสัญญา — ออกตามฟอร์มบริษัท มีเลขที่ ค้นได้', h: ['ร่างเร็วขึ้น (มี AI ช่วยร่าง)', 'เลขที่เอกสารไม่ซ้ำ ไม่ตกหล่น', 'หนังสือผูกพันต้องผ่านผู้บริหารก่อนส่งเสมอ'] },
+    'tab:subcon': { w: 'สัญญาช่างที่ชัดเจน = ขอบเขตงาน มูลค่า งวดจ่ายตรงกัน ลดข้อพิพาท', h: ['ติดตามสถานะ ร่าง → PR → PO', 'เห็นยอดจ่ายแล้วเทียบมูลค่าสัญญา', 'จ่ายตามงวดที่ตรวจงานแล้วเท่านั้น'] },
+    'nav:dashboard': { w: 'ภาพรวมทุกโครงการสำหรับตัดสินใจ — รู้ว่าโครงการไหนต้องลงไปช่วยก่อน', h: ['เห็นโครงการล่าช้า / งานในมือ ทันที', 'แตะเข้าโครงการที่มีปัญหาได้เลย', 'ติดตามการใช้งานระบบของทีม'] },
+    'nav:inbox': { w: 'จุดเริ่มงานทุกวัน — รวมงานของตำแหน่งคุณไว้ในคลิกเดียว ไม่ต้องจำเมนู', h: ['เลือกโครงการแล้วเข้างานได้ทันที', 'จัดเรียงการ์ดตามงานที่ใช้บ่อย', 'เห็นบันทึก / งานค้าง / ปฏิทินในหน้าเดียว'] },
+    'nav:ai': { w: 'AI ช่วยสรุปและร่างจากข้อมูลจริงของโครงการ — ประหยัดเวลาค้นและเขียน', h: ['ถามยอดค้างรับ / RFI ค้าง / VO ค้าง ได้ทันที', 'อัดประชุม → สรุป MOM อัตโนมัติ', 'ตรวจตัวเลขก่อนใช้ทุกครั้ง (AI ช่วย ไม่ใช่ตัดสินแทน)'] },
+    'nav:qstrack': { w: 'งานประมูลและ VO คือรายได้ของบริษัท — QS Tracking ทำให้ไม่มีงานหลุดมือ', h: ['ติดตามงานเสนอราคา / ผลประมูล', 'คุมเอกสารเข้า-ออก', 'VO Tracker ส่งข้อมูลให้ทุกโครงการเห็น'] },
+    'nav:cfo': { w: 'ภาพเงินทั้งบริษัท — ช่วยผู้บริหารวางแผนกระแสเงินสดและตามเงินค้าง (ข้อมูลภายใน)', h: ['เห็นค้างรับ / ยังไม่วางบิล / Retention ทุกโครงการ', 'จับโครงการที่งานเดินแต่ยังไม่วางบิล', 'ข้อมูลภายใน ห้ามแชร์ภายนอก'] },
+    'nav:hr': { w: 'ข้อมูลบุคลากรที่ถูกต้อง คือฐานของสิทธิ์ใช้งาน การมอบหมายงาน และการเติบโตของทีม', h: ['ค้นหาพนักงาน / แผนก ได้เร็ว', 'ข้อมูลตำแหน่งตรงกับสิทธิ์ในระบบ', 'ใช้วางแผนกำลังคนรายโครงการ'] },
+    'nav:jd': { w: 'รู้หน้าที่และตัวชี้วัดของตัวเองชัด = ทำงานถูกจุด และรู้ว่าจะเติบโตไปทางไหนกับ Wellcon', h: ['รู้ขอบเขตงานที่ต้องรับผิดชอบ', 'เห็นตัวชี้วัด (KPI) ที่ใช้ประเมิน', 'ใช้วางเป้าพัฒนาตัวเอง'] },
+    'nav:library': { w: 'มาตรฐานงาน Wellcon รวมไว้ที่เดียว — ทำถูกตั้งแต่ครั้งแรก ลดงานแก้', h: ['4 Golden Rules และ SOP ทุกขั้นตอน', 'วิธีทำงาน / เช็กลิสต์ตรวจงานรายช่าง', 'ใช้สอนทีมใหม่และอ้างอิงหน้างาน'] },
+    'nav:training': { w: 'ทีมที่ผ่านการอบรมทำงานได้มาตรฐานเดียวกัน — ลูกค้า luxury เห็นความต่าง', h: ['หลักสูตรตามตำแหน่ง เรียนตามลำดับ', 'แบบทดสอบวัดความเข้าใจ', 'ระบบเก็บความคืบหน้า — เติบโตไปพร้อมบริษัท'] },
+    'nav:admin': { w: 'สิทธิ์ที่ถูกต้อง = คนที่ใช่เห็นข้อมูลที่ใช่ และข้อมูลภายในไม่รั่วไหล', h: ['เพิ่ม / ปิดผู้ใช้ได้เร็ว', 'กำหนดโครงการที่แต่ละคนเห็น', 'อัปเดตผู้ใช้ทีละหลายคนจาก Excel'] },
+    'nav:forms': { w: 'เอกสารทุกใบหน้าตาเดียวกัน สะท้อนภาพลักษณ์ luxury ของ Wellcon', h: ['ตั้งหัวเอกสาร / โลโก้ / สี ครั้งเดียว ใช้ทุกหน้า', 'รองรับ 2 ภาษาสำหรับลูกค้าต่างชาติ', 'ทดลองพิมพ์ก่อนใช้จริง'] },
+    'nav:system': { w: 'ตั้งค่ากลางที่ทุกหน้าใช้ร่วมกัน — แก้ที่เดียว มีผลทั้งระบบ', h: ['เปิด-ปิดการ์ด / ฟังก์ชันตามตำแหน่ง', 'ข้อมูลบริษัทในทุกเอกสาร', 'สำรองข้อมูลก่อนแก้ทุกครั้ง'] },
+    'nav:learn': { w: 'เรียนระบบตามตำแหน่งของคุณทีละเรื่อง — ใช้งานเป็นเร็ว งานเดินเร็ว', h: ['รู้ว่าควรเรียนเรื่องไหนก่อน', 'ฝึกในโหมดฝึกได้โดยไม่กระทบงานจริง', 'ผู้จัดการติดตามความคืบหน้าของทีมได้'] },
+    'tab:quo': { w: 'ใบเสนอราคาที่เร็วและถูกต้องคือโอกาสได้งาน — ออกที่เดียว มีขั้นอนุมัติก่อนถึงลูกค้า', h: ['AI ช่วยถอดรายการจากแบบ (QS ตรวจทุกรายการ)', 'เริ่มจากราคากลาง ปรับตามเงื่อนไขงาน', 'ระบุรวม / ไม่รวม VAT ชัดเจน'] },
+    'tab:qm': { w: 'ปริมาณที่วัดถูกต้องคือฐานของราคาและการสั่งวัสดุ — วัดผิด = ขาดทุนหรือของขาด', h: ['วัดบนแบบได้ทันที ไม่ต้องใช้โปรแกรมอื่น', 'บันทึกเป็นรายการ ส่ง QS ตรวจต่อ', 'ลดการวัดซ้ำหน้างาน'] },
+    'tab:pbook': { w: 'ราคากลางชุดเดียวทั้งบริษัท — ทุกคนเริ่มทำราคาจากฐานเดียวกัน (ข้อมูลภายใน)', h: ['ค้นราคาได้เร็ว', 'การแก้ราคาผ่านขั้นอนุมัติ', 'ข้อมูลภายใน ห้ามส่งออกนอกบริษัท'] },
+    'tab:pdf': { w: 'แก้เอกสาร PDF ได้เองในระบบ — ไม่ต้องรอใครหรือใช้โปรแกรมเสียเงิน', h: ['พิมพ์ข้อความ / กรอกฟอร์ม / เซ็นชื่อ', 'รวม / แทรก / สลับหน้า', 'บันทึกเป็นไฟล์ใหม่ส่งต่อได้ทันที'] },
+    'tab:photo': { w: 'รูปผลงานที่สวยคือการตลาดของ Wellcon — แต่งรูปหน้างานให้พร้อมนำเสนอได้เอง', h: ['ครอป · หมุน · ดัดเส้นตรง · ปรับแสง', 'แต่งหลายรูปพร้อมกัน', 'ตั้งชื่อไฟล์เป็นชุด'] },
+    'tab:lay': { w: 'งานนำเสนอที่ดีช่วยปิดการขายและให้ Owner / Designer อนุมัติเร็วขึ้น', h: ['จัดบอร์ด Mood / Material ได้เอง', 'ใส่สัญลักษณ์แบบ / ป้ายวัสดุ', 'แชร์และออก PDF ได้ทันที'] },
+    'tab:qc': { w: 'Precision detail คือจุดแข็งของ Wellcon — ตรวจ Defect บนแบบจริงพร้อมรูป ปิดงานได้ครบก่อนส่งมอบ', h: ['ปักหมุดตำแหน่งบนแบบ ไม่ต้องอธิบายยาว', 'มอบหมายผู้รับผิดชอบ ติดตามจนปิด', 'ออกรายงานส่งมอบได้ทันที'] },
+  };
+  function why(k) { return WHY[tk(k) || k] || WHY[k] || (T[tk(k)] && T[tk(k)].why) || null; }
   function start(key, o) { if (typeof key === 'string') key = tk(key) || key; const tour = typeof key === 'object' ? key : T[key]; if (!tour || !tour.steps || !tour.steps.length) return false;
     stop(false); build(); G.tour = tour; G.key = typeof key === 'string' ? key : (tour.key || ''); document.addEventListener('keydown', onKey, true); loop(); go(0); return true; }
   function stop(done) { clearWait(); cancelAnimationFrame(G.raf); if (G.root) { G.root.remove(); G.root = null; } document.removeEventListener('keydown', onKey, true);
@@ -488,5 +537,5 @@
     try { const u = new URL(location.href); u.searchParams.delete('wcdemo'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); } catch (e) {}
     const t0 = Date.now(); const iv = setInterval(() => { const kk = tk(k); if (!kk && Date.now() - t0 < 4000) return; if (!kk) { clearInterval(iv); return; }
       const f = find(T[kk].steps[0].sel); if (f || Date.now() - t0 > 10000) { clearInterval(iv); setTimeout(() => start(kk), 400); } }, 300); })();
-  window.WCGuide = { VER, start, demo: openDemo, curKey, stop, has: (k) => !!tk(k), register: (k, t) => { T[k] = t; }, check, keys: () => Object.keys(T), active: () => !!G.tour, done: (k) => { try { return !!localStorage.getItem('wg_done:' + k); } catch (e) { return false; } } };
+  window.WCGuide = { VER, why, start, demo: openDemo, curKey, stop, has: (k) => !!tk(k), register: (k, t) => { T[k] = t; }, check, keys: () => Object.keys(T), active: () => !!G.tour, done: (k) => { try { return !!localStorage.getItem('wg_done:' + k); } catch (e) { return false; } } };
 })();

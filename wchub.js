@@ -9,7 +9,7 @@
    ===================================================================== */
 (function () {
   'use strict';
-  const VER = '1.1.0';   // 1.1.0: ชื่อ Learning Center · เปิดจากการ์ด (ผู้ดูแลเปิด-ปิดได้) · ไม่มีแถบใน My Space / Training แล้ว
+  const VER = '1.1.1';   // 1.1.1: ชี้ค้างที่รายการ = 💡 ทำไมสำคัญ · 1.1.0: ชื่อ Learning Center · เปิดจากการ์ด (ผู้ดูแลเปิด-ปิดได้) · ไม่มีแถบใน My Space / Training แล้ว
   if (window.WCHub && window.WCHub.VER) return;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const BR = () => { try { return window.__whBridge ? window.__whBridge() : null; } catch (e) { return null; } };
@@ -102,7 +102,8 @@
   function css() { if (document.getElementById('wh-css')) return; const s = document.createElement('style'); s.id = 'wh-css'; s.textContent = CSS; document.head.appendChild(s); }
   const ring = (d, n) => { const p = n ? Math.round(d / n * 100) : 0; return `<div class="wh-ring" style="background:conic-gradient(#C9A961 ${p}%,#3A3832 0)"><span>${p}%</span></div>`; };
   function item(k, i, M) { const d = done(k, M); const g = hasG(k);
-    return `<div class="wh-it${d ? ' ok' : ''}"><div class="wh-n">${d ? '✓' : (i + 1)}</div><div class="wh-t"><b>${esc(FN.title(k) || k)}</b><span>${esc(FN.desc(k))}</span>${d ? `<i>เรียนแล้ว ${esc(String(d).slice(0, 10).split('-').reverse().join('/'))}</i>` : ''}</div>
+    const wy = (window.WCGuide && WCGuide.why && WCGuide.why(k)) || null;
+    return `<div class="wh-it${d ? ' ok' : ''}"${wy ? ` title="💡 ${esc(wy.w)}"` : ''}><div class="wh-n">${d ? '✓' : (i + 1)}</div><div class="wh-t"><b>${esc(FN.title(k) || k)}</b><span>${esc(FN.desc(k))}</span>${d ? `<i>เรียนแล้ว ${esc(String(d).slice(0, 10).split('-').reverse().join('/'))}</i>` : ''}</div>
       <button class="wh-go" data-go="${esc(k)}" title="${g ? 'พาไปหน้านี้ แล้วสอนแบบจูงมือ' : 'ดูสรุปทีละขั้น'}">${d ? '↻ ดูซ้ำ' : (g ? '▶ เริ่ม' : '▶ ดู')}</button></div>`; }
   function render() {
     const b = BR(), me = b ? b.me() : { name: '', roleKey: '' }, M = mine(); const roles = b ? b.roles() : []; const rk = S.role || me.roleKey || '';
