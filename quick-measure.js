@@ -11,7 +11,7 @@
    ===================================================================== */
 (() => {
 'use strict';
-const QM_VER = 'v1.7.5';   // 1.7.5: แถบหัวมาตรฐานเดียวกันทุกแอป — 🏠 หน้าแรกอยู่มุมบนซ้าย (pm-nav.js 1.3.0) · 1.7.4: ปิดหน้านี้ "แยกรายโครงการ" ได้ (ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน → รายโครงการ) · 1.7.3: ชื่อเรียกเดียวกับเมนู (Takeoff · วัดหน้างาน / Site Work) · แถบบนสีเดียวกับแอปหลัก · 1.7.2: กลับ Wellcon PM (← / 🏠) = โครงการเดิม · 1.7.1: ปิดฟังก์ชันทั้งระบบแล้วเข้าหน้านี้ไม่ได้ · 1.7.0: เลเยอร์ (ซ่อน/แสดง · สีตามงาน · วาดในเลเยอร์) · ความยาวหลายช่วงรวมเป็นรายการเดียว (✂ เริ่มช่วงใหม่) · ความสูงผนังตอนวาด · 1.6.0: จอคอม — รายการเป็นตาราง + แผงสรุป · เลือกแบบ / ทีม เป็น grid · ปุ่มหลักอยู่ด้านบน · หน้าต่างกลางจอ · 1.5.3: ระบบแท็ก — ส่ง QS ตรวจ = แท็ก QS · QS รับ / ส่งกลับ = แท็กผู้วัด · 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
+const QM_VER = 'v1.8.0';   // 1.8.0: ลบได้ทีละหลายรายการจากหน้ารายการ (☑ เลือกลบหลายรายการ · ลบได้เฉพาะของฉันที่ยังไม่ส่ง QS · ↶ ย้อนได้ทั้งชุด) · 1.7.5: แถบหัวมาตรฐานเดียวกันทุกแอป — 🏠 หน้าแรกอยู่มุมบนซ้าย (pm-nav.js 1.3.0) · 1.7.4: ปิดหน้านี้ "แยกรายโครงการ" ได้ (ตั้งค่าระบบ → การ์ดหน้าแรก & ฟังก์ชัน → รายโครงการ) · 1.7.3: ชื่อเรียกเดียวกับเมนู (Takeoff · วัดหน้างาน / Site Work) · แถบบนสีเดียวกับแอปหลัก · 1.7.2: กลับ Wellcon PM (← / 🏠) = โครงการเดิม · 1.7.1: ปิดฟังก์ชันทั้งระบบแล้วเข้าหน้านี้ไม่ได้ · 1.7.0: เลเยอร์ (ซ่อน/แสดง · สีตามงาน · วาดในเลเยอร์) · ความยาวหลายช่วงรวมเป็นรายการเดียว (✂ เริ่มช่วงใหม่) · ความสูงผนังตอนวาด · 1.6.0: จอคอม — รายการเป็นตาราง + แผงสรุป · เลือกแบบ / ทีม เป็น grid · ปุ่มหลักอยู่ด้านบน · หน้าต่างกลางจอ · 1.5.3: ระบบแท็ก — ส่ง QS ตรวจ = แท็ก QS · QS รับ / ส่งกลับ = แท็กผู้วัด · 1.5.2: ปุ่มเปิด Mango + คัดลอกรายการของทีมไปวางใน PR / ใบสั่งจ้าง · 1.5.1: ป้ายบนแบบย่อ/ซ่อนเมื่อยาวเกินรูป · 1.5.0: แบ่งขอบเขตงานตามทีม/ผู้รับเหมา (ไฮไลต์บนแบบ · สรุปปริมาณต่อทีม · ใบขอบเขตงาน) · 1.4.0: แบบ PDF คมชัดเมื่อซูม · นำเข้า DXF (สเกลอัตโนมัติ) · 1.3.0: จอคอม 3 ส่วนแบบ QS (ธีม PM) · โน้ต · ไม้บรรทัด · ตัวคูณนับจุด · % เผื่อ · แพ็ก · CSV · ล็อกแนวตรง (Shift) · คีย์ลัด
 const E = window.TakeoffEngine;
 const CFG = {
   url: 'https://botecmzshubflokkdant.supabase.co',
@@ -93,6 +93,13 @@ async function rowSet(id, patch) {
   if (n.deleted_at) { if (i >= 0) APP.rows.splice(i, 1); } else if (i >= 0) APP.rows[i] = n; else APP.rows.unshift(n);
   if (APP.screen === 'list') renderList(); if (APP.screen === 'measure') MV.side(); if (APP.screen === 'teams') renderTeams(); return n;
 }
+// v1.8.0 แก้หลายแถวพร้อมกัน (ลบหลายรายการ / ย้อนกลับ) แล้วซิงก์ APP.rows
+async function rowsSet(ids, patch) {
+  const q = await sb.from('takeoff_field_measures').update(patch).in('id', ids).select('*'); if (q.error) throw q.error;
+  (q.data || []).forEach(n => { const i = APP.rows.findIndex(x => x.id === n.id); if (n.deleted_at) { if (i >= 0) APP.rows.splice(i, 1); } else if (i >= 0) APP.rows[i] = n; else APP.rows.push(n); });
+  APP.rows.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  if (APP.screen === 'list') renderList(); if (APP.screen === 'measure') MV.side(); if (APP.screen === 'teams') renderTeams(); return q.data || []; }
+const canDel = (r) => isMine(r) && (r.status === 'field' || r.status === 'returned');   // กติกาเดียวกับปุ่ม "ลบรายการ" ทีละรายการ
 // แก้แถว takeoff_field_sheets แล้วซิงก์ APP.sheets
 async function sheetSet(ids, patch) {
   const q = await sb.from('takeoff_field_sheets').update(patch).in('id', ids).select('*');
@@ -516,7 +523,10 @@ function renderList() {
   const nSub = me.review ? APP.rows.filter(r => r.status === 'submitted').length : 0;
   const qsInfo = nSub ? `<div class="info" style="background:#E3ECF5;color:#2F5E8C">มี ${nSub} รายการรอ QS ตรวจ — ${dk ? 'คลิก' : 'แตะ'}รายการเพื่อ “รับ” หรือ “ส่งกลับ”</div>` : '';
   const chips = `<div class="chips" role="tablist"><button class="chip${APP.filter === 'mine' ? ' on' : ''}" data-f="mine">ของฉัน</button><button class="chip${APP.filter === 'all' ? ' on' : ''}" data-f="all">ทุกคน</button>
-    <button class="chip" data-f="reload" aria-label="โหลดใหม่">↻ โหลดใหม่</button><button class="chip" data-his="u" title="ย้อน (Ctrl+Z)">↶ ย้อน</button><button class="chip" data-his="r" title="ทำซ้ำ (Ctrl+Y)">↷ ทำซ้ำ</button></div>`;
+    <button class="chip" data-f="reload" aria-label="โหลดใหม่">↻ โหลดใหม่</button><button class="chip" data-his="u" title="ย้อน (Ctrl+Z)">↶ ย้อน</button><button class="chip" data-his="r" title="ทำซ้ำ (Ctrl+Y)">↷ ทำซ้ำ</button>${rows.some(canDel) || APP.sel ? `<button class="chip${APP.sel ? ' on' : ''}" data-f="sel">☑ เลือกลบหลายรายการ</button>` : ''}</div>`
+    + (APP.sel ? (() => { const D = rows.filter(canDel), n = APP.sel.size;   // v1.8.0 แถบเลือกหลายรายการ
+      return `<div class="selbar"><b>เลือกแล้ว ${n}</b><span class="sp"></span><button class="chip" data-f="selall">เลือกทั้งหมดที่ลบได้ (${D.length})</button>${n ? '<button class="chip" data-f="selnone">ล้าง</button>' : ''}<button class="btn sdel" data-f="seldel"${n ? '' : ' disabled'}>🗑 ลบ ${n} รายการ</button><button class="chip" data-f="selx">เสร็จ</button>
+        <small>แตะรายการเพื่อเลือก · ลบได้เฉพาะของคุณที่ยังไม่ส่งให้ QS</small></div>`; })() : '');
   let team = '';
   if (!APP.noTeams) { const R = APP.rows.filter(r => r.type !== 'note'), un = R.filter(r => !teamOf(r)).length;   // v1.5.0 ทางเข้า "แบ่งงานตามทีม"
     team = `<button class="card tentry" data-teams><div class="row1"><span class="nm">👥 แบ่งงานตามทีม / ผู้รับเหมา</span><span class="q">${APP.teams.length} ทีม ›</span></div>
@@ -530,9 +540,9 @@ function renderList() {
   const boq = S.show_qty && Q.length ? '<div class="sec">ปริมาณ BOQ จาก QS (baseline)</div><div class="card">' + Q.map(q => `<div class="row1" style="font-size:14px"><span class="nm" style="font-weight:400">${esc([q.catName || q.cat, q.desc].filter(Boolean).join(' · '))}</span><span class="q">${esc(f2(q.net))} ${esc(q.unit || q.u || '')}</span></div>`).join('') + '</div>' : '';
   const ver = `<p class="ver">Takeoff · วัดหน้างาน ${QM_VER} · engine ${E.ENGINE_VERSION}</p>`;
   if (dk) {
-    const tbl = rows.length ? `<div class="mt-w"><table class="mt"><thead><tr><th>ห้อง / โซน · งาน</th><th>ทีม</th><th class="n">ปริมาณ</th><th>สถานะ</th><th>แบบ</th><th>ผู้วัด</th><th>วันที่</th></tr></thead><tbody>` +
+    const tbl = rows.length ? `<div class="mt-w"><table class="mt"><thead><tr>${APP.sel ? '<th></th>' : ''}<th>ห้อง / โซน · งาน</th><th>ทีม</th><th class="n">ปริมาณ</th><th>สถานะ</th><th>แบบ</th><th>ผู้วัด</th><th>วันที่</th></tr></thead><tbody>` +
       rows.map(r => { const tm = teamOf(r);
-        return `<tr data-row="${esc(r.id)}" tabindex="0"><td><b>${esc(rowLabel(r))}</b>${r.status === 'returned' && r.qs_note ? `<small style="color:#8C2F2F">QS: ${esc(r.qs_note)}</small>` : (r.note ? `<small>${esc(r.note)}</small>` : '')}</td>
+        return `<tr data-row="${esc(r.id)}" tabindex="0"${APP.sel ? ` class="${APP.sel.has(r.id) ? 'sel' : canDel(r) ? '' : 'nosel'}"` : ''}>${APP.sel ? `<td class="ckc"><span class="ck${APP.sel.has(r.id) ? ' on' : ''}${canDel(r) ? '' : ' off'}">${APP.sel.has(r.id) ? '✓' : ''}</span></td>` : ''}<td><b>${esc(rowLabel(r))}</b>${r.status === 'returned' && r.qs_note ? `<small style="color:#8C2F2F">QS: ${esc(r.qs_note)}</small>` : (r.note ? `<small>${esc(r.note)}</small>` : '')}</td>
           <td>${tm ? `<span class="tm"><span class="tdot" style="--c:${esc(tm.color)}"></span>${esc(tm.name)}</span>` : '<span style="color:var(--mut)">—</span>'}</td>
           <td class="n"><b>${qtyOf(r)}</b></td><td><span class="tag t-${esc(r.status)}">${esc(ST[r.status] || r.status)}</span></td>
           <td>${esc(sheetOfRow(r))}</td><td>${esc(whoOf(r))}</td><td style="white-space:nowrap">${esc(when(r.created_at))}</td></tr>`; }).join('') + '</tbody></table></div>' : empty;
@@ -544,7 +554,8 @@ function renderList() {
     const h = [...warn, chips, team];
     if (!rows.length) h.push(empty);
     rows.forEach(r => { const who = whoOf(r), tm = teamOf(r);
-      h.push(`<button class="card" data-row="${esc(r.id)}"><div class="row1">${tm ? `<span class="tdot" style="--c:${esc(tm.color)}"></span>` : ''}<span class="nm">${esc(rowLabel(r))}</span><span class="q">${qtyOf(r)}</span></div>
+      const sk = APP.sel ? `<span class="ck${APP.sel.has(r.id) ? ' on' : ''}${canDel(r) ? '' : ' off'}">${APP.sel.has(r.id) ? '✓' : ''}</span>` : '';
+      h.push(`<button class="card${APP.sel ? (APP.sel.has(r.id) ? ' sel' : canDel(r) ? '' : ' nosel') : ''}" data-row="${esc(r.id)}"><div class="row1">${sk}${tm ? `<span class="tdot" style="--c:${esc(tm.color)}"></span>` : ''}<span class="nm">${esc(rowLabel(r))}</span><span class="q">${qtyOf(r)}</span></div>
       <div class="row2"><span class="tag t-${esc(r.status)}">${esc(ST[r.status] || r.status)}</span>${tm ? `<b style="color:${esc(tm.color)}">${esc(tm.name)}</b>` : ''}<span>${esc(when(r.created_at))}${who ? ' · ' + esc(who) : ''}</span>${r.status === 'returned' && r.qs_note ? `<span style="color:#8C2F2F">QS: ${esc(r.qs_note)}</span>` : ''}</div></button>`); });
     h.push(note, boq);
     if (qsInfo) h.unshift(qsInfo);
@@ -563,10 +574,30 @@ if (window.matchMedia) { const mq = window.matchMedia('(min-width:1000px)'); con
   if (mq.addEventListener) mq.addEventListener('change', f); else if (mq.addListener) mq.addListener(f); }
 $('listBody').addEventListener('click', async (e) => {
   const f = e.target.closest('[data-f]');
+  if (f && /^sel/.test(f.dataset.f)) { await selAct(f.dataset.f); return; }   // v1.8.0
+  if (APP.sel) { const b = e.target.closest('[data-row]'); if (b) { const r = APP.rows.find(x => x.id === b.dataset.row); if (!r) return;
+      if (!canDel(r)) { toast(isMine(r) ? 'ลบไม่ได้ — ส่งให้ QS แล้ว (รอ QS ส่งกลับก่อน)' : 'ลบไม่ได้ — เป็นรายการของ ' + (r.created_by || 'คนอื่น')); return; }
+      APP.sel.has(r.id) ? APP.sel.delete(r.id) : APP.sel.add(r.id); renderList(); return; } }
   if (f) { if (f.dataset.f === 'reload') { toast('กำลังโหลดใหม่…', 900); try { await Promise.all([loadSettings(), loadRows()]); } catch (x) { toast('โหลดไม่สำเร็จ'); } } else APP.filter = f.dataset.f; renderList(); return; }
   if (e.target.closest('[data-teams]')) { show('teams', true); renderTeams(); return; }
   const b = e.target.closest('[data-row]'); if (b) openRow(b.dataset.row);
 });
+// v1.8.0 เลือก / ลบหลายรายการ
+async function selAct(a) {
+  const view = () => APP.rows.filter(r => APP.filter === 'all' || isMine(r));
+  if (a === 'sel') { APP.sel = APP.sel ? null : new Set(); renderList(); return; }
+  if (a === 'selx') { APP.sel = null; renderList(); return; }
+  if (a === 'selnone') { APP.sel.clear(); renderList(); return; }
+  if (a === 'selall') { view().filter(canDel).forEach(r => APP.sel.add(r.id)); renderList(); return; }
+  if (a !== 'seldel' || !APP.sel || !APP.sel.size) return;
+  const L = APP.rows.filter(r => APP.sel.has(r.id) && canDel(r)), ids = L.map(r => r.id); if (!ids.length) return;
+  if (!confirm('ลบ ' + ids.length + ' รายการ?\n\n' + L.slice(0, 8).map(r => '• ' + rowLabel(r) + (r.qty != null ? ' ' + fq(+r.qty, r.unit) + ' ' + (r.unit || '') : '')).join('\n') + (L.length > 8 ? '\n… และอีก ' + (L.length - 8) + ' รายการ' : '') + '\n\nกด ↶ ย้อน เพื่อกู้คืนได้')) return;
+  const at = new Date().toISOString();
+  try { const got = await rowsSet(ids, { deleted_at: at }); if (got.length < ids.length) toast('ลบได้ ' + got.length + ' จาก ' + ids.length + ' รายการ', 4000);
+    hisPush({ kind: 'act', label: 'ลบ ' + ids.length + ' รายการ', undo: () => rowsSet(ids, { deleted_at: null }), redo: () => rowsSet(ids, { deleted_at: new Date().toISOString() }) });
+    APP.sel = null; renderList(); toast('ลบแล้ว ' + got.length + ' รายการ · กด ↶ ย้อน (Ctrl+Z) ได้', 3200);
+  } catch (x) { toast('ลบไม่สำเร็จ: ' + ((x && x.message) || x), 4000); } }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && APP.sel && APP.screen === 'list') { APP.sel = null; renderList(); } });
 $('btnNew').addEventListener('click', () => { renderPick(); show('pick', true); });
 $('btnSubmit').addEventListener('click', async () => {
   const L = APP.rows.filter(r => isMine(r) && (r.status === 'field' || r.status === 'returned'));
