@@ -12,7 +12,7 @@
 (function () {
   'use strict';
   if (window.WCSetup) return;
-  const VER = '1.2.0';   // 1.2.0: ใบเสนอราคา / สัญญา / BOQ → ปุ่ม “ใช้เป็นวัสดุในใบขอซื้อ” · 1.1.0:   // 1.1.0: ที่อยู่หน้างาน / สถานที่ส่งของ (ใช้ในใบขอซื้อ · ใบเสนอราคา)
+  const VER = '1.3.0';   // 1.3.0: วางฟอร์มข้อ 1–3 ในหน้าภาพรวมโครงการได้ (inline · [data-ws-host]) — ฟอร์มเดียวกันทุกที่ · 1.2.0: ใบเสนอราคา / สัญญา / BOQ → ปุ่ม “ใช้เป็นวัสดุในใบขอซื้อ” · 1.1.0:   // 1.1.0: ที่อยู่หน้างาน / สถานที่ส่งของ (ใช้ในใบขอซื้อ · ใบเสนอราคา)
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const pad = (n) => String(n).padStart(2, '0');
   const dmy = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; };
@@ -64,32 +64,27 @@
 .ws-ft{flex:none;padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid #E3DACB;background:#FFFDF8;display:flex;gap:8px;align-items:center}
 .ws-ft small{flex:1;font-size:12.5px;color:#6B6758}
 .ws-toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#1C1B18;color:#fff;border-radius:12px;padding:10px 16px;font:14px 'IBM Plex Sans Thai',system-ui,sans-serif;z-index:2147483600;max-width:90vw;text-align:center}
-@media print{.ws-ov,.ws-toast{display:none!important}}`;
+@media print{.ws-ov,.ws-toast{display:none!important}}
+.ws-inl{font-family:'IBM Plex Sans Thai','Noto Sans Thai',system-ui,sans-serif;color:#22231C;display:flex;flex-direction:column;gap:12px}
+.ws-inl .ws-card{margin:0}
+.ws-inl-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:#6B6758;background:#FBF8F1;border:1px solid #EFE7D6;border-radius:12px;padding:8px 12px}.ws-inl-hd .sp{flex:1}`;
   function css() { if (document.getElementById('ws-css')) return; const s = document.createElement('style'); s.id = 'ws-css'; s.textContent = CSS; document.head.appendChild(s); }
   let toastT = 0;
   function toast(m, ms) { css(); let t = document.querySelector('.ws-toast'); if (!t) { t = document.createElement('div'); t.className = 'ws-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
     t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms || 2600); }
 
-  const S = { B: null, ov: null, pid: '', party: 'owner', ai: true };
+  const OV = { B: null, ov: null, pid: '', party: 'owner', ai: true };
+  let S = OV; const INL = []; const run = (c, fn) => { const k = S; S = c; try { return fn(); } finally { S = k; } };
 
   function field(sec, key, label, val, o) { o = o || {}; const ro = !S.B.canEdit() || o.ro; const v = val == null ? '' : String(val);
     const inp = o.area ? `<textarea data-s="${sec}" data-k="${esc(key)}"${ro ? ' disabled' : ''} placeholder="${esc(o.ph || '')}">${esc(v)}</textarea>`
       : `<input data-s="${sec}" data-k="${esc(key)}" type="${o.type || 'text'}" value="${esc(v)}"${ro ? ' disabled' : ''} placeholder="${esc(o.ph || '')}"${o.type === 'text' || !o.type ? ' autocomplete="off"' : ''}>`;
     return `<label class="ws-f${o.wide ? ' w' : ''}${!v.trim() && o.need ? ' empty' : ''}"><span>${esc(label)}${o.need ? ' <i style="color:#C2681E;font-style:normal">*</i>' : ''}</span>${inp}${o.hint ? `<span class="ws-hint">${o.hint}</span>` : ''}</label>`; }
 
-  function render() {
-    if (!S.ov) return; const B = S.B, pid = S.pid, p = B.proj(pid); const bx = S.ov.querySelector('.ws-bx');
-    if (!p) { bx.innerHTML = '<div class="ws-hd"><b style="flex:1">ตั้งค่าโครงการ</b><button class="ws-x" data-x aria-label="ปิด">✕</button></div><div class="ws-bd"><p>ไม่พบโครงการ</p></div>'; return; }
-    const D = B.defs(), P = B.parties(pid), Bi = B.billing(pid), sc = B.score(pid), can = B.canEdit(), mon = B.money();
-    const ring = `conic-gradient(${sc.pct >= 80 ? '#4E9B5F' : sc.pct >= 50 ? '#C9A961' : '#C2681E'} ${sc.pct * 3.6}deg, rgba(255,255,255,.15) 0)`;
-    const projOpts = B.projects().map(x => `<option value="${esc(x.id)}"${x.id === pid ? ' selected' : ''}>${esc(x.name)}${x.code ? ' · ' + esc(x.code) : ''}</option>`).join('');
-    const h = [];
-    if (!can) h.push('<div class="ws-ro">ดูได้อย่างเดียว — ข้อมูลโครงการแก้ได้เฉพาะ PM · QS · Director · Admin · การเงิน · ธุรการ</div>');
-    if (sc.missing.length) h.push(`<div class="ws-miss"><b>ยังขาด ${sc.missing.length} อย่าง — กรอกให้ครบ เอกสารทุกฉบับจะดึงไปใช้ได้ทันที</b><div class="ws-chips">${sc.missing.slice(0, 14).map(m => `<button class="ws-chip" data-go="${esc(m.sec)}"${m.party ? ` data-party="${esc(m.party)}"` : ''}>${esc(m.label)}</button>`).join('')}${sc.missing.length > 14 ? `<span class="ws-hint">และอีก ${sc.missing.length - 14}</span>` : ''}</div></div>`);
-    else h.push('<div class="ws-miss" style="background:#EEF6EB;border-color:#CFE3C9"><b style="color:#2E6B3A">✓ ข้อมูลหลักครบแล้ว — เอกสารทุกฉบับดึงไปใช้ได้</b></div>');
+  function secMain() { const B = S.B, pid = S.pid, p = B.proj(pid) || {}, mon = B.money();
     // 1 ข้อมูลหลัก
     const eff = B.effEnd(pid);
-    h.push(`<div class="ws-card" id="ws-main"><div class="ws-h"><span class="n">1</span>ข้อมูลหลักของโครงการ <small>ดึงจาก Mango ตอนสร้างโครงการ — แก้ให้ตรงสัญญาได้</small></div><div class="ws-g">
+    return (`<div class="ws-card" id="ws-main"><div class="ws-h"><span class="n">1</span>ข้อมูลหลักของโครงการ <small>ดึงจาก Mango ตอนสร้างโครงการ — แก้ให้ตรงสัญญาได้</small></div><div class="ws-g">
       ${field('p', 'name', 'ชื่อโครงการ', p.name, { need: true })}${field('p', 'code', 'รหัสโครงการ (WLC)', p.code || p.wlcCode)}${field('p', 'contractNo', 'เลขที่สัญญา / PO ลูกค้า', p.contractNo, { need: true })}
       ${field('p', 'client', 'ลูกค้า (ชื่อย่อในระบบ)', p.client, { need: true })}
       ${field('p', 'siteAddr', 'ที่อยู่หน้างาน / สถานที่ส่งของ', p.siteAddr, { need: true, wide: true, ph: 'เช่น อาคาร A ชั้น 12 เลขที่ … ถนน … (ใส่ชื่อผู้รับของหน้างานได้)', hint: 'ใช้: ใบขอซื้อ (สถานที่ส่งของ) · ใบเสนอราคา (สถานที่)' })}
@@ -97,16 +92,32 @@
       ${field('p', 'endISO', 'วันส่งมอบตามสัญญา', p.endISO, { type: 'date', need: true, hint: eff && eff !== p.endISO ? 'วันส่งมอบหลังขยายเวลา (EOT ที่อนุมัติ): <b>' + esc(dmy(eff)) + '</b>' : '' })}
       ${mon ? field('p', 'value', 'มูลค่าสัญญา (บาท · ไม่รวม VAT)', p.value || '', { need: true, hint: p.value ? esc(money(p.value)) + ' · ไม่รวม VAT' : '' }) : '<div class="ws-lock">🔒 มูลค่าสัญญา — เห็นเฉพาะผู้มีสิทธิ์ตัวเลขเงิน</div>'}
     </div></div>`);
+  }
+  function secParty() { const B = S.B, pid = S.pid, D = B.defs(), P = B.parties(pid);
     // 2 คู่สัญญา
     const cur = D.parties.find(x => x.key === S.party) || D.parties[0]; const d = P[cur.key] || {};
-    h.push(`<div class="ws-card" id="ws-party"><div class="ws-h"><span class="n">2</span>คู่สัญญา · ผู้เกี่ยวข้อง <small>เลือกฝ่าย แล้วกรอก · * = จำเป็นสำหรับเอกสาร</small></div>
+    return (`<div class="ws-card" id="ws-party"><div class="ws-h"><span class="n">2</span>คู่สัญญา · ผู้เกี่ยวข้อง <small>เลือกฝ่าย แล้วกรอก · * = จำเป็นสำหรับเอกสาร</small></div>
       <div class="ws-chips">${D.parties.map(x => { const dd = P[x.key] || {}; const n = D.pf.filter(f => String(dd[f.key] || '').trim()).length;
         return `<button class="ws-chip${x.key === cur.key ? ' on' : ''}" data-party="${esc(x.key)}">${esc(x.label)}<i>${n}/${D.pf.length}${x.req ? '' : ' · ถ้ามี'}</i></button>`; }).join('')}</div>
       <div class="ws-hint">${esc(cur.sub || '')}</div>
       <div class="ws-g">${D.pf.map(f => field('party:' + cur.key, f.key, f.label, d[f.key] || '', { ph: f.ph, wide: f.wide || f.key === 'address', area: f.key === 'address', need: cur.req && ['company', 'contact', 'tel', 'address'].includes(f.key) && (f.key !== 'address' || cur.key === 'owner') })).join('')}</div></div>`);
+  }
+  function secBill() { const B = S.B, pid = S.pid, D = B.defs(), Bi = B.billing(pid);
     // 3 วางบิล
-    h.push(`<div class="ws-card" id="ws-bill"><div class="ws-h"><span class="n">3</span>เงื่อนไขวางบิล · การจ่ายเงิน <small>ใช้ตอนวางบิล · งวดเงิน</small></div><div class="ws-g">
+    return (`<div class="ws-card" id="ws-bill"><div class="ws-h"><span class="n">3</span>เงื่อนไขวางบิล · การจ่ายเงิน <small>ใช้ตอนวางบิล · งวดเงิน</small></div><div class="ws-g">
       ${D.bf.map(f => field('bill', f.key, f.label, Bi[f.key] || '', { ph: f.ph, wide: f.wide, area: f.area, need: ['credit', 'retention'].includes(f.key) })).join('')}</div></div>`);
+  }
+  function render() {
+    if (!S.ov) return; const B = S.B, pid = S.pid, p = B.proj(pid); const bx = S.ov.querySelector('.ws-bx');
+    if (!p) { bx.innerHTML = '<div class="ws-hd"><b style="flex:1">ตั้งค่าโครงการ</b><button class="ws-x" data-x aria-label="ปิด">✕</button></div><div class="ws-bd"><p>ไม่พบโครงการ</p></div>'; return; }
+    const sc = B.score(pid), can = B.canEdit();
+    const ring = `conic-gradient(${sc.pct >= 80 ? '#4E9B5F' : sc.pct >= 50 ? '#C9A961' : '#C2681E'} ${sc.pct * 3.6}deg, rgba(255,255,255,.15) 0)`;
+    const projOpts = B.projects().map(x => `<option value="${esc(x.id)}"${x.id === pid ? ' selected' : ''}>${esc(x.name)}${x.code ? ' · ' + esc(x.code) : ''}</option>`).join('');
+    const h = [];
+    if (!can) h.push('<div class="ws-ro">ดูได้อย่างเดียว — ข้อมูลโครงการแก้ได้เฉพาะ PM · QS · Director · Admin · การเงิน · ธุรการ</div>');
+    if (sc.missing.length) h.push(`<div class="ws-miss"><b>ยังขาด ${sc.missing.length} อย่าง — กรอกให้ครบ เอกสารทุกฉบับจะดึงไปใช้ได้ทันที</b><div class="ws-chips">${sc.missing.slice(0, 14).map(m => `<button class="ws-chip" data-go="${esc(m.sec)}"${m.party ? ` data-party="${esc(m.party)}"` : ''}>${esc(m.label)}</button>`).join('')}${sc.missing.length > 14 ? `<span class="ws-hint">และอีก ${sc.missing.length - 14}</span>` : ''}</div></div>`);
+    else h.push('<div class="ws-miss" style="background:#EEF6EB;border-color:#CFE3C9"><b style="color:#2E6B3A">✓ ข้อมูลหลักครบแล้ว — เอกสารทุกฉบับดึงไปใช้ได้</b></div>');
+    h.push(secMain(), secParty(), secBill());
     // 4 เอกสารสัญญา
     const docs = B.docs(pid), rb = B.refBoq(pid), loaded = B.docsLoaded();
     h.push(`<div class="ws-card" id="ws-doc"><div class="ws-h"><span class="n">4</span>เอกสารสัญญา <small>อัปโหลดแล้วให้ AI อ่าน เติมข้อมูลข้อ 1–3 ให้ · ตรวจก่อนบันทึกทุกครั้ง</small><span class="sp"></span>${can ? '<button class="ws-b ai" data-ai>🤖 ให้ AI อ่านเอกสารที่มี</button>' : ''}</div>
@@ -137,7 +148,7 @@
     r.querySelector('.ring').style.background = `conic-gradient(${sc.pct >= 80 ? '#4E9B5F' : sc.pct >= 50 ? '#C9A961' : '#C2681E'} ${sc.pct * 3.6}deg, rgba(255,255,255,.15) 0)`;
     r.querySelector('.ring span').textContent = sc.pct + '%'; r.querySelector('small').innerHTML = 'ข้อมูลครบ<br>' + sc.done + '/' + sc.total + ' อย่าง'; }
 
-  function onChange(e) { const t = e.target; const B = S.B;
+  function onChange(e) { const t = e.target; const B = S.B; const C = S;
     if (t.matches('[data-pid]')) { S.pid = t.value; B.setCur && B.setCur(S.pid); render(); return; }
     if (t.matches('[data-aichk]')) { S.ai = t.checked; return; }
     if (t.matches('[data-up]')) { const files = [...(t.files || [])]; t.value = ''; if (!files.length) return; const k = t.dataset.up;
@@ -146,8 +157,10 @@
     const sec = t.dataset.s, k = t.dataset.k; if (!sec || !k || !B.canEdit()) return; const v = t.value;
     if (sec === 'p') B.setProj(S.pid, k, v); else if (sec === 'bill') B.setBill(S.pid, k, v); else if (sec.indexOf('party:') === 0) B.setParty(S.pid, sec.slice(6), k, v);
     const lab = t.closest('.ws-f'); if (lab) lab.classList.toggle('empty', !String(v).trim() && !!lab.querySelector('i'));
-    setTimeout(head, 60); }
-  function onClick(e) { const t = e.target; const B = S.B;
+    if (C.inline) { C.sig = sigOf(C); setTimeout(() => run(C, () => { const ch = C.host.querySelector('.ws-inl-pct'); if (ch) ch.textContent = 'ข้อมูลครบ ' + B.score(C.pid).pct + '%'; }), 60); } else setTimeout(head, 60); }
+  function onClick(e) { const t = e.target; const B = S.B; const C = S;
+    if (C.inline) { const pt = t.closest('[data-party]'); if (pt) { C.party = pt.dataset.party; renderInl(); return; }
+      if (t.closest('[data-full]')) { open(B, C.pid); return; } return; }
     if (t === S.ov || t.closest('[data-x]')) { close(); return; }
     const pt = t.closest('[data-party]'); if (pt) { S.party = pt.dataset.party; render(); const c = S.ov.querySelector('#ws-party'); if (c && t.closest('[data-go]')) c.scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
     const go = t.closest('[data-go]'); if (go) { const c = S.ov.querySelector('#ws-' + go.dataset.go); if (c) c.scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
@@ -156,11 +169,39 @@
       location.href = '/auto-pr.html?pid=' + encodeURIComponent(S.pid) + '&cat=1' + (stg ? '&env=staging' : ''); return; }
     if (t.closest('[data-boq]') || t.closest('[data-proj]')) { close(); B.openProject(S.pid); return; } }
   function onKey(e) { if (e.key === 'Escape' && S.ov) close(); }
-  function open(bridge, pid) { css(); if (!bridge) return; S.B = bridge; const P = bridge.projects(); S.pid = (pid && P.some(x => x.id === pid)) ? pid : ((P[0] || {}).id || '');
+  function open(bridge, pid) { return run(OV, () => open0(bridge, pid)); }
+  function open0(bridge, pid) { css(); if (!bridge) return; S.B = bridge; const P = bridge.projects(); S.pid = (pid && P.some(x => x.id === pid)) ? pid : ((P[0] || {}).id || '');
     if (!S.pid) { toast('ยังไม่มีโครงการที่คุณดูแล'); return; }
     if (!S.ov) { S.ov = document.createElement('div'); S.ov.className = 'ws-ov'; S.ov.setAttribute('translate', 'no'); S.ov.innerHTML = '<div class="ws-bx" role="dialog" aria-modal="true" aria-label="ตั้งค่าโครงการ"></div>';
-      S.ov.addEventListener('click', onClick); S.ov.addEventListener('change', onChange); document.body.appendChild(S.ov); document.addEventListener('keydown', onKey); }
-    render(); if (!bridge.docsLoaded()) bridge.docsLoad().then(() => { if (S.ov) render(); }); }
-  function close() { if (S.ov) { S.ov.remove(); S.ov = null; } document.removeEventListener('keydown', onKey); }
-  window.WCSetup = { VER, open, close, isOpen: () => !!S.ov, _S: S };
+      S.ov.addEventListener('click', (e) => run(OV, () => onClick(e))); S.ov.addEventListener('change', (e) => run(OV, () => onChange(e))); document.body.appendChild(S.ov); document.addEventListener('keydown', onKey); }
+    render(); if (!bridge.docsLoaded()) bridge.docsLoad().then(() => run(OV, () => { if (S.ov) render(); })); }
+  function close() { if (OV.ov) { OV.ov.remove(); OV.ov = null; } document.removeEventListener('keydown', onKey); }
+
+  // ---------- v1.3.0 ฟอร์มเดียวกันในหน้าอื่น (inline) ----------
+  // <div data-ws-host="main|party,bill" data-ws-pid="<pid>"></div> → วางอัตโนมัติ (bridge จาก window.__wsBridge())
+  const SECS = { main: () => secMain(), party: () => secParty(), bill: () => secBill() };
+  const sigOf = (c) => { try { const B = c.B; return JSON.stringify([B.proj(c.pid), B.parties(c.pid), B.billing(c.pid), B.canEdit(), B.money(), c.party]); } catch (e) { return ''; } };
+  function renderInl() { const c = S; if (!c.inline || !c.B) return; const B = c.B; const p = B.proj(c.pid);
+    if (!p) { c.host.innerHTML = '<div class="ws-inl"><div class="ws-hint">ไม่พบโครงการ</div></div>'; return; }
+    const sc = B.score(c.pid);
+    c.host.innerHTML = `<div class="ws-inl" translate="no"><div class="ws-inl-hd">⚙ ฟอร์มเดียวกับ <b>Setup · ตั้งค่าโครงการ</b> — แก้ที่นี่หรือที่ Setup ก็ข้อมูลชุดเดียวกัน · <span class="ws-inl-pct">ข้อมูลครบ ${sc.pct}%</span><span class="sp"></span><button class="ws-b" data-full>เปิด Setup เต็ม ↗</button></div>
+      ${!B.canEdit() ? '<div class="ws-ro">ดูได้อย่างเดียว — ข้อมูลโครงการแก้ได้เฉพาะ PM · QS · Director · Admin · การเงิน · ธุรการ</div>' : ''}${c.secs.map(k => SECS[k] ? SECS[k]() : '').join('')}</div>`;
+    c.sig = sigOf(c); }
+  function mount(host, bridge, o) { if (!host || !bridge) return null; css(); o = o || {};
+    let c = INL.find(x => x.host === host); if (c) { c.B = bridge; run(c, renderInl); return c; }
+    c = { B: bridge, host, inline: true, pid: o.pid || '', party: 'owner', ai: false, secs: (o.secs || ['main']).filter(k => SECS[k]), sig: '' };
+    host.addEventListener('click', (e) => run(c, () => onClick(e))); host.addEventListener('change', (e) => run(c, () => onChange(e)));
+    INL.push(c); run(c, renderInl); return c; }
+  function scan() { const br = window.__wsBridge; if (typeof br !== 'function') return;
+    document.querySelectorAll('[data-ws-host]').forEach(h => { const c = INL.find(x => x.host === h); const pid = h.getAttribute('data-ws-pid') || '';
+      if (c && h.querySelector('.ws-inl')) { if (pid !== c.pid) { c.pid = pid; c.party = 'owner'; run(c, renderInl); } return; }
+      if (c) INL.splice(INL.indexOf(c), 1);
+      try { mount(h, br(), { pid, secs: String(h.getAttribute('data-ws-host') || 'main').split(',') }); } catch (e) {} }); }
+  let scanQ = 0; const scanSoon = () => { if (scanQ) return; scanQ = requestAnimationFrame(() => { scanQ = 0; scan(); }); };
+  if (typeof MutationObserver !== 'undefined') { const start = () => { try { new MutationObserver(scanSoon).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-ws-pid'] }); scanSoon(); } catch (e) {} };
+    if (document.body) start(); else document.addEventListener('DOMContentLoaded', start); }
+  // ข้อมูลเปลี่ยนจากที่อื่น (Setup เต็ม · AI เติม · คนอื่นแก้) → วาดใหม่ (ไม่วาดทับตอนกำลังพิมพ์)
+  setInterval(() => { for (let i = INL.length - 1; i >= 0; i--) { const c = INL[i]; if (!c.host.isConnected) { INL.splice(i, 1); continue; }
+      const a = document.activeElement; if (a && c.host.contains(a) && a.matches('input,textarea,select')) continue; if (sigOf(c) !== c.sig) run(c, renderInl); } }, 1500);
+  window.WCSetup = { VER, open, close, mount, scan, isOpen: () => !!OV.ov, _S: OV, _INL: INL };
 })();
